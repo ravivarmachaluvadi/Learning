@@ -1,0 +1,392 @@
+<title>The Binding Rail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #f3eff2; --surface: #fcfafb; --surface2: #ece5ea;
+    --ink: #292227; --muted: #7d707a; --line: #ded2da;
+    --accent: #8d4a6e; --accent-soft: #f0dfe9;
+    --key1: #8d4a6e; --key1-soft: #f0dfe9;      /* USER */
+    --key2: #4a5a9c; --key2-soft: #dfe3f2;      /* REQUEST_ID */
+    --stale: #b5543b; --stale-soft: #f4e0d9;
+    --ok: #47805a; --ok-soft: #dfeae2;
+    --frame: #fcfafb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #201a1e; --surface: #2a2328; --surface2: #342c31;
+      --ink: #ece4e9; --muted: #a3949e; --line: #453a41;
+      --accent: #c583a6; --accent-soft: #3d2a35;
+      --key1: #c583a6; --key1-soft: #3d2a35;
+      --key2: #93a3e0; --key2-soft: #2a2f45;
+      --stale: #dd8266; --stale-soft: #402620;
+      --ok: #7fb894; --ok-soft: #24352b;
+      --frame: #2a2328;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #201a1e; --surface: #2a2328; --surface2: #342c31;
+    --ink: #ece4e9; --muted: #a3949e; --line: #453a41;
+    --accent: #c583a6; --accent-soft: #3d2a35;
+    --key1: #c583a6; --key1-soft: #3d2a35;
+    --key2: #93a3e0; --key2-soft: #2a2f45;
+    --stale: #dd8266; --stale-soft: #402620;
+    --ok: #7fb894; --ok-soft: #24352b;
+    --frame: #2a2328;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+  header h1 { font-family: "Fraunces", Georgia, serif; font-size: 30px; font-weight: 700; margin: 4px 0 2px; text-wrap: balance; }
+  header .sub { color: var(--muted); max-width: 76ch; margin: 0 0 6px; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  #verdict { margin: 14px 0; padding: 12px 16px; border-radius: 10px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 5px solid var(--accent); font-size: 15px; }
+  #verdict.bad { border-left-color: var(--stale); } #verdict.good { border-left-color: var(--ok); }
+  #verdict .tech { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; font-family: "IBM Plex Mono", monospace; }
+
+  .layout { display: grid; grid-template-columns: 290px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); }
+
+  .stories { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .stories button { text-align: left; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--ink); font: 600 13px "IBM Plex Sans", sans-serif; cursor: pointer; }
+  .stories button.active, .stories button:hover { border-color: var(--accent); }
+  .stories button.active { background: var(--accent-soft); }
+  .stories button .hint { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+
+  .opts { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .opts label { display: flex; gap: 8px; align-items: baseline; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--line); cursor: pointer; font-size: 12.5px; }
+  .opts label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .opts input { accent-color: var(--accent); }
+  .opts b { display: block; }
+  .optnote { font-size: 11.5px; color: var(--muted); }
+
+  .transport { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .transport button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
+    background: var(--surface2); color: var(--ink); font: 600 13px "IBM Plex Sans", sans-serif; }
+  .transport button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .stepnum { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .threads { display: flex; gap: 14px; flex-wrap: wrap; }
+  .thread { flex: 1 1 240px; min-width: 230px; background: var(--surface2); border: 1px dashed var(--line);
+    border-radius: 10px; padding: 10px; }
+  .thread h3 { margin: 0 0 2px; font-size: 13px; font-family: "IBM Plex Mono", monospace; }
+  .thread .tsub { font-size: 11px; color: var(--muted); margin: 0 0 8px; min-height: 15px; }
+  .cols { display: grid; grid-template-columns: 1fr 118px; gap: 8px; }
+  .stack { display: flex; flex-direction: column; gap: 4px; min-height: 120px; }
+  .frame { background: var(--frame); border: 1px solid var(--line); border-left: 4px solid var(--muted);
+    border-radius: 7px; padding: 4px 8px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; }
+  .frame.binder { border-left-color: var(--accent); }
+  .frame.active { font-weight: 600; }
+  .frame .note { display: block; font-family: "IBM Plex Sans", sans-serif; font-size: 10.5px; color: var(--muted); }
+  .frame.reads-ok .note { color: var(--ok); } .frame.reads-bad .note { color: var(--stale); }
+  .raillabel { font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .rail { display: flex; flex-direction: column; gap: 4px; }
+  .tag { border-radius: 7px; padding: 3px 7px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; border: 1px solid; }
+  .tag .k { display: block; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+  .tag.k1 { background: var(--key1-soft); border-color: var(--key1); color: var(--key1); }
+  .tag.k2 { background: var(--key2-soft); border-color: var(--key2); color: var(--key2); }
+  .tag.shadowed { opacity: .45; text-decoration: line-through; }
+  .tag.stale { background: var(--stale-soft); border-color: var(--stale); color: var(--stale); }
+  .tag.stale .k::after { content: " · STALE"; }
+  .empty { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  #loglines { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
+  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .ll.cur { border-left-color: var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+  .ll .t { font-size: 13px; }
+  .ll .tech { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
+  .foot { margin-top: 16px; color: var(--muted); font-size: 12.5px; max-width: 82ch; }
+  @media (prefers-reduced-motion: no-preference) { .frame, .tag { transition: opacity .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Java scoped values · step-through</div>
+    <h1>The Binding Rail</h1>
+    <p class="sub">A request carries context — who is calling, the request id — like a visitor badge: pinned on at the
+    front desk, read by every room, taken off at the exit. This page steps through how Java's <b>ScopedValue</b> pins
+    values to the <b>call stack</b> (watch the rail beside each stack), and how the older <b>ThreadLocal</b> badge gets
+    rewritten and forgotten. Pick a story; step with <b>Next</b> or press <b>Play</b>. Every step is narrated.</p>
+  </header>
+
+  <div id="verdict"><span id="vtext">Pick a story on the left, then press Play.</span><span class="tech" id="vtech"></span></div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Stories</h2>
+      <div class="stories" id="storybtns"></div>
+      <h2>Knobs for this story</h2>
+      <div class="opts" id="knobs"></div>
+      <div class="optnote" id="knobnote"></div>
+      <div class="transport">
+        <button id="btnPlay" class="primary">Play</button>
+        <button id="btnPrev">◀ Back</button>
+        <button id="btnNext">Next ▶</button>
+        <span class="stepnum" id="stepnum"></span>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Threads, stacks, and their binding rails</h2>
+        <div class="threads" id="threads"></div>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <h2>What just happened</h2>
+        <div id="loglines"></div>
+      </div>
+      <p class="foot"><b>How to read it</b>: each box column is one thread's call stack (top frame = currently running,
+      marked in bold). The narrow column beside it is that thread's <b>binding rail</b> — with ScopedValue it holds
+      exactly the badges pinned by the frames below it, so it can never disagree with the stack; with ThreadLocal it is
+      a free-floating pocket that survives after frames pop, which is where every bug in these stories lives. A
+      crossed-out badge is <i>shadowed</i>: temporarily covered by a rebinding lower in the stack. A red badge is
+      <i>stale</i>: left over from code that already returned.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ------------- story builders (no DOM — testable headlessly) ------------- */
+/* step: { narration, tech, verdict?, vclass?, threads: [{name, sub, frames:[{fn, note?, binder?, reads?}], rail:[{key,val,cls,shadowed?,stale?}]}] } */
+
+function storyBasic(k) {
+  const T = (frames, rail) => [{ name: "main (request thread)", sub: "one request, one thread", frames, rail }];
+  const R = [{ key: "REQUEST_ID", val: "req-7f3a", cls: "k2" }];
+  return [
+    { narration: "A request arrives. Nothing is bound yet — the rail is empty, and any REQUEST_ID.get() here would throw.",
+      tech: "REQUEST_ID.isBound() == false", threads: T([{ fn: "main()" }], []) },
+    { narration: "The front desk pins the badge: where(REQUEST_ID, \"req-7f3a\").run(handleRequest). The binding exists exactly as long as this frame.",
+      tech: "ScopedValue.where(...).run(...)", threads: T([{ fn: "main()" }, { fn: "where(...).run(...)", binder: true, note: "pins the badge" }], R) },
+    { narration: "handleRequest() calls validate() calls repository() — three plain calls, no context parameters anywhere.",
+      tech: "no signature mentions requestId", threads: T([{ fn: "main()" }, { fn: "where(...).run(...)", binder: true }, { fn: "handleRequest()" }, { fn: "validate()" }, { fn: "repository()" }], R) },
+    { narration: "Deep in the repository, REQUEST_ID.get() simply reads the badge: \"req-7f3a\". The value rode the call stack, not the argument lists.",
+      tech: "REQUEST_ID.get() → \"req-7f3a\"", verdict: "Three layers deep, zero parameters passed — and the read is guaranteed to see the binding of the nearest enclosing where().", vclass: "good",
+      threads: T([{ fn: "main()" }, { fn: "where(...).run(...)", binder: true }, { fn: "handleRequest()" }, { fn: "validate()" }, { fn: "repository()", reads: "ok", note: "get() → req-7f3a" }], R) },
+    { narration: "The request finishes; the stack unwinds; the binder frame pops — and the badge is GONE. No remove(), no cleanup code: leaving the block IS the cleanup.",
+      tech: "isBound() == false; nothing to forget", verdict: "The binding cannot outlive its block — the ThreadLocal leak has no spelling here.", vclass: "good",
+      threads: T([{ fn: "main()", note: "get() would throw here" }], []) },
+  ];
+}
+
+function storyRebind(k) {
+  const T = (frames, rail) => [{ name: "main (request thread)", sub: "running as ravi; one step needs system", frames, rail }];
+  const outer = { key: "USER", val: "ravi", cls: "k1" };
+  return [
+    { narration: "The request runs as USER = \"ravi\".", tech: "where(USER, \"ravi\").run(...)",
+      threads: T([{ fn: "main()" }, { fn: "where(USER, ravi).run(...)", binder: true }, { fn: "handleRequest()", reads: "ok", note: "get() → ravi" }], [outer]) },
+    { narration: "The audit write must run as \"system\". We REBIND: a second where() pins a new badge ON TOP. The outer badge isn't changed — it's covered.",
+      tech: "where(USER, \"system\").run(audit)", threads: T([
+        { fn: "main()" }, { fn: "where(USER, ravi).run(...)", binder: true }, { fn: "handleRequest()" },
+        { fn: "where(USER, system).run(...)", binder: true, note: "shadows the outer badge" }, { fn: "auditWrite()", reads: "ok", note: "get() → system" }],
+        [Object.assign({}, outer, { shadowed: true }), { key: "USER", val: "system", cls: "k1" }]) },
+    { narration: "The audit write crashes! The exception unwinds the stack... and the inner badge pops with its frame. There is no finally-block to write and none to forget.",
+      tech: "RuntimeException → inner binding unwound", threads: T([
+        { fn: "main()" }, { fn: "where(USER, ravi).run(...)", binder: true }, { fn: "handleRequest()", note: "catches the exception" }], [outer]) },
+    { narration: "Back in the request: USER.get() is \"ravi\" again — restored by the stack itself, on the exception path, with zero cleanup code.",
+      tech: "get() → \"ravi\"", verdict: "Rebinding is nesting, not mutation: the inner value exists only for the inner block, and restoration is not code you write — it is the stack unwinding.", vclass: "good",
+      threads: T([{ fn: "main()" }, { fn: "where(USER, ravi).run(...)", binder: true }, { fn: "handleRequest()", reads: "ok", note: "get() → ravi" }], [outer]) },
+  ];
+}
+
+function storyLeak(k) {
+  const forgot = k.forgot !== false;         // default: cleanup forgotten
+  const reuse = k.reuse !== false;           // default: same pooled thread
+  const t1frames = f => ({ name: "pool-1-thread-1", sub: "a pooled platform thread, reused across requests", frames: f.frames, rail: f.rail });
+  const steps = [
+    { narration: "Old world: ThreadLocal. Request A (alice) starts on pooled thread-1 and calls CURRENT_USER.set(\"alice\") — a write into the thread's pocket, tied to nothing.",
+      tech: "CURRENT_USER.set(\"alice\")", threads: [t1frames({ frames: [{ fn: "requestA()" }, { fn: "set(\"alice\")", binder: true, note: "writes the pocket" }], rail: [{ key: "CURRENT_USER", val: "alice", cls: "k1" }] })] },
+    { narration: "Request A does its work and returns." + (forgot ? " The finally { remove() } was deleted in a refactor — nobody notices, nothing fails." : " Its finally block calls CURRENT_USER.remove() — the cleanup survives, this time."),
+      tech: forgot ? "remove() never called" : "CURRENT_USER.remove()",
+      threads: [t1frames({ frames: [{ fn: "(idle — request A finished)" }], rail: forgot ? [{ key: "CURRENT_USER", val: "alice", cls: "k1", stale: true }] : [] })] },
+  ];
+  if (reuse) steps.push(
+    { narration: "Request B — a different user, who never logged in as anyone — is assigned to the SAME pooled thread.",
+      tech: "pool reuses thread-1", threads: [t1frames({ frames: [{ fn: "requestB()" }], rail: forgot ? [{ key: "CURRENT_USER", val: "alice", cls: "k1", stale: true }] : [] })] },
+    forgot
+      ? { narration: "Request B asks: who am I? CURRENT_USER.get() → \"alice\". Silently. No exception, no log line — request B now acts with request A's identity.",
+          tech: "get() → \"alice\" (stale)", verdict: "The stale badge: a ThreadLocal outlived its request and leaked one user's identity into another's. This bug class is exactly what ScopedValue makes unspellable.", vclass: "bad",
+          threads: [t1frames({ frames: [{ fn: "requestB()", reads: "bad", note: "get() → alice ?!" }], rail: [{ key: "CURRENT_USER", val: "alice", cls: "k1", stale: true }] })] }
+      : { narration: "Request B asks: who am I? CURRENT_USER.get() → null. Safe — but only because a human remembered a cleanup line this time.",
+          tech: "get() → null", verdict: "Correct — but the correctness hangs on a remove() call that any refactor can delete. Toggle the knob to delete it.", vclass: "good",
+          threads: [t1frames({ frames: [{ fn: "requestB()", note: "get() → null" }], rail: [] })] });
+  else steps.push(
+    { narration: "Request B lands on a FRESH thread (no pooling). Its pocket is empty — the bug hides. This is why the leak 'never happens in dev' and appears under production load, when pools actually reuse threads.",
+      tech: "fresh thread → empty pocket", verdict: forgot ? "Nothing failed — this run. The stale badge still sits on thread-1, waiting for the next request that lands there." : "Nothing failed, and nothing was left behind either.", vclass: forgot ? "bad" : "good",
+      threads: [t1frames({ frames: [{ fn: "(idle — still holding the pocket)" }], rail: forgot ? [{ key: "CURRENT_USER", val: "alice", cls: "k1", stale: true }] : [] }),
+        { name: "pool-1-thread-2", sub: "a fresh thread", frames: [{ fn: "requestB()", note: "get() → null" }], rail: [] }] });
+  return steps;
+}
+
+function storyInherit(k) {
+  const mainT = (frames, rail) => ({ name: "main (request thread)", sub: "owns the binding", frames, rail });
+  const R = [{ key: "REQUEST_ID", val: "req-42", cls: "k2" }];
+  return [
+    { narration: "The request binds REQUEST_ID = \"req-42\" and opens a structured-concurrency scope to fan out.",
+      tech: "where(...).run → StructuredTaskScope.open()", threads: [mainT([{ fn: "main()" }, { fn: "where(REQUEST_ID, req-42).run(...)", binder: true }, { fn: "scope.open()" }], R)] },
+    { narration: "scope.fork(...) starts a child. The child is guaranteed (by the scope) to finish before the binding's block exits — so it safely SEES the parent's rail, by reference: no copying.",
+      tech: "fork inherits bindings (JEP 506 + 505)", threads: [
+        mainT([{ fn: "main()" }, { fn: "where(REQUEST_ID, req-42).run(...)", binder: true }, { fn: "scope.join() — waiting" }], R),
+        { name: "fork: fetchOrders", sub: "structured child — inside the request's lifetime", frames: [{ fn: "fetchOrders()", reads: "ok", note: "get() → req-42" }], rail: R.map(x => Object.assign({}, x)) }] },
+    { narration: "Meanwhile someone hand-starts a thread with Thread.ofVirtual().start(...). The JVM has NO idea how long it will live — it could easily outlive the request — so it inherits nothing.",
+      tech: "bare threads: isBound() == false", verdict: "Inheritance follows structure: children whose lifetime is contained (structured forks) see the badge; free-floating threads do not — a badge must never outlive its wearer.", vclass: "good",
+      threads: [
+        mainT([{ fn: "main()" }, { fn: "where(REQUEST_ID, req-42).run(...)", binder: true }, { fn: "scope.join() — waiting" }], R),
+        { name: "fork: fetchOrders", sub: "structured child", frames: [{ fn: "fetchOrders()", reads: "ok", note: "get() → req-42" }], rail: R.map(x => Object.assign({}, x)) },
+        { name: "hand-started thread", sub: "unstructured — could outlive everything", frames: [{ fn: "run()", note: "isBound() → false" }], rail: [] }] },
+  ];
+}
+
+function storyEscape(k) {
+  const sv = k.api !== "threadlocal";
+  const mainT = (frames, rail) => ({ name: "main (request thread)", sub: "binds, queues audit, returns", frames, rail });
+  const audT = (frames, rail) => ({ name: "audit-pool-thread", sub: "runs the lambda LATER", frames, rail });
+  const R = [{ key: "REQUEST_ID", val: "req-7f3a", cls: "k2" }];
+  return [
+    { narration: "The request binds REQUEST_ID and queues an audit write on a background executor — fire and forget. The lambda will run later, on another thread.",
+      tech: "auditPool.execute(() -> ... REQUEST_ID.get() ...)", threads: [
+        mainT([{ fn: "main()" }, { fn: sv ? "where(...).run(...)" : "set(\"req-7f3a\")", binder: true }, { fn: "handleRequest()", note: "queues the lambda" }], R),
+        audT([{ fn: "(idle — lambda queued)" }], []) ] },
+    { narration: "The request finishes and the block exits. " + (sv ? "The binding dies with its frame — the rail is clean." : "The ThreadLocal pocket on the MAIN thread still holds the value (and the audit thread's pocket never had it)."),
+      tech: sv ? "binding unwound with the stack" : "main thread pocket: stale; audit pocket: empty", threads: [
+        mainT([{ fn: "main()", note: "request over" }], sv ? [] : R.map(x => Object.assign({}, x, { stale: true }))),
+        audT([{ fn: "(idle — lambda queued)" }], []) ] },
+    sv
+      ? { narration: "150 ms later the audit thread runs the lambda and calls REQUEST_ID.get() — on a different thread, after the scope died. It CRASHES, loudly, pointing at the exact line: NoSuchElementException: ScopedValue not bound.",
+          tech: "java.util.NoSuchElementException: ScopedValue not bound", verdict: "The escape fails LOUDLY on first run. Fix: read the value while the binding is alive and close over it — String id = REQUEST_ID.get(); pool.execute(() -> write(id)).", vclass: "bad",
+          threads: [ mainT([{ fn: "main()", note: "request over" }], []),
+            audT([{ fn: "lambda.run()", reads: "bad", note: "get() → THROWS" }], []) ] }
+      : { narration: "150 ms later the audit thread runs the lambda and calls CURRENT_USER.get() — and quietly gets null (its own pocket is empty). No crash. The audit row is written with user=null, and you find out weeks later.",
+          tech: "get() → null; row written wrong", verdict: "The same bug, silent: ThreadLocal doesn't even fail — it fabricates. This is why ScopedValue throwing here is a feature, not an inconvenience.", vclass: "bad",
+          threads: [ mainT([{ fn: "main()", note: "request over, pocket still stale" }], R.map(x => Object.assign({}, x, { stale: true }))),
+            audT([{ fn: "lambda.run()", reads: "bad", note: "get() → null" }], []) ] },
+  ];
+}
+
+const STORIES = [
+  { id: "basic",   title: "1 · The badge rides the stack",   hint: "Bind at the top, read three layers down, gone at the exit", build: storyBasic, knobs: [] },
+  { id: "rebind",  title: "2 · Borrowed authority",          hint: "Rebind for one sub-call; the stack restores it — even on a crash", build: storyRebind, knobs: [] },
+  { id: "leak",    title: "3 · The stale badge (ThreadLocal)", hint: "A forgotten cleanup leaks one user's identity into the next", build: storyLeak,
+    knobs: [ { id: "forgot", label: "the cleanup line was deleted", note: "uncheck to keep the finally { remove() }", def: true },
+             { id: "reuse", label: "request B lands on the same pooled thread", note: "uncheck for a fresh thread — watch the bug hide", def: true } ] },
+  { id: "inherit", title: "4 · Who inherits the badge",      hint: "Structured forks see it; hand-started threads never do", build: storyInherit, knobs: [] },
+  { id: "escape",  title: "5 · The badge left on the desk",  hint: "A queued lambda runs after the scope died — loud vs silent", build: storyEscape,
+    knobs: [ { id: "tl", label: "use ThreadLocal instead of ScopedValue", note: "same bug, but watch HOW it fails", def: false } ] },
+];
+
+function buildSteps(storyId, knobState) {
+  const s = STORIES.find(x => x.id === storyId);
+  const k = {};
+  if (storyId === "leak") { k.forgot = knobState.forgot !== false; k.reuse = knobState.reuse !== false; }
+  if (storyId === "escape") { k.api = knobState.tl ? "threadlocal" : "scopedvalue"; }
+  return s.build(k);
+}
+
+/* ------------- headless self-test ------------- */
+if (typeof document === "undefined") {
+  for (const s of STORIES) {
+    const steps = buildSteps(s.id, {});
+    console.assert(steps.length >= 3, s.id + ": too few steps");
+    for (const st of steps) console.assert(st.narration && st.threads.length > 0, s.id + ": malformed step");
+  }
+  const leakForgot = buildSteps("leak", { forgot: true, reuse: true });
+  console.assert(leakForgot.at(-1).vclass === "bad" && leakForgot.at(-1).threads[0].rail[0].stale, "leak+forgot must end stale/bad");
+  const leakClean = buildSteps("leak", { forgot: false, reuse: true });
+  console.assert(leakClean.at(-1).vclass === "good" && leakClean.at(-1).threads[0].rail.length === 0, "leak+cleanup must end clean");
+  const leakFresh = buildSteps("leak", { forgot: true, reuse: false });
+  console.assert(leakFresh.at(-1).threads.length === 2, "fresh-thread variant shows two threads");
+  const escSV = buildSteps("escape", {});
+  console.assert(escSV.at(-1).tech.includes("NoSuchElementException"), "SV escape ends in the loud crash");
+  const escTL = buildSteps("escape", { tl: true });
+  console.assert(escTL.at(-1).tech.includes("null"), "TL escape ends silent");
+  const basic = buildSteps("basic", {});
+  console.assert(basic.at(-1).threads[0].rail.length === 0, "basic ends with empty rail");
+  console.log("self-test: all", STORIES.length, "stories build; knob variants verified");
+}
+
+/* ------------- UI ------------- */
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+  let storyId = "basic", knobState = {}, steps = [], idx = 0, timer = null;
+
+  function renderStoryButtons() {
+    $("storybtns").replaceChildren(...STORIES.map(s => {
+      const b = document.createElement("button");
+      b.className = s.id === storyId ? "active" : "";
+      b.innerHTML = `<span>${s.title}</span><span class="hint">${s.hint}</span>`;
+      b.addEventListener("click", () => { storyId = s.id; knobState = {}; loadStory(true); });
+      return b;
+    }));
+    const s = STORIES.find(x => x.id === storyId);
+    $("knobs").replaceChildren(...s.knobs.map(kn => {
+      const lab = document.createElement("label");
+      const on = knobState[kn.id] !== undefined ? knobState[kn.id] : kn.def;
+      lab.innerHTML = `<input type="checkbox" ${on ? "checked" : ""}><span><b>${kn.label}</b>${kn.note}</span>`;
+      lab.querySelector("input").addEventListener("change", e => { knobState[kn.id] = e.target.checked; loadStory(false); });
+      return lab;
+    }));
+    $("knobnote").textContent = s.knobs.length ? "" : "This story has no knobs — its point holds in every configuration.";
+  }
+
+  function loadStory(autoplay) {
+    stop();
+    const s = STORIES.find(x => x.id === storyId);
+    for (const kn of s.knobs) if (knobState[kn.id] === undefined) knobState[kn.id] = kn.def;
+    steps = buildSteps(storyId, knobState); idx = 0;
+    renderStoryButtons(); render();
+    if (autoplay) play();
+  }
+
+  function render() {
+    const st = steps[idx];
+    $("stepnum").textContent = `step ${idx + 1} / ${steps.length}`;
+    $("vtext").textContent = st.verdict || st.narration;
+    $("vtech").textContent = st.tech || "";
+    $("verdict").className = st.vclass || "";
+    $("threads").replaceChildren(...st.threads.map(t => {
+      const d = document.createElement("div"); d.className = "thread";
+      const frames = t.frames.map((f, i) => {
+        const cls = ["frame", f.binder ? "binder" : "", i === t.frames.length - 1 ? "active" : "",
+          f.reads === "ok" ? "reads-ok" : "", f.reads === "bad" ? "reads-bad" : ""].join(" ");
+        return `<div class="${cls}">${f.fn}${f.note ? `<span class="note">${f.note}</span>` : ""}</div>`;
+      }).join("");
+      const rail = t.rail.length
+        ? t.rail.map(x => `<div class="tag ${x.cls}${x.shadowed ? " shadowed" : ""}${x.stale ? " stale" : ""}"><span class="k">${x.key}</span>${x.val}</div>`).join("")
+        : `<div class="empty">nothing bound</div>`;
+      d.innerHTML = `<h3>${t.name}</h3><p class="tsub">${t.sub || ""}</p>
+        <div class="cols"><div><div class="raillabel">call stack</div><div class="stack">${frames}</div></div>
+        <div><div class="raillabel">binding rail</div><div class="rail">${rail}</div></div></div>`;
+      return d;
+    }));
+    $("loglines").replaceChildren(...steps.slice(0, idx + 1).map((s2, i) => {
+      const d = document.createElement("div"); d.className = "ll" + (i === idx ? " cur" : "");
+      d.innerHTML = `<div class="t">${s2.narration}</div><div class="tech">step ${i + 1} · ${s2.tech || ""}</div>`;
+      return d;
+    }).reverse());
+  }
+
+  function next() { if (idx < steps.length - 1) { idx++; render(); } else stop(); }
+  function prev() { stop(); if (idx > 0) { idx--; render(); } }
+  function play() { stop(); $("btnPlay").textContent = "Pause";
+    timer = setInterval(() => { if (idx < steps.length - 1) { idx++; render(); } else stop(); }, 2600); }
+  function stop() { if (timer) clearInterval(timer); timer = null; $("btnPlay").textContent = "Play"; }
+
+  $("btnNext").addEventListener("click", () => { stop(); next(); });
+  $("btnPrev").addEventListener("click", prev);
+  $("btnPlay").addEventListener("click", () => timer ? stop() : (idx === steps.length - 1 && (idx = 0), play()));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { stop(); next(); } else if (e.key === "ArrowLeft") prev();
+  });
+
+  renderStoryButtons(); loadStory(false);
+}
+</script>

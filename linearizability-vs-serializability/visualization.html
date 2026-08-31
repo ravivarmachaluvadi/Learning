@@ -1,0 +1,674 @@
+<title>One History, Three Judges</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#f6f3ec; --surface:#fffdf7; --surface2:#efeadf; --ink:#272217;
+  --muted:#70685a; --line:#d9d2c2; --accent:#4a5a94;
+  --t1:#4553ae; --t2:#a06d1c; --t3:#1f7f8a; --t4:#8a4a7d;
+  --ok:#2e7a4c; --okbg:#e4f0e6; --bad:#b23a30; --badbg:#f6e5e2;
+  --sel:#4a5a94; --flash:#f3e9c8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1a1713; --surface:#221e18; --surface2:#2b261e; --ink:#ece6d8;
+    --muted:#a19886; --line:#3d372c; --accent:#93a3d8;
+    --t1:#8b97e0; --t2:#d3a34e; --t3:#5cb6c2; --t4:#c98ab8;
+    --ok:#7dc496; --okbg:#22352a; --bad:#e08b81; --badbg:#3d2723;
+    --sel:#93a3d8; --flash:#3a3320;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1a1713; --surface:#221e18; --surface2:#2b261e; --ink:#ece6d8;
+  --muted:#a19886; --line:#3d372c; --accent:#93a3d8;
+  --t1:#8b97e0; --t2:#d3a34e; --t3:#5cb6c2; --t4:#c98ab8;
+  --ok:#7dc496; --okbg:#22352a; --bad:#e08b81; --badbg:#3d2723;
+  --sel:#93a3d8; --flash:#3a3320;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:"Public Sans",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;padding:0}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 22px 60px}
+header{margin-bottom:14px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:650;font-size:30px;margin:0 0 4px;text-wrap:balance}
+.tagline{color:var(--muted);max-width:70ch;margin:0}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+@media(max-width:980px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:8px}
+.toolbar .hint{color:var(--muted);font-size:13px}
+.toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-weight:600}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.tl-scroll{overflow-x:auto}
+svg{display:block}
+text{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.laneLabel{font-family:"Public Sans",sans-serif;font-weight:600;font-size:12px;fill:var(--muted)}
+.axis line{stroke:var(--line)}
+.axis text{fill:var(--muted);font-size:10px}
+.bar{cursor:grab}
+.bar:active{cursor:grabbing}
+.bar rect{stroke-width:1.6}
+.bar text{font-size:11.5px;font-weight:600;pointer-events:none}
+.txnbox{fill:none;stroke-dasharray:5 4;stroke-width:1.4;opacity:.85}
+.txnlbl{font-size:10.5px;font-weight:600}
+.verdictStrip{margin-top:10px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);font-size:15px}
+.verdictStrip.masked{color:var(--muted);font-style:italic}
+.verdictStrip .money{font-weight:700}
+.judges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+@media(max-width:760px){.judges{grid-template-columns:1fr}}
+.judge{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 13px;display:flex;flex-direction:column;gap:8px}
+.judge h3{font-family:Fraunces,Georgia,serif;font-weight:650;font-size:17px;margin:0}
+.judge .sub{color:var(--muted);font-size:12px;margin-top:-6px}
+.pill{display:inline-block;padding:2px 11px;border-radius:99px;font-weight:700;font-size:13px;letter-spacing:.03em}
+.pill.ok{background:var(--okbg);color:var(--ok)}
+.pill.bad{background:var(--badbg);color:var(--bad)}
+.pill.na{background:var(--surface2);color:var(--muted)}
+.judge .expl{font-size:13.5px}
+.judge .expl .mono, .verdictStrip .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px}
+.judge details{font-size:12.5px;color:var(--muted)}
+.judge details summary{cursor:pointer;font-weight:600}
+.judge ul{margin:6px 0 0;padding-left:18px}
+.judge li{margin-bottom:3px}
+.objrow{display:flex;gap:8px;align-items:baseline;font-size:13.5px}
+.objrow .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.inspector{margin-top:10px;font-size:13px;color:var(--muted);min-height:1.4em}
+.inspector b{color:var(--ink)}
+.rail{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 13px;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--accent)}
+.card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card h4{margin:0 0 3px;font-size:14.5px;font-weight:700}
+.card .story{font-size:12.5px;color:var(--muted);margin:0}
+.card .num{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--accent);font-weight:600}
+.predict{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
+.predict p{margin:0 0 7px;font-size:13px;font-weight:600}
+.predict button{display:block;width:100%;text-align:left;margin-bottom:5px;background:var(--surface2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:6px 9px;font:inherit;font-size:12.5px;cursor:pointer}
+.predict button:hover{border-color:var(--accent)}
+.predict button:focus-visible,.toggle input:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.predict button.chosen-right{border-color:var(--ok);background:var(--okbg)}
+.predict button.chosen-wrong{border-color:var(--bad);background:var(--badbg)}
+.predict button.reveal-right{border-color:var(--ok)}
+.predict .feedback{font-size:12.5px;margin-top:6px}
+.predict .skip{background:none;border:none;color:var(--muted);text-decoration:underline;width:auto;padding:2px 0;font-size:12px}
+.legend{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.legend .chip{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:16px;height:11px;border-radius:2px;display:inline-block}
+.num, .mono{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>One History, Three Judges</h1>
+  <p class="tagline">The same recorded day at a small bank, examined by three inspectors: the <b>notary</b> (linearizability — single events, wall clock), the <b>auditor</b> (serializability — whole procedures, no clock), and the inspector doing <b>both jobs</b> (strict serializability). Pick a scenario on the right, make your prediction, then drag the bars and watch which judges care.</p>
+</header>
+
+<div class="cols">
+<div>
+  <div class="panel">
+    <div class="toolbar">
+      <label class="toggle"><input type="checkbox" id="groupToggle"> Judge as declared transactions</label>
+      <span class="hint">drag any bar left/right · click a bar to inspect it</span>
+    </div>
+    <div class="tl-scroll"><svg id="tl" width="860" height="200" viewBox="0 0 860 200" role="img" aria-label="timeline of operations"></svg></div>
+    <div class="inspector" id="inspector">Click any operation bar to see the real-time constraints it lives under.</div>
+    <div class="legend" id="legend">
+      <span class="chip"><span class="sw" style="background:var(--t1)"></span> filled = a write</span>
+      <span class="chip"><span class="sw" style="border:1.6px solid var(--t1);background:transparent"></span> outlined = a read</span>
+      <span class="chip">dashed box = one transaction (only when the toggle is on)</span>
+      <span class="chip">bar length = the request being in flight; the true instant is somewhere inside</span>
+    </div>
+  </div>
+
+  <div class="verdictStrip masked" id="strip">Choose a scenario card to begin.</div>
+
+  <div class="judges">
+    <div class="judge" id="jL">
+      <h3>The Notary</h3><div class="sub">Linearizability, per object — single operations, wall clock respected</div>
+      <div><span class="pill na" id="jLpill">—</span></div>
+      <div class="expl" id="jLexpl"></div>
+    </div>
+    <div class="judge" id="jS">
+      <h3>The Auditor</h3><div class="sub">Serializability — whole transactions, any order, no clock</div>
+      <div><span class="pill na" id="jSpill">—</span></div>
+      <div class="expl" id="jSexpl"></div>
+    </div>
+    <div class="judge" id="jSS">
+      <h3>Both Jobs</h3><div class="sub">Strict serializability — transactions, and the clock binds</div>
+      <div><span class="pill na" id="jSSpill">—</span></div>
+      <div class="expl" id="jSSexpl"></div>
+    </div>
+  </div>
+</div>
+
+<div class="rail" id="rail"></div>
+</div>
+</div>
+
+<script>
+"use strict";
+/* ============ ENGINE (DOM-free; validated headlessly) ============ */
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+const SCENARIOS = [
+{ id:1, name:"The vanished deposit", grouped:true,
+  story:"A teller deposits ₹5,000 (balance 1000 → 6000); the write is acknowledged. Eight seconds later the mobile app reads the balance.",
+  init:{balance:1000},
+  ops:[
+    {id:"w1",client:"Teller",txn:"T1",obj:"balance",kind:"w",val:6000,t0:1,t1:3},
+    {id:"r1",client:"Mobile app",txn:"T2",obj:"balance",kind:"r",val:1000,t0:5,t1:7}
+  ],
+  predict:{q:"The database is SERIALIZABLE. Can the app's read legally return the old 1000?",
+    options:[
+      {label:"No — serializable forbids showing stale data",correct:false},
+      {label:"Yes — the serializability judge has no clock",correct:true},
+      {label:"Only if the two requests overlap in time",correct:false}],
+    explain:"Yes. The auditor explains the day as “mobile read first, then deposit” — an order that runs backwards past the wall clock, which this judge cannot see. Only the notary and the strict judge refuse. Now drag the read left until it overlaps the deposit and watch their verdicts flip."} },
+
+{ id:2, name:"Two ATMs, no groups declared", grouped:false,
+  story:"Balance 1000. Each ATM reads the balance, checks ≥ 800, writes 200. Nobody declared the read+write as one transaction.",
+  init:{x:1000},
+  ops:[
+    {id:"a1",client:"ATM A",txn:"TA",obj:"x",kind:"r",val:1000,t0:1,t1:2},
+    {id:"b1",client:"ATM B",txn:"TB",obj:"x",kind:"r",val:1000,t0:1.5,t1:2.5},
+    {id:"a2",client:"ATM A",txn:"TA",obj:"x",kind:"w",val:200,t0:4,t1:5},
+    {id:"b2",client:"ATM B",txn:"TB",obj:"x",kind:"w",val:200,t0:5.5,t1:6.5}
+  ],
+  anomaly:"…and yet ₹1,600 left a ₹1,000 account.",
+  predict:{q:"Every operation hits a perfectly linearizable store. With the grouping toggle OFF, what do the judges say?",
+    options:[
+      {label:"Someone must go red — money was lost",correct:false},
+      {label:"All three judges approve, and the money is still lost",correct:true}],
+    explain:"All green. Per single operation nothing is wrong, and with each operation its own tiny transaction even the auditor finds an order. The invariant lived between two operations no one declared as a group — the guarantee cannot protect a group it was never told about."} },
+
+{ id:3, name:"The same ATMs, grouped", grouped:true, sameOpsAs:2,
+  story:"Identical bars. One change: each ATM's read+write is now declared one transaction (the toggle switches ON).",
+  init:{x:1000},
+  ops:null,
+  predict:{q:"Same bars, now grouped into two transactions. Which judge changes their ruling?",
+    options:[
+      {label:"The notary — the operations are now wrong",correct:false},
+      {label:"The auditor — no serial order explains both ATMs reading 1000",correct:true},
+      {label:"None — grouping is cosmetic",correct:false}],
+    explain:"Only the auditor (and therefore the strict judge). ATM-A-first means ATM B must read 200; B-first is symmetric. The bars never moved — one declaration changed the verdict. Scope is an axis of its own."} },
+
+{ id:4, name:"Two doctors (write skew)", grouped:true,
+  story:"Both on-call flags are 1. Each doctor reads both flags, sees two on call, and clears their own flag.",
+  init:{a:1,b:1},
+  ops:[
+    {id:"d1",client:"Dr. Asha",txn:"T1",obj:"a",kind:"r",val:1,t0:1,t1:2},
+    {id:"d2",client:"Dr. Asha",txn:"T1",obj:"b",kind:"r",val:1,t0:2.5,t1:3.5},
+    {id:"d3",client:"Dr. Asha",txn:"T1",obj:"a",kind:"w",val:0,t0:4,t1:5},
+    {id:"e1",client:"Dr. Ben",txn:"T2",obj:"a",kind:"r",val:1,t0:1.2,t1:2.2},
+    {id:"e2",client:"Dr. Ben",txn:"T2",obj:"b",kind:"r",val:1,t0:2.7,t1:3.7},
+    {id:"e3",client:"Dr. Ben",txn:"T2",obj:"b",kind:"w",val:0,t0:4.2,t1:5.2}
+  ],
+  anomaly:"…and the rule “at least one doctor on call” is dead: both flags are now 0.",
+  predict:{q:"They write DIFFERENT flags. Every operation is individually perfect. Is the pair of transactions serializable?",
+    options:[
+      {label:"Yes — the writes don't even touch the same object",correct:false},
+      {label:"No — in either serial order, the second doctor would have seen a cleared flag",correct:true}],
+    explain:"No. Serially, whoever goes second reads the other's flag as 0 and the check fails — but both actually read 1. The shared thing was a rule spanning both objects, which the per-object notary is structurally unable to see. This is write skew, the gap H2 and Oracle's SERIALIZABLE leave open."} },
+
+{ id:5, name:"The causal reverse", grouped:true,
+  story:"T1 writes x and fully commits. Then T2 writes y (a different key). Then T3 reads y — sees the new value — and reads x — sees the old one.",
+  init:{x:0,y:0},
+  ops:[
+    {id:"p1",client:"Writer P",txn:"T1",obj:"x",kind:"w",val:1,t0:1,t1:2.5},
+    {id:"q1",client:"Writer Q",txn:"T2",obj:"y",kind:"w",val:1,t0:4,t1:5.5},
+    {id:"z1",client:"Reader R",txn:"T3",obj:"y",kind:"r",val:1,t0:7,t1:8},
+    {id:"z2",client:"Reader R",txn:"T3",obj:"x",kind:"r",val:0,t0:8.5,t1:9.5}
+  ],
+  predict:{q:"T1 finished before T2 even began. Can a SERIALIZABLE system still show T3 the new y but the old x?",
+    options:[
+      {label:"No — y's new value proves x's write already happened",correct:false},
+      {label:"Yes — x and y never conflict, so the auditor slides T1 to the end",correct:true}],
+    explain:"Yes: order T2 → T3 → T1 explains every read, because disjoint-key T1 and T2 never conflict — the auditor freely reorders them. Only real time proves T1 came first, and only the strict judge reads clocks. This is CockroachDB's documented “causal reverse”; Spanner closes it by paying commit-wait."} },
+
+{ id:6, name:"Caught mid-flight", grouped:true,
+  story:"T1 writes x then y. Overlapping it, T2 reads y first (gets the OLD 0), then reads x (gets the NEW 1). Every bar's timing is innocent.",
+  init:{x:0,y:0},
+  ops:[
+    {id:"m1",client:"Writer P",txn:"T1",obj:"x",kind:"w",val:1,t0:1,t1:2},
+    {id:"m2",client:"Writer P",txn:"T1",obj:"y",kind:"w",val:1,t0:3.5,t1:4.5},
+    {id:"n1",client:"Reader Q",txn:"T2",obj:"y",kind:"r",val:0,t0:2.2,t1:3},
+    {id:"n2",client:"Reader Q",txn:"T2",obj:"x",kind:"r",val:1,t0:5,t1:6}
+  ],
+  predict:{q:"T2 saw half of T1 (new x, old y). Does the notary object to anything here?",
+    options:[
+      {label:"Yes — seeing half a transaction breaks the single-copy illusion",correct:false},
+      {label:"No — each object's own timeline is impeccable; only the auditor objects",correct:true}],
+    explain:"The notary passes both objects: y was read before its write began, x after its write finished — flawless per object. But no serial order explains reading old-y and new-x from an atomic T1. A torn read is a transaction-scope defect; per-object judges catch it only by luck of timing. This is why “atomic visibility” was a separate requirement in the distributed-transactions lab."} }
+];
+SCENARIOS[2].ops = clone(SCENARIOS[1].ops);
+
+/* --- transactions from ops --- */
+function groupsOf(ops, grouped){
+  const m = new Map();
+  for(const op of ops){
+    const key = grouped ? op.txn : op.id;
+    if(!m.has(key)) m.set(key, {name: grouped? op.txn : op.txn+"·"+opLabel(op), ops:[]});
+    m.get(key).ops.push(op);
+  }
+  const gs = [...m.values()];
+  for(const g of gs){
+    g.ops.sort((a,b)=>a.t0-b.t0);
+    g.t0 = Math.min(...g.ops.map(o=>o.t0));
+    g.t1 = Math.max(...g.ops.map(o=>o.t1));
+  }
+  return gs;
+}
+function opLabel(op){ return (op.kind==="w" ? "w "+op.obj+"="+op.val : "r "+op.obj+"→"+op.val); }
+
+function permutations(arr){
+  if(arr.length<=1) return [arr.slice()];
+  const out=[];
+  for(let i=0;i<arr.length;i++){
+    const rest=arr.slice(0,i).concat(arr.slice(i+1));
+    for(const p of permutations(rest)) out.push([arr[i]].concat(p));
+  }
+  return out;
+}
+
+/* Serializability / strict-serializability judge */
+function checkSerial(scn, ops, grouped, strict){
+  const gs = groupsOf(ops, grouped);
+  const perms = permutations(gs);
+  const tried=[]; let forbidden=0;
+  for(const perm of perms){
+    if(strict){
+      let viol=false;
+      for(let i=0;i<perm.length && !viol;i++)
+        for(let j=i+1;j<perm.length;j++)
+          if(perm[j].t1 < perm[i].t0){ viol=true; break; }
+      if(viol){ forbidden++; continue; }
+    }
+    const state = Object.assign({}, scn.init);
+    let fail=null;
+    outer:
+    for(const g of perm){
+      for(const op of g.ops){
+        if(op.kind==="w") state[op.obj]=op.val;
+        else if(state[op.obj]!==op.val){
+          fail = g.name+"'s read of "+op.obj+" must see "+state[op.obj]+" here; it returned "+op.val;
+          break outer;
+        }
+      }
+    }
+    if(!fail){
+      const inversions=[];
+      for(let i=0;i<perm.length;i++)
+        for(let j=i+1;j<perm.length;j++)
+          if(perm[j].t1 < perm[i].t0) inversions.push([perm[j].name, perm[i].name]);
+      return {ok:true, order:perm.map(g=>g.name), inversions, tried, forbidden, nGroups:gs.length};
+    }
+    tried.push({order:perm.map(g=>g.name), fail});
+  }
+  return {ok:false, tried, forbidden, nGroups:gs.length};
+}
+
+/* Linearizability judge, per object (locality) */
+function linSearchObj(ops, initVal){
+  const n=ops.length, used=new Array(n).fill(false), placed=[];
+  function rec(val){
+    if(placed.length===n) return true;
+    for(let i=0;i<n;i++){
+      if(used[i]) continue;
+      const op=ops[i];
+      let minimal=true;
+      for(let j=0;j<n;j++) if(!used[j] && j!==i && ops[j].t1 < op.t0){ minimal=false; break; }
+      if(!minimal) continue;
+      let nv=val;
+      if(op.kind==="w") nv=op.val;
+      else if(op.val!==val) continue;
+      used[i]=true; placed.push(op);
+      if(rec(nv)) return true;
+      placed.pop(); used[i]=false;
+    }
+    return false;
+  }
+  return rec(initVal) ? placed.slice() : null;
+}
+function linWitness(ops, initVal){
+  for(const r of ops){
+    if(r.kind!=="r") continue;
+    const wins = ops.filter(o=>o.kind==="w" && o.t1 < r.t0);
+    if(wins.length===0){
+      if(r.val!==initVal){
+        const ov = ops.some(o=>o.kind==="w" && o.val===r.val && !(o.t0 > r.t1));
+        if(!ov) return "“"+opLabel(r)+"” returned "+r.val+", but no write of "+r.val+" had begun by then";
+      }
+      continue;
+    }
+    const last = wins.reduce((a,b)=>a.t1>b.t1?a:b);
+    if(r.val!==last.val){
+      const rescue = ops.some(w2=>w2.kind==="w" && w2!==last && w2.val===r.val && !(w2.t1<last.t0) && !(w2.t0>r.t1));
+      if(!rescue) return "“"+opLabel(last)+"” was acknowledged before “"+opLabel(r)+"” began — real time forces the write first, so the read must return "+last.val+"; it returned "+r.val;
+    }
+  }
+  return "no placement of instants reproduces these answers";
+}
+function checkLin(scn, ops){
+  const objs=[...new Set(ops.map(o=>o.obj))];
+  const perObj={}; let ok=true;
+  for(const obj of objs){
+    const sub=ops.filter(o=>o.obj===obj).sort((a,b)=>a.t0-b.t0);
+    const seq=linSearchObj(sub, scn.init[obj]);
+    if(seq) perObj[obj]={ok:true, seq:seq.map(opLabel)};
+    else { ok=false; perObj[obj]={ok:false, witness:linWitness(sub, scn.init[obj])}; }
+  }
+  return {ok, perObj, objs};
+}
+
+function verdicts(scn, ops, grouped){
+  return { L:checkLin(scn,ops), S:checkSerial(scn,ops,grouped,false), SS:checkSerial(scn,ops,grouped,true) };
+}
+
+/* Plain-English summary of the verdict combination */
+function composeSummary(v, scn, grouped){
+  const {L,S,SS}=v;
+  const arrow = o=>o.join(" → ");
+  if(L.ok && S.ok && SS.ok){
+    let s="All three judges accept this history.";
+    if(S.ok && S.order.length>1) s+=" The auditor's order: <span class='mono'>"+arrow(S.order)+"</span>.";
+    if(scn.anomaly && !grouped) s+=" <span class='money'>"+scn.anomaly+"</span> Nothing you asked for was violated — the invariant lived in a group nobody declared.";
+    return s;
+  }
+  if(!L.ok && S.ok && !SS.ok){
+    const inv=S.inversions[0];
+    return "Serializable — and <i>only</i> serializable. The auditor explains the day as <span class='mono'>"+arrow(S.order)+"</span>"+
+      (inv? ", even though <b>"+inv[0]+" finished before "+inv[1]+" began</b> — the explanation runs backwards past the wall clock, which this judge cannot see." : ".")+
+      " The notary and the strict judge both refuse: the clock is evidence for them.";
+  }
+  if(L.ok && !S.ok){
+    return "Every single operation is innocent — the notary finds instants for every object. The <b>group</b> is guilty: no serial order of whole transactions explains all the answers. The defect exists only at transaction scope.";
+  }
+  if(!L.ok && !S.ok) return "Both scope and time are broken here: no per-object instants exist, and no serial order of transactions exists either.";
+  if(L.ok && S.ok && !SS.ok) return "Linearizable per object and serializable — but the only serial orders run against the wall clock, so strictness fails. (Rare combination: drag bars to explore it.)";
+  return "Verdicts computed.";
+}
+
+/* ============ SELF-TESTS (headless) ============ */
+function runSelfTests(){
+  let pass=0, fail=0;
+  function eq(name, got, want){
+    if(got===want){ pass++; }
+    else { fail++; console.log("FAIL "+name+": got "+got+" want "+want); }
+  }
+  const V = (i,grouped)=>{ const s=SCENARIOS[i-1]; return verdicts(s, s.ops, grouped===undefined?s.grouped:grouped); };
+
+  let v=V(1);
+  eq("S1 L", v.L.ok,false); eq("S1 S", v.S.ok,true); eq("S1 SS", v.SS.ok,false);
+  eq("S1 inversion", v.S.inversions.length>0, true);
+
+  v=V(2,false);
+  eq("S2 L", v.L.ok,true); eq("S2 S", v.S.ok,true); eq("S2 SS", v.SS.ok,true);
+
+  v=V(3,true);
+  eq("S3 L", v.L.ok,true); eq("S3 S", v.S.ok,false); eq("S3 SS", v.SS.ok,false);
+
+  v=V(4);
+  eq("S4 L", v.L.ok,true); eq("S4 S", v.S.ok,false); eq("S4 SS", v.SS.ok,false);
+
+  v=V(5);
+  eq("S5 L", v.L.ok,false); eq("S5 Lx", v.L.perObj.x.ok,false); eq("S5 Ly", v.L.perObj.y.ok,true);
+  eq("S5 S", v.S.ok,true); eq("S5 order", v.S.order.join(","), "T2,T3,T1");
+  eq("S5 SS", v.SS.ok,false);
+
+  v=V(6);
+  eq("S6 L", v.L.ok,true); eq("S6 S", v.S.ok,false); eq("S6 SS", v.SS.ok,false);
+
+  // Drag experiment: overlap the mobile read with the deposit -> everything passes
+  const s1=clone(SCENARIOS[0]); s1.ops[1].t0=2; s1.ops[1].t1=4;
+  v=verdicts(s1, s1.ops, true);
+  eq("S1-overlap L", v.L.ok,true); eq("S1-overlap SS", v.SS.ok,true);
+
+  // Exercise 4.2 variant: weld a second write (x=2) onto T2 in scenario 5 -> S dies
+  const s5=clone(SCENARIOS[4]);
+  s5.ops.push({id:"q2",client:"Writer Q",txn:"T2",obj:"x",kind:"w",val:2,t0:5.6,t1:6.2});
+  v=verdicts(s5, s5.ops, true);
+  eq("S5-welded S", v.S.ok,false);
+
+  console.log(pass+" passed, "+fail+" failed");
+  return fail===0;
+}
+
+/* ============ UI ============ */
+if (typeof document !== "undefined"){
+(function(){
+  const svg=document.getElementById("tl");
+  const strip=document.getElementById("strip");
+  const groupToggle=document.getElementById("groupToggle");
+  const inspector=document.getElementById("inspector");
+  const rail=document.getElementById("rail");
+  const TXNCOLORS={T1:"var(--t1)",T2:"var(--t2)",T3:"var(--t3)",TA:"var(--t1)",TB:"var(--t2)"};
+
+  let scn=null, ops=null, grouped=false, revealed=false, selectedOp=null;
+
+  const X0=110, XW=730, TMAX=12;
+  const xOf=t=>X0+ (t/TMAX)*XW;
+  const tOfX=x=>Math.max(0.2, Math.min(TMAX-0.2, (x-X0)/XW*TMAX));
+
+  function clients(){ return [...new Set(ops.map(o=>o.client))]; }
+
+  function render(){
+    const cs=clients();
+    const laneH=44, top=30;
+    const H=top+cs.length*laneH+34;
+    svg.setAttribute("height",H); svg.setAttribute("viewBox","0 0 860 "+H);
+    let g="";
+    // axis
+    g+='<g class="axis">';
+    for(let t=0;t<=TMAX;t++){
+      g+='<line x1="'+xOf(t)+'" y1="'+(top-8)+'" x2="'+xOf(t)+'" y2="'+(H-26)+'"/>';
+      g+='<text x="'+xOf(t)+'" y="'+(H-14)+'" text-anchor="middle">'+t+'</text>';
+    }
+    g+='<text x="'+(X0+XW)+'" y="'+(H-2)+'" text-anchor="end" class="laneLabel">wall-clock time →</text>';
+    g+='</g>';
+    // txn boxes
+    if(grouped){
+      const gs=groupsOf(ops,true);
+      for(const grp of gs){
+        if(grp.ops.length<1) continue;
+        const c=cs.indexOf(grp.ops[0].client);
+        const y=top+c*laneH+2;
+        const x1=xOf(grp.t0)-5, x2=xOf(grp.t1)+5;
+        const col=TXNCOLORS[grp.ops[0].txn]||"var(--t4)";
+        g+='<rect class="txnbox" x="'+x1+'" y="'+(y-4)+'" width="'+(x2-x1)+'" height="'+(laneH-8)+'" rx="7" style="stroke:'+col+'"/>';
+        g+='<text class="txnlbl" x="'+x1+'" y="'+(y-8)+'" style="fill:'+col+'">'+grp.ops[0].txn+'</text>';
+      }
+    }
+    // lanes + bars
+    cs.forEach((c,i)=>{
+      const y=top+i*laneH;
+      g+='<text class="laneLabel" x="8" y="'+(y+18)+'">'+c+'</text>';
+      for(const op of ops.filter(o=>o.client===c)){
+        const x=xOf(op.t0), w=xOf(op.t1)-x;
+        const col=TXNCOLORS[op.txn]||"var(--t4)";
+        const isW=op.kind==="w";
+        g+='<g class="bar" data-op="'+op.id+'" tabindex="0">';
+        g+='<rect x="'+x+'" y="'+(y+2)+'" width="'+w+'" height="26" rx="5"'+
+           ' style="fill:'+(isW?col:"var(--surface)")+';stroke:'+col+(selectedOp===op.id?';stroke-width:3':'')+'"/>';
+        g+='<text x="'+(x+w/2)+'" y="'+(y+20)+'" text-anchor="middle" style="fill:'+(isW?"var(--surface)":col)+'">'+opLabel(op)+'</text>';
+        g+='</g>';
+      }
+    });
+    svg.innerHTML=g;
+    svg.querySelectorAll(".bar").forEach(b=>{
+      b.addEventListener("pointerdown",dragStart);
+      b.addEventListener("click",()=>inspect(b.dataset.op));
+    });
+    judge();
+  }
+
+  function judge(){
+    if(!scn) return;
+    const v=verdicts(scn, ops, grouped);
+    setPill("jLpill", revealed?v.L.ok:null);
+    setPill("jSpill", revealed?v.S.ok:null);
+    setPill("jSSpill", revealed?v.SS.ok:null);
+    if(!revealed){
+      strip.className="verdictStrip masked";
+      strip.innerHTML="Make your prediction in the card first (or drag a bar to skip straight to the verdicts).";
+      ["jLexpl","jSexpl","jSSexpl"].forEach(id=>document.getElementById(id).innerHTML="");
+      return;
+    }
+    strip.className="verdictStrip";
+    strip.innerHTML=composeSummary(v, scn, grouped);
+    // Notary detail
+    let h="";
+    for(const obj of v.L.objs){
+      const r=v.L.perObj[obj];
+      h+='<div class="objrow"><span class="mono">'+obj+'</span> '+
+         (r.ok? '<span style="color:var(--ok)">✓ instants found</span>'
+              : '<span style="color:var(--bad)">✗</span> <span>'+r.witness+'</span>')+'</div>';
+    }
+    if(v.L.ok) h+='<details><summary>why per-object is enough</summary>Linearizability is local: every object passing independently means the whole history passes — the measured 300/300 from the linearizability lab.</details>';
+    document.getElementById("jLexpl").innerHTML=h;
+    // Auditor detail
+    document.getElementById("jSexpl").innerHTML=serialExplain(v.S,false);
+    document.getElementById("jSSexpl").innerHTML=serialExplain(v.SS,true);
+  }
+
+  function serialExplain(r, strict){
+    let h="";
+    if(r.ok){
+      h+="Order found: <span class='mono'>"+r.order.join(" → ")+"</span>.";
+      if(r.inversions.length && !strict){
+        const iv=r.inversions[0];
+        h+=" <b>Note:</b> "+iv[0]+" finished before "+iv[1]+" began, yet is explained after it — this judge has no clock and cannot object.";
+      }
+    } else {
+      h+= strict && r.forbidden>0
+        ? "Every order fails. ("+r.forbidden+" order"+(r.forbidden>1?"s":"")+" the auditor could try "+(r.forbidden>1?"are":"is")+" forbidden here by real time.)"
+        : "Every order fails.";
+    }
+    if(r.tried && r.tried.length){
+      h+='<details><summary>orders tried ('+r.tried.length+' rejected)</summary><ul>';
+      for(const t of r.tried.slice(0,8))
+        h+='<li><span class="mono">'+t.order.join(" → ")+'</span> — '+t.fail+'</li>';
+      h+='</ul></details>';
+    }
+    return h;
+  }
+
+  function setPill(id, ok){
+    const el=document.getElementById(id);
+    if(ok===null){ el.className="pill na"; el.textContent="awaiting prediction"; return; }
+    el.className="pill "+(ok?"ok":"bad");
+    el.textContent=ok?"ACCEPTS":"REFUSES";
+  }
+
+  function inspect(opId){
+    const op=ops.find(o=>o.id===opId);
+    selectedOp=opId;
+    let before=[], after=[];
+    for(const o of ops){
+      if(o===op) continue;
+      if(o.t1<op.t0) before.push(o);
+      if(op.t1<o.t0) after.push(o);
+    }
+    const fmt=l=>l.length? l.map(o=>"“"+opLabel(o)+"”").join(", ") : "nothing";
+    inspector.innerHTML="<b>“"+opLabel(op)+"”</b> by "+op.client+" ("+op.txn+"), in flight "+op.t0.toFixed(1)+"–"+op.t1.toFixed(1)+
+      ". Real time forces it <b>after</b>: "+fmt(before)+" · <b>before</b>: "+fmt(after)+
+      ". Anything overlapping may be explained on either side.";
+    render();
+  }
+
+  /* dragging */
+  let drag=null;
+  function dragStart(ev){
+    const opId=ev.currentTarget.dataset.op;
+    const op=ops.find(o=>o.id===opId);
+    drag={op, startX:ev.clientX, t0:op.t0, t1:op.t1};
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    ev.currentTarget.addEventListener("pointermove",dragMove);
+    ev.currentTarget.addEventListener("pointerup",dragEnd,{once:true});
+  }
+  function dragMove(ev){
+    if(!drag) return;
+    if(!revealed){ revealed=true; markSkipped(); }
+    const rect=svg.getBoundingClientRect();
+    const dt=(ev.clientX-drag.startX)*(860/rect.width)*(TMAX/XW);
+    const w=drag.t1-drag.t0;
+    let nt0=Math.round((drag.t0+dt)*4)/4;
+    // keep same-client operations in their program order
+    const sibs=ops.filter(o=>o.client===drag.op.client && o!==drag.op);
+    for(const s of sibs){
+      if(drag.t0>s.t0 && nt0 < s.t1+0.1) nt0=s.t1+0.1;
+      if(drag.t0<s.t0 && nt0+w > s.t0-0.1) nt0=s.t0-0.1-w;
+    }
+    nt0=Math.max(0.2, Math.min(TMAX-0.2-w, nt0));
+    drag.op.t0=nt0; drag.op.t1=nt0+w;
+    render();
+  }
+  function dragEnd(ev){
+    ev.currentTarget.removeEventListener("pointermove",dragMove);
+    drag=null;
+    if(selectedOp) inspect(selectedOp);
+  }
+
+  /* scenario cards */
+  function buildRail(){
+    rail.innerHTML="";
+    for(const s of SCENARIOS){
+      const card=document.createElement("div");
+      card.className="card"; card.tabIndex=0; card.dataset.scn=s.id;
+      card.innerHTML='<div class="num">Card '+s.id+'</div><h4>'+s.name+'</h4><p class="story">'+s.story+'</p><div class="predictSlot"></div>';
+      const act=()=>load(s.id);
+      card.addEventListener("click",e=>{ if(e.target.tagName!=="BUTTON") act(); });
+      card.addEventListener("keydown",e=>{ if(e.key==="Enter") act(); });
+      rail.appendChild(card);
+    }
+  }
+
+  function load(id){
+    scn=clone(SCENARIOS[id-1]);
+    ops=scn.ops; grouped=scn.grouped; revealed=false; selectedOp=null;
+    groupToggle.checked=grouped;
+    inspector.textContent="Click any operation bar to see the real-time constraints it lives under.";
+    document.querySelectorAll(".card").forEach(c=>{
+      c.classList.toggle("active", c.dataset.scn==String(id));
+      c.querySelector(".predictSlot").innerHTML="";
+    });
+    const slot=document.querySelector('.card[data-scn="'+id+'"] .predictSlot');
+    const p=scn.predict;
+    let h='<div class="predict"><p>🔮 '+p.q+'</p>';
+    p.options.forEach((o,i)=>{ h+='<button data-i="'+i+'">'+o.label+'</button>'; });
+    h+='<button class="skip">just show me</button><div class="feedback"></div></div>';
+    slot.innerHTML=h;
+    slot.querySelectorAll("button").forEach(b=>{
+      b.addEventListener("click",()=>{
+        revealed=true;
+        const fb=slot.querySelector(".feedback");
+        if(b.classList.contains("skip")){ fb.innerHTML=p.explain; }
+        else{
+          const opt=p.options[+b.dataset.i];
+          b.classList.add(opt.correct?"chosen-right":"chosen-wrong");
+          if(!opt.correct){
+            slot.querySelectorAll("button").forEach(bb=>{
+              if(bb.dataset.i!==undefined && p.options[+bb.dataset.i].correct) bb.classList.add("reveal-right");
+            });
+          }
+          fb.innerHTML="<b>"+(opt.correct?"Right.":"Not quite.")+"</b> "+p.explain;
+        }
+        judge();
+      });
+    });
+    render();
+  }
+  function markSkipped(){
+    const slot=document.querySelector(".card.active .feedback");
+    if(slot && !slot.innerHTML) slot.innerHTML=scn.predict.explain;
+  }
+
+  groupToggle.addEventListener("change",()=>{ grouped=groupToggle.checked; if(!revealed) revealed=true, markSkipped(); render(); });
+
+  buildRail();
+  load(1);
+})();
+} else {
+  // headless (osascript -l JavaScript): run the engine self-tests
+  const ok = runSelfTests();
+  if (typeof process !== "undefined" && process.exit) process.exit(ok?0:1);
+}
+</script>

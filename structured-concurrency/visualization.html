@@ -1,0 +1,546 @@
+<title>No Orphans</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Spline+Sans+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #f4f2ec; --surface: #fdfcf9; --surface2: #eee9dd;
+    --ink: #26231c; --muted: #7d7768; --line: #ddd6c6;
+    --accent: #6d7c35; --accent-soft: #e6e8d2;
+    --running: #c9861b; --running-soft: #f5e6c8;
+    --success: #4d8f5e; --success-soft: #dcead9;
+    --failed: #c44f42;  --failed-soft: #f3ded9;
+    --cancel: #8d81b5;  --cancel-soft: #e7e2f0;
+    --pending: #b3ac9c; --pending-soft: #edeadf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1913; --surface: #242118; --surface2: #2d2a1e;
+      --ink: #ece8dd; --muted: #a49d8c; --line: #3c382a;
+      --accent: #a9bb58; --accent-soft: #333722;
+      --running: #e3a53b; --running-soft: #3c2f16;
+      --success: #6fb883; --success-soft: #223526;
+      --failed: #e0705f;  --failed-soft: #3d221e;
+      --cancel: #a99ed1;  --cancel-soft: #2d2939;
+      --pending: #6f6a5c; --pending-soft: #2a2820;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1913; --surface: #242118; --surface2: #2d2a1e;
+    --ink: #ece8dd; --muted: #a49d8c; --line: #3c382a;
+    --accent: #a9bb58; --accent-soft: #333722;
+    --running: #e3a53b; --running-soft: #3c2f16;
+    --success: #6fb883; --success-soft: #223526;
+    --failed: #e0705f;  --failed-soft: #3d221e;
+    --cancel: #a99ed1;  --cancel-soft: #2d2939;
+    --pending: #6f6a5c; --pending-soft: #2a2820;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; }
+  .mono { font-family: "Spline Sans Mono", ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+  header h1 { font-size: 27px; font-weight: 700; margin: 4px 0 2px; text-wrap: balance; }
+  header .sub { color: var(--muted); max-width: 74ch; margin: 0 0 6px; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  #verdict { margin: 14px 0; padding: 12px 16px; border-radius: 10px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 5px solid var(--accent); font-size: 15px; }
+  #verdict.good { border-left-color: var(--success); }
+  #verdict.bad  { border-left-color: var(--failed); }
+  #verdict .tech { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; font-family: "Spline Sans Mono", monospace; }
+
+  .layout { display: grid; grid-template-columns: 295px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); }
+
+  .stories { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .stories button { text-align: left; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--ink); font: 600 13px "Bricolage Grotesque", sans-serif; cursor: pointer; }
+  .stories button:hover { border-color: var(--accent); }
+  .stories button .hint { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+
+  .ctl { margin: 10px 0; }
+  .ctl label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+  .ctl .val { color: var(--accent); font-family: "Spline Sans Mono", monospace; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .ctl .why { font-size: 11.5px; color: var(--muted); }
+  .opts { display: flex; flex-direction: column; gap: 6px; }
+  .opts label { display: flex; gap: 8px; align-items: baseline; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--line); cursor: pointer; font-size: 12.5px; }
+  .opts label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .opts input { accent-color: var(--accent); }
+  .opts b { display: block; }
+
+  .transport { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .transport button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
+    background: var(--surface2); color: var(--ink); font: 600 13px "Bricolage Grotesque", sans-serif; }
+  .transport button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .ownerrow { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px;
+    background: var(--surface2); border: 1px solid var(--line); margin-bottom: 10px; }
+  .ownerrow .who { font-family: "Spline Sans Mono", monospace; font-weight: 600; font-size: 12.5px; }
+  .ownerrow .doing { font-size: 12px; color: var(--muted); }
+
+  .scopebox { border: 2px dashed var(--accent); border-radius: 12px; padding: 10px 12px; position: relative; }
+  .scopebox.unstructured { border-color: var(--failed); border-style: dotted; }
+  .scopebox > .scopelabel { position: absolute; top: -9px; left: 12px; background: var(--surface);
+    padding: 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .scopebox.unstructured > .scopelabel { color: var(--failed); }
+  .kids { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 6px; }
+
+  .kid { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+  .kid .kname { font-family: "Spline Sans Mono", monospace; font-size: 12.5px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .kid .plan { font-size: 11px; color: var(--muted); min-height: 16px; }
+  .kid .pill { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .kid.pending  { border-left: 4px solid var(--pending); } .kid.pending .pill { background: var(--pending-soft); color: var(--muted); }
+  .kid.running  { border-left: 4px solid var(--running); } .kid.running .pill { background: var(--running-soft); color: var(--running); }
+  .kid.success  { border-left: 4px solid var(--success); } .kid.success .pill { background: var(--success-soft); color: var(--success); }
+  .kid.failed   { border-left: 4px solid var(--failed); }  .kid.failed .pill { background: var(--failed-soft); color: var(--failed); }
+  .kid.cancelled{ border-left: 4px solid var(--cancel); }  .kid.cancelled .pill { background: var(--cancel-soft); color: var(--cancel); }
+  .kid.orphan   { border-left: 4px solid var(--failed); border-style: dashed; }
+  .kid.orphan .pill { background: var(--failed-soft); color: var(--failed); }
+  .kid.zombie   { border-left: 4px solid var(--running); border-style: dashed; }
+  .kid.zombie .pill { background: var(--failed-soft); color: var(--failed); }
+  .bar { height: 5px; border-radius: 3px; background: var(--pending-soft); overflow: hidden; margin-top: 7px; }
+  .bar i { display: block; height: 100%; background: var(--running); }
+  .kid.success .bar i { background: var(--success); }
+  .kid.failed .bar i, .kid.orphan .bar i, .kid.zombie .bar i { background: var(--failed); }
+  .kid.cancelled .bar i { background: var(--cancel); }
+  .grandbox { border: 1.5px dashed var(--accent); border-radius: 8px; margin-top: 8px; padding: 6px 8px; }
+  .grandbox .glabel { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .grand { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 5px;
+    font-family: "Spline Sans Mono", monospace; font-size: 11px; }
+
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 0; }
+  .stat .n { font-family: "Spline Sans Mono", monospace; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+  #loglines { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
+  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .ll .t { font-size: 13px; }
+  .ll .tech { font-family: "Spline Sans Mono", monospace; font-size: 11px; color: var(--muted); }
+  .ll.ok { border-left-color: var(--success); } .ll.err { border-left-color: var(--failed); }
+  .ll.cx { border-left-color: var(--cancel); } .ll.run { border-left-color: var(--running); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  .foot { margin-top: 16px; color: var(--muted); font-size: 12.5px; max-width: 82ch; }
+  @media (prefers-reduced-motion: no-preference) { .kid { transition: background .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Structured concurrency · scope simulator</div>
+    <h1>No Orphans</h1>
+    <p class="sub">A request handler forks several <b>children</b> (calls to other services) and needs their answers.
+    The rule structured concurrency adds: the handler <b>owns</b> its children — a failure calls everyone home, and the
+    handler cannot move on while any child is still out there. This page simulates one scope. <b>Click a child card</b>
+    to make that child fail; use the story buttons if you're new — each run is narrated below.</p>
+  </header>
+
+  <div id="verdict"><span id="vtext">Pick a story, or press Run.</span><span class="tech" id="vtech"></span></div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Play a story for me</h2>
+      <div class="stories">
+        <button data-story="happy"><span>1 · Happy fan-out</span><span class="hint">3 children, all succeed — done when the slowest is</span></button>
+        <button data-story="failfast"><span>2 · One fails — all come home</span><span class="hint">The default policy cancels the siblings instantly</span></button>
+        <button data-story="orphan"><span>3 · Same failure, old world</span><span class="hint">No scope: the survivors become orphans</span></button>
+        <button data-story="race"><span>4 · The race</span><span class="hint">First success wins; losers are cancelled</span></button>
+        <button data-story="deadline"><span>5 · The family deadline</span><span class="hint">One timeout for the whole scope</span></button>
+        <button data-story="nested"><span>6 · Cancellation runs downhill</span><span class="hint">A child with children of its own — all called home</span></button>
+        <button data-story="unkillable"><span>7 · The child that won't die</span><span class="hint">Ignoring cancellation holds the whole scope hostage</span></button>
+      </div>
+
+      <h2>Or set it up yourself</h2>
+      <div class="opts" role="radiogroup" aria-label="World">
+        <label><input type="radio" name="world" value="structured" checked><span><b>Structured (a scope)</b>Failure cancels siblings; the block waits for everyone.</span></label>
+        <label><input type="radio" name="world" value="unstructured"><span><b>Old world (no scope)</b>Fire off tasks; nobody cancels or waits for the rest.</span></label>
+      </div>
+      <div class="ctl" id="joinerCtl"><label>What counts as “done”? (the joiner)</label>
+        <div class="opts">
+          <label><input type="radio" name="joiner" value="all" checked><span><b>All must succeed</b>First failure cancels the rest. The default.</span></label>
+          <label><input type="radio" name="joiner" value="any"><span><b>First success wins</b>Losers cancelled; fails only if all fail.</span></label>
+          <label><input type="radio" name="joiner" value="awaitAll"><span><b>Wait for all, judge later</b>No cancelling; you inspect each result.</span></label>
+        </div></div>
+      <div class="ctl"><label>Children: <span class="val" id="vKids">3</span></label>
+        <input type="range" id="kids" min="2" max="6" value="3">
+        <div class="why">Forked at t=0 with staggered workloads (shown on each card). Click a card to toggle “this one fails”.</div></div>
+      <div class="ctl"><label>Scope deadline: <span class="val" id="vTimeout">none</span></label>
+        <input type="range" id="timeout" min="0" max="500" step="25" value="0">
+        <div class="why">0 = no deadline. Applies to the whole family at once.</div></div>
+      <div class="ctl opts"><label><input type="checkbox" id="nested"><span><b>child-2 has its own scope</b>Two grandchildren inside — watch cancellation cascade.</span></label>
+        <label><input type="checkbox" id="unkillable"><span><b>child-1 ignores cancellation</b>Swallows the interrupt and keeps working.</span></label></div>
+      <div class="ctl"><label>Speed: <span class="val" id="vSpeed">1×</span></label>
+        <input type="range" id="speed" min="1" max="8" value="1"></div>
+      <div class="transport">
+        <button id="btnRun" class="primary">Run</button>
+        <button id="btnPause">Pause</button>
+        <button id="btnStep">Step 5 ms</button>
+        <button id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>The scope</h2>
+        <div class="ownerrow"><span class="who">owner: handleRequest()</span><span class="doing" id="ownerDoing">idle</span></div>
+        <div class="scopebox" id="scopebox"><span class="scopelabel" id="scopelabel">scope · joiner: all must succeed</span>
+          <div class="kids" id="zKids"></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="sTime">0</div><div class="l">sim ms</div></div>
+          <div class="stat"><div class="n" id="sState">–</div><div class="l">scope outcome</div></div>
+          <div class="stat"><div class="n" id="sOrphans">0</div><div class="l">orphans running past the end</div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h2>What just happened</h2>
+        <div id="loglines"></div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h2>Finished runs — compare</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Setup</th><th class="num">Verdict at</th><th class="num">All work ended at</th><th>Outcome</th></tr></thead>
+          <tbody id="results"><tr><td colspan="4" style="color:var(--muted)">No finished runs yet.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <p class="foot"><b>Rules this page uses</b>: all children are forked at t=0 (each on its own cheap virtual thread —
+      see the java-virtual-threads lab); a child marked “fails” throws at 40% of its workload; “cancel” means the scope
+      interrupts the child's thread, and a cooperative child stops ~5 ms later. In the old world the caller collects
+      results in fork order and returns at the first failure it meets — nothing is ever cancelled, which is precisely
+      the disease. The two timestamps in the table are the point: <i>verdict</i> is when the caller knew the outcome;
+      <i>all work ended</i> is when the last thread actually stopped. Structured concurrency's promise is that for a
+      scope those are the same moment — no work ever outlives the verdict.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- engine (no DOM — testable headlessly) ---------------- */
+function makeSim(cfg) {
+  // cfg: {world, joiner, kids, timeout, nested, unkillable, failing:Set-like array of ids}
+  const DUR = i => 90 + (i - 1) * 60;               // child-i workload: 90,150,210,...
+  const sim = { cfg, time: 0, events: [], children: [], verdictAt: null, allEndAt: null,
+                outcome: null, cancelIssuedAt: null, orphans: 0 };
+  function ev(kind, text, tech) { sim.events.push({ time: sim.time, kind, text, tech }); }
+
+  for (let i = 1; i <= cfg.kids; i++) {
+    const fails = cfg.failing.includes(i);
+    const nested = cfg.nested && i === 2;
+    const unkillable = cfg.unkillable && i === 1;
+    const dur = DUR(i);
+    const c = { id: i, name: "child-" + i, dur, failAt: fails ? Math.round(dur * 0.4) : null,
+      nested, unkillable, state: "running", endAt: null, cancelledAt: null,
+      grand: nested ? [ { name: "grand-2a", dur: Math.round(dur * 0.5), state: "running", endAt: null },
+                        { name: "grand-2b", dur: dur + 60, state: "running", endAt: null } ] : null };
+    if (nested) c.dur = c.grand[1].dur + 20;         // nested child waits for its own scope
+    sim.children.push(c);
+  }
+  ev("run", `handleRequest() forked ${cfg.kids} children and is now waiting at join().`,
+     cfg.world === "structured" ? `scope.fork() × ${cfg.kids}; scope.join()` : `executor.submit() × ${cfg.kids}; get() in fork order`);
+
+  function cancelChild(c, why) {
+    if (c.state !== "running") return;
+    if (c.unkillable) {
+      c.state = "zombie";                            // keeps working to natural end
+      ev("err", `${c.name} was told to stop (${why}) — but its code swallows the interrupt and KEEPS WORKING. The scope must wait for it.`,
+         `InterruptedException caught and ignored inside ${c.name}`);
+    } else {
+      c.state = "cancelled"; c.cancelledAt = sim.time; c.endAt = sim.time + 5;
+      ev("cx", `${c.name} was called home (${why}) and stopped.`, `interrupt ${c.name}; unwinds ~5ms later`);
+      if (c.grand) for (const g of c.grand) if (g.state === "running") {
+        g.state = "cancelled"; g.endAt = sim.time + 5;
+        ev("cx", `…and ${c.name}'s own scope cancelled ${g.name} on the way out. Cancellation runs all the way down the tree.`,
+           `nested scope close → interrupt ${g.name}`);
+      }
+    }
+  }
+  function cancelAllRunning(why) {
+    if (sim.cancelIssuedAt === null) sim.cancelIssuedAt = sim.time;
+    for (const c of sim.children) cancelChild(c, why);
+  }
+  function verdict(outcome, text, tech) {
+    if (sim.verdictAt !== null) return;
+    sim.verdictAt = sim.time; sim.outcome = outcome;
+    ev(outcome === "SUCCESS" ? "ok" : "err", text, tech);
+  }
+
+  sim.tick = function (ms) {
+    if (sim.allEndAt !== null) return false;
+    sim.time += ms;
+    const S = cfg.world === "structured";
+
+    // natural progress of each child (and grandchildren)
+    for (const c of sim.children) {
+      if (c.grand) for (const g of c.grand) {
+        if (g.state === "running" && sim.time >= g.dur) { g.state = "success"; g.endAt = g.dur; }
+      }
+      if (c.state === "running" && c.failAt !== null && sim.time >= c.failAt) {
+        c.state = "failed"; c.endAt = c.failAt;
+        ev("err", `${c.name} FAILED ("service unavailable").`, `throws at ${c.failAt}ms`);
+        if (c.grand) for (const g of c.grand) if (g.state === "running") { g.state = "cancelled"; g.endAt = sim.time + 5; }
+      } else if ((c.state === "running" || c.state === "zombie") && sim.time >= c.dur) {
+        const finished = c.state === "zombie" ? "zombie-done" : "success";
+        c.state = finished === "success" ? "success" : "success"; c.endAt = c.dur;
+        if (c.unkillable && sim.cancelIssuedAt !== null)
+          ev("run", `${c.name} finally finished on its own — ${c.dur - sim.cancelIssuedAt} ms after it was told to stop.`, `natural completion at ${c.dur}ms`);
+        else ev("ok", `${c.name} finished successfully.`, `returns at ${c.dur}ms`);
+      }
+    }
+
+    const failures = sim.children.filter(c => c.state === "failed");
+    const successes = sim.children.filter(c => c.state === "success");
+    const active = sim.children.filter(c => c.state === "running" || c.state === "zombie" || c.state === "orphan");
+
+    if (S) {
+      // scope timeout
+      if (cfg.timeout > 0 && sim.time >= cfg.timeout && sim.verdictAt === null) {
+        verdict("TIMEOUT", `The scope's ${cfg.timeout} ms deadline fired: whatever is still running is cancelled; join() will throw TimeoutException.`,
+          `withTimeout(${cfg.timeout}ms) → cancel + TimeoutException`);
+        cancelAllRunning("the family deadline fired");
+      }
+      if (sim.verdictAt === null) {
+        if (cfg.joiner === "all" && failures.length > 0) {
+          verdict("FAILED", `${failures[0].name} failed, so the scope is cancelling every sibling — no point finishing work nobody wants. join() throws with this failure as the cause.`,
+            `FailedException(cause="service unavailable")`);
+          cancelAllRunning(`${failures[0].name} failed`);
+        } else if (cfg.joiner === "any" && successes.length > 0) {
+          verdict("SUCCESS", `${successes[0].name} answered first — that's our result. The still-running siblings are cancelled; earlier failures are irrelevant.`,
+            `join() returns ${successes[0].name}'s result`);
+          cancelAllRunning("a sibling already won");
+        } else if (active.length === 0) {
+          if (cfg.joiner === "any")
+            verdict("FAILED", `Every child failed — only now does the racing scope give up. join() throws with the last failure as cause.`, `FailedException`);
+          else if (cfg.joiner === "awaitAll")
+            verdict(failures.length ? "MIXED" : "SUCCESS",
+              failures.length ? `Everyone finished; ${failures.length} failed and ${successes.length} succeeded. This joiner never cancels and never throws — reading each child's state is YOUR job now.`
+                              : `All children finished successfully.`,
+              `join() returns; inspect subtask.state() yourself`);
+          else verdict("SUCCESS", `All ${successes.length} children succeeded. join() returns; results are ready to combine.`, `all subtasks SUCCESS`);
+        }
+      }
+      // the close guarantee: the scope (and our measurement) ends only when nothing is left running
+      if (sim.verdictAt !== null && active.length === 0 && sim.allEndAt === null) {
+        sim.allEndAt = sim.time;
+        const held = sim.allEndAt - sim.verdictAt;
+        ev(held > 20 ? "err" : "ok",
+          held > 20 ? `The scope could only release the owner NOW — ${held} ms after the outcome was known, because a child refused to stop. The guarantee held (nothing leaked), but promptness was lost.`
+                    : `The scope closed: the moment the owner moves on, nothing is running on its behalf. That is the whole point.`,
+          `close guarantee: verdict ${sim.verdictAt}ms, last thread ${sim.allEndAt}ms`);
+      }
+    } else {
+      // unstructured: caller awaits in fork order; returns at first failure it reaches; cancels nothing
+      if (sim.verdictAt === null) {
+        for (const c of sim.children) {          // walking fork order
+          if (c.state === "failed") {
+            verdict("FAILED", `${c.name}.get() threw — handleRequest() returns the error to the client. But NOBODY tells the other children: they are now orphans.`,
+              `get() throws; no cancellation exists`);
+            for (const o of sim.children) if (o.state === "running" || o.state === "zombie") { o.state = "orphan"; sim.orphans++; }
+            break;
+          }
+          if (c.state !== "success") break;      // still waiting on this one
+        }
+        if (sim.verdictAt === null && active.length === 0)
+          verdict("SUCCESS", `All children happened to succeed — the old world only *looks* fine until something fails.`, `all get() calls returned`);
+      }
+      for (const c of sim.children) if (c.state === "orphan" && sim.time >= c.dur) {
+        c.state = "success"; c.endAt = c.dur;
+        ev("err", `${c.name} finished its work at ${c.dur} ms — for a request that died at ${sim.verdictAt} ms. Wasted work, and any side effects are already done.`,
+          `orphan completed; nobody reads this result`);
+      }
+      if (sim.verdictAt !== null && sim.children.every(c => c.endAt !== null) && sim.allEndAt === null)
+        sim.allEndAt = sim.time;
+    }
+    return sim.allEndAt === null;
+  };
+  sim.runToEnd = function (limit) { limit = limit || 10000; while (sim.tick(5) && sim.time < limit) {} return sim; };
+  return sim;
+}
+
+/* ---------------- headless self-test ---------------- */
+if (typeof document === "undefined") {
+  const base = { world: "structured", joiner: "all", kids: 3, timeout: 0, nested: false, unkillable: false, failing: [] };
+  const happy = makeSim({ ...base }).runToEnd();
+  console.assert(happy.outcome === "SUCCESS" && happy.verdictAt === happy.allEndAt, "happy: success, verdict==end");
+  console.assert(Math.abs(happy.verdictAt - 210) <= 10, "happy ends ~210 (slowest child)");
+  const ff = makeSim({ ...base, failing: [2] }).runToEnd();
+  console.assert(ff.outcome === "FAILED" && ff.allEndAt < 210, "failfast: over before slowest child's natural end");
+  console.assert(ff.allEndAt - ff.verdictAt <= 10, "failfast: close right after verdict");
+  const orph = makeSim({ ...base, world: "unstructured", failing: [2] }).runToEnd();
+  console.assert(orph.orphans > 0, "unstructured: orphans exist");
+  console.assert(orph.allEndAt > orph.verdictAt + 50, "unstructured: work continues long after verdict");
+  const race = makeSim({ ...base, joiner: "any", failing: [1] }).runToEnd();
+  console.assert(race.outcome === "SUCCESS", "any: one failure doesn't kill the race");
+  const dl = makeSim({ ...base, timeout: 100 }).runToEnd();
+  console.assert(dl.outcome === "TIMEOUT" && Math.abs(dl.verdictAt - 100) <= 10, "deadline fires at ~100");
+  const nest = makeSim({ ...base, nested: true, failing: [1] }).runToEnd();
+  const g = nest.children[1].grand;
+  console.assert(g.some(x => x.state === "cancelled"), "nested: a grandchild was cancelled transitively");
+  const unk = makeSim({ ...base, unkillable: true, failing: [2] }).runToEnd();
+  console.assert(unk.allEndAt >= 90 && unk.allEndAt - unk.verdictAt > 20, "unkillable: scope held past verdict");
+  console.log("self-test ran: happy", happy.allEndAt, "| failfast", ff.allEndAt, "| orphan verdict", orph.verdictAt, "end", orph.allEndAt,
+    "| race", race.allEndAt, "| deadline", dl.allEndAt, "| nested", nest.allEndAt, "| unkillable", unk.allEndAt);
+}
+
+/* ---------------- UI ---------------- */
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+  let sim = null, timer = null, failing = [2], narration = null;
+
+  const JOINER_LABEL = { all: "all must succeed", any: "first success wins", awaitAll: "wait for all, judge later" };
+  function currentCfg() {
+    return { world: document.querySelector("input[name=world]:checked").value,
+      joiner: document.querySelector("input[name=joiner]:checked").value,
+      kids: +$("kids").value, timeout: +$("timeout").value,
+      nested: $("nested").checked, unkillable: $("unkillable").checked,
+      failing: failing.filter(i => i <= +$("kids").value) };
+  }
+  function setCfg(c) {
+    document.querySelector(`input[name=world][value=${c.world}]`).checked = true;
+    document.querySelector(`input[name=joiner][value=${c.joiner}]`).checked = true;
+    $("kids").value = c.kids; $("timeout").value = c.timeout;
+    $("nested").checked = c.nested; $("unkillable").checked = c.unkillable;
+    failing = [...c.failing]; syncLabels();
+  }
+  function syncLabels() {
+    $("vKids").textContent = $("kids").value;
+    $("vTimeout").textContent = +$("timeout").value === 0 ? "none" : $("timeout").value + " ms";
+    $("vSpeed").textContent = $("speed").value + "×";
+  }
+  ["kids", "timeout", "speed"].forEach(id => $(id).addEventListener("input", syncLabels));
+
+  const PILL = { running: "working", success: "done", failed: "failed", cancelled: "called home",
+                 orphan: "ORPHAN — still running", zombie: "ignoring cancel!", pending: "queued" };
+
+  function render() {
+    if (!sim) return;
+    const c = sim.cfg;
+    $("scopelabel").textContent = c.world === "structured"
+      ? "scope · joiner: " + JOINER_LABEL[c.joiner] + (c.timeout ? ` · deadline ${c.timeout}ms` : "")
+      : "no scope — tasks just fired off";
+    $("scopebox").classList.toggle("unstructured", c.world !== "structured");
+    $("ownerDoing").textContent = sim.verdictAt === null
+      ? (c.world === "structured" ? "blocked at scope.join() — cannot move on" : "awaiting get() calls")
+      : (sim.allEndAt === null ? `outcome known (${sim.outcome}) — ${c.world === "structured" ? "scope still waiting for a straggler" : "already returned; orphans roam free"}`
+                               : `returned (${sim.outcome})`);
+    $("zKids").replaceChildren(...sim.children.map(k => {
+      const d = document.createElement("div");
+      d.className = "kid " + k.state;
+      const end = k.endAt !== null ? k.endAt : sim.time;
+      const pct = Math.min(100, 100 * Math.min(end, k.dur) / k.dur);
+      const plan = (k.failAt !== null ? `will fail at ${k.failAt} ms` : `needs ${k.dur} ms`) +
+        (k.unkillable ? " · ignores cancel" : "") + (k.nested ? " · has a nested scope" : "");
+      d.innerHTML = `<div class="kname"><span>${k.name}</span><span class="pill">${PILL[k.state] || k.state}</span></div>
+        <div class="plan">${plan}</div><div class="bar"><i style="width:${pct}%"></i></div>` +
+        (k.grand ? `<div class="grandbox"><div class="glabel">nested scope</div>` + k.grand.map(g =>
+          `<div class="grand"><span>${g.name}</span><span class="pill">${PILL[g.state] || g.state}</span></div>`).join("") + `</div>` : "");
+      d.title = "Click to toggle: does this child fail?";
+      d.addEventListener("click", () => {
+        failing = failing.includes(k.id) ? failing.filter(x => x !== k.id) : [...failing, k.id];
+        reset();
+      });
+      return d;
+    }));
+    $("sTime").textContent = sim.time;
+    $("sState").textContent = sim.outcome || "running";
+    $("sOrphans").textContent = sim.orphans;
+    $("loglines").replaceChildren(...sim.events.slice(-60).map(e => {
+      const d = document.createElement("div"); d.className = "ll " + e.kind;
+      d.innerHTML = `<div class="t">${e.text}</div><div class="tech">t=${e.time}ms · ${e.tech}</div>`;
+      return d;
+    }).reverse());
+  }
+
+  function verdictBanner(text, tech, cls) {
+    $("vtext").textContent = text; $("vtech").textContent = tech || "";
+    $("verdict").className = cls || "";
+  }
+
+  function finishRun() {
+    stop();
+    const c = sim.cfg, held = sim.allEndAt - sim.verdictAt;
+    const setup = (c.world === "structured" ? `scope (${JOINER_LABEL[c.joiner]})` : "no scope") +
+      (c.timeout ? `, deadline ${c.timeout}ms` : "") + (c.failing.length ? `, ${c.failing.length} failing` : "") +
+      (c.unkillable ? ", 1 uncancellable" : "") + (c.nested ? ", nested" : "");
+    let text, cls;
+    if (c.world !== "structured" && sim.orphans > 0) {
+      text = `Outcome ${sim.outcome} at ${sim.verdictAt} ms — but ${sim.orphans} orphan(s) kept working until ${sim.allEndAt} ms, after the request was already dead. This is the leak structured concurrency exists to make impossible.`;
+      cls = "bad";
+    } else if (held > 20) {
+      text = `Outcome ${sim.outcome} at ${sim.verdictAt} ms, but the scope held the owner until ${sim.allEndAt} ms — a child ignored cancellation. Nothing leaked (the guarantee held); promptness was lost.`;
+      cls = "bad";
+    } else {
+      text = `Outcome ${sim.outcome} at ${sim.verdictAt} ms, and every thread was finished by ${sim.allEndAt} ms — verdict and cleanup are the same moment. Nothing outlived the scope.`;
+      cls = sim.outcome === "SUCCESS" ? "good" : "bad";
+      if (sim.outcome !== "SUCCESS" && c.world === "structured") cls = "good",
+        text += " (A failing outcome handled cleanly is structured concurrency working, not failing.)";
+    }
+    verdictBanner(text, `setup: ${setup}`, cls);
+    const tb = $("results");
+    if (tb.firstChild && tb.firstChild.textContent.startsWith("No finished")) tb.replaceChildren();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${setup}</td><td class="num">${sim.verdictAt}</td><td class="num">${sim.allEndAt}</td><td>${sim.outcome}${sim.orphans ? ` + ${sim.orphans} orphans` : ""}</td>`;
+    tb.prepend(tr);
+  }
+
+  function start() {
+    if (!sim || sim.allEndAt !== null) reset();
+    stop();
+    timer = setInterval(() => {
+      let alive = true;
+      for (let i = 0; i < +$("speed").value; i++) alive = sim.tick(5);
+      render();
+      if (!alive) finishRun();
+    }, 90);
+  }
+  function stop() { if (timer) clearInterval(timer); timer = null; }
+  function reset() {
+    stop(); sim = makeSim(currentCfg());
+    verdictBanner(narration || "Ready. Press Run — or click child cards first to choose who fails.",
+      "", ""); narration = null; render();
+  }
+
+  $("btnRun").addEventListener("click", start);
+  $("btnPause").addEventListener("click", stop);
+  $("btnStep").addEventListener("click", () => { if (!sim) reset(); if (!sim.tick(5)) finishRun(); render(); });
+  $("btnReset").addEventListener("click", reset);
+  document.querySelectorAll("input[name=world], input[name=joiner], #kids, #timeout, #nested, #unkillable")
+    .forEach(el => el.addEventListener("change", reset));
+
+  const STORIES = {
+    happy:      { cfg: { world: "structured", joiner: "all", kids: 3, timeout: 0, nested: false, unkillable: false, failing: [] },
+      say: "Story 1 — three children, everyone succeeds. The owner waits at join() and moves on when the slowest child (210 ms) is done. Boring on purpose: this is the baseline." },
+    failfast:   { cfg: { world: "structured", joiner: "all", kids: 3, timeout: 0, nested: false, unkillable: false, failing: [2] },
+      say: "Story 2 — child-2 fails at 60 ms. Watch the scope instantly call the others home: the whole thing is over just after 60 ms, not at 210. The failure becomes join()'s exception; nothing keeps running." },
+    orphan:     { cfg: { world: "unstructured", joiner: "all", kids: 3, timeout: 0, nested: false, unkillable: false, failing: [2] },
+      say: "Story 3 — the SAME failure without a scope. child-2 fails at 60 ms, but the caller, awaiting results one by one in fork order, only discovers it at 90 ms — and then the remaining child keeps working for a dead request. Watch the orphan counter and the second timestamp in the results table." },
+    race:       { cfg: { world: "structured", joiner: "any", kids: 3, timeout: 0, nested: false, unkillable: false, failing: [1] },
+      say: "Story 4 — three replicas race under 'first success wins'. child-1 fails early — irrelevant, the race continues. child-2 answers at 150 ms and becomes THE result; child-3 is cancelled mid-flight." },
+    deadline:   { cfg: { world: "structured", joiner: "all", kids: 3, timeout: 125, nested: false, unkillable: false, failing: [] },
+      say: "Story 5 — nobody fails, but the scope has a 125 ms deadline for the whole family. child-1 makes it; the deadline cancels the rest and join() throws TimeoutException. One budget, zero per-call bookkeeping." },
+    nested:     { cfg: { world: "structured", joiner: "all", kids: 3, timeout: 0, nested: true, unkillable: false, failing: [1] },
+      say: "Story 6 — child-2 has a scope of its own with two grandchildren. child-1's failure cancels child-2 — and child-2's scope, closing, cancels the grandchildren. Cancellation cascades down the whole tree automatically." },
+    unkillable: { cfg: { world: "structured", joiner: "all", kids: 3, timeout: 0, nested: false, unkillable: true, failing: [2] },
+      say: "Story 7 — child-2 fails at 60 ms, but child-1 swallows the cancellation and keeps going. The scope will NOT leak it — so it holds the owner hostage until child-1 finishes at 90 ms (imagine 5 minutes). Guarantee kept; promptness lost." },
+  };
+  document.querySelectorAll(".stories button").forEach(b => b.addEventListener("click", () => {
+    const s = STORIES[b.dataset.story];
+    setCfg(s.cfg); narration = s.say;
+    stop(); sim = makeSim(currentCfg());
+    verdictBanner(s.say, "", ""); render(); start();
+  }));
+
+  syncLabels(); reset();
+}
+</script>

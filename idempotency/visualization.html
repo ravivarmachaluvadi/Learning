@@ -1,0 +1,693 @@
+<title>The Second Tap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f7f4ee; --surface:#fffdf9; --panel:#fbf8f1; --ink:#262218; --muted:#6f6857;
+  --line:#e3dcce; --line2:#d3cab6;
+  --accent:#0f766e; --accent-ink:#ffffff; --accent-soft:#e2efec;
+  --amber:#b45309; --amber-soft:#fbeddb;
+  --green:#15803d; --green-soft:#e3f0e4;
+  --red:#b91c1c; --red-soft:#f9e4e2;
+  --indigo:#4338ca; --indigo-soft:#e7e7f7;
+  --flash:#fff3c9;
+  --shadow:0 1px 2px rgba(56,48,30,.08),0 4px 14px rgba(56,48,30,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16140e; --surface:#1e1b13; --panel:#232014; --ink:#ece5d4; --muted:#a39a85;
+    --line:#35301f; --line2:#4a432c;
+    --accent:#2dd4bf; --accent-ink:#0c2b27; --accent-soft:#12332e;
+    --amber:#fbbf24; --amber-soft:#3a2c0d;
+    --green:#4ade80; --green-soft:#132c1a;
+    --red:#f87171; --red-soft:#3a1512;
+    --indigo:#a5b4fc; --indigo-soft:#232342;
+    --flash:#3d3313;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16140e; --surface:#1e1b13; --panel:#232014; --ink:#ece5d4; --muted:#a39a85;
+  --line:#35301f; --line2:#4a432c;
+  --accent:#2dd4bf; --accent-ink:#0c2b27; --accent-soft:#12332e;
+  --amber:#fbbf24; --amber-soft:#3a2c0d;
+  --green:#4ade80; --green-soft:#132c1a;
+  --red:#f87171; --red-soft:#3a1512;
+  --indigo:#a5b4fc; --indigo-soft:#232342;
+  --flash:#3d3313;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 "Public Sans",system-ui,sans-serif;
+  margin:0;padding:20px clamp(12px,3vw,36px) 60px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:clamp(26px,4vw,38px);
+  margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:17px;margin:0 0 8px}
+.sub{color:var(--muted);max-width:72ch;margin:6px 0 0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.92em}
+.wrap{max-width:1240px;margin:0 auto}
+.topgrid{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px}
+
+/* verdict */
+.verdict{border-radius:12px;padding:12px 18px;min-width:300px;box-shadow:var(--shadow);
+  border:1.5px solid var(--line2);background:var(--surface)}
+.verdict .big{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:22px;line-height:1.2}
+.verdict.good{border-color:var(--green);background:var(--green-soft)}
+.verdict.good .big{color:var(--green)}
+.verdict.bad{border-color:var(--red);background:var(--red-soft)}
+.verdict.bad .big{color:var(--red)}
+.verdict .why{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* design selector + toggles */
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 14px}
+.seg{display:flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);padding:8px 12px;cursor:pointer;
+  font:600 13px "Public Sans",sans-serif;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:12.5px;color:var(--muted);width:100%;margin-top:-6px}
+.btn{border:1px solid var(--line2);background:var(--surface);color:var(--ink);border-radius:9px;
+  padding:8px 13px;cursor:pointer;font:600 13px "Public Sans",sans-serif;box-shadow:var(--shadow)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn.toggled{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* stage */
+.stage{display:grid;grid-template-columns:250px 1fr 300px;gap:14px;align-items:start}
+@media (max-width:980px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px;box-shadow:var(--shadow)}
+.panel .tag{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.phone{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:12px;margin-top:8px}
+.intent{border:1px dashed var(--line2);border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--surface)}
+.chip{display:inline-block;border-radius:999px;padding:1.5px 9px;font-family:"IBM Plex Mono",monospace;
+  font-size:12px;border:1px solid var(--line2);background:var(--panel)}
+.chip.key{background:var(--indigo-soft);color:var(--indigo);border-color:transparent;font-weight:600}
+.pill{display:inline-block;border-radius:999px;padding:1.5px 9px;font-size:11.5px;font-weight:700}
+.pill.RUNNING{background:var(--amber-soft);color:var(--amber)}
+.pill.SUCCEEDED{background:var(--green-soft);color:var(--green)}
+.pill.FAILED{background:var(--red-soft);color:var(--red)}
+.status{min-height:40px;font-size:13.5px;margin:6px 0;padding:7px 9px;border-radius:9px;background:var(--panel);border:1px solid var(--line)}
+.status.timeout{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
+.status.ok{background:var(--green-soft);border-color:var(--green)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;padding:3px 6px;border-bottom:1px solid var(--line2)}
+td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.empty{color:var(--muted);font-style:italic;font-size:12.5px;padding:6px 2px}
+.led{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-right:6px}
+.led.down{background:var(--red)}
+.buf{border:1.5px dashed var(--amber);background:var(--amber-soft);border-radius:9px;
+  padding:6px 9px;font-size:12.5px;margin-top:8px}
+.flash{animation:fl 1.1s ease-out}
+@keyframes fl{0%{background:var(--flash)}100%{background:transparent}}
+@media (prefers-reduced-motion: reduce){.flash{animation:none}}
+.subsec{margin-top:12px}
+
+/* bottom area */
+.bottom{display:grid;grid-template-columns:340px 1fr;gap:14px;margin-top:16px;align-items:start}
+@media (max-width:980px){.bottom{grid-template-columns:1fr}}
+.scen{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:9px;background:var(--surface);cursor:pointer}
+.scen:hover{border-color:var(--accent)}
+.scen.open{border-color:var(--accent);box-shadow:var(--shadow)}
+.scen .t{font-weight:700;font-size:13.5px}
+.scen .q{font-size:13px;margin:6px 0;color:var(--ink)}
+.opts{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.opts button{text-align:left;border:1px solid var(--line2);border-radius:8px;background:var(--panel);
+  color:var(--ink);padding:7px 10px;cursor:pointer;font:500 12.5px "Public Sans",sans-serif}
+.opts button:hover{border-color:var(--accent)}
+.scenres{font-size:12.5px;border-radius:8px;padding:7px 10px;margin-top:6px}
+.scenres.hit{background:var(--green-soft);color:var(--green);font-weight:600}
+.scenres.miss{background:var(--amber-soft);color:var(--amber);font-weight:600}
+#log{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+  padding:12px 14px;max-height:460px;overflow-y:auto}
+.le{padding:6px 4px;border-bottom:1px solid var(--line);font-size:13.5px}
+.le .tech{display:block;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);margin-top:1px}
+.le.red{color:var(--red)} .le.green{color:var(--green)} .le.amber{color:var(--amber)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0 4px;align-items:center}
+.legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.story{background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;
+  padding:10px 16px;margin:12px 0;max-width:100%;font-size:13.5px}
+.charge-row.dup td{color:var(--red);font-weight:600}
+.footer-note{color:var(--muted);font-size:12.5px;margin-top:18px;max-width:80ch}
+</style>
+
+<div class="wrap">
+<div class="topgrid">
+  <div>
+    <h1>The Second Tap</h1>
+    <p class="sub">Asha is buying a ₹2,000 concert ticket. Networks lose answers, apps retry, and
+    every retry looks like a brand-new order to the server. Pick a protection design, break the
+    world, and watch the only number that matters.</p>
+  </div>
+  <div class="verdict" id="verdict" aria-live="polite">
+    <div class="big" id="vbig">Asha has been charged 0 times</div>
+    <div class="why" id="vwhy">for the current intention. Tap Pay to begin.</div>
+  </div>
+</div>
+
+<div class="story"><b>How to read this page:</b> Asha's phone is on the left, the PayEasy server
+(with its tables) in the middle, the bank on the right. Every step is narrated in the event log
+in a full sentence. If you'd rather watch than drive: open a numbered scenario below, answer its
+prediction question, and it plays itself with narration.</div>
+
+<div class="bar" role="group" aria-label="server design">
+  <span class="tag" style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">Server design</span>
+  <div class="seg" id="designSeg"></div>
+  <span class="tag" style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">The charge is</span>
+  <div class="seg" id="effectSeg"></div>
+  <div class="hint" id="designHint"></div>
+</div>
+
+<div class="bar">
+  <button class="btn" id="bStep" title="advance one step">Step ▸</button>
+  <button class="btn" id="bBack" title="undo one step">◂ Back</button>
+  <button class="btn" id="bPlay">Play</button>
+  <button class="btn" id="bDrop">Lose next response ✖</button>
+  <button class="btn danger" id="bCrash">Crash server</button>
+  <button class="btn" id="bRestart" disabled>Restart server</button>
+  <button class="btn" id="bReaper" title="find RUNNING keys older than now and re-drive them">Run reaper</button>
+  <button class="btn" id="bReset">Reset world</button>
+</div>
+
+<div class="stage">
+  <!-- CLIENT -->
+  <div class="panel" id="pClient">
+    <span class="tag">Asha's phone · the client</span>
+    <div class="phone">
+      <div style="font-size:12px;color:var(--muted)">Current intention <span title="minted when the payment screen rendered">(key minted at screen render)</span></div>
+      <div class="intent" id="intentBox"></div>
+      <button class="btn primary" id="bPay" style="width:100%">Pay ₹<span id="payAmt">2000</span></button>
+      <div class="status" id="cliStatus">Ready.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" id="bDouble" title="two identical requests, back to back">Double-tap</button>
+        <button class="btn" id="bNewIntent" title="a genuinely new purchase: fresh key">New intention</button>
+      </div>
+      <div style="margin-top:6px">
+        <button class="btn" id="bRePrice" title="app bug: changes the amount but reuses the key">App bug: re-price, reuse key</button>
+      </div>
+      <div class="subsec">
+        <span class="tag">Receipts held</span>
+        <div id="cliReceipts" class="mono" style="font-size:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVER -->
+  <div class="panel" id="pServer">
+    <span class="tag"><span class="led" id="srvLed"></span>PayEasy server · design <span id="srvDesign">D</span></span>
+    <div id="srvThreads" style="font-size:12.5px;color:var(--muted);margin:6px 0"></div>
+    <div id="srvBuf"></div>
+    <div class="subsec" id="secKeys">
+      <h2 style="font-size:14px">Idempotency-key table <span class="chip" id="keysNote"></span></h2>
+      <table><thead><tr><th>key</th><th>fingerprint</th><th>state</th><th>stored response</th></tr></thead>
+      <tbody id="keyRows"></tbody></table>
+      <div class="empty" id="keysEmpty">no rows — nothing claimed yet</div>
+    </div>
+    <div class="subsec" id="secSeen">
+      <h2 style="font-size:14px">Seen-set <span class="chip">design B only</span></h2>
+      <div id="seenList" class="mono" style="font-size:12px"></div>
+    </div>
+    <div class="subsec">
+      <h2 style="font-size:14px">Orders</h2>
+      <table><thead><tr><th>#</th><th>item</th><th>amount</th></tr></thead><tbody id="orderRows"></tbody></table>
+      <div class="empty" id="ordersEmpty">no orders recorded</div>
+    </div>
+    <div class="subsec" id="secLedger">
+      <h2 style="font-size:14px">Local ledger debits</h2>
+      <table><tbody id="ledgerRows"></tbody></table>
+      <div class="empty" id="ledgerEmpty">no debits</div>
+    </div>
+  </div>
+
+  <!-- BANK -->
+  <div class="panel" id="pBank">
+    <span class="tag">The bank · external</span>
+    <div class="subsec">
+      <h2 style="font-size:14px">Charges on Asha's card</h2>
+      <table><thead><tr><th>id</th><th>amount</th><th>bank-side key</th></tr></thead><tbody id="chargeRows"></tbody></table>
+      <div class="empty" id="chargesEmpty">no charges</div>
+    </div>
+    <div class="subsec" id="secBankKeys">
+      <h2 style="font-size:14px">Bank's own key table <span class="chip">it deduplicates too</span></h2>
+      <div id="bankKeys" class="mono" style="font-size:12px"></div>
+      <div class="empty" id="bankKeysEmpty">empty — the server only sends a key in design D</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="sw" style="background:var(--amber)"></span>RUNNING (claimed, outcome unknown)</span>
+  <span><span class="sw" style="background:var(--green)"></span>SUCCEEDED / replay</span>
+  <span><span class="sw" style="background:var(--red)"></span>duplicate charge / refusal</span>
+  <span><span class="sw" style="background:var(--indigo)"></span>idempotency key</span>
+  <span>dashed amber box = uncommitted transaction (rolls back on crash)</span>
+</div>
+
+<div class="bottom">
+  <div>
+    <h2>Predict, then run</h2>
+    <div id="scenList"></div>
+  </div>
+  <div>
+    <h2>Event log</h2>
+    <div id="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<p class="footer-note">Why these bindings are choices, not facts: the <b>design</b> and the
+<b>kind of charge</b> are the two switches above because they change the outcome — that is the
+lesson. Asha talks to one server because a key table must be authoritative wherever her retries
+land (multi-region keys are a harder problem the companion doc's §13 names). The bank
+deduplicates only in design D because only design D sends it a key.</p>
+</div>
+
+<script>
+/*ENGINE-START*/
+'use strict';
+function fpOf(amount){ let h=(amount*2654435761)>>>0; return '#'+((h^(h>>>13))%0xffff).toString(16).padStart(4,'0'); }
+
+function initialState(){
+  return {
+    design:'D', effect:'external',
+    intentSeq:1,
+    client:{ key:'ck_1', amount:2000, fp:fpOf(2000), status:'idle', statusText:'Ready.', receipts:[] },
+    dropNext:false,
+    server:{ up:true, keys:{}, seen:{}, orders:[], pendingClaims:{} },
+    bank:{ charges:[], keys:{} },
+    ledger:[],
+    threads:[], rr:0, nextT:1, nextOrder:184, nextCharge:501,
+    clock:0, log:[], changed:[]
+  };
+}
+let S = initialState();
+let history=[];
+
+function snap(){ history.push(JSON.stringify(S)); if(history.length>300) history.shift(); }
+function stepBack(){ if(history.length){ S=JSON.parse(history.pop()); S.changed=[]; } }
+
+function log(msg,tech,cls){ S.log.push({msg,tech:tech||'',cls:cls||'',t:S.clock}); }
+function touch(id){ S.changed.push(id); }
+
+function mintIntention(){
+  S.intentSeq++; const k='ck_'+S.intentSeq;
+  S.client.key=k; S.client.amount=2000; S.client.fp=fpOf(2000);
+  S.client.status='idle'; S.client.statusText='New payment screen. Fresh key '+k+' minted at render.';
+  log('Asha opens a new payment screen — a genuinely new intention. The app mints a fresh key.',
+      'key='+k+' fp='+S.client.fp);
+}
+function rePrice(){
+  S.client.amount = S.client.amount===2000?1900:2000;
+  S.client.fp=fpOf(S.client.amount);
+  log('The app re-priced the cart to ₹'+S.client.amount+' but kept the SAME key — one name now covers two different requests. (This is a client bug.)',
+      'key='+S.client.key+' fp='+S.client.fp,'amber');
+}
+
+function tapPay(n){
+  n=n||1;
+  if(!S.server.up){ log('Asha taps Pay, but the server is down; the request fails fast.','ConnectException','red'); S.client.status='timeout'; S.client.statusText='"Something went wrong. Try again."'; return; }
+  for(let i=0;i<n;i++){
+    S.threads.push({id:S.nextT++, key:S.client.key, fp:S.client.fp, amount:S.client.amount,
+                    design:S.design, pc:0, buf:null, done:false, redrive:false});
+    log((i===0?'Asha taps Pay. ':'She taps AGAIN immediately. ')+'A request leaves the phone.',
+        'POST /payments key='+S.client.key+' fp='+S.client.fp+' amount='+S.client.amount);
+  }
+  S.client.status='waiting'; S.client.statusText='Spinner… waiting for a response.';
+}
+
+function respond(t,code,body,cls){
+  if(t.redrive){ log('Re-drive finished; there is no waiting client to answer.','',''); return; }
+  if(S.dropNext && code===200){
+    S.dropNext=false;
+    log('The response to Asha is LOST in the network. She learns nothing.','200 receipt ✖ dropped','red');
+    S.client.status='timeout'; S.client.statusText='"Something went wrong. Try again."';
+    return;
+  }
+  S.client.status = code===200?'ok':'timeout';
+  if(code===200){ S.client.statusText='✓ '+body; S.client.receipts.push(body); touch('receipts'); }
+  else if(code===409){ S.client.statusText='409 — that payment is still being processed. Retry shortly.'; }
+  else if(code===422){ S.client.statusText='422 — this key was already used for a different request. Nothing was executed.'; }
+  log('The server answers Asha: '+(code===200?'"'+body+'"':code+'.'),'HTTP '+code,cls||'');
+}
+
+function bankCharge(t,withKey){
+  const bkey = withKey ? t.key+'-charge' : null;
+  if(bkey && S.bank.keys[bkey]!==undefined){
+    const cid=S.bank.keys[bkey];
+    log('The bank RECOGNIZES key '+bkey+' — it replays its earlier answer instead of charging again.',
+        'bank replay → '+cid,'green');
+    touch('bank:'+cid);
+    return cid;
+  }
+  const cid='c_'+(S.nextCharge++);
+  S.bank.charges.push({id:cid, amount:t.amount, bankKey:bkey, originKey:t.key});
+  if(bkey) S.bank.keys[bkey]=cid;
+  const dup = S.bank.charges.filter(c=>c.originKey===t.key).length>1;
+  log('The bank charges Asha\'s card ₹'+t.amount+'.'+(dup?' This is a SECOND charge for the same intention.':''),
+      'charge '+cid+(bkey?' bank-key='+bkey:' (no key sent)'), dup?'red':'');
+  touch('bank:'+cid);
+  return cid;
+}
+function localDebit(t){
+  S.ledger.push({amount:t.amount, originKey:t.key});
+  const dup=S.ledger.filter(d=>d.originKey===t.key).length>1;
+  log('The ledger inside the server database is debited ₹'+t.amount+'.'+(dup?' A SECOND debit for the same intention.':''),
+      'local debit', dup?'red':'');
+  touch('ledger');
+}
+function addOrder(t){
+  const o={n:S.nextOrder++, item:'indie-night ticket', amount:t.amount, originKey:t.key};
+  S.server.orders.push(o); touch('orders'); return o;
+}
+function receiptFor(o){ return 'Order #'+o.n+' confirmed — ₹'+o.amount; }
+
+function advance(t){
+  const d=t.design, sv=S.server;
+  if(d==='A'){
+    if(t.pc===0){ log('Server begins handling the request. Design A keeps no memory of past requests.','thread T'+t.id); t.pc=1; }
+    else if(t.pc===1){ if(S.effect==='external') bankCharge(t,false); else localDebit(t); t.pc=2; }
+    else if(t.pc===2){ t.order=addOrder(t); log('Server records the order.','INSERT orders #'+t.order.n); t.pc=3; }
+    else { respond(t,200,receiptFor(t.order)); t.done=true; }
+  }
+  else if(d==='B'){
+    if(t.pc===0){
+      if(sv.seen[t.key]!==undefined){
+        log('Check: key '+t.key+' IS in the seen-set → replay the stored answer, do nothing else.','seen hit','green');
+        respond(t,200,sv.seen[t.key],'green'); t.done=true;
+      } else {
+        log('Check: key '+t.key+' is NOT in the seen-set → proceed to charge. (Nothing marks it as in-progress.)','seen miss — the gap opens','amber');
+        t.pc=1;
+      }
+    }
+    else if(t.pc===1){ if(S.effect==='external') bankCharge(t,false); else localDebit(t); t.pc=2; }
+    else if(t.pc===2){ t.order=addOrder(t); sv.seen[t.key]=receiptFor(t.order); touch('seen');
+      log('Server records the order and only NOW adds '+t.key+' to the seen-set.','act… then mark'); t.pc=3; }
+    else { respond(t,200,receiptFor(t.order)); t.done=true; }
+  }
+  else if(d==='C'){
+    if(t.pc===0){
+      const row=sv.keys[t.key];
+      if(row){ // committed row exists
+        if(row.state!=='RUNNING'){ log('Claim INSERT hits the unique constraint; the row is settled → replay.','unique violation → read row','green');
+          respond(t,200,row.response,'green'); t.done=true; return; }
+      }
+      const holder=sv.pendingClaims[t.key];
+      if(holder!==undefined && holder!==t.id){
+        log('The duplicate\'s claim INSERT BLOCKS — another uncommitted transaction holds this unique key. It waits.','unique index wait','amber');
+        return; // stays at pc 0
+      }
+      sv.pendingClaims[t.key]=t.id; t.buf={claim:true};
+      log('BEGIN transaction. Claim INSERT of '+t.key+' — buffered, NOT yet committed.','uncommitted: claim '+t.key,'amber');
+      touch('buf'); t.pc=1;
+    }
+    else if(t.pc===1){
+      if(S.effect==='external'){ bankCharge(t,false); log('⚠ That bank call happened OUTSIDE the transaction buffer — a rollback cannot undo it.','','amber'); }
+      else { t.buf.debit=true; log('Ledger debit — buffered inside the transaction.','uncommitted debit','amber'); touch('buf'); }
+      t.pc=2;
+    }
+    else if(t.pc===2){
+      t.order=addOrder(t);
+      sv.keys[t.key]={state:'SUCCEEDED', fp:t.fp, amount:t.amount, response:receiptFor(t.order)};
+      if(S.effect==='local' && t.buf && t.buf.debit) localDebit(t);
+      delete sv.pendingClaims[t.key]; t.buf=null;
+      log('COMMIT — claim, order and outcome become durable in one instant.','commit point','green');
+      touch('key:'+t.key); t.pc=3;
+    }
+    else { respond(t,200,receiptFor(t.order)); t.done=true; }
+  }
+  else if(d==='D'){
+    if(t.pc===0 && !t.redrive){
+      const row=sv.keys[t.key];
+      if(row){
+        if(row.fp!==t.fp){ log('The key exists with a DIFFERENT fingerprint — same name, different request. The server refuses; nothing executes.','422 fp '+row.fp+' ≠ '+t.fp,'red');
+          respond(t,422,'','red'); t.done=true; return; }
+        if(row.state==='RUNNING'){ log('The key is RUNNING — the first attempt is (or was) mid-work. The duplicate is turned away rather than made to wait.','409 in progress','amber');
+          respond(t,409,'','amber'); t.done=true; return; }
+        log('The key is settled → replay the stored response. No bank, no orders touched.','replay from key table','green');
+        respond(t,200,row.response,'green'); t.done=true; return;
+      }
+      sv.keys[t.key]={state:'RUNNING', fp:t.fp, amount:t.amount, response:null};
+      log('Claim transaction COMMITS first: '+t.key+' is now durable evidence of the intention, state RUNNING.','txn1: INSERT '+t.key+' RUNNING; COMMIT','amber');
+      touch('key:'+t.key); t.pc=1;
+    }
+    else if(t.pc===0 && t.redrive){ t.pc=1; advance(t); }
+    else if(t.pc===1){
+      if(S.effect==='external') t.chargeId=bankCharge(t,true);
+      else log('No external step for a local charge; on to the outcome transaction.','');
+      t.pc=2;
+    }
+    else if(t.pc===2){
+      t.order=addOrder(t);
+      if(S.effect==='local') localDebit(t);
+      sv.keys[t.key]={state:'SUCCEEDED', fp:t.fp, amount:t.amount, response:receiptFor(t.order)};
+      log('Outcome transaction COMMITS: order recorded, key → SUCCEEDED with the response stored.','txn2: order + SUCCEEDED','green');
+      touch('key:'+t.key); t.pc=3;
+    }
+    else { respond(t,200,receiptFor(t.order)); t.done=true; }
+  }
+}
+
+function tick(){
+  snap(); S.changed=[]; S.clock++;
+  if(!S.server.up){ log('The server is down. Nothing moves until it restarts.','', ''); return; }
+  const live=S.threads.filter(t=>!t.done);
+  if(!live.length){ log('Nothing in flight. (Tap Pay, or run a scenario.)',''); return; }
+  const t=live[S.rr % live.length]; S.rr++;
+  advance(t);
+}
+
+function crash(){
+  snap(); S.changed=[];
+  S.server.up=false;
+  const killed=S.threads.filter(t=>!t.done).length;
+  S.threads.forEach(t=>{ if(!t.done){ t.done=true; } });
+  S.server.pendingClaims={};
+  log('💥 The server CRASHES. '+killed+' in-flight request(s) die. Uncommitted transaction buffers are gone; committed rows and bank charges remain.','crash — rollback of all uncommitted work','red');
+  if(S.client.status==='waiting'){ S.client.status='timeout'; S.client.statusText='"Something went wrong. Try again."'; }
+}
+function restart(){ snap(); S.changed=[]; S.server.up=true; log('The server restarts with whatever was durably committed.',''); }
+
+function reaper(){
+  snap(); S.changed=[];
+  if(!S.server.up){ log('The reaper cannot run — server is down.','','red'); return; }
+  if(S.design!=='D'){ log('The reaper only exists in design D — the other designs keep no durable RUNNING evidence to re-drive.','','amber'); return; }
+  let n=0;
+  for(const k of Object.keys(S.server.keys)){
+    const row=S.server.keys[k];
+    if(row.state==='RUNNING'){
+      n++;
+      S.threads.push({id:S.nextT++, key:k, fp:row.fp, amount:row.amount, design:'D', pc:0, buf:null, done:false, redrive:true});
+      log('Reaper finds '+k+' stuck RUNNING past its threshold and re-drives it from the evidence.','re-drive '+k,'amber');
+    }
+  }
+  if(!n) log('Reaper ran: no RUNNING keys old enough to re-drive.','');
+}
+
+function chargesForKey(key){
+  return S.bank.charges.filter(c=>c.originKey===key).length + S.ledger.filter(d=>d.originKey===key).length;
+}
+/*ENGINE-END*/
+
+/* ---------- rendering ---------- */
+const $=id=>document.getElementById(id);
+const DESIGNS=[
+  ['A','A · No protection','Every request is processed on its own merits. The baseline.'],
+  ['B','B · Check, then act','A seen-set is consulted before charging and written after. The check and the act are two separate moments.'],
+  ['C','C · One transaction','Claim INSERT (unique key) + work + outcome, all in ONE local transaction. Perfect — while the work stays inside the database.'],
+  ['D','D · Claim first + replay','The claim commits alone, first; the bank call carries its own key; the outcome commits after. Stuck keys are re-driven by the reaper.']
+];
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function render(){
+  // segs
+  $('designSeg').innerHTML=DESIGNS.map(d=>'<button data-d="'+d[0]+'" class="'+(S.design===d[0]?'on':'')+'">'+esc(d[1])+'</button>').join('');
+  $('designSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ snap(); S.design=b.dataset.d; S.log.push({msg:'Design switched to '+b.dataset.d+'. (Applies to newly sent requests.)',tech:'',cls:''}); render(); });
+  $('effectSeg').innerHTML=['external','local'].map(e=>'<button data-e="'+e+'" class="'+(S.effect===e?'on':'')+'">'+(e==='external'?'a bank API call':'a local DB debit')+'</button>').join('');
+  $('effectSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ snap(); S.effect=b.dataset.e; S.log.push({msg:'The charge is now '+(b.dataset.e==='external'?'an EXTERNAL bank call — it cannot live inside a transaction.':'a LOCAL database write — a transaction can cover it completely.'),tech:'',cls:''}); render(); });
+  $('designHint').textContent=DESIGNS.find(d=>d[0]===S.design)[2];
+  $('srvDesign').textContent=S.design;
+
+  // client
+  $('intentBox').innerHTML='<span class="chip key">'+esc(S.client.key)+'</span> '
+    +'<span class="chip">fp '+esc(S.client.fp)+'</span><br>indie-night ticket · ₹'+S.client.amount;
+  $('payAmt').textContent=S.client.amount;
+  const st=$('cliStatus');
+  st.textContent=S.client.statusText;
+  st.className='status '+(S.client.status==='timeout'?'timeout':S.client.status==='ok'?'ok':'');
+  $('cliReceipts').innerHTML=S.client.receipts.length?S.client.receipts.map(r=>esc(r)).join('<br>'):'<span class="empty">none yet</span>';
+  if(S.changed.includes('receipts')) $('cliReceipts').classList.add('flash');
+
+  // server
+  $('srvLed').className='led'+(S.server.up?'':' down');
+  const live=S.threads.filter(t=>!t.done);
+  $('srvThreads').textContent = S.server.up
+    ? (live.length? live.length+' request(s) being processed: '+live.map(t=>(t.redrive?'re-drive ':'T'+t.id+' ')+t.key+' @step '+t.pc).join(' · ') : 'idle')
+    : 'CRASHED — restart to continue';
+  const bufs=live.filter(t=>t.buf);
+  $('srvBuf').innerHTML=bufs.length? bufs.map(t=>'<div class="buf">open transaction (T'+t.id+'): claim '+esc(t.key)+(t.buf.debit?' + debit ₹'+t.amount:'')+' — <b>uncommitted</b></div>').join(''):'';
+  const keys=Object.keys(S.server.keys);
+  $('secKeys').style.display=(S.design==='C'||S.design==='D')?'':'none';
+  $('keysNote').textContent=S.design==='C'?'written inside the one transaction':'claim commits first';
+  $('keyRows').innerHTML=keys.map(k=>{
+    const r=S.server.keys[k];
+    const fl=S.changed.includes('key:'+k)?' class="flash"':'';
+    return '<tr'+fl+'><td><span class="chip key">'+esc(k)+'</span></td><td class="mono">'+esc(r.fp)+'</td>'
+      +'<td><span class="pill '+r.state+'">'+r.state+'</span></td><td>'+(r.response?esc(r.response):'<i>—</i>')+'</td></tr>';
+  }).join('');
+  $('keysEmpty').style.display=keys.length?'none':'';
+  $('secSeen').style.display=S.design==='B'?'':'none';
+  const seen=Object.keys(S.server.seen);
+  $('seenList').innerHTML=seen.length?seen.map(k=>'<span class="chip key">'+esc(k)+'</span>').join(' '):'<span class="empty">empty</span>';
+  if(S.changed.includes('seen')) $('seenList').classList.add('flash');
+  $('orderRows').innerHTML=S.server.orders.map(o=>'<tr'+(S.changed.includes('orders')&&o===S.server.orders[S.server.orders.length-1]?' class="flash"':'')+'><td>#'+o.n+'</td><td>'+esc(o.item)+'</td><td>₹'+o.amount+'</td></tr>').join('');
+  $('ordersEmpty').style.display=S.server.orders.length?'none':'';
+  $('secLedger').style.display=S.effect==='local'||S.ledger.length?'':'none';
+  $('ledgerRows').innerHTML=S.ledger.map((d,i)=>{
+    const dup=S.ledger.slice(0,i).some(x=>x.originKey===d.originKey);
+    return '<tr class="charge-row'+(dup?' dup':'')+'"><td>debit</td><td>₹'+d.amount+'</td><td><span class="chip key">'+esc(d.originKey)+'</span></td></tr>';
+  }).join('');
+  $('ledgerEmpty').style.display=S.ledger.length?'none':'';
+
+  // bank
+  $('chargeRows').innerHTML=S.bank.charges.map((c,i)=>{
+    const dup=S.bank.charges.slice(0,i).some(x=>x.originKey===c.originKey);
+    const fl=S.changed.includes('bank:'+c.id)?' flash':'';
+    return '<tr class="charge-row'+(dup?' dup':'')+fl+'"><td class="mono">'+c.id+'</td><td>₹'+c.amount+'</td><td>'+(c.bankKey?'<span class="chip">'+esc(c.bankKey)+'</span>':'—')+'</td></tr>';
+  }).join('');
+  $('chargesEmpty').style.display=S.bank.charges.length?'none':'';
+  const bk=Object.keys(S.bank.keys);
+  $('bankKeys').innerHTML=bk.map(k=>'<span class="chip">'+esc(k)+' → '+S.bank.keys[k]+'</span>').join(' ');
+  $('bankKeysEmpty').style.display=bk.length?'none':'';
+
+  // verdict
+  const n=chargesForKey(S.client.key);
+  const v=$('verdict');
+  $('vbig').textContent='Asha has been charged '+n+' time'+(n===1?'':'s');
+  if(n<=1){ v.className='verdict good'; $('vwhy').textContent=n===0?'for intention '+S.client.key+'. Nothing has happened yet — or a refusal correctly stopped execution.':'for intention '+S.client.key+'. Correct: one intention, one charge.'; }
+  else { v.className='verdict bad'; $('vwhy').textContent='for intention '+S.client.key+' — a duplicate got through. One intention must never cost two charges.'; }
+
+  // log
+  const lg=$('log');
+  lg.innerHTML=S.log.slice(-80).map(e=>'<div class="le '+e.cls+'">'+esc(e.msg)+(e.tech?'<span class="tech">'+esc(e.tech)+'</span>':'')+'</div>').join('');
+  lg.scrollTop=lg.scrollHeight;
+
+  $('bRestart').disabled=S.server.up;
+  $('bCrash').disabled=!S.server.up;
+  $('bDrop').className='btn'+(S.dropNext?' toggled':'');
+  $('bDrop').textContent=S.dropNext?'Next response WILL be lost ✖':'Lose next response ✖';
+  $('bRePrice').textContent='App bug: '+(S.client.amount===2000?'re-price to ₹1,900, reuse key':'price back to ₹2,000, same key');
+}
+
+/* ---------- controls ---------- */
+$('bPay').onclick=()=>{ snap(); S.changed=[]; tapPay(1); render(); };
+$('bDouble').onclick=()=>{ snap(); S.changed=[]; tapPay(2); render(); };
+$('bNewIntent').onclick=()=>{ snap(); S.changed=[]; mintIntention(); render(); };
+$('bRePrice').onclick=()=>{ snap(); S.changed=[]; rePrice(); render(); };
+$('bStep').onclick=()=>{ tick(); render(); };
+$('bBack').onclick=()=>{ stepBack(); render(); };
+$('bDrop').onclick=()=>{ snap(); S.dropNext=!S.dropNext; if(S.dropNext) log('The network will eat the next response to Asha.','','red'); render(); };
+$('bCrash').onclick=()=>{ crash(); render(); };
+$('bRestart').onclick=()=>{ restart(); render(); };
+$('bReaper').onclick=()=>{ reaper(); render(); };
+$('bReset').onclick=()=>{ S=initialState(); history=[]; log('World reset.'); render(); };
+
+let playTimer=null;
+$('bPlay').onclick=()=>{
+  if(playTimer){ clearInterval(playTimer); playTimer=null; $('bPlay').textContent='Play'; return; }
+  $('bPlay').textContent='Pause';
+  playTimer=setInterval(()=>{ if(S.threads.some(t=>!t.done)&&S.server.up){ tick(); render(); } else { clearInterval(playTimer); playTimer=null; $('bPlay').textContent='Play'; } },650);
+};
+
+/* ---------- scenarios ---------- */
+const SCEN=[
+ {t:'1 · The founding accident', d:'A', e:'external',
+  q:'Asha pays; the success response is lost; she taps again. Design A has no protection. Who is at fault for what happens?',
+  opts:[['The app — it retried too eagerly',false],
+        ['No component misbehaved — the knowledge needed to stop it never reached the server',true],
+        ['The bank — it should refuse identical charges',false]],
+  script:['drop','tap','tick','tick','tick','tick','tap','tick','tick','tick','tick'],
+  after:'Two charges, and every part worked as designed: the network may lose messages, the client must retry, the server saw two valid orders, the bank was told to charge twice. Only Asha\'s phone knew the two sends were one intention — and design A gives that knowledge nowhere to go. That is why the client mints a key.'},
+ {t:'2 · The gap in the check', d:'B', e:'external',
+  q:'Design B checks a seen-set before charging and records after. Asha double-taps: two identical requests interleave. Charges?',
+  opts:[['1 — the check catches the second request',false],
+        ['2 — both checks pass before either records',true]],
+  script:['doubletap','tick','tick','tick','tick','tick','tick','tick','tick'],
+  after:'Both requests ran the check while the seen-set was still empty — the check and the act are two moments, and the world moved between them. This is the same check-then-act gap the distributed-locking lab measured. Checking harder cannot fix it; only making check-and-act one atomic event can.'},
+ {t:'3 · One transaction, crash inside', d:'C', e:'local',
+  q:'Design C: claim + debit + outcome in ONE transaction, and the charge is a local DB write. The server crashes mid-work; Asha retries. Total debits?',
+  opts:[['0 — the crash loses the payment',false],
+        ['1 — the rollback erased the half-done work; the retry re-executes cleanly',true],
+        ['2 — the retry duplicates the debit',false]],
+  script:['tap','tick','tick','crash','restart','tap','tick','tick','tick','tick'],
+  after:'The crash rolled back claim AND debit together — nothing survived of either, so the retry re-executed against a clean slate. When the whole effect lives in one database, one transaction makes idempotency complete. This exact shape (a processed-messages table in the consumer\'s transaction) is the honest version of "consumers must be idempotent".'},
+ {t:'4 · ROLLBACK can\'t unsend', d:'C', e:'external',
+  q:'Same design C, but the charge is a bank API call. The bank confirms; the server crashes before COMMIT; Asha retries. Charges?',
+  opts:[['1 — the claim protects her',false],
+        ['2 — the rollback erased the claim, but the bank call was already in the world',true]],
+  script:['tap','tick','tick','crash','restart','tap','tick','tick','tick','tick'],
+  after:'The transaction\'s atomicity covered only local writes. The bank call escaped the buffer; the crash erased every trace that it happened — and the retry, finding a virgin key table, charged again. A durable local record and an external effect that must go together, with a crash possible between: the dual-write problem, one hop down.'},
+ {t:'5 · Claim first, recurse the key', d:'D', e:'external',
+  q:'Design D commits the claim BEFORE the bank call and sends the bank its own key. Same crash as scenario 4. After Asha\'s retry and the reaper: charges?',
+  opts:[['2 — the re-drive calls the bank again',false],
+        ['1 — the re-driven call carries the same bank key, so the bank replays',true]],
+  script:['tap','tick','tick','crash','restart','tap','tick','reaper','tick','tick','tick','tap','tick'],
+  after:'The committed RUNNING row survived the crash as evidence of doubt. Asha\'s retry bounced off it (409) instead of re-executing. The reaper re-drove the work, and the bank — holding its own key table — recognized the charge key and replayed instead of charging. The doubt was absorbed one hop down. Idempotency is a per-hop contract that recurses.'},
+ {t:'6 · One name, one meaning', d:'D', e:'external',
+  q:'Asha\'s payment succeeded but the response was lost. A bug makes the app re-price the cart to ₹1,900 and retry with the SAME key. What does the server do?',
+  opts:[['Charges ₹1,900 — newest content wins',false],
+        ['Replays the ₹2,000 receipt — the key already succeeded',false],
+        ['Refuses with 422 and executes nothing — one key may not name two requests',true]],
+  script:['drop','tap','tick','tick','tick','tick','reprice','tap','tick','reprice','tap','tick'],
+  after:'The fingerprint stored at claim time caught the mismatch: same name, different request is a client bug by definition, and the server must refuse rather than guess which intention is real. Once the app sent the ORIGINAL body again, the settled key replayed the stored receipt — which is what the retry was really asking for.'}
+];
+let openScen=-1;
+function renderScens(){
+  $('scenList').innerHTML=SCEN.map((s,i)=>{
+    let inner='<div class="t">'+esc(s.t)+'</div>';
+    if(openScen===i){
+      inner+='<div class="q">🔮 '+esc(s.q)+'</div><div class="opts">'
+        +s.opts.map((o,j)=>'<button data-s="'+i+'" data-o="'+j+'">'+esc(o[0])+'</button>').join('')+'</div>'
+        +'<div id="scenres'+i+'"></div>';
+    }
+    return '<div class="scen'+(openScen===i?' open':'')+'" data-i="'+i+'">'+inner+'</div>';
+  }).join('');
+  $('scenList').querySelectorAll('.scen').forEach(el=>{
+    el.onclick=e=>{ if(e.target.tagName==='BUTTON')return; openScen=(openScen===+el.dataset.i?-1:+el.dataset.i); renderScens(); };
+  });
+  $('scenList').querySelectorAll('.opts button').forEach(b=>{
+    b.onclick=()=>runScenario(+b.dataset.s,+b.dataset.o);
+  });
+}
+function runScenario(si,oi){
+  const s=SCEN[si];
+  S=initialState(); history=[]; S.design=s.d; S.effect=s.e;
+  log('— Scenario '+s.t+' begins on design '+s.d+'. Watch the log. —','','');
+  render();
+  const ops=s.script.slice(); let k=0;
+  const timer=setInterval(()=>{
+    if(k>=ops.length){
+      clearInterval(timer);
+      const correct=s.opts[oi][1];
+      const el=$('scenres'+si);
+      if(el) el.innerHTML='<div class="scenres '+(correct?'hit':'miss')+'">'
+        +(correct?'Your prediction held. ':'Not quite — ')+esc(s.after)+'</div>';
+      log('— Scenario ends. '+s.after,'','');
+      render(); return;
+    }
+    const op=ops[k++];
+    if(op==='tap'){ snap(); S.changed=[]; tapPay(1); }
+    else if(op==='doubletap'){ snap(); S.changed=[]; tapPay(2); }
+    else if(op==='tick'){ tick(); }
+    else if(op==='drop'){ snap(); S.dropNext=true; log('The network will eat the next response to Asha.','','red'); }
+    else if(op==='crash'){ crash(); }
+    else if(op==='restart'){ restart(); }
+    else if(op==='reaper'){ reaper(); }
+    else if(op==='reprice'){ snap(); S.changed=[]; rePrice(); }
+    render();
+  },800);
+}
+renderScens();
+log('Welcome. Design D is selected. Try: press "Lose next response ✖", then Pay, then Step through — or open scenario 1.');
+render();
+</script>

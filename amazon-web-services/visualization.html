@@ -1,0 +1,1400 @@
+<title>Marigold Pay Failure Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+<style>
+:root{
+  --bg:#EBEEF1; --surface:#FFFFFF; --surface-2:#F4F6F8; --surface-3:#E7ECF0;
+  --ink:#131A21; --ink-2:#4A5763; --ink-3:#7C8894;
+  --line:#D4DAE1; --line-strong:#B3BEC9;
+  --accent:#1D4E7C; --accent-ink:#1D4E7C; --accent-soft:#E2ECF5;
+  --ok:#276E4C; --ok-soft:#DFEFE7; --ok-line:#8FC2A9;
+  --warn:#9A6209; --warn-soft:#F7EBD6; --warn-line:#DBB570;
+  --bad:#A6342A; --bad-soft:#F8E2DF; --bad-line:#DE9A90;
+  --ctrl:#61479A; --ctrl-soft:#EBE5F7; --ctrl-line:#B6A2DC;
+  --shadow:0 1px 2px rgba(19,26,33,.06),0 6px 18px rgba(19,26,33,.06);
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F141A; --surface:#161D24; --surface-2:#1C252D; --surface-3:#232E37;
+    --ink:#E7EDF3; --ink-2:#AAB7C3; --ink-3:#78848F;
+    --line:#28333C; --line-strong:#3A4650;
+    --accent:#7BB0E0; --accent-ink:#9CC7EE; --accent-soft:#152736;
+    --ok:#63C193; --ok-soft:#112620; --ok-line:#2F6650;
+    --warn:#DDA84A; --warn-soft:#271F12; --warn-line:#6C5424;
+    --bad:#E47766; --bad-soft:#2A1613; --bad-line:#75352C;
+    --ctrl:#AE93DE; --ctrl-soft:#1F1930; --ctrl-line:#4E3F76;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F141A; --surface:#161D24; --surface-2:#1C252D; --surface-3:#232E37;
+  --ink:#E7EDF3; --ink-2:#AAB7C3; --ink-3:#78848F;
+  --line:#28333C; --line-strong:#3A4650;
+  --accent:#7BB0E0; --accent-ink:#9CC7EE; --accent-soft:#152736;
+  --ok:#63C193; --ok-soft:#112620; --ok-line:#2F6650;
+  --warn:#DDA84A; --warn-soft:#271F12; --warn-line:#6C5424;
+  --bad:#E47766; --bad-soft:#2A1613; --bad-line:#75352C;
+  --ctrl:#AE93DE; --ctrl-soft:#1F1930; --ctrl-line:#4E3F76;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1560px;margin:0 auto;padding:18px 20px 56px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 22px;padding-bottom:14px;border-bottom:2px solid var(--line-strong)}
+.brand h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;color:var(--ink-3);font-size:12.5px}
+.eyebrow{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.themeBtn{margin-left:auto;background:var(--surface);border:1px solid var(--line-strong);color:var(--ink-2);
+  border-radius:99px;padding:5px 13px;font:inherit;font-size:12px;cursor:pointer}
+.themeBtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+/* ---------- verdict ---------- */
+.verdict{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--ok);
+  border-radius:var(--r);padding:14px 18px;display:grid;grid-template-columns:auto 1fr;gap:6px 26px;align-items:center;box-shadow:var(--shadow)}
+.verdict.state-warn{border-left-color:var(--warn)} .verdict.state-bad{border-left-color:var(--bad)}
+.vNum{font-family:"IBM Plex Mono",monospace;font-size:40px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.verdict.state-ok .vNum{color:var(--ok)} .verdict.state-warn .vNum{color:var(--warn)} .verdict.state-bad .vNum{color:var(--bad)}
+.vLabel{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-top:6px}
+.vText{font-size:14.5px;color:var(--ink);max-width:78ch}
+.vSub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+
+/* ---------- grid ---------- */
+.cols{display:grid;grid-template-columns:246px minmax(0,1fr) 316px;gap:16px;margin-top:16px;align-items:start}
+@media (max-width:1240px){.cols{grid-template-columns:246px minmax(0,1fr)}}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.panel + .panel{margin-top:14px}
+.panel h2{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+  margin:0;padding:11px 14px;border-bottom:1px solid var(--line)}
+.panel .body{padding:13px 14px}
+
+/* ---------- controls ---------- */
+.grp{margin-bottom:15px}
+.grp:last-child{margin-bottom:0}
+.grp > .gl{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;display:block;margin-bottom:7px}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+button.b{font:inherit;font-size:12.5px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line-strong);
+  border-radius:6px;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+button.b:hover:not(:disabled){border-color:var(--accent);color:var(--accent-ink)}
+button.b:disabled{opacity:.42;cursor:not-allowed}
+button.b.on{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.b.on,
+:root:not([data-theme="light"]) button.b.on{color:#0F141A}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) button.b.on{color:#fff}}
+button.b.danger{border-color:var(--bad-line);color:var(--bad)}
+button.b.danger:hover:not(:disabled){background:var(--bad-soft);border-color:var(--bad)}
+button.b.danger.on{background:var(--bad);border-color:var(--bad);color:#fff}
+button.b.ctrl{border-color:var(--ctrl-line);color:var(--ctrl)}
+button.b.ctrl.on{background:var(--ctrl);border-color:var(--ctrl);color:#fff}
+button.b.wide{width:100%;text-align:left}
+button.b:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select.b{font:inherit;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line-strong);
+  border-radius:6px;padding:6px 8px;width:100%;cursor:pointer}
+.hint{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.45}
+.row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.row + .row{margin-top:7px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* ---------- region canvas ---------- */
+.canvasPanel .body{padding:14px}
+.cpBand{border:1px dashed var(--ctrl-line);background:var(--ctrl-soft);border-radius:var(--r);
+  padding:9px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cpBand.frozen{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+.cpTitle{font-weight:600;font-size:12.5px;color:var(--ctrl)}
+.cpBand.frozen .cpTitle{color:var(--bad)}
+.cpMsg{font-size:12px;color:var(--ink-2);flex:1;min-width:200px}
+.regionBox{margin-top:12px;border:1px solid var(--line-strong);border-radius:var(--r);padding:12px;background:var(--surface-2)}
+.regionHead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.regionHead .rn{font-weight:600;font-size:13px}
+.edgeRow{display:flex;gap:10px;align-items:stretch;margin-bottom:11px;flex-wrap:wrap}
+.edgeBox{flex:1;min-width:150px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.edgeBox .bt{font-size:11px;color:var(--ink-3);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.edgeBox .bv{font-size:12.5px;margin-top:2px}
+
+.azGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.azGrid{grid-template-columns:1fr}}
+.az{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px;transition:background .2s,border-color .2s}
+.az.dead{background:var(--bad-soft);border-color:var(--bad-line)}
+.azHead{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+.azName{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600}
+.azId{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.nodes{display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
+.node{width:26px;height:26px;border-radius:5px;border:1.5px solid;display:flex;align-items:center;justify-content:center;
+  font-family:"IBM Plex Mono",monospace;font-size:9.5px;cursor:pointer;background:var(--surface-2);position:relative;padding:0}
+.node.serving{border-color:var(--ok-line);background:var(--ok-soft);color:var(--ok)}
+.node.unhealthy{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn)}
+.node.booting{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.node.dead{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad);opacity:.65}
+.node.sel{outline:2px solid var(--accent);outline-offset:1px}
+.node.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 0 var(--accent)}100%{box-shadow:0 0 0 9px transparent}}
+@media (prefers-reduced-motion: reduce){.node.flash{animation:none}}
+.dbBox{margin-top:8px;border:1.5px solid var(--line-strong);border-radius:5px;padding:6px 8px;font-size:11.5px;cursor:pointer;background:var(--surface-2)}
+.dbBox.ok{border-color:var(--ok-line);background:var(--ok-soft);color:var(--ok)}
+.dbBox.failing{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn)}
+.dbBox.down{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad)}
+.dbBox.standby{border-style:dashed;color:var(--ink-2);background:var(--surface-2)}
+.dbBox.sel{outline:2px solid var(--accent);outline-offset:1px}
+.regionalRow{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.regional{flex:1;min-width:120px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:5px;
+  padding:7px 9px;background:var(--surface);font-size:11.5px;cursor:pointer}
+.regional.sel{outline:2px solid var(--accent);outline-offset:1px}
+.regional .rl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.regional.down{border-left-color:var(--bad);background:var(--bad-soft)}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 15px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-2)}
+.lg{display:flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;border:1.5px solid}
+.sw.serving{border-color:var(--ok-line);background:var(--ok-soft)}
+.sw.unhealthy{border-color:var(--warn-line);background:var(--warn-soft)}
+.sw.booting{border-color:var(--accent);background:var(--accent-soft)}
+.sw.dead{border-color:var(--bad-line);background:var(--bad-soft)}
+.sw.ctrl{border-color:var(--ctrl-line);background:var(--ctrl-soft);border-style:dashed}
+
+/* ---------- meters ---------- */
+.meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px}
+.meter{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.meter .ml{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.meter .mv{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:1px}
+.meter .mu{font-size:11px;color:var(--ink-3);font-weight:400}
+.bar{height:5px;background:var(--surface-3);border-radius:3px;margin-top:6px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .25s}
+.bar.warn > i{background:var(--warn)} .bar.bad > i{background:var(--bad)}
+
+/* ---------- log & inspector ---------- */
+.log{max-height:290px;overflow-y:auto;padding:4px 0}
+.ev{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.ev:last-child{border-bottom:none}
+.ev .et{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.ev .em{margin-top:1px;color:var(--ink)}
+.ev .en{margin-top:2px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.ev.k-bad{border-left:3px solid var(--bad);padding-left:11px}
+.ev.k-warn{border-left:3px solid var(--warn);padding-left:11px}
+.ev.k-ok{border-left:3px solid var(--ok);padding-left:11px}
+.ev.k-ctrl{border-left:3px solid var(--ctrl);padding-left:11px}
+.insp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px}
+.insp dt{color:var(--ink-3);font-size:11.5px}
+.insp dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:11.5px;word-break:break-all}
+.insp .why{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);
+  font-family:"IBM Plex Serif",Georgia,serif}
+.empty{color:var(--ink-3);font-size:12.5px;font-style:italic}
+
+/* ---------- scenarios ---------- */
+.scenPanel .body{padding:0}
+.scen{padding:13px 14px;border-bottom:1px solid var(--line)}
+.scen:last-child{border-bottom:none}
+.scenTitle{font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+.pill{font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:99px;
+  background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--line)}
+.scenQ{font-family:"IBM Plex Serif",Georgia,serif;font-size:13.5px;margin:8px 0 9px;color:var(--ink)}
+.opts{display:flex;flex-direction:column;gap:5px}
+.opt{text-align:left;font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line-strong);
+  color:var(--ink-2);border-radius:6px;padding:7px 10px;cursor:pointer}
+.opt:hover{border-color:var(--accent);color:var(--accent-ink)}
+.opt.picked{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.reveal{margin-top:10px;padding:10px 12px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);
+  font-size:12.5px;line-height:1.55}
+.reveal b{color:var(--ink)}
+.narr{position:sticky;bottom:0}
+footer.foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12px;max-width:82ch}
+a{color:var(--accent-ink)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">Marigold Pay &middot; operations console &middot; simulated</div>
+    <h1>What survives the night?</h1>
+    <p>A payments API on AWS. Break it on purpose and watch which guarantee bends.</p>
+  </div>
+  <button class="themeBtn" id="themeBtn" type="button">Switch theme</button>
+</header>
+
+<div class="verdict state-ok" id="verdict">
+  <div>
+    <div class="vNum tnum" id="vNum">100%</div>
+    <div class="vLabel">payments succeeding</div>
+  </div>
+  <div>
+    <div class="vText" id="vText">Everything is healthy. 300 of 300 payments per second are going through.</div>
+    <div class="vSub" id="vSub">Press <b>Play</b>, then inject a fault from the left. Or run a guided scenario at the bottom.</div>
+  </div>
+</div>
+
+<div class="cols">
+
+  <!-- ============ LEFT: CONTROLS ============ -->
+  <div>
+    <section class="panel">
+      <h2>The design</h2>
+      <div class="body">
+        <div class="grp">
+          <span class="gl">Architecture</span>
+          <select class="b" id="verSel">
+            <option value="1">v1 &mdash; one server, everything on it</option>
+            <option value="2">v2 &mdash; two servers + load balancer, one zone</option>
+            <option value="3" selected>v3 &mdash; three zones + auto scaling, one database</option>
+            <option value="4">v4 &mdash; + database with a standby in another zone</option>
+            <option value="5">v5 &mdash; + a second region</option>
+          </select>
+          <div class="hint" id="verHint"></div>
+        </div>
+
+        <div class="grp" id="dbGrp">
+          <span class="gl">Where the data lives</span>
+          <div class="seg" id="dbSeg"></div>
+        </div>
+
+        <div class="grp" id="ssGrp">
+          <span class="gl">Spare capacity</span>
+          <div class="seg">
+            <button class="b" id="ssBtn" type="button">Static stability: off</button>
+          </div>
+          <div class="hint" id="ssHint">Off: run exactly enough machines and launch more when one dies. On: run 50% extra so nothing has to be launched.</div>
+        </div>
+
+        <div class="grp">
+          <span class="gl">Traffic</span>
+          <div class="seg">
+            <button class="b on" data-traffic="300" type="button">Normal</button>
+            <button class="b" data-traffic="700" type="button">Busy</button>
+            <button class="b" data-traffic="2100" type="button">Festival &times;7</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Inject a fault</h2>
+      <div class="body">
+        <div class="grp">
+          <span class="gl">Hardware</span>
+          <div class="seg">
+            <button class="b danger" id="killInst" type="button">Kill one server</button>
+          </div>
+          <div class="row" style="margin-top:7px">
+            <div class="seg" id="azKillSeg"></div>
+          </div>
+          <div class="hint">Killing a zone takes out every server, subnet and database instance inside it.</div>
+        </div>
+
+        <div class="grp">
+          <span class="gl">Amazon's own systems</span>
+          <div class="seg">
+            <button class="b ctrl" id="cpBtn" type="button">Freeze control plane</button>
+            <button class="b danger" id="regionBtn" type="button">Region event</button>
+          </div>
+          <div class="hint">Freezing the control plane leaves everything running &mdash; it only stops new things being created.</div>
+        </div>
+
+        <div class="grp">
+          <span class="gl">Limits and dependencies</span>
+          <div class="seg">
+            <button class="b danger" id="quotaBtn" type="button">Hit the quota</button>
+            <button class="b danger" id="slowBtn" type="button">Make the database slow</button>
+          </div>
+          <div class="hint" id="quotaHint"></div>
+        </div>
+
+        <div class="grp">
+          <span class="gl">Permissions</span>
+          <div class="seg">
+            <button class="b danger" id="iamBtn" type="button">Break the IAM policy</button>
+          </div>
+          <div class="hint">A missing permission fails every write instantly, before any database work happens.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Time</h2>
+      <div class="body">
+        <div class="seg" style="margin-bottom:8px">
+          <button class="b" id="backBtn" type="button">&#9664; Step</button>
+          <button class="b" id="playBtn" type="button">&#9654; Play</button>
+          <button class="b" id="fwdBtn" type="button">Step &#9654;</button>
+        </div>
+        <div class="seg">
+          <button class="b wide" id="healBtn" type="button">Repair everything (keep the design)</button>
+        </div>
+        <div class="seg" style="margin-top:5px">
+          <button class="b wide" id="resetBtn" type="button">Reset to a healthy start</button>
+        </div>
+        <div class="hint" id="clockHint"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CENTRE: THE REGION ============ -->
+  <div>
+    <section class="panel canvasPanel">
+      <h2>Region &middot; ap-south-1 (Mumbai)</h2>
+      <div class="body">
+
+        <div class="cpBand" id="cpBand">
+          <span class="cpTitle" id="cpTitle">Control plane</span>
+          <span class="cpMsg" id="cpMsg">Healthy. Requests to create or replace resources are being accepted.</span>
+        </div>
+        <div class="hint" style="margin:6px 2px 0">Drawn outside the zones on purpose: it is regional, and it fails on its own schedule.</div>
+
+        <div class="regionBox" id="regionBox">
+          <div class="regionHead">
+            <span class="rn">ap-south-1</span>
+            <span class="eyebrow" id="regionState">serving</span>
+          </div>
+
+          <div class="edgeRow">
+            <div class="edgeBox">
+              <div class="bt">Client</div>
+              <div class="bv" id="clientBox">12,000 shops &middot; <span class="mono tnum" id="clientRps">300</span> req/s</div>
+            </div>
+            <div class="edgeBox">
+              <div class="bt">DNS &middot; Route 53</div>
+              <div class="bv" id="dnsBox">pointing at ap-south-1</div>
+            </div>
+            <div class="edgeBox" id="albBox">
+              <div class="bt">Load balancer (region-scoped)</div>
+              <div class="bv" id="albState">healthy &middot; <span class="mono tnum" id="albTargets">3</span> targets in rotation</div>
+            </div>
+          </div>
+
+          <div class="azGrid" id="azGrid"></div>
+
+          <div class="regionalRow" id="regionalRow"></div>
+        </div>
+
+        <div id="region2Wrap"></div>
+
+        <div class="legend">
+          <span class="lg"><i class="sw serving"></i> serving traffic</span>
+          <span class="lg"><i class="sw unhealthy"></i> failing health checks, still in rotation</span>
+          <span class="lg"><i class="sw booting"></i> booting</span>
+          <span class="lg"><i class="sw dead"></i> gone</span>
+          <span class="lg"><i class="sw ctrl"></i> control plane (not in any zone)</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Right now</h2>
+      <div class="body">
+        <div class="meters" id="meters"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ RIGHT: INSPECTOR + LOG ============ -->
+  <div>
+    <section class="panel">
+      <h2>Inspector</h2>
+      <div class="body insp" id="insp"><div class="empty">Click any server, database or service to see its state.</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>What just happened</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ SCENARIOS ============ -->
+<section class="panel scenPanel" style="margin-top:16px">
+  <h2>Guided scenarios &mdash; predict, then run</h2>
+  <div class="body" id="scens"></div>
+</section>
+
+<footer class="foot">
+  A teaching simulation, not a model of AWS. Timings are plausible round numbers (health-check detection ~60s, instance boot ~3min,
+  database failover ~90s, cross-region lag ~1s); capacity is a flat 100 requests per second per server so the arithmetic stays checkable by hand.
+  Nothing here calls a real API. Read <span class="mono">README.md</span> alongside it &mdash; every control maps to a numbered section there.
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONSTANTS - all timings are plausible round numbers, not measurements
+   ============================================================ */
+var TICK_SECONDS   = 15;   // one step = 15 simulated seconds
+var RPS_PER_INST   = 100;  // flat, so the arithmetic stays checkable by hand
+var DETECT_TICKS   = 4;    // ~60s for the load balancer to notice a dead target
+var BOOT_TICKS     = 12;   // ~3 min to boot, configure and pass first health checks
+var FAILOVER_TICKS = 6;    // ~90s for RDS Multi-AZ DNS failover
+var AURORA_FO      = 2;    // ~30s - Aurora fails over faster
+var LAUNCH_BATCH   = 3;
+var MAX_HISTORY    = 400;
+
+var AZS = [
+  { name:"ap-south-1a", id:"aps1-az1" },
+  { name:"ap-south-1b", id:"aps1-az2" },
+  { name:"ap-south-1c", id:"aps1-az3" }
+];
+
+var VERSION_INFO = {
+  1:{ label:"one server, everything on it",
+      hint:"No load balancer, no replacement, database on the same box. This is the rented server from stage 2, moved to AWS.",
+      azSpread:false, alb:false, asg:false, db:"onbox" },
+  2:{ label:"two servers + load balancer, one zone",
+      hint:"Two servers survive one server dying. Both were launched in ap-south-1a because that was the default.",
+      azSpread:false, alb:true, asg:false, db:"single" },
+  3:{ label:"three zones + auto scaling, one database",
+      hint:"The application tier is now spread and self-healing. The database is still a single instance in one zone.",
+      azSpread:true, alb:true, asg:true, db:"single" },
+  4:{ label:"database with a standby in another zone",
+      hint:"Synchronous standby in a second zone, DNS failover in about 90 seconds. Now the static-stability question matters.",
+      azSpread:true, alb:true, asg:true, db:"multiaz" },
+  5:{ label:"a second region",
+      hint:"Warm secondary in ap-south-2 with asynchronous replication. Failover is a decision a human makes.",
+      azSpread:true, alb:true, asg:true, db:"multiaz", region2:true }
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var S = null, HIST = [], playing = false, timer = null, selected = null, prevPhases = {};
+
+function desiredCount(st){
+  var v = st.version;
+  if (v === 1) return 1;
+  if (v === 2) return 2;
+  var base = Math.max(3, Math.ceil(st.traffic / RPS_PER_INST));
+  base = Math.ceil(base / 3) * 3;
+  if (st.design.staticStability) base = Math.ceil(base * 1.5 / 3) * 3;
+  return Math.min(base, 36);
+}
+
+function freshState(version, carry){
+  var v = version || 3;
+  var info = VERSION_INFO[v];
+  var st = {
+    tick: 0,
+    version: v,
+    traffic: (carry && carry.traffic) || 300,
+    design: {
+      staticStability: carry ? !!carry.design.staticStability : false,
+      dbMode: info.db === "onbox" ? "onbox" : (carry && carry.design.dbModeChosen) || info.db,
+      dbModeChosen: (carry && carry.design.dbModeChosen) || null,
+      replMode: (carry && carry.design.replMode) || "async"
+    },
+    faults: { deadAz:[], cpFrozen:false, quotaOn:false, dbSlow:false, iamBroken:false, regionDown:false },
+    instances: [],
+    db: { phase:"ok", primaryAz:AZS[0].name, standbyAz:null, ticksLeft:0 },
+    r2: { enabled: !!info.region2, promoted:false, instances: 0 },
+    quotaCap: 0,
+    log: [],
+    seq: 1,
+    metrics: {}
+  };
+  if (info.db === "multiaz" || (st.design.dbMode === "multiaz")) { st.db.standbyAz = AZS[1].name; }
+  if (st.design.dbMode === "aurora") { st.db.standbyAz = "all three"; }
+  if (v === 1) st.design.dbMode = "onbox";
+  if (v > 1 && st.design.dbMode === "onbox") st.design.dbMode = info.db === "onbox" ? "single" : info.db;
+
+  var n = desiredCount(st);
+  /* v1 and v2 are small deployments: start them at a load they can actually serve,
+     so the design's failure - not an arbitrary undersizing - is what you observe. */
+  if (v <= 2) st.traffic = Math.min(st.traffic, n * RPS_PER_INST);
+  for (var i=0;i<n;i++){
+    var az = info.azSpread ? AZS[i % 3].name : AZS[0].name;
+    st.instances.push({ id:"i-"+pad(st.seq++), az:az, phase:"serving", ticksIn:99, inRotation:true });
+  }
+  if (st.r2.enabled) st.r2.instances = Math.max(3, Math.ceil(n/2));
+  st.quotaCap = Math.max(6, Math.floor(n * 0.62 / 3) * 3);
+  compute(st);
+  logEvent(st, "Design set to v" + v + ": " + info.label + ".",
+    n + " servers running, " + (info.azSpread ? "spread one per zone" : "all in " + AZS[0].name) + ".", "ok");
+  return st;
+}
+
+function pad(n){ return ("000" + n).slice(-4); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function logEvent(st, msg, note, kind){
+  var last = st.log[0];
+  if (last && last.msg === msg && st.tick - last.tick < 8) return;
+  st.log.unshift({ tick: st.tick, msg: msg, note: note || "", kind: kind || "" });
+  if (st.log.length > 90) st.log.pop();
+}
+
+function clockStr(st){
+  var total = 18*3600 + 4*60 + st.tick * TICK_SECONDS;
+  var h = Math.floor(total/3600) % 24, m = Math.floor(total/60) % 60, s = total % 60;
+  return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)+":"+("0"+s).slice(-2);
+}
+
+/* ============================================================
+   THE REDUCER - one tick of simulated time
+   ============================================================ */
+function step(st){
+  st.tick++;
+  var info = VERSION_INFO[st.version];
+  var dead = st.faults.deadAz;
+  var i, inst;
+
+  /* --- 1. zones and servers --- */
+  for (i=0;i<st.instances.length;i++){
+    inst = st.instances[i];
+    var zoneGone = dead.indexOf(inst.az) >= 0 || (st.faults.regionDown && !st.r2.promoted);
+    if (zoneGone && inst.phase !== "dead"){
+      inst.phase = "dead"; inst.ticksIn = 0; inst.inRotation = info.alb;
+    }
+    if (inst.phase === "dead" && inst.inRotation && inst.ticksIn >= DETECT_TICKS){
+      inst.inRotation = false;
+      logEvent(st, "The load balancer removed " + inst.id + " from rotation.",
+        "Two failed health checks, about 60 seconds after it stopped answering. Data-plane action - needs nobody's permission.", "warn");
+    }
+    if (inst.phase === "booting" && inst.ticksIn >= BOOT_TICKS){
+      inst.phase = "serving"; inst.inRotation = true; inst.ticksIn = 0;
+      logEvent(st, "Replacement server " + inst.id + " is now serving.", "Booted, configured and passed its first health checks.", "ok");
+    }
+    inst.ticksIn++;
+  }
+
+  /* --- 2. the database --- */
+  var db = st.db, mode = st.design.dbMode;
+  var primaryGone = dead.indexOf(db.primaryAz) >= 0 || (st.faults.regionDown && !st.r2.promoted);
+  if (mode === "onbox"){
+    var host = st.instances[0];
+    db.phase = (host && host.phase === "serving") ? "ok" : "down";
+  } else if (primaryGone){
+    if (mode === "multiaz" || mode === "aurora"){
+      var standbyGone = mode === "multiaz" && dead.indexOf(db.standbyAz) >= 0;
+      if (standbyGone){
+        db.phase = "down";
+        logEvent(st, "Both the database primary and its standby were in zones that died.",
+          "A standby only helps if it is in a zone that survived.", "bad");
+      } else if (db.phase === "ok"){
+        db.phase = "failover";
+        db.ticksLeft = (mode === "aurora") ? AURORA_FO : FAILOVER_TICKS;
+        logEvent(st, "Database failover started. Writes are failing until it completes.",
+          mode === "aurora" ? "Aurora promotes a reader; typically well under a minute."
+                            : "RDS Multi-AZ flips a DNS name to the standby. AWS documents 60-120 seconds.", "warn");
+      } else if (db.phase === "failover"){
+        db.ticksLeft--;
+        if (db.ticksLeft <= 0){
+          db.phase = "ok";
+          var old = db.primaryAz;
+          db.primaryAz = (mode === "aurora") ? surviving(st) : db.standbyAz;
+          db.standbyAz = (mode === "aurora") ? "all three" : old;
+          logEvent(st, "Database failover complete. The standby in " + db.primaryAz + " is now the primary.",
+            "The standby already existed, so recovery needed no control-plane call.", "ok");
+        }
+      }
+    } else {
+      if (db.phase !== "down"){
+        db.phase = "down";
+        logEvent(st, "The database is gone: it was the only copy, and its zone died.",
+          "The application servers in the surviving zones are perfectly healthy and can do nothing with it.", "bad");
+      }
+    }
+  } else if (db.phase === "failover"){
+    db.ticksLeft--;
+    if (db.ticksLeft <= 0){ db.phase = "ok"; }
+  } else if (db.phase === "down" && !primaryGone){
+    db.phase = "ok";
+  }
+
+  /* --- 3. auto scaling: the control-plane dependency --- */
+  if (info.asg){
+    var alive = st.instances.filter(function(x){ return x.phase === "serving" || x.phase === "booting"; }).length;
+    var want = desiredCount(st);
+    var needed = want - alive;
+    if (needed > 0){
+      if (st.faults.cpFrozen || (st.faults.regionDown && !st.r2.promoted)){
+        logEvent(st, "Auto Scaling asked for " + needed + " replacement servers and was refused.",
+          "RunInstances -> InsufficientInstanceCapacity. Control plane, unavailable. It will back off and retry, and retry.", "ctrl");
+      } else if (st.faults.quotaOn && countNonDead(st) >= st.quotaCap){
+        logEvent(st, "Auto Scaling stopped at " + countNonDead(st) + " servers because the account quota is " + st.quotaCap + ".",
+          "Nothing failed. There is capacity in the region. Your account is simply not allowed to have more here.", "warn");
+      } else {
+        var batch = Math.min(needed, LAUNCH_BATCH);
+        if (st.faults.quotaOn) batch = Math.min(batch, st.quotaCap - countNonDead(st));
+        for (i=0;i<batch;i++){
+          var az = leastLoadedAz(st);
+          if (!az) break;
+          st.instances.push({ id:"i-"+pad(st.seq++), az:az, phase:"booting", ticksIn:0, inRotation:false });
+        }
+        if (batch > 0) logEvent(st, "Auto Scaling is launching " + batch + " replacement server(s).",
+          "RunInstances succeeded. They will take about three minutes to serve traffic.", "");
+      }
+    }
+  }
+
+  /* --- 4. tidy: forget servers that died long ago --- */
+  st.instances = st.instances.filter(function(x){ return !(x.phase === "dead" && !x.inRotation && x.ticksIn > 30); });
+
+  compute(st);
+  return st;
+}
+
+function surviving(st){
+  for (var i=0;i<AZS.length;i++){ if (st.faults.deadAz.indexOf(AZS[i].name) < 0) return AZS[i].name; }
+  return AZS[0].name;
+}
+function countNonDead(st){
+  return st.instances.filter(function(x){ return x.phase !== "dead"; }).length;
+}
+function leastLoadedAz(st){
+  var live = AZS.filter(function(a){ return st.faults.deadAz.indexOf(a.name) < 0; });
+  if (!live.length) return null;
+  if (!VERSION_INFO[st.version].azSpread) return live[0].name;
+  var counts = {};
+  live.forEach(function(a){ counts[a.name] = 0; });
+  st.instances.forEach(function(x){ if (x.phase !== "dead" && counts[x.az] !== undefined) counts[x.az]++; });
+  var best = live[0].name;
+  live.forEach(function(a){ if (counts[a.name] < counts[best]) best = a.name; });
+  return best;
+}
+
+/* ============================================================
+   METRICS + THE VERDICT SENTENCE
+   ============================================================ */
+function compute(st){
+  var serving = st.instances.filter(function(x){ return x.phase === "serving"; });
+  var inRot   = st.instances.filter(function(x){ return x.inRotation; });
+  var servingInRot = serving.filter(function(x){ return x.inRotation; });
+  var capacity = serving.length * RPS_PER_INST;
+
+  var routedOk = inRot.length ? (servingInRot.length / inRot.length) : (serving.length ? 1 : 0);
+  if (!VERSION_INFO[st.version].alb) routedOk = serving.length ? 1 : 0;
+
+  var delivered = Math.min(st.traffic * routedOk, capacity);
+  var reason = null, kind = "ok";
+
+  if (st.faults.iamBroken){
+    delivered = 0; kind = "bad";
+    reason = "Every payment is rejected with AccessDeniedException before it reaches the database. The role is missing dynamodb:PutItem. " +
+             "Zero milliseconds of database work is being done - IAM fails the request at step 5 of 7.";
+  } else if (st.faults.regionDown && !st.r2.promoted){
+    delivered = 0; kind = "bad";
+    reason = "The whole of ap-south-1 is having an event. Nothing in it is reachable. " +
+             (st.r2.enabled ? "The secondary region is running and has your data - somebody has to decide to promote it."
+                            : "There is no second region. At this point every option was one you had months ago.");
+  } else if (st.faults.regionDown && st.r2.promoted){
+    delivered = st.traffic; kind = "warn";
+    reason = "ap-south-2 has been promoted and is taking all traffic. " +
+             (st.design.replMode === "async"
+                ? "Replication was asynchronous with about one second of lag, so up to a second of committed payments went down with the primary region - that is your RPO, and finance has to reconcile it."
+                : "Replication was synchronous, so no payments were lost - and every write in the last six months paid a cross-region round trip for it.");
+  } else if (st.design.dbMode === "onbox" && serving.length === 0){
+    delivered = 0; kind = "bad";
+    reason = "The one server is gone, and the application and the database were both on it. There is no load balancer to route around it and " +
+             "nothing to replace it, so this stays down until a person intervenes. The payment records survive only because they were on an EBS " +
+             "volume, which lives in the zone rather than on the host; on instance store they would be gone with no error at all.";
+  } else if (serving.length === 0 && VERSION_INFO[st.version].alb){
+    delivered = 0; kind = "bad";
+    reason = "There are no servers left serving. The load balancer itself is perfectly healthy - it is region-scoped and lived through the event - " +
+             "and it is now returning 503 to every shop in the country. This is what happens when \"two servers\" turns out to be two servers in one " +
+             "zone: redundancy is a count of independent failure domains, not a count of machines.";
+  } else if (serving.length === 0){
+    delivered = 0; kind = "bad";
+    reason = "No server is serving. Nothing is left to route to.";
+  } else if (st.db.phase === "down"){
+    delivered = 0; kind = "bad";
+    reason = "The application servers are healthy and the load balancer is routing to them. They cannot reach the database, so every payment " +
+             "waits for a connection timeout and then fails. A slow failure is worse for a shop than a fast one.";
+  } else if (st.db.phase === "failover"){
+    delivered = 0; kind = "bad";
+    reason = "The database is failing over to its standby. Writes fail for the duration - roughly " +
+             (st.db.ticksLeft * TICK_SECONDS) + " more seconds. This is the consistency side of the trade: it refuses rather than serving two primaries.";
+  } else if (st.faults.dbSlow){
+    delivered = Math.min(delivered, capacity * 0.3); kind = "warn";
+    reason = "The database is slow, not dead. Application threads are blocking on it, the connection pool is full, and requests are queueing. " +
+             "Health checks still pass, so the load balancer keeps sending traffic to servers that cannot do anything with it.";
+  } else if (delivered < st.traffic - 1){
+    kind = "warn";
+    var lostToDetect = inRot.length - servingInRot.length;
+    if (lostToDetect > 0 && capacity >= st.traffic){
+      reason = lostToDetect + " dead server(s) are still in the load balancer's rotation, so that share of payments is being sent nowhere. " +
+               "The health check needs about 60 seconds to notice.";
+    } else if (st.faults.cpFrozen){
+      reason = "Capacity is " + capacity + " req/s against " + st.traffic + " req/s of demand, and it is not going up: Auto Scaling is asking " +
+               "the control plane for replacements and being refused. Nothing here is broken - the recovery plan simply required a control-plane call.";
+    } else if (st.faults.quotaOn && countNonDead(st) >= st.quotaCap){
+      reason = "Capacity is capped at " + st.quotaCap + " servers by an account quota in this region. There is hardware available. " +
+               "Your account is not allowed to have it, and the only red thing anywhere is a line in a scaling activity log.";
+    } else {
+      var booting = st.instances.filter(function(x){ return x.phase === "booting"; }).length;
+      reason = "Running at " + capacity + " req/s against " + st.traffic + " req/s of demand" +
+               (booting ? "; " + booting + " replacement server(s) are booting and will take about three minutes." : ".");
+    }
+  }
+
+  if (!reason){
+    reason = "Everything is healthy. " + Math.round(delivered) + " of " + st.traffic + " payments per second are going through, " +
+             "with " + serving.length + " server(s) across " + liveAzCount(st) + " zone(s) and " + dbDesc(st) + ".";
+    kind = "ok";
+  }
+
+  st.metrics = {
+    capacity: capacity, delivered: Math.round(delivered), traffic: st.traffic,
+    shed: Math.max(0, Math.round(st.traffic - delivered)),
+    pct: st.traffic ? Math.round(delivered / st.traffic * 100) : 100,
+    serving: serving.length, inRotation: inRot.length,
+    reason: reason, kind: kind
+  };
+}
+
+function liveAzCount(st){
+  if (!VERSION_INFO[st.version].azSpread) return 1;
+  var used = {};
+  st.instances.forEach(function(x){ if (x.phase === "serving") used[x.az] = 1; });
+  return Object.keys(used).length;
+}
+function dbDesc(st){
+  var m = st.design.dbMode;
+  if (m === "onbox")   return "the database on the same box";
+  if (m === "single")  return "a single database instance in " + st.db.primaryAz;
+  if (m === "multiaz") return "a database in " + st.db.primaryAz + " with a synchronous standby in " + st.db.standbyAz;
+  return "Aurora storage across all three zones";
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, txt){ var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+function render(){
+  var st = S, m = st.metrics;
+
+  /* verdict */
+  $("vNum").textContent = m.pct + "%";
+  $("vText").textContent = m.reason;
+  $("verdict").className = "verdict state-" + (m.kind === "ok" ? "ok" : m.kind === "warn" ? "warn" : "bad");
+  $("vSub").textContent = "Simulated clock " + clockStr(st) + " · " + m.delivered + " of " + m.traffic +
+    " req/s served · capacity " + m.capacity + " req/s · " + m.shed + " req/s failing.";
+
+  /* control plane band */
+  var frozen = st.faults.cpFrozen || (st.faults.regionDown && !st.r2.promoted);
+  $("cpBand").className = "cpBand" + (frozen ? " frozen" : "");
+  $("cpTitle").textContent = frozen ? "Control plane — unavailable" : "Control plane — healthy";
+  $("cpMsg").textContent = frozen
+    ? "RunInstances, CreateTable and console operations are failing. Everything already running keeps running: this is not a data-plane failure."
+    : "Requests to create, replace or modify resources are being accepted.";
+
+  /* edge row */
+  $("clientRps").textContent = st.traffic;
+  var promoted = st.faults.regionDown && st.r2.promoted;
+  $("dnsBox").textContent = promoted ? "failed over to ap-south-2" : "pointing at ap-south-1";
+  var inRot = st.instances.filter(function(x){ return x.inRotation; }).length;
+  $("albTargets").textContent = inRot;
+  var albDown = st.faults.regionDown && !st.r2.promoted;
+  $("albState").innerHTML = albDown
+    ? "unreachable"
+    : (inRot === 0
+        ? "<span style='color:var(--bad)'>healthy, and routing to nothing</span>"
+        : "healthy · <span class='mono tnum'>" + inRot + "</span> target(s) in rotation");
+  $("regionState").textContent = albDown ? "region event" : "serving";
+  $("regionBox").style.opacity = albDown ? "0.55" : "1";
+
+  /* zones */
+  var grid = $("azGrid"); grid.innerHTML = "";
+  var azList = VERSION_INFO[st.version].azSpread ? AZS : AZS;
+  azList.forEach(function(az){
+    var isDead = st.faults.deadAz.indexOf(az.name) >= 0;
+    var box = el("div", "az" + (isDead ? " dead" : ""));
+    var head = el("div", "azHead");
+    head.appendChild(el("span", "azName", az.name));
+    head.appendChild(el("span", "azId", isDead ? "DOWN" : az.id));
+    box.appendChild(head);
+
+    var nodes = el("div", "nodes");
+    var here = st.instances.filter(function(x){ return x.az === az.name; });
+    if (!here.length) nodes.appendChild(el("span", "empty", "no servers here"));
+    here.forEach(function(inst){
+      var b = el("button", "node " + inst.phase, inst.id.slice(-2));
+      b.title = inst.id + " — " + inst.phase;
+      b.setAttribute("aria-label", "server " + inst.id + ", " + inst.phase);
+      if (selected && selected.type === "instance" && selected.id === inst.id) b.className += " sel";
+      if (prevPhases[inst.id] && prevPhases[inst.id] !== inst.phase) b.className += " flash";
+      b.onclick = function(){ selected = { type:"instance", id:inst.id }; render(); };
+      nodes.appendChild(b);
+    });
+    box.appendChild(nodes);
+
+    /* database boxes drawn in their zone */
+    var db = st.db, mode = st.design.dbMode;
+    if (mode !== "onbox" && db.primaryAz === az.name){
+      var cls = db.phase === "ok" ? "ok" : db.phase === "failover" ? "failing" : "down";
+      var d = el("div", "dbBox " + cls + (selected && selected.type === "db" ? " sel" : ""),
+        "DB primary · " + (db.phase === "failover" ? "failing over" : db.phase));
+      d.onclick = function(){ selected = { type:"db" }; render(); };
+      box.appendChild(d);
+    }
+    if (mode === "multiaz" && db.standbyAz === az.name){
+      var s2 = el("div", "dbBox standby" + (isDead ? " down" : "") + (selected && selected.type === "db" ? " sel" : ""),
+        "DB standby · synchronous, serves nothing");
+      s2.onclick = function(){ selected = { type:"db" }; render(); };
+      box.appendChild(s2);
+    }
+    if (mode === "aurora"){
+      var a2 = el("div", "dbBox " + (isDead ? "down" : "ok"), "Aurora storage · 2 of 6 copies");
+      a2.onclick = function(){ selected = { type:"db" }; render(); };
+      box.appendChild(a2);
+    }
+    if (mode === "onbox" && az.name === AZS[0].name){
+      var o = el("div", "dbBox " + (st.db.phase === "ok" ? "ok" : "down"), "database is on the server itself");
+      o.onclick = function(){ selected = { type:"db" }; render(); };
+      box.appendChild(o);
+    }
+    grid.appendChild(box);
+  });
+
+  /* region-scoped services */
+  var rr = $("regionalRow"); rr.innerHTML = "";
+  [["S3","receipts · spread across all zones by AWS"],
+   ["DynamoDB","idempotency keys · no zone to choose"],
+   ["SQS","settlement queue · at-least-once"]].forEach(function(p){
+    var d = el("div", "regional" + (albDown ? " down" : "") + (selected && selected.type === "svc" && selected.id === p[0] ? " sel" : ""));
+    d.appendChild(el("div", "rl", p[0]));
+    d.appendChild(el("div", null, p[1]));
+    d.onclick = function(){ selected = { type:"svc", id:p[0] }; render(); };
+    rr.appendChild(d);
+  });
+
+  /* second region */
+  var r2w = $("region2Wrap"); r2w.innerHTML = "";
+  if (st.r2.enabled){
+    var w = el("div", "regionBox");
+    w.style.marginTop = "12px";
+    var h = el("div", "regionHead");
+    h.appendChild(el("span", "rn", "ap-south-2 (Hyderabad)"));
+    h.appendChild(el("span", "eyebrow", st.r2.promoted ? "PROMOTED — taking all traffic" : "warm standby — serving nothing"));
+    w.appendChild(h);
+    var line = el("div", null,
+      st.r2.instances + " servers running, database replicating " +
+      (st.design.replMode === "async" ? "asynchronously, about 1 second behind (RPO ≈ 1s)"
+                                      : "synchronously, adding roughly 240ms to every write"));
+    line.style.fontSize = "12.5px";
+    w.appendChild(line);
+    var actions = el("div", "seg"); actions.style.marginTop = "9px";
+    var pb = el("button", "b" + (st.r2.promoted ? " on" : ""), st.r2.promoted ? "Promoted" : "Promote ap-south-2 (a human decides)");
+    pb.type = "button";
+    pb.onclick = function(){ pushHistory(); S.r2.promoted = !S.r2.promoted;
+      logEvent(S, S.r2.promoted ? "A human promoted ap-south-2 and shifted DNS to it."
+                                : "Failed back to ap-south-1.",
+        S.r2.promoted ? "Deliberately not automatic: a machine that can fail over on a network blip can start a split brain over money."
+                      : "", S.r2.promoted ? "ok" : "");
+      compute(S); render(); };
+    actions.appendChild(pb);
+    var rm = el("button", "b", "Replication: " + st.design.replMode);
+    rm.type = "button";
+    rm.onclick = function(){ pushHistory(); S.design.replMode = S.design.replMode === "async" ? "sync" : "async";
+      logEvent(S, "Cross-region replication set to " + S.design.replMode + ".",
+        S.design.replMode === "sync" ? "Every write now waits for a cross-region round trip. Mumbai to Hyderabad is cheap; Mumbai to Ireland is ~240ms."
+                                     : "Writes are fast again, and you have accepted an RPO of about one second.", "");
+      compute(S); render(); };
+    actions.appendChild(rm);
+    w.appendChild(actions);
+    r2w.appendChild(w);
+  }
+
+  /* meters */
+  var mt = $("meters"); mt.innerHTML = "";
+  meter(mt, "Payments served", m.delivered, "req/s", m.delivered / Math.max(1, m.traffic), m.kind);
+  meter(mt, "Payments failing", m.shed, "req/s", m.shed / Math.max(1, m.traffic), m.shed ? "bad" : "ok");
+  meter(mt, "Capacity", m.capacity, "req/s", m.capacity / Math.max(1, m.traffic), m.capacity >= m.traffic ? "ok" : "warn");
+  meter(mt, "Servers serving", m.serving, "of " + desiredCount(st) + " wanted", m.serving / Math.max(1, desiredCount(st)), m.serving >= desiredCount(st) ? "ok" : "warn");
+  meter(mt, "Zones with capacity", liveAzCount(st), "of 3", liveAzCount(st)/3, liveAzCount(st) >= 2 ? "ok" : "bad");
+
+  /* log */
+  var lg = $("log"); lg.innerHTML = "";
+  if (!st.log.length) lg.appendChild(el("div", "ev", "Nothing has happened yet."));
+  st.log.slice(0, 40).forEach(function(e){
+    var d = el("div", "ev" + (e.kind ? " k-" + e.kind : ""));
+    var total = 18*3600 + 4*60 + e.tick * TICK_SECONDS;
+    var hh = Math.floor(total/3600)%24, mm = Math.floor(total/60)%60, ss = total%60;
+    d.appendChild(el("div", "et", ("0"+hh).slice(-2)+":"+("0"+mm).slice(-2)+":"+("0"+ss).slice(-2)));
+    d.appendChild(el("div", "em", e.msg));
+    if (e.note) d.appendChild(el("div", "en", e.note));
+    lg.appendChild(d);
+  });
+
+  renderInspector();
+  renderControls();
+
+  prevPhases = {};
+  st.instances.forEach(function(x){ prevPhases[x.id] = x.phase; });
+}
+
+function meter(parent, label, value, unit, frac, kind){
+  var d = el("div", "meter");
+  d.appendChild(el("div", "ml", label));
+  var v = el("div", "mv", String(value));
+  v.appendChild(el("span", "mu", " " + unit));
+  d.appendChild(v);
+  var bar = el("div", "bar" + (kind === "bad" ? " bad" : kind === "warn" ? " warn" : ""));
+  var fill = el("i"); fill.style.width = Math.max(0, Math.min(100, frac * 100)) + "%";
+  bar.appendChild(fill); d.appendChild(bar);
+  parent.appendChild(d);
+}
+
+function renderInspector(){
+  var box = $("insp"); box.innerHTML = "";
+  var st = S;
+  if (!selected){ box.appendChild(el("div", "empty", "Click any server, database or service to see its state.")); return; }
+  var dl = el("dl"), why = "";
+  function add(k, v){ dl.appendChild(el("dt", null, k)); dl.appendChild(el("dd", null, v)); }
+
+  if (selected.type === "instance"){
+    var inst = st.instances.filter(function(x){ return x.id === selected.id; })[0];
+    if (!inst){ box.appendChild(el("div", "empty", "That server no longer exists.")); return; }
+    add("resource", "EC2 instance");
+    add("id", inst.id);
+    add("zone", inst.az);
+    add("zone id", (AZS.filter(function(a){return a.name===inst.az;})[0]||{}).id || "-");
+    add("state", inst.phase);
+    add("in rotation", inst.inRotation ? "yes" : "no");
+    add("serving", inst.phase === "serving" ? RPS_PER_INST + " req/s" : "0 req/s");
+    add("scope", "AZ-scoped — it dies with its zone");
+    why = inst.phase === "dead" && inst.inRotation
+      ? "Dead, but the load balancer has not noticed yet. Its share of traffic is going nowhere. This gap is the health-check detection window."
+      : inst.phase === "booting"
+      ? "Launched by Auto Scaling. It will boot, configure and pass health checks in about three minutes - which is why a design that has to launch in order to recover recovers slowly, if at all."
+      : inst.phase === "dead"
+      ? "Removed from rotation. No traffic is being sent here."
+      : "Healthy and taking its share of traffic.";
+  } else if (selected.type === "db"){
+    add("resource", st.design.dbMode === "aurora" ? "Aurora cluster" : st.design.dbMode === "onbox" ? "PostgreSQL on the instance" : "RDS instance");
+    add("mode", st.design.dbMode);
+    add("primary", st.db.primaryAz);
+    add("standby", st.db.standbyAz || "none");
+    add("state", st.db.phase);
+    if (st.db.phase === "failover") add("time left", (st.db.ticksLeft * TICK_SECONDS) + "s");
+    add("replication", st.design.dbMode === "multiaz" ? "synchronous, cross-AZ" : st.design.dbMode === "aurora" ? "quorum W=4 R=3 N=6" : "none");
+    add("scope", st.design.dbMode === "aurora" ? "storage spans 3 zones" : "AZ-scoped");
+    why = st.design.dbMode === "single"
+      ? "One copy, in one zone. Every application server in every zone depends on it, so this box alone decides whether the system works."
+      : st.design.dbMode === "multiaz"
+      ? "The standby already exists, so failing over does not require creating anything - which is why it still works when the control plane does not."
+      : st.design.dbMode === "aurora"
+      ? "Six copies across three zones; a write needs four of them. Losing a whole zone leaves four, so writes continue."
+      : "The database shares the machine's fate. Losing the server loses the money record.";
+  } else if (selected.type === "svc"){
+    add("resource", selected.id);
+    add("scope", "region-scoped");
+    add("zone", "you do not choose one");
+    add("state", (st.faults.regionDown && !st.r2.promoted) ? "unreachable" : "available");
+    add("consistency",
+      selected.id === "S3" ? "strong read-after-write" :
+      selected.id === "DynamoDB" ? "eventually consistent reads by default" : "at-least-once, unordered");
+    why = "AWS spreads this across zones for you. There is no screen on which you could have made the placement mistake - which is exactly why these services remove a whole class of outage.";
+  }
+  box.appendChild(dl);
+  if (why){ var w = el("div", "why", why); box.appendChild(w); }
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+function renderControls(){
+  var st = S;
+  $("verSel").value = String(st.version);
+  $("verHint").textContent = VERSION_INFO[st.version].hint;
+
+  /* db placement */
+  var seg = $("dbSeg"); seg.innerHTML = "";
+  var options = st.version === 1
+    ? [["onbox","On the server itself"]]
+    : [["single","One instance, one zone"],["multiaz","Multi-AZ standby"],["aurora","Aurora quorum"]];
+  options.forEach(function(o){
+    var b = el("button", "b" + (st.design.dbMode === o[0] ? " on" : ""), o[1]);
+    b.type = "button";
+    b.disabled = st.version === 1;
+    b.onclick = function(){
+      pushHistory();
+      S.design.dbMode = o[0]; S.design.dbModeChosen = o[0];
+      S.db.primaryAz = AZS[0].name;
+      S.db.standbyAz = o[0] === "multiaz" ? AZS[1].name : (o[0] === "aurora" ? "all three" : null);
+      S.db.phase = "ok";
+      logEvent(S, "Database placement changed to: " + o[1] + ".", dbDesc(S), "");
+      compute(S); render();
+    };
+    seg.appendChild(b);
+  });
+
+  var ss = $("ssBtn");
+  ss.textContent = "Static stability: " + (st.design.staticStability ? "on" : "off");
+  ss.className = "b" + (st.design.staticStability ? " on" : "");
+  ss.disabled = !VERSION_INFO[st.version].asg;
+  $("ssHint").textContent = st.design.staticStability
+    ? "On: running " + desiredCount(st) + " servers to serve " + st.traffic + " req/s, so any two zones can carry the whole load. Recovery needs no launch. You pay 50% more."
+    : "Off: running exactly enough (" + desiredCount(st) + " servers). Losing a zone means asking the control plane for replacements.";
+
+  document.querySelectorAll("[data-traffic]").forEach(function(b){
+    b.className = "b" + (String(st.traffic) === b.getAttribute("data-traffic") ? " on" : "");
+  });
+
+  /* az kill buttons */
+  var ak = $("azKillSeg"); ak.innerHTML = "";
+  AZS.forEach(function(a){
+    var dead = st.faults.deadAz.indexOf(a.name) >= 0;
+    var b = el("button", "b danger" + (dead ? " on" : ""), (dead ? "Restore " : "Kill ") + a.name.slice(-2));
+    b.type = "button";
+    b.onclick = function(){
+      pushHistory();
+      var i = S.faults.deadAz.indexOf(a.name);
+      if (i >= 0){ S.faults.deadAz.splice(i, 1); logEvent(S, "Zone " + a.name + " is back.", "", "ok"); }
+      else {
+        S.faults.deadAz.push(a.name);
+        logEvent(S, "Zone " + a.name + " has failed. Everything in it is unreachable at once.",
+          "Servers, their EBS volumes, the subnet, and any database instance placed here. Region-scoped services are unaffected.", "bad");
+      }
+      compute(S); render();
+    };
+    ak.appendChild(b);
+  });
+
+  $("cpBtn").className = "b ctrl" + (st.faults.cpFrozen ? " on" : "");
+  $("cpBtn").textContent = st.faults.cpFrozen ? "Control plane frozen" : "Freeze control plane";
+  $("regionBtn").className = "b danger" + (st.faults.regionDown ? " on" : "");
+  $("quotaBtn").className = "b danger" + (st.faults.quotaOn ? " on" : "");
+  $("quotaBtn").textContent = st.faults.quotaOn ? "Quota capping at " + st.quotaCap : "Hit the quota";
+  $("slowBtn").className = "b danger" + (st.faults.dbSlow ? " on" : "");
+  $("iamBtn").className = "b danger" + (st.faults.iamBroken ? " on" : "");
+  $("quotaHint").textContent = st.faults.quotaOn
+    ? "Auto Scaling may not exceed " + st.quotaCap + " servers in this region, whatever the load says. Quotas are per account, per region."
+    : "Caps the account at fewer servers than the festival needs. Nothing turns red.";
+  $("playBtn").textContent = playing ? "⏸ Pause" : "▶ Play";
+  $("backBtn").disabled = !HIST.length;
+  $("clockHint").textContent = "One step = " + TICK_SECONDS + " simulated seconds. Clock: " + clockStr(st) +
+    ". Step back replays the exact previous state, so you can compare two futures from one moment.";
+}
+
+function pushHistory(){ HIST.push(clone(S)); if (HIST.length > MAX_HISTORY) HIST.shift(); }
+
+function doStep(){ pushHistory(); step(S); render(); }
+function doBack(){ if (!HIST.length) return; S = HIST.pop(); compute(S); render(); }
+function setPlaying(p){
+  playing = p;
+  if (timer){ clearInterval(timer); timer = null; }
+  if (playing) timer = setInterval(doStep, 520);
+  renderControls();
+}
+
+/* ============================================================
+   SCENARIOS - predict, then run
+   ============================================================ */
+var SCENARIOS = [
+  {
+    id:"s1", tag:"§10.2", title:"One server, one disk",
+    q:"A single server runs the app and the database. Its underlying hardware fails. What do the shops see, and what happens to the payment records?",
+    opts:[
+      { t:"Payments stop; the records are safe on network-attached storage.", ok:true },
+      { t:"Payments continue at reduced speed while AWS repairs the host.", ok:false },
+      { t:"AWS launches a replacement automatically; a few seconds of errors.", ok:false }
+    ],
+    reveal:"<b>Payments stop, completely, until a human does something.</b> There is no load balancer to route around it and no Auto Scaling Group to replace it. " +
+      "The records survive only because the data is on an <b>EBS volume</b> — network-attached storage that lives in the zone rather than on the host. Had it been on " +
+      "<b>instance store</b>, the host's local disk, it would be gone with no error at all. The rule worth memorising: <b>instance store dies with the host, EBS dies with the zone, " +
+      "S3 and DynamoDB die with the region.</b>",
+    setup:function(){ return { version:1, traffic:300, ss:false, then:function(st){ st.instances[0].phase = "dead"; st.instances[0].ticksIn = 0;
+      logEvent(st, "The host running i-0001 failed.", "No load balancer, no replacement. The system is down until a person intervenes.", "bad"); } }; },
+    ticks:6
+  },
+  {
+    id:"s2", tag:"§10.3", title:"Two servers, one wing",
+    q:"Two servers behind a load balancer — but both were launched in ap-south-1a, because that was the default. That zone loses power. How much survives?",
+    opts:[
+      { t:"Half the capacity; the load balancer sends everything to the survivor.", ok:false },
+      { t:"Nothing. The load balancer is perfectly healthy and has no targets left.", ok:true },
+      { t:"Everything — the load balancer keeps a copy of each server in another zone.", ok:false }
+    ],
+    reveal:"<b>Nothing survives, and the dashboard stays green.</b> The load balancer is region-scoped, so it lives through the event — it is now a healthy load balancer " +
+      "returning 503 to every shop in the country. This is the discovery from stage 4 on new hardware: <b>redundancy is a count of independent failure domains, not a count of machines.</b> " +
+      "Two servers in one zone are one server with extra steps. The only difference from the hosting company is that AWS <i>would have told you</i> — the zone was a field on the launch screen.",
+    setup:function(){ return { version:2, traffic:300, ss:false, then:function(st){ st.faults.deadAz = ["ap-south-1a"];
+      logEvent(st, "Zone ap-south-1a has failed.", "Both servers and the database were in it.", "bad"); } }; },
+    ticks:8
+  },
+  {
+    id:"s3", tag:"§10.4", title:"The stateless tier is not the system",
+    q:"Three servers, one per zone, with Auto Scaling. The database is still a single instance in ap-south-1a. That zone dies. Two thirds of your servers are healthy. What do shops see?",
+    opts:[
+      { t:"Two thirds of payments succeed; the rest fail while a server is replaced.", ok:false },
+      { t:"All payments fail, and they fail slowly — 30-second waits ending in errors.", ok:true },
+      { t:"All payments succeed; the surviving servers cache enough to keep going.", ok:false }
+    ],
+    reveal:"<b>Every payment fails, and slowly.</b> The healthy servers in 1b and 1c accept requests, try to reach a database that no longer exists, and block until their connection " +
+      "times out. A shop that would rather have had a fast decline waits 30 seconds for a 500. This is the microservices result on AWS hardware — <b>a slow dependency destroys a system harder " +
+      "than a dead one</b> — and the generalisation is the point: <b>elasticity is a property of the stateless tier, and buys you nothing while state has a single home.</b>",
+    setup:function(){ return { version:3, traffic:300, ss:false, db:"single", then:function(st){ st.faults.deadAz = ["ap-south-1a"];
+      logEvent(st, "Zone ap-south-1a has failed — and the only database was in it.", "One server lost. All three tiers' worth of function lost.", "bad"); } }; },
+    ticks:10
+  },
+  {
+    id:"s4", tag:"§10.6", title:"The night the control plane froze",
+    q:"Festival traffic. Database has a standby in another zone, servers spread across three. A zone fails AND the control plane is unavailable — existing resources are fine, but nothing new can be launched. Static stability is OFF. Two minutes later?",
+    opts:[
+      { t:"Back to 100%: Auto Scaling replaces the lost servers within two minutes.", ok:false },
+      { t:"Stuck at roughly two thirds capacity, and it stays there.", ok:true },
+      { t:"0%: without the control plane the load balancer cannot route either.", ok:false }
+    ],
+    reveal:"<b>Stuck at about two thirds, and — the signature of this failure — the number does not move.</b> The load balancer removes the dead targets (data plane, works fine). " +
+      "The database fails over to its already-existing standby (works fine). Then recovery stops, because the last step needs the control plane to hand out new machines, and that is " +
+      "exactly what is unavailable tonight. Nothing is broken. The design simply asked for something that is not being given out. " +
+      "<b>Now run scenario 5 — same fault, same diagram, opposite outcome.</b>",
+    setup:function(){ return { version:4, traffic:2100, ss:false, db:"multiaz", then:function(st){
+      st.faults.deadAz = ["ap-south-1b"]; st.faults.cpFrozen = true;
+      logEvent(st, "Zone ap-south-1b failed and the control plane is unavailable.", "A third of capacity gone, and no way to ask for more.", "bad"); } }; },
+    ticks:16
+  },
+  {
+    id:"s5", tag:"§10.6", title:"The same night, with spare capacity",
+    q:"Identical fault, identical architecture diagram — but static stability is ON, so you were already running 50% more servers than you needed. What happens?",
+    opts:[
+      { t:"Same outcome: RunInstances still fails, so you are still short.", ok:false },
+      { t:"Back to ~100% within about a minute, and the failed launches do not matter.", ok:true },
+      { t:"Worse — more servers means more of them were in the dead zone.", ok:false }
+    ],
+    reveal:"<b>~100%, within the health-check detection window.</b> The <code>RunInstances</code> call still fails — that has not changed at all. It no longer matters, because nothing " +
+      "was waiting on it: recovery consisted entirely of the load balancer <i>stopping</i> sending traffic to dead targets, which is a data-plane action needing nobody's permission. " +
+      "That is <b>static stability</b>: the response to a failure is to keep doing what you were already doing with what you already have. The bill is real — you are paying for 50% more " +
+      "machines than you need, every hour of every day — and that is a business decision, not an engineering one.",
+    setup:function(){ return { version:4, traffic:2100, ss:true, db:"multiaz", then:function(st){
+      st.faults.deadAz = ["ap-south-1b"]; st.faults.cpFrozen = true;
+      logEvent(st, "Zone ap-south-1b failed and the control plane is unavailable.", "Same fault as the previous scenario. Different amount of headroom.", "warn"); } }; },
+    ticks:16
+  },
+  {
+    id:"s6", tag:"§F4", title:"The quota nobody raised",
+    q:"Festival evening. No failure of any kind — no dead zone, no frozen control plane, everything green. Auto Scaling tries to grow for the peak. What goes wrong?",
+    opts:[
+      { t:"Nothing. Scaling works; there is no fault injected.", ok:false },
+      { t:"Scaling stops below what the peak needs, and nothing anywhere turns red.", ok:true },
+      { t:"AWS runs out of hardware in the region and returns capacity errors.", ok:false }
+    ],
+    reveal:"<b>Scaling stops at the account's quota, and there is no red anything.</b> There is plenty of hardware in ap-south-1; your account is simply not allowed to have more of it " +
+      "here. The evidence is a line in a scaling activity log and an API error code, neither of which is on a dashboard by default. Two things make this worse in practice: quotas are " +
+      "<b>per region</b>, so an increase you obtained in your main region does nothing for the region you would fail over to; and they are <b>per account</b>, so a load test in a shared " +
+      "staging environment can consume production's headroom. Alarm on quota utilisation at 70%, not at 100%.",
+    setup:function(){ return { version:4, traffic:2100, seedTraffic:300, quota:12, ss:false, db:"multiaz", then:function(st){
+      st.faults.quotaOn = true;
+      logEvent(st, "Festival traffic has arrived and Auto Scaling is trying to grow from 3 servers to 21.",
+        "The account quota in this region is " + st.quotaCap + " servers. Nothing has failed.", "warn"); } }; },
+    ticks:20
+  },
+  {
+    id:"s7", tag:"§F10", title:"Slow, not dead",
+    q:"The database is not down — it is slow. Query latency has doubled. The servers are all healthy and the load balancer is routing to all of them. What is the outcome?",
+    opts:[
+      { t:"Slightly slower payments; the system absorbs it.", ok:false },
+      { t:"Most payments fail while every dashboard stays green.", ok:true },
+      { t:"The load balancer detects the latency and stops routing.", ok:false }
+    ],
+    reveal:"<b>Most payments fail, and nothing turns red.</b> Application threads block on the slow dependency, the connection pool fills, requests queue. The health check hits a trivial " +
+      "<code>/health</code> that never touches the database, so it keeps passing and the load balancer keeps sending traffic to servers that cannot do anything with it. Then Auto Scaling, " +
+      "seeing high request counts, <i>adds more servers</i> — which open more connections to the struggling database and make it worse. The fix is timeouts, circuit breakers and bulkheads. " +
+      "The fix is <b>not</b> a deep health check: one that fails when the database is slow will eject your entire fleet and turn a degradation into an outage.",
+    setup:function(){ return { version:4, traffic:700, ss:false, db:"multiaz", then:function(st){
+      st.faults.dbSlow = true;
+      logEvent(st, "Database latency has doubled. It is not down.", "Health checks still pass. This is the dangerous shape.", "warn"); } }; },
+    ticks:10
+  },
+  {
+    id:"s8", tag:"§10.7", title:"Losing a region",
+    q:"ap-south-1 has a region-wide event. You have a warm secondary in ap-south-2 replicating asynchronously with about one second of lag. What is the honest outcome?",
+    opts:[
+      { t:"Zero downtime, zero data loss — that is what the second region is for.", ok:false },
+      { t:"Down until a human promotes the secondary, then up, having lost about a second of committed payments.", ok:true },
+      { t:"AWS fails you over automatically once it declares the region impaired.", ok:false }
+    ],
+    reveal:"<b>Down until somebody decides, then up with an RPO of about one second.</b> Two things worth being precise about. First, the failover is <b>not</b> automatic and should not be: " +
+      "a machine that can fail over on a network blip can start a split brain over money, and the cost of a false positive is larger than ten minutes of human latency. Second, that one " +
+      "second is real money — asynchronous replication means up to a second of committed payments went down with the primary region, and finance has to reconcile it. " +
+      "The alternative, synchronous cross-region replication, costs a cross-region round trip on <i>every</i> write forever to remove a loss you suffer once. The <b>Promote ap-south-2</b> button under the second region is that decision - click it and watch the verdict change, then toggle the " +
+      "replication mode next to it and watch which sentence changes.",
+    setup:function(){ return { version:5, traffic:700, ss:false, db:"multiaz", then:function(st){
+      st.faults.regionDown = true;
+      logEvent(st, "ap-south-1 is having a region-wide event.", "Everything in it is unreachable. ap-south-2 is running and has your data, one second behind.", "bad"); } }; },
+    ticks:8
+  }
+];
+
+function renderScenarios(){
+  var wrap = $("scens"); wrap.innerHTML = "";
+  SCENARIOS.forEach(function(sc, idx){
+    var d = el("div", "scen");
+    var t = el("div", "scenTitle");
+    t.appendChild(el("span", "pill", sc.tag));
+    t.appendChild(el("span", null, (idx+1) + ". " + sc.title));
+    d.appendChild(t);
+    d.appendChild(el("div", "scenQ", sc.q));
+    var opts = el("div", "opts");
+    sc.opts.forEach(function(o){
+      var b = el("button", "opt", o.t); b.type = "button";
+      b.onclick = function(){
+        Array.prototype.forEach.call(opts.children, function(c, ci){
+          c.className = "opt" + (sc.opts[ci].ok ? " right" : (c === b ? " wrong" : "")); 
+          c.disabled = true;
+        });
+        var rv = d.querySelector(".reveal");
+        if (!rv){ rv = el("div", "reveal"); d.appendChild(rv); }
+        rv.innerHTML = (o.ok ? "<b>Correct.</b> " : "<b>Not quite.</b> ") + sc.reveal +
+          "<br><br><span style='color:var(--ink-3)'>The simulator has been set up and is running this scenario now — watch the verdict bar and the event log.</span>";
+        runScenario(sc);
+      };
+      opts.appendChild(b);
+    });
+    d.appendChild(opts);
+    wrap.appendChild(d);
+  });
+}
+
+function runScenario(sc){
+  setPlaying(false);
+  var cfg = sc.setup();
+  HIST = [];
+  S = freshState(cfg.version, { traffic: cfg.traffic, design: { staticStability: cfg.ss, dbModeChosen: cfg.db || null, replMode: "async" } });
+  S.traffic = cfg.traffic;
+  S.design.staticStability = !!cfg.ss;
+  if (cfg.db){ S.design.dbMode = cfg.db; S.design.dbModeChosen = cfg.db;
+    S.db.standbyAz = cfg.db === "multiaz" ? AZS[1].name : (cfg.db === "aurora" ? "all three" : null); }
+  /* re-seed instances for the chosen traffic and stability */
+  S.instances = []; S.seq = 1;
+  var seedT = cfg.seedTraffic || cfg.traffic;
+  var seedState = { version:S.version, traffic:seedT, design:{ staticStability:!!cfg.ss } };
+  var n = desiredCount(seedState);
+  for (var i=0;i<n;i++){
+    var az = VERSION_INFO[S.version].azSpread ? AZS[i % 3].name : AZS[0].name;
+    S.instances.push({ id:"i-"+pad(S.seq++), az:az, phase:"serving", ticksIn:99, inRotation:true });
+  }
+  S.quotaCap = cfg.quota || Math.max(6, Math.floor(n / 3) * 3);
+  compute(S);
+  cfg.then(S);
+  compute(S);
+  render();
+  var left = sc.ticks;
+  var iv = setInterval(function(){
+    if (left-- <= 0){ clearInterval(iv); return; }
+    doStep();
+  }, 480);
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+$("verSel").onchange = function(){
+  setPlaying(false); HIST = [];
+  S = freshState(parseInt(this.value, 10), S);
+  selected = null; render();
+};
+document.querySelectorAll("[data-traffic]").forEach(function(b){
+  b.onclick = function(){
+    pushHistory();
+    S.traffic = parseInt(b.getAttribute("data-traffic"), 10);
+    logEvent(S, "Traffic set to " + S.traffic + " requests per second.",
+      S.traffic >= 2100 ? "Festival level — seven times normal, for four days." : "", "");
+    compute(S); render();
+  };
+});
+$("ssBtn").onclick = function(){
+  pushHistory();
+  S.design.staticStability = !S.design.staticStability;
+  logEvent(S, "Static stability turned " + (S.design.staticStability ? "on" : "off") + ".",
+    S.design.staticStability
+      ? "Now running " + desiredCount(S) + " servers to serve " + S.traffic + " req/s. Recovery no longer needs a control-plane call. You pay 50% more."
+      : "Back to exactly enough servers. Recovery now depends on being able to launch new ones.", "ctrl");
+  compute(S); render();
+};
+$("killInst").onclick = function(){
+  pushHistory();
+  var live = S.instances.filter(function(x){ return x.phase === "serving"; });
+  if (!live.length) return;
+  var v = live[0];
+  v.phase = "dead"; v.ticksIn = 0; v.inRotation = VERSION_INFO[S.version].alb;
+  logEvent(S, "Server " + v.id + " in " + v.az + " has died.",
+    "Its share of traffic is going nowhere until the health check notices — about 60 seconds.", "bad");
+  compute(S); render();
+};
+$("cpBtn").onclick = function(){
+  pushHistory(); S.faults.cpFrozen = !S.faults.cpFrozen;
+  logEvent(S, S.faults.cpFrozen ? "The control plane is now unavailable." : "The control plane has recovered.",
+    S.faults.cpFrozen ? "Everything running keeps running and keeps serving. Nothing new can be created, replaced or scaled." : "", "ctrl");
+  compute(S); render();
+};
+$("regionBtn").onclick = function(){
+  pushHistory(); S.faults.regionDown = !S.faults.regionDown;
+  logEvent(S, S.faults.regionDown ? "ap-south-1 is having a region-wide event." : "ap-south-1 has recovered.",
+    S.faults.regionDown ? (S.r2.enabled ? "The secondary region is running. Somebody has to decide to promote it."
+                                        : "There is no second region. Every option here was one you had months ago.") : "", "bad");
+  compute(S); render();
+};
+$("quotaBtn").onclick = function(){
+  pushHistory(); S.faults.quotaOn = !S.faults.quotaOn;
+  if (S.faults.quotaOn){
+    S.quotaCap = Math.max(6, Math.floor(countNonDead(S) / 3) * 3);
+    var bites = desiredCount(S) > S.quotaCap;
+    logEvent(S, "An account quota now caps this region at " + S.quotaCap + " servers.",
+      bites ? "Per account, per region. Unrelated to how much hardware AWS has - and you currently need more than this."
+            : "You are already inside it, so nothing changes yet. Turn the traffic up to Festival, or kill a zone, and watch it bite.", "warn");
+  } else {
+    logEvent(S, "The quota has been raised.", "In reality that is a support ticket with a human in it, measured in hours to days.", "ok");
+  }
+  compute(S); render();
+};
+$("slowBtn").onclick = function(){
+  pushHistory(); S.faults.dbSlow = !S.faults.dbSlow;
+  logEvent(S, S.faults.dbSlow ? "The database has become slow. It is not down." : "Database latency is back to normal.",
+    S.faults.dbSlow ? "Threads block, the pool fills, requests queue — and every health check still passes." : "", "warn");
+  compute(S); render();
+};
+$("iamBtn").onclick = function(){
+  pushHistory(); S.faults.iamBroken = !S.faults.iamBroken;
+  logEvent(S, S.faults.iamBroken ? "A deploy shipped a role missing dynamodb:PutItem." : "The IAM policy has been fixed.",
+    S.faults.iamBroken ? "100% of writes fail instantly with AccessDeniedException — before any database work. Total and loud, which is the good kind of IAM failure." : "", "bad");
+  compute(S); render();
+};
+$("healBtn").onclick = function(){
+  pushHistory();
+  S.faults = { deadAz:[], cpFrozen:false, quotaOn:false, dbSlow:false, iamBroken:false, regionDown:false };
+  S.db.phase = "ok"; S.r2.promoted = false;
+  logEvent(S, "All faults repaired. The design is unchanged.", "Now change one thing about the design and break it the same way again.", "ok");
+  compute(S); render();
+};
+$("resetBtn").onclick = function(){
+  setPlaying(false); HIST = []; selected = null;
+  S = freshState(S.version, S); render();
+};
+$("fwdBtn").onclick = doStep;
+$("backBtn").onclick = function(){ setPlaying(false); doBack(); };
+$("playBtn").onclick = function(){ setPlaying(!playing); };
+
+$("themeBtn").onclick = function(){
+  var r = document.documentElement;
+  var cur = r.getAttribute("data-theme");
+  var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if (!cur) r.setAttribute("data-theme", prefersDark ? "light" : "dark");
+  else r.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+};
+
+document.addEventListener("keydown", function(e){
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key === "ArrowRight"){ e.preventDefault(); setPlaying(false); doStep(); }
+  if (e.key === "ArrowLeft"){ e.preventDefault(); setPlaying(false); doBack(); }
+  if (e.key === " "){ e.preventDefault(); setPlaying(!playing); }
+});
+
+/* go */
+S = freshState(3, null);
+renderScenarios();
+render();
+})();
+</script>

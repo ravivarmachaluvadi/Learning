@@ -1,0 +1,796 @@
+<title>Why The Request Hung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:    #F2F4F6;
+    --panel:     #FFFFFF;
+    --sunk:      #E8ECEF;
+    --ink:       #141A20;
+    --ink-soft:  #3E4A55;
+    --muted:     #6A7681;
+    --rule:      #D5DBE0;
+    --rule-soft: #E6EAEE;
+    --sig:       #0F6E7E;
+    --sig-dim:   #DCEDEF;
+    --ok:        #2E7A54;
+    --ok-dim:    #DCEEE4;
+    --fail:      #B23A2E;
+    --fail-dim:  #F7E2DF;
+    --wait:      #96650C;
+    --wait-dim:  #F7EBD5;
+    --skip:      #9AA5AE;
+
+    --sans: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cond: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --shadow: 0 1px 2px rgba(20,26,32,.05), 0 4px 14px rgba(20,26,32,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0F141A; --panel:#171E26; --sunk:#131A21; --ink:#E6EBF0; --ink-soft:#BFC9D3;
+      --muted:#8593A0; --rule:#28323C; --rule-soft:#1F272F; --sig:#5FC3D2; --sig-dim:#12303A;
+      --ok:#63C494; --ok-dim:#13291F; --fail:#E8836F; --fail-dim:#2E1A17; --wait:#D9A94A;
+      --wait-dim:#2B2313; --skip:#5C6874;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0F141A; --panel:#171E26; --sunk:#131A21; --ink:#E6EBF0; --ink-soft:#BFC9D3;
+    --muted:#8593A0; --rule:#28323C; --rule-soft:#1F272F; --sig:#5FC3D2; --sig-dim:#12303A;
+    --ok:#63C494; --ok-dim:#13291F; --fail:#E8836F; --fail-dim:#2E1A17; --wait:#D9A94A;
+    --wait-dim:#2B2313; --skip:#5C6874;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 26px 20px 70px; }
+  p { margin: 0; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  h1 { font-family: var(--cond); font-size: clamp(1.9rem, 1.4rem + 2vw, 2.7rem);
+       font-weight: 700; letter-spacing: .004em; line-height: 1.05; text-transform: uppercase; }
+  h2 { font-family: var(--cond); font-size: 1.32rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+  h3 { font-family: var(--sans); font-size: .95rem; font-weight: 600; }
+
+  .eyebrow { font-family: var(--mono); font-size: .67rem; font-weight: 500;
+             letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .lede { color: var(--ink-soft); max-width: 68ch; margin-top: 10px; }
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; box-shadow: var(--shadow); }
+  .panel-h { padding: 11px 15px; border-bottom: 1px solid var(--rule-soft);
+             display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .panel-b { padding: 15px; }
+
+  .bench { display: grid; grid-template-columns: 270px minmax(0,1fr); gap: 16px; align-items: start; margin-top: 22px; }
+  @media (max-width: 940px) { .bench { grid-template-columns: 1fr; } }
+  .rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 14px; }
+  @media (max-width: 940px) { .rail { position: static; } }
+  .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
+  .field:last-child { margin-bottom: 0; }
+  .field > label { font-size: .8rem; font-weight: 600; }
+  .hint { font-size: .74rem; color: var(--muted); line-height: 1.42; }
+  select, input[type=range] { width: 100%; }
+  select { font-family: var(--sans); font-size: .82rem; color: var(--ink); background: var(--sunk);
+           border: 1px solid var(--rule); border-radius: 5px; padding: 6px 8px; }
+  input[type=range] { accent-color: var(--sig); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .btn { font-family: var(--sans); font-size: .82rem; font-weight: 600; padding: 8px 13px;
+         border-radius: 5px; cursor: pointer; border: 1px solid var(--rule);
+         background: var(--sunk); color: var(--ink); transition: border-color .15s, color .15s; }
+  .btn:hover:not(:disabled) { border-color: var(--sig); color: var(--sig); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: var(--sig); border-color: var(--sig); color: var(--panel); }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.1); color: var(--panel); }
+  .btn-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  :focus-visible { outline: 2px solid var(--sig); outline-offset: 2px; }
+
+  /* ---- the path across the network ---- */
+  .pathwrap { overflow-x: auto; padding-bottom: 4px; }
+  .path { display: flex; align-items: stretch; gap: 0; min-width: 640px; }
+  .hop { flex: 1; text-align: center; position: relative; padding: 0 3px; }
+  .hop-box { border: 1.5px solid var(--rule); background: var(--sunk); border-radius: 6px;
+             padding: 9px 5px 8px; transition: border-color .2s, background .2s; }
+  .hop-name { font-family: var(--cond); font-size: .92rem; font-weight: 600; letter-spacing: .02em;
+              text-transform: uppercase; line-height: 1.1; }
+  .hop-sub { font-family: var(--mono); font-size: .6rem; color: var(--muted); margin-top: 3px; letter-spacing: .02em; }
+  .hop.ok  .hop-box { border-color: var(--ok);  background: var(--ok-dim); }
+  .hop.ok  .hop-name { color: var(--ok); }
+  .hop.bad .hop-box { border-color: var(--fail); background: var(--fail-dim); }
+  .hop.bad .hop-name { color: var(--fail); }
+  .hop.bad .hop-box { animation: pulse 1.1s ease-in-out infinite; }
+  .hop.wait .hop-box { border-color: var(--wait); background: var(--wait-dim); }
+  .hop.wait .hop-name { color: var(--wait); }
+  .hop.idle .hop-box { opacity: .5; }
+  .hop-arrow { color: var(--muted); font-family: var(--mono); font-size: .8rem; align-self: center; padding: 0 2px; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 transparent } 50% { box-shadow: 0 0 0 4px var(--fail-dim) } }
+  @media (prefers-reduced-motion: reduce) { .hop.bad .hop-box { animation: none } }
+
+  /* ---- waterfall ---- */
+  .wf { display: flex; flex-direction: column; gap: 5px; }
+  .wf-row { display: grid; grid-template-columns: 132px 1fr 74px; align-items: center; gap: 10px; }
+  .wf-label { font-family: var(--mono); font-size: .72rem; color: var(--ink-soft); }
+  .wf-track { height: 20px; background: var(--sunk); border-radius: 3px; position: relative; overflow: hidden; }
+  .wf-bar { position: absolute; top: 0; bottom: 0; border-radius: 3px; transition: left .3s ease, width .3s ease; }
+  .wf-bar.ok   { background: var(--sig); }
+  .wf-bar.fail { background: var(--fail); }
+  .wf-bar.wait { background: var(--wait); background-image: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,.28) 6px 12px); }
+  .wf-ms { font-family: var(--mono); font-size: .72rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .wf-row.skipped .wf-label, .wf-row.skipped .wf-ms { color: var(--skip); }
+  .wf-row.skipped .wf-track { opacity: .35; }
+  .wf-total { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 8px; }
+  .wf-total .wf-label, .wf-total .wf-ms { font-weight: 700; color: var(--ink); }
+
+  /* ---- verdict + code ---- */
+  .verdict { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+  @media (max-width: 760px) { .verdict { grid-template-columns: 1fr; } }
+  pre.code { font-family: var(--mono); font-size: .73rem; line-height: 1.6; margin: 0;
+             background: var(--sunk); border: 1px solid var(--rule-soft); border-left: 3px solid var(--fail);
+             border-radius: 0 5px 5px 0; padding: 11px 12px; overflow-x: auto; color: var(--ink-soft);
+             white-space: pre-wrap; word-break: break-word; }
+  pre.code.good { border-left-color: var(--ok); }
+  .dl { display: flex; flex-direction: column; gap: 9px; }
+  .dl .k { font-family: var(--mono); font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .dl .v { font-size: .87rem; color: var(--ink-soft); line-height: 1.5; }
+  .badge { display: inline-block; font-family: var(--mono); font-size: .7rem; font-weight: 700;
+           padding: 3px 9px; border-radius: 3px; letter-spacing: .04em; }
+  .badge.ok   { background: var(--ok-dim);   color: var(--ok); }
+  .badge.fail { background: var(--fail-dim); color: var(--fail); }
+  .badge.wait { background: var(--wait-dim); color: var(--wait); }
+
+  /* ---- predict ---- */
+  .predict { border-left: 3px solid var(--wait); background: var(--wait-dim); }
+  .predict .q { font-family: var(--cond); font-size: 1.25rem; font-weight: 600; color: var(--ink); letter-spacing: .01em; }
+  .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .opt { text-align: left; font-family: var(--sans); font-size: .84rem; padding: 9px 11px;
+         border-radius: 5px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .opt:hover { border-color: var(--sig); }
+  .opt.right { border-color: var(--ok); background: var(--ok-dim); color: var(--ok); }
+  .opt.wrong { border-color: var(--fail); background: var(--fail-dim); color: var(--fail); }
+  .why { margin-top: 12px; font-size: .87rem; color: var(--ink-soft); line-height: 1.55; }
+
+  /* ---- log ---- */
+  .log { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+  .log-e { padding: 8px 0; border-bottom: 1px solid var(--rule-soft); }
+  .log-e:first-child { border-bottom: none; }
+  .log-e .s { font-size: .85rem; line-height: 1.45; }
+  .log-e .t { font-family: var(--mono); font-size: .68rem; color: var(--muted); margin-top: 2px; }
+  .log-e.ok .s { color: var(--ok); } .log-e.bad .s { color: var(--fail); } .log-e.warn .s { color: var(--wait); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 15px; font-size: .74rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 18px; height: 9px; border-radius: 2px; flex: none; }
+  footer.foot { margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: .77rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Networking for developers</p>
+    <h1>Why the request hung</h1>
+    <p class="lede">
+      Your code makes one call. Between that line and a response, six independent
+      systems each get a turn, and every one of them can fail in a way that reaches
+      your code as almost nothing. This panel breaks them one at a time, so you can
+      learn the thing that actually matters: <strong>reading the symptom backwards
+      to the layer that caused it.</strong>
+    </p>
+  </header>
+
+  <div class="bench">
+
+    <div class="rail">
+      <div class="panel">
+        <div class="panel-h"><h2>Send a request</h2></div>
+        <div class="panel-b">
+          <div class="btn-row" style="margin-bottom:11px">
+            <button class="btn primary" id="btn-send">Send request</button>
+            <button class="btn" id="btn-reset">Reset</button>
+          </div>
+          <p class="hint">
+            Request <strong id="reqno">1</strong> of this connection.
+            Send twice with connection reuse on to see what changes.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>Break something</h2></div>
+        <div class="panel-b">
+
+          <div class="field">
+            <label for="c-fault">What is wrong today?</label>
+            <select id="c-fault">
+              <option value="none" selected>Nothing — this is the healthy case</option>
+              <option value="dns_nx">The name does not exist</option>
+              <option value="dns_slow">The name server ignores one question type</option>
+              <option value="fw_drop">A firewall silently drops our packets</option>
+              <option value="no_listen">The server machine is up, the process is not</option>
+              <option value="tls_cert">The certificate does not match the name</option>
+              <option value="silent">The server accepts, then never answers</option>
+              <option value="nat_idle">A middlebox killed our idle connection</option>
+              <option value="mtu">Big requests vanish, small ones work</option>
+            </select>
+            <span class="hint" id="fault-hint">Every option is a real thing that happens weekly somewhere.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-rtt">How far away is the server? <span class="hint" id="rtt-lab">16 ms round trip</span></label>
+            <input type="range" id="c-rtt" min="1" max="250" value="16">
+            <span class="hint">1 ms = same datacentre · 16 ms = same country · 250 ms = other side of the planet.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-keep">Reuse the connection?</label>
+            <select id="c-keep">
+              <option value="on" selected>Yes — keep it open between requests</option>
+              <option value="off">No — new connection every time</option>
+            </select>
+            <span class="hint">Changes what request 2 costs, and exposes one failure that only reuse can have.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-size">How big is the request body?</label>
+            <select id="c-size">
+              <option value="small" selected>Small — a few hundred bytes</option>
+              <option value="large">Large — a 40 KB JSON payload</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Your timeouts</label>
+            <div class="row2">
+              <select id="c-ct">
+                <option value="2000" selected>connect 2s</option>
+                <option value="10000">connect 10s</option>
+                <option value="0">connect: none</option>
+              </select>
+              <select id="c-rt">
+                <option value="0" selected>read: none</option>
+                <option value="3000">read 3s</option>
+                <option value="30000">read 30s</option>
+              </select>
+            </div>
+            <span class="hint">The default here is the one most code ships with — and it is why services hang.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-predict">Ask me to predict first</label>
+            <select id="c-predict">
+              <option value="on" selected>Yes — on the three sharpest faults</option>
+              <option value="off">No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+
+      <div class="panel">
+        <div class="panel-h">
+          <h2>The path your packets take</h2>
+          <span class="eyebrow" id="path-note">idle</span>
+        </div>
+        <div class="panel-b">
+          <div class="pathwrap"><div class="path" id="path"></div></div>
+          <div class="legend" style="margin-top:12px">
+            <span><i class="sw" style="background:var(--ok-dim);border:1px solid var(--ok)"></i>did its job</span>
+            <span><i class="sw" style="background:var(--wait-dim);border:1px solid var(--wait)"></i>still waiting</span>
+            <span><i class="sw" style="background:var(--fail-dim);border:1px solid var(--fail)"></i>where it broke</span>
+            <span><i class="sw" style="background:var(--sunk);border:1px solid var(--rule)"></i>never reached</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel predict" id="predict-box" hidden>
+        <div class="panel-b">
+          <p class="eyebrow" style="color:var(--wait)">Predict before you send</p>
+          <p class="q" id="predict-q"></p>
+          <div class="opts" id="predict-opts"></div>
+          <p class="why" id="predict-why" hidden></p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <h2>Where the time went</h2>
+          <span class="badge" id="outcome-badge">not sent</span>
+        </div>
+        <div class="panel-b">
+          <div class="wf" id="waterfall"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>What your code sees</h2></div>
+        <div class="panel-b verdict">
+          <div>
+            <p class="eyebrow" style="margin-bottom:7px">The exception, or the absence of one</p>
+            <pre class="code" id="code-out">Press "Send request".</pre>
+          </div>
+          <div class="dl" id="diag">
+            <div><p class="k">Diagnosis</p><p class="v">Nothing sent yet.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>What just happened</h2></div>
+        <div class="panel-b"><div class="log" id="log">
+          <div class="log-e"><p class="s">The log fills in from the bottom up.</p></div>
+        </div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    Companion to the <code style="font-family:var(--mono)">networking-for-developers</code> lab.
+    Timings are modelled from measurements taken on the machine this lab was written on
+    (round trip to 8.8.8.8: 16 ms; TLS handshake to cloudflare.com: 46 ms). The failure
+    modes, the exception types and the symptom-to-cause mapping are real; the millisecond
+    values are a model, not a capture.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------------------------------------------------------------
+     The six systems a request passes through, in order.
+     --------------------------------------------------------------- */
+  var HOPS = [
+    { id: "app",  name: "Your app",   sub: "the one line of code" },
+    { id: "dns",  name: "Name lookup", sub: "name → address" },
+    { id: "nat",  name: "Router / NAT", sub: "private → public" },
+    { id: "fw",   name: "Firewall",   sub: "allow, deny, or drop" },
+    { id: "lb",   name: "Load balancer", sub: "picks a server" },
+    { id: "srv",  name: "The server",  sub: "does the actual work" }
+  ];
+
+  /* ---------------------------------------------------------------
+     The phases of one request. Each is timed separately because each
+     can fail on its own.
+     --------------------------------------------------------------- */
+  var PHASES = ["Name lookup", "TCP handshake", "TLS handshake", "Send request", "Server works", "Response"];
+
+  var FAULT_HINTS = {
+    none:      "Every option below is a real thing that happens weekly somewhere.",
+    dns_nx:    "A typo, a missing search domain, or a service that was never registered.",
+    dns_slow:  "Found for real on the machine this lab was written on: the router answers questions about IPv6 addresses only when the answer is yes, and stays silent when the answer is 'none'. Silence costs a full 5-second resolver timeout.",
+    fw_drop:   "A security group or firewall rule set to DROP rather than REJECT. The most common cause of a mysterious hang in cloud environments.",
+    no_listen: "The machine is healthy and reachable. The process crashed, or you have the wrong port.",
+    tls_cert:  "Expired certificate, wrong hostname, or a private certificate authority your runtime was never told to trust.",
+    silent:    "The server accepted the connection and then wedged — a deadlock, an exhausted pool, or a dependency of its own hanging.",
+    nat_idle:  "Middleboxes forget connections that have been quiet. Neither end is told. Needs connection reuse to be visible.",
+    mtu:       "Something in the path cannot carry full-size packets, and the message that would have said so is being blocked."
+  };
+
+  var PREDICTS = {
+    fw_drop: {
+      q: "A firewall is dropping your packets. What does your code get back, and how fast?",
+      opts: [
+        { s: "A connection-refused error, almost immediately", ok: false,
+          why: "Refused would mean something ANSWERED you — a machine that is there and says 'not on that port'. A firewall set to DROP does not answer at all. That difference in behaviour is the single most useful diagnostic signal in networking." },
+        { s: "Nothing at all until your connect timeout expires", ok: true,
+          why: "Exactly. DROP means the packets go into a void. Your side retransmits the handshake a few times, hears nothing, and eventually gives up at whatever timeout you set. That is why the elapsed time equals your timeout almost to the millisecond — a suspiciously round number is the tell that nobody answered." },
+        { s: "An immediate error naming the firewall", ok: false,
+          why: "Nothing in the path is obliged to identify itself, and a firewall configured to drop is specifically configured not to. Your code learns only that time passed." }
+      ]
+    },
+    silent: {
+      q: "The server accepts your connection and then never answers. Your connect timeout is 2s and you set no read timeout. What happens?",
+      opts: [
+        { s: "It fails after 2 seconds — the connect timeout catches it", ok: false,
+          why: "The connect timeout only bounds the handshake, and the handshake SUCCEEDED. The moment the connection is established that timeout is spent, and it never applies again." },
+        { s: "The call blocks forever, with no exception", ok: true,
+          why: "The connection is genuinely healthy — established, open, no errors. Your thread is simply waiting for bytes that are never coming, and nothing will interrupt it. In a service with a bounded thread pool, enough of these and every thread is parked on a socket that will never speak. The service stops responding without a single error in the logs." },
+        { s: "TCP notices the peer is idle and resets the connection", ok: false,
+          why: "TCP has no dial tone. An open connection with no traffic is indistinguishable from a working one — that is why keepalive probes had to be invented, and why they default to two hours." }
+      ]
+    },
+    nat_idle: {
+      q: "A middlebox silently dropped your idle pooled connection. When does your code find out?",
+      opts: [
+        { s: "Immediately — the socket reports it is closed", ok: false,
+          why: "Nobody told your machine. isConnected() keeps returning true because it reports whether this socket was ever connected, not whether the peer is still listening." },
+        { s: "On the next request, which fails for an unrelated-looking reason", ok: true,
+          why: "The failure is deferred onto the next unlucky request, which sees a connection reset for reasons that have nothing to do with it. This is why the errors look random and correlate with traffic gaps rather than with load — and why pools must evict idle connections sooner than the shortest idle timeout anywhere in the path." },
+        { s: "Never — the connection is transparently re-established", ok: false,
+          why: "Some HTTP clients do retry a failed idle connection, and that is exactly the right mitigation. But TCP itself does nothing: the socket is dead and only a write reveals it." }
+      ]
+    }
+  };
+
+  /* ---------------------------------------------------------------
+     State + a pure reducer, so nothing is hidden in the DOM.
+     --------------------------------------------------------------- */
+  var cfg = { fault: "none", rtt: 16, keep: "on", size: "small", ct: 2000, rt: 0, predict: "on" };
+  var reqNo = 1, log = [], asked = {};
+  // A connection can only be reused if a previous request actually got one
+  // established. A request that died at name lookup left nothing behind.
+  var connOpen = false;
+
+  function computeRequest() {
+    var f = cfg.fault, rtt = cfg.rtt;
+    var reuse = cfg.keep === "on" && connOpen;
+    var ph = [];
+    var failAt = -1, outcome = null;
+
+    function add(name, ms, status) { ph.push({ name: name, ms: ms, status: status }); }
+
+    // --- Name lookup -------------------------------------------------
+    if (reuse) {
+      add(PHASES[0], 0, "skipped");
+    } else if (f === "dns_nx") {
+      add(PHASES[0], 14, "fail");
+      failAt = 0;
+      outcome = {
+        badge: "fail", hop: "dns",
+        code: "java.net.UnknownHostException: payments.internal\n"
+            + "    at java.base/java.net.InetAddress.getAllByName(InetAddress.java)\n\nelapsed: 14 ms",
+        layer: "Names",
+        meaning: "The name never became an address, so not a single packet was ever sent toward the service. The service could be perfectly healthy — you have not talked to it.",
+        retry: "No. The same name will fail the same way. Check spelling, search domains, and whether the record exists at all.",
+        tell: "It failed in milliseconds. Nothing on the network is that fast, so the failure happened before the network was involved."
+      };
+    } else if (f === "dns_slow") {
+      add(PHASES[0], 5000 + 25, "wait");
+    } else {
+      add(PHASES[0], 22, "ok");
+    }
+
+    // --- TCP handshake -----------------------------------------------
+    if (failAt < 0) {
+      if (reuse) {
+        add(PHASES[1], 0, "skipped");
+      } else if (f === "fw_drop") {
+        var waited = cfg.ct === 0 ? 75000 : cfg.ct;
+        add(PHASES[1], waited, "fail");
+        failAt = 1;
+        outcome = cfg.ct === 0 ? {
+          badge: "wait", hop: "fw",
+          code: "(no exception — still inside connect() after 75,000 ms)\n\nThe operating system will give up eventually,\non its own schedule, typically 2 minutes.",
+          layer: "Reaching the host",
+          meaning: "With no connect timeout you inherit the operating system's, which is measured in minutes. Your request is holding a thread for that entire time.",
+          retry: "Set a connect timeout first. Until you do, you cannot even fail promptly.",
+          tell: "No error and no progress — the worst possible combination, because nothing is logged."
+        } : {
+          badge: "fail", hop: "fw",
+          code: "java.net.SocketTimeoutException: Connect timed out\n"
+              + "    at java.base/java.net.Socket.connect(Socket.java)\n\nelapsed: " + waited.toLocaleString() + " ms",
+          layer: "Reaching the host",
+          meaning: "Your handshake packets were sent and nothing came back — not an answer, not a refusal, nothing. Somebody in the path is configured to drop rather than reply.",
+          retry: "Pointless while the rule stands, and expensive: every attempt costs a full timeout and learns nothing new.",
+          tell: "It failed at exactly your timeout value. When elapsed time equals your configured timeout, nobody answered — that is silence, not rejection."
+        };
+      } else if (f === "no_listen") {
+        add(PHASES[1], Math.max(1, Math.round(rtt * 0.6)), "fail");
+        failAt = 1;
+        outcome = {
+          badge: "fail", hop: "srv",
+          code: "java.net.ConnectException: Connection refused\n"
+              + "    at java.base/java.net.Socket.connect(Socket.java)\n\nelapsed: "
+              + Math.max(1, Math.round(rtt * 0.6)) + " ms",
+          layer: "Reaching the process",
+          meaning: "The machine is up, reachable, and answered you — with a refusal. Your packets are arriving fine. Nothing is listening on that port: the process is down, or the port is wrong.",
+          retry: "Only helps if the process is restarting. It will keep failing fast, which is at least cheap and honest.",
+          tell: "It failed in roughly one round trip. Something replied that quickly, so the network path is healthy — this is an application problem, not a network one."
+        };
+      } else {
+        add(PHASES[1], rtt, "ok");
+      }
+    }
+
+    // --- TLS handshake -----------------------------------------------
+    if (failAt < 0) {
+      if (reuse) {
+        add(PHASES[2], 0, "skipped");
+      } else if (f === "tls_cert") {
+        add(PHASES[2], Math.round(rtt * 1.2), "fail");
+        failAt = 2;
+        outcome = {
+          badge: "fail", hop: "srv",
+          code: "javax.net.ssl.SSLHandshakeException:\n"
+              + "  PKIX path validation failed: signature check failed\n"
+              + "    at java.base/sun.security.ssl.Alert.createSSLException\n\nelapsed: "
+              + Math.round(rtt * 1.2) + " ms",
+          layer: "Trust",
+          meaning: "TCP connected, so the network is completely fine and the server is right there. The two sides could not agree on identity — an expired certificate, one issued for a different hostname, or one signed by an authority your runtime does not trust.",
+          retry: "Never. This is deterministic and will fail identically until a certificate or a trust store changes.",
+          tell: "A connection was established first. Any failure that happens AFTER a successful connect is not a connectivity problem, however much it looks like one."
+        };
+      } else {
+        add(PHASES[2], Math.round(rtt * 1.2) + 14, "ok");
+      }
+    }
+
+    // --- Send request -------------------------------------------------
+    if (failAt < 0) {
+      if (f === "nat_idle" && reuse) {
+        add(PHASES[3], Math.max(1, Math.round(rtt * 0.5)), "fail");
+        failAt = 3;
+        outcome = {
+          badge: "fail", hop: "nat",
+          code: "java.net.SocketException: Connection reset\n"
+              + "    at java.base/sun.nio.ch.NioSocketImpl.implRead\n\nelapsed: "
+              + Math.max(1, Math.round(rtt * 0.5)) + " ms\n\n"
+              + "// just before this: socket.isConnected() == true",
+          layer: "Connection state, held elsewhere",
+          meaning: "A router or load balancer between you and the server discarded its record of this connection while it sat idle, and told neither end. Your socket looked perfectly healthy right up until you wrote to it.",
+          retry: "Yes — on a NEW connection, and only if the request is idempotent, because you cannot know whether the server processed the first attempt.",
+          tell: "It failed on the first write after an idle gap. Errors that correlate with quiet periods rather than with load are almost always this."
+        };
+      } else if (f === "mtu" && cfg.size === "large") {
+        var w = cfg.rt === 0 ? 75000 : cfg.rt;
+        add(PHASES[3], w, "fail");
+        failAt = 3;
+        outcome = {
+          badge: cfg.rt === 0 ? "wait" : "fail", hop: "nat",
+          code: cfg.rt === 0
+            ? "(no exception — blocked in read() after 75,000 ms)\n\nThe small request on the same connection worked."
+            : "java.net.SocketTimeoutException: Read timed out\n    at java.base/java.net.SocketInputStream.read\n\nelapsed: " + w.toLocaleString() + " ms",
+          layer: "Packet size",
+          meaning: "The handshake used tiny packets and sailed through. Your 40 KB body needs full-size packets, and something in the path cannot carry them. It should send back a 'too big, split it up' message — but that message is itself being blocked, so your machine never learns to send smaller packets and simply retransmits forever.",
+          retry: "No. It will fail identically every time for large payloads and succeed every time for small ones.",
+          tell: "Small requests work and large ones hang, on the same connection. That pattern has essentially one cause."
+        };
+      } else {
+        add(PHASES[3], Math.max(1, Math.round(rtt * 0.5)), "ok");
+      }
+    }
+
+    // --- Server works -------------------------------------------------
+    if (failAt < 0) {
+      if (f === "silent") {
+        var rw = cfg.rt === 0 ? 75000 : cfg.rt;
+        add(PHASES[4], rw, cfg.rt === 0 ? "wait" : "fail");
+        failAt = 4;
+        outcome = cfg.rt === 0 ? {
+          badge: "wait", hop: "srv",
+          code: "(no exception — still blocked in read() after 75,000 ms)\n\n"
+              + "socket.isConnected() == true\n"
+              + "socket.isClosed()    == false\n\n"
+              + "This thread is now unavailable, forever.",
+          layer: "The application at the far end",
+          meaning: "Everything below the application worked perfectly: name resolved, connection established, request delivered. The server simply never replied, and a healthy open connection with nothing on it is indistinguishable from one that is about to reply.",
+          retry: "You cannot even get far enough to decide. Set a read timeout — that is the entire fix.",
+          tell: "No exception at all. This is the most dangerous failure in the set precisely because your error dashboards stay green while your thread pool drains."
+        } : {
+          badge: "fail", hop: "srv",
+          code: "java.net.SocketTimeoutException: Read timed out\n"
+              + "    at java.base/java.net.SocketInputStream.read\n\nelapsed: " + rw.toLocaleString() + " ms",
+          layer: "The application at the far end",
+          meaning: "The read timeout did its job and bounded the wait. The server is wedged, but your thread is free and you have an error to act on.",
+          retry: "Maybe, on a fresh connection — but only for idempotent work, since the server may have processed the request before going quiet.",
+          tell: "You got an exception instead of a hang. That difference is one line of configuration."
+        };
+      } else {
+        add(PHASES[4], 40, "ok");
+      }
+    }
+
+    // --- Response -----------------------------------------------------
+    if (failAt < 0) {
+      add(PHASES[5], Math.max(1, Math.round(rtt * 0.5)), "ok");
+      var t = ph.reduce(function (s, p) { return s + p.ms; }, 0);
+      outcome = {
+        badge: "ok", hop: null,
+        code: "HTTP/2 200 OK\ncontent-type: application/json\n\nelapsed: " + t.toLocaleString() + " ms",
+        layer: "None — it worked",
+        meaning: reuse
+          ? "Because the connection was reused, the name lookup and both handshakes were skipped entirely. Compare this total with request 1."
+          : "A healthy request. Notice how much of the total was spent before your request body moved at all — that is the setup cost you pay once per connection.",
+        retry: "—",
+        tell: reuse
+          ? "Setup is a per-connection cost, not a per-request one. This is what a connection pool buys you."
+          : "At " + rtt + " ms round trip, the handshakes alone cost about " + (rtt + Math.round(rtt * 1.2) + 14) + " ms before anything useful happened."
+      };
+    }
+
+    // pad any phases never reached
+    while (ph.length < PHASES.length) ph.push({ name: PHASES[ph.length], ms: 0, status: "skipped" });
+
+    return { phases: ph, failAt: failAt, outcome: outcome, reuse: reuse };
+  }
+
+  /* ---------------------------------------------------------------
+     Render
+     --------------------------------------------------------------- */
+  function hopState(r, hopId) {
+    if (!r) return "idle";
+    if (r.outcome && r.outcome.hop === hopId) return r.outcome.badge === "wait" ? "wait" : "bad";
+    var order = ["app", "dns", "nat", "fw", "lb", "srv"];
+    var brokeAt = r.outcome && r.outcome.hop ? order.indexOf(r.outcome.hop) : 99;
+    return order.indexOf(hopId) < brokeAt ? "ok" : "idle";
+  }
+
+  function renderPath(r) {
+    var host = $("path");
+    host.innerHTML = "";
+    HOPS.forEach(function (h, i) {
+      if (i) {
+        var a = document.createElement("div");
+        a.className = "hop-arrow"; a.textContent = "→";
+        host.appendChild(a);
+      }
+      var d = document.createElement("div");
+      d.className = "hop " + hopState(r, h.id);
+      d.innerHTML = '<div class="hop-box"><div class="hop-name">' + h.name
+                  + '</div><div class="hop-sub">' + h.sub + '</div></div>';
+      host.appendChild(d);
+    });
+  }
+
+  function renderWaterfall(r) {
+    var host = $("waterfall");
+    host.innerHTML = "";
+    if (!r) {
+      host.innerHTML = '<p class="hint">Nothing sent yet. Press "Send request".</p>';
+      return;
+    }
+    var total = r.phases.reduce(function (s, p) { return s + p.ms; }, 0) || 1;
+    var acc = 0;
+    r.phases.forEach(function (p) {
+      var row = document.createElement("div");
+      row.className = "wf-row" + (p.status === "skipped" ? " skipped" : "");
+      var left = (acc / total) * 100, w = Math.max(p.ms > 0 ? 1.2 : 0, (p.ms / total) * 100);
+      acc += p.ms;
+      var cls = p.status === "fail" ? "fail" : p.status === "wait" ? "wait" : "ok";
+      row.innerHTML =
+          '<span class="wf-label">' + p.name + '</span>'
+        + '<span class="wf-track">' + (p.ms > 0
+            ? '<span class="wf-bar ' + cls + '" style="left:' + left + '%;width:' + w + '%"></span>' : '')
+        + '</span>'
+        + '<span class="wf-ms">' + (p.status === "skipped" ? "skipped" : p.ms.toLocaleString() + " ms") + '</span>';
+      host.appendChild(row);
+    });
+    var t = document.createElement("div");
+    t.className = "wf-row wf-total";
+    t.innerHTML = '<span class="wf-label">TOTAL</span><span class="wf-track"></span>'
+                + '<span class="wf-ms">' + total.toLocaleString() + " ms</span>";
+    host.appendChild(t);
+  }
+
+  function renderVerdict(r) {
+    var b = $("outcome-badge");
+    if (!r) { b.className = "badge"; b.textContent = "not sent"; return; }
+    var o = r.outcome;
+    b.className = "badge " + (o.badge === "ok" ? "ok" : o.badge === "wait" ? "wait" : "fail");
+    b.textContent = o.badge === "ok" ? "succeeded" : o.badge === "wait" ? "still blocked" : "failed";
+
+    var pre = $("code-out");
+    pre.className = "code" + (o.badge === "ok" ? " good" : "");
+    pre.textContent = o.code;
+
+    $("diag").innerHTML =
+        '<div><p class="k">Which layer</p><p class="v">' + esc(o.layer) + '</p></div>'
+      + '<div><p class="k">What it means</p><p class="v">' + esc(o.meaning) + '</p></div>'
+      + '<div><p class="k">Will retrying help?</p><p class="v">' + esc(o.retry) + '</p></div>'
+      + '<div><p class="k">The tell</p><p class="v">' + esc(o.tell) + '</p></div>';
+  }
+
+  function renderLog() {
+    var host = $("log");
+    host.innerHTML = "";
+    if (!log.length) { host.innerHTML = '<div class="log-e"><p class="s">The log fills in from the bottom up.</p></div>'; return; }
+    log.slice(-30).forEach(function (e) {
+      var d = document.createElement("div");
+      d.className = "log-e " + (e.kind || "");
+      d.innerHTML = '<p class="s">' + esc(e.s) + '</p><p class="t">' + esc(e.t) + '</p>';
+      host.appendChild(d);
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
+    });
+  }
+  function reduced() { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* ---------------------------------------------------------------
+     Actions
+     --------------------------------------------------------------- */
+  var pending = null;
+
+  function send() {
+    if (pending) return;
+    if (cfg.predict === "on" && PREDICTS[cfg.fault] && !asked[cfg.fault]) { showPredict(cfg.fault); return; }
+
+    var r = computeRequest();
+    var total = r.phases.reduce(function (s, p) { return s + p.ms; }, 0);
+
+    log.push({
+      s: "Request " + reqNo + (r.reuse ? " reused the open connection." : " opened a new connection.")
+         + " " + (r.outcome.badge === "ok" ? "It succeeded in " + total.toLocaleString() + " ms."
+                : r.outcome.badge === "wait" ? "It is still blocked after " + total.toLocaleString() + " ms — no error was raised."
+                : "It failed after " + total.toLocaleString() + " ms."),
+      t: "fault=" + cfg.fault + "  rtt=" + cfg.rtt + "ms  reuse=" + cfg.keep
+         + "  connect=" + (cfg.ct || "none") + "  read=" + (cfg.rt || "none"),
+      kind: r.outcome.badge === "ok" ? "ok" : r.outcome.badge === "wait" ? "warn" : "bad"
+    });
+    if (r.outcome.badge !== "ok") {
+      log.push({ s: "The tell: " + r.outcome.tell, t: "layer: " + r.outcome.layer, kind: "" });
+    }
+
+    $("path-note").textContent = r.outcome.badge === "ok" ? "completed" :
+        r.outcome.badge === "wait" ? "waiting, no error" : "broke at: " + r.outcome.layer.toLowerCase();
+
+    // Only a request that completed leaves a usable connection behind.
+    // Anything else — a refusal, a reset, a hang — leaves nothing to reuse.
+    connOpen = (r.outcome.badge === "ok" && cfg.keep === "on");
+
+    renderPath(r); renderWaterfall(r); renderVerdict(r); renderLog();
+    reqNo++; $("reqno").textContent = reqNo;
+  }
+
+  function showPredict(fault) {
+    pending = fault;
+    var p = PREDICTS[fault];
+    $("predict-box").hidden = false;
+    $("predict-q").textContent = p.q;
+    $("predict-why").hidden = true;
+    var opts = $("predict-opts"); opts.innerHTML = "";
+    p.opts.forEach(function (o, idx) {
+      var b = document.createElement("button");
+      b.className = "opt"; b.textContent = o.s;
+      b.onclick = function () {
+        Array.prototype.forEach.call(opts.children, function (c) { c.disabled = true; });
+        b.classList.add(o.ok ? "right" : "wrong");
+        if (!o.ok) p.opts.forEach(function (oo, j) { if (oo.ok) opts.children[j].classList.add("right"); });
+        var w = $("predict-why"); w.hidden = false;
+        w.innerHTML = "<strong>" + (o.ok ? "Right. " : "Not quite. ") + "</strong>" + esc(o.why)
+                    + "<br><br><em>Now send it and watch.</em>";
+        asked[fault] = true; pending = null;
+      };
+      opts.appendChild(b);
+    });
+    if (!reduced()) $("predict-box").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function reset(msg) {
+    reqNo = 1; pending = null; connOpen = false;
+    $("reqno").textContent = "1";
+    $("predict-box").hidden = true;
+    $("path-note").textContent = "idle";
+    renderPath(null); renderWaterfall(null); renderVerdict(null);
+    if (msg) { log.push({ s: msg, t: "connection closed, counters reset", kind: "" }); }
+    renderLog();
+  }
+
+  $("btn-send").onclick = send;
+  $("btn-reset").onclick = function () { reset("Reset. The next request opens a fresh connection."); };
+
+  $("c-fault").onchange = function (e) {
+    cfg.fault = e.target.value;
+    $("fault-hint").textContent = FAULT_HINTS[cfg.fault];
+    reset("Changed what is broken — starting over with a fresh connection.");
+  };
+  $("c-rtt").oninput = function (e) {
+    cfg.rtt = +e.target.value;
+    $("rtt-lab").textContent = cfg.rtt + " ms round trip";
+  };
+  $("c-keep").onchange = function (e) { cfg.keep = e.target.value; reset("Changed connection reuse — starting over."); };
+  $("c-size").onchange = function (e) { cfg.size = e.target.value; };
+  $("c-ct").onchange   = function (e) { cfg.ct = +e.target.value; };
+  $("c-rt").onchange   = function (e) { cfg.rt = +e.target.value; };
+  $("c-predict").onchange = function (e) { cfg.predict = e.target.value; };
+
+  renderPath(null); renderWaterfall(null); renderLog();
+})();
+</script>

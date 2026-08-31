@@ -1,0 +1,965 @@
+<title>Two Clerks, One Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Spectral:wght@500;600&display=swap">
+
+<style>
+:root{
+  --bg:#EFF1F3; --paper:#FCFDFD; --paper2:#F4F6F8; --sunk:#E4E8EC;
+  --ink:#101418; --ink2:#39434D; --muted:#5D6875; --rule:#CCD6DE; --rule2:#B3C0CA;
+  --t1:#28518F; --t1-fill:#DCE5F4; --t1-edge:#7C9AD0;
+  --t2:#8A5A17; --t2-fill:#F3E7D3; --t2-edge:#C79C57;
+  --bad:#A5342A; --bad-fill:#F6DDD9;
+  --good:#1E6845; --good-fill:#D8EDE2;
+  --wait:#5D6875;
+  --shadow:0 1px 2px rgba(16,20,24,.07), 0 10px 26px rgba(16,20,24,.06);
+  --r:4px;
+  --f-disp:Spectral, Georgia, "Times New Roman", serif;
+  --f-body:"Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161A; --paper:#1A2026; --paper2:#212831; --sunk:#0D1114;
+    --ink:#E7ECF0; --ink2:#C2CCD4; --muted:#8E9AA6; --rule:#2C363F; --rule2:#3D4952;
+    --t1:#8CAFEE; --t1-fill:#1B2637; --t1-edge:#41618F;
+    --t2:#DDA75B; --t2-fill:#302517; --t2-edge:#8A6A2F;
+    --bad:#F0796B; --bad-fill:#331B18;
+    --good:#74C295; --good-fill:#152A20;
+    --wait:#8E9AA6;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 30px rgba(0,0,0,.38);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161A; --paper:#1A2026; --paper2:#212831; --sunk:#0D1114;
+  --ink:#E7ECF0; --ink2:#C2CCD4; --muted:#8E9AA6; --rule:#2C363F; --rule2:#3D4952;
+  --t1:#8CAFEE; --t1-fill:#1B2637; --t1-edge:#41618F;
+  --t2:#DDA75B; --t2-fill:#302517; --t2-edge:#8A6A2F;
+  --bad:#F0796B; --bad-fill:#331B18;
+  --good:#74C295; --good-fill:#152A20;
+  --wait:#8E9AA6;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 30px rgba(0,0,0,.38);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--f-body);font-size:15.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding:34px 22px 80px}
+
+.eyebrow{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-disp);font-weight:600;font-size:clamp(30px,5vw,46px);line-height:1.05;
+  letter-spacing:-.01em;margin:.26em 0 .3em;text-wrap:balance}
+.lede{max-width:66ch;color:var(--ink2);font-size:17px;margin:0 0 6px}
+.lede b{font-weight:600;color:var(--ink)}
+h2{font-family:var(--f-disp);font-weight:600;font-size:20px;margin:0 0 4px;text-wrap:balance}
+h3{font-family:var(--f-mono);font-size:10.5px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+p{margin:0 0 12px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:64ch}
+hr.rule{border:0;border-top:1px solid var(--rule);margin:28px 0}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:20px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);
+  padding:17px 18px 15px;box-shadow:var(--shadow)}
+.card + .card{margin-top:18px}
+.rail{display:flex;flex-direction:column;gap:18px;position:sticky;top:18px}
+@media (max-width:960px){.rail{position:static}}
+
+/* verdict */
+.verdict{border:1px solid var(--rule);border-left:4px solid var(--muted);background:var(--paper);
+  border-radius:var(--r);padding:14px 18px;box-shadow:var(--shadow)}
+.verdict.ok{border-left-color:var(--good)}
+.verdict.no{border-left-color:var(--bad)}
+.verdict .tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:500;color:var(--muted)}
+.verdict.ok .tag{color:var(--good)} .verdict.no .tag{color:var(--bad)}
+.verdict .headline{font-family:var(--f-disp);font-size:21px;font-weight:600;margin:2px 0 5px;line-height:1.25}
+.verdict .why{color:var(--ink2);font-size:14.5px;max-width:78ch;margin:0}
+
+/* the schedule: the textbook two-column picture */
+.sched{border-top:1px solid var(--rule2);margin-top:4px}
+.srow{display:grid;grid-template-columns:26px 1fr 1fr 26px;gap:0;border-bottom:1px solid var(--rule);
+  align-items:stretch}
+.srow .n{font-family:var(--f-mono);font-size:10px;color:var(--muted);display:flex;align-items:center;
+  justify-content:center;background:var(--paper2)}
+.cell{padding:7px 10px;min-height:44px}
+.cell.empty{background:repeating-linear-gradient(135deg,transparent,transparent 7px,var(--paper2) 7px,var(--paper2) 8px)}
+.cell.t1{border-right:1px solid var(--rule)}
+.cell .what{font-size:13.5px;line-height:1.35}
+.cell .sql{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-top:2px;
+  overflow-wrap:anywhere}
+.srow.t1lane .cell.t1 .what{color:var(--t1);font-weight:600}
+.srow.t2lane .cell.t2 .what{color:var(--t2);font-weight:600}
+.srow.now{background:var(--paper2);outline:2px solid var(--ink);outline-offset:-2px;position:relative;z-index:1}
+.srow.done{opacity:.95}
+.srow.future{opacity:.35}
+.srow .mv{display:flex;flex-direction:column;justify-content:center;gap:1px;background:var(--paper2)}
+.mv button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:9px;line-height:1;padding:2px}
+.mv button:hover{color:var(--ink)}
+.badge{display:inline-block;font-family:var(--f-mono);font-size:10px;padding:1px 5px;border-radius:2px;
+  margin-left:6px;vertical-align:1px;border:1px solid}
+.badge.wait{color:var(--wait);border-color:var(--rule2);background:var(--sunk)}
+.badge.refused{color:var(--bad);border-color:var(--bad);background:var(--bad-fill)}
+.badge.saw{color:var(--ink2);border-color:var(--rule2);background:var(--paper2)}
+
+/* the ledger */
+.ledger{display:flex;flex-direction:column;gap:9px}
+.lrow{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:center}
+.lkey{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.chain{display:flex;gap:5px;flex-wrap:wrap}
+.ver{font-family:var(--f-mono);font-size:11.5px;border:1px solid var(--rule2);border-radius:2px;
+  padding:3px 7px;background:var(--paper2);white-space:nowrap}
+.ver.current{border-color:var(--ink);background:var(--paper);font-weight:500}
+.ver.dead{opacity:.45;text-decoration:line-through}
+.ver small{color:var(--muted);font-size:9.5px;margin-left:5px}
+.ver.seen1{box-shadow:inset 0 -3px 0 var(--t1-edge)}
+.ver.seen2{box-shadow:inset 0 -3px 0 var(--t2-edge)}
+.ver.seen12{box-shadow:inset 0 -3px 0 var(--t1-edge), inset 0 -6px 0 var(--t2-edge)}
+.pend{font-family:var(--f-mono);font-size:11px;border:1px dashed;border-radius:2px;padding:3px 7px}
+.pend.p1{color:var(--t1);border-color:var(--t1-edge);background:var(--t1-fill)}
+.pend.p2{color:var(--t2);border-color:var(--t2-edge);background:var(--t2-fill)}
+
+/* views */
+.views{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:620px){.views{grid-template-columns:1fr}}
+.view{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--paper2)}
+.view.v1{border-top:3px solid var(--t1-edge)} .view.v2{border-top:3px solid var(--t2-edge)}
+.view .vh{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.view.v1 .vh{color:var(--t1)} .view.v2 .vh{color:var(--t2)}
+.view table{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:12px;
+  font-variant-numeric:tabular-nums}
+.view td{padding:2px 0;border-bottom:1px solid var(--rule)}
+.view td:last-child{text-align:right}
+.view tr:last-child td{border-bottom:0}
+.view .status{font-family:var(--f-body);font-size:12.5px;color:var(--muted);margin-top:7px}
+
+/* arrows */
+.arrows{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.arrow{font-family:var(--f-mono);font-size:11.5px;color:var(--ink2);border:1px solid var(--rule2);
+  border-radius:2px;padding:4px 8px;background:var(--paper2)}
+.arrow b.a1{color:var(--t1)} .arrow b.a2{color:var(--t2)}
+.arrow.pivot{border-color:var(--bad);background:var(--bad-fill);color:var(--bad)}
+
+/* level strip */
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media (max-width:700px){.strip{grid-template-columns:repeat(2,1fr)}}
+.lv{border:1px solid var(--rule2);border-radius:var(--r);padding:9px 10px;cursor:pointer;
+  background:var(--paper2);text-align:left;font-family:var(--f-body);color:var(--ink)}
+.lv:hover{background:var(--sunk)}
+.lv.on{border-color:var(--ink);border-width:2px;padding:8px 9px;background:var(--paper)}
+.lv .nm{font-size:12.5px;font-weight:600;line-height:1.2}
+.lv .vd{font-family:var(--f-mono);font-size:11px;margin-top:4px}
+.lv .vd.allowed{color:var(--bad);font-weight:700}
+.lv .vd.safe{color:var(--good)}
+.lv .vd.wait,.lv .vd.err{color:var(--ink2)}
+.lv:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* controls */
+.btn{font-family:var(--f-body);font-size:13.5px;font-weight:600;background:var(--paper2);color:var(--ink);
+  border:1px solid var(--rule2);border-radius:3px;padding:7px 12px;cursor:pointer;line-height:1.2}
+.btn:hover{background:var(--sunk)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.primary:hover{filter:brightness(1.2)}
+.btn.sm{font-size:12.5px;padding:5px 9px;font-weight:400}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.plist{display:flex;flex-direction:column;margin:0 -18px}
+.pitem{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--rule);
+  padding:9px 18px;cursor:pointer;color:var(--ink);font-family:var(--f-body);font-size:13.5px;line-height:1.35}
+.pitem:first-child{border-top:0}
+.pitem:hover{background:var(--paper2)}
+.pitem.on{background:var(--sunk)}
+.pitem small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+.pitem:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+
+.predict{border:1px dashed var(--rule2);border-radius:var(--r);background:var(--paper2);
+  padding:13px 15px;margin:0 0 16px}
+.predict .q{font-family:var(--f-disp);font-size:17px;font-weight:600;margin:0 0 9px}
+.predict .res{margin:10px 0 0;font-size:14px;color:var(--ink2)}
+.predict .res b.hit{color:var(--good)} .predict .res b.miss{color:var(--bad)}
+
+.log{font-family:var(--f-mono);font-size:11.5px;line-height:1.5;color:var(--ink2);background:var(--sunk);
+  border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;max-height:200px;overflow-y:auto;margin:0}
+.log div{padding:2px 0;border-bottom:1px solid var(--rule)}
+.log div:last-child{border-bottom:0}
+.log .s{color:var(--ink);font-family:var(--f-body);font-size:13px}
+.log .c1{color:var(--t1);font-weight:500} .log .c2{color:var(--t2);font-weight:500}
+
+table.k{width:100%;border-collapse:collapse;font-size:13px}
+table.k td{padding:5px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+table.k td:first-child{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap;padding-right:10px}
+table.k tr:last-child td{border-bottom:0}
+.note{font-size:13px;color:var(--muted);max-width:72ch}
+.scrollx{overflow-x:auto}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transaction isolation, one step at a time</div>
+  <h1>Two Clerks, One Ledger</h1>
+  <p class="lede">Two people change the same records at the same time. Each one does something completely reasonable. Put together, the books can end up saying something that was never true — and <b>no error is raised anywhere</b>. An isolation level is your choice about which of those endings the database is allowed to give you.</p>
+  <p class="sub">Below is the standard way to draw this: time runs down the page, one column per clerk. Step through it, then change the isolation level and watch the same actions end differently.</p>
+</header>
+
+<hr class="rule">
+
+<div id="predictBox"></div>
+<div id="verdict" class="verdict"><div class="tag">Result</div><div class="headline">—</div><p class="why"></p></div>
+<div style="height:18px"></div>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>The schedule</h2>
+      <p class="sub">Each row is one moment. The arrows beside a row move it earlier or later — the order these two clerks happen to interleave in is not fixed by anything, and changing it changes the outcome.</p>
+      <div class="scrollx">
+        <div class="srow" style="border-bottom:2px solid var(--rule2);background:var(--paper2)">
+          <div class="n"></div>
+          <div class="cell t1"><div class="what" style="color:var(--t1)">Clerk 1</div></div>
+          <div class="cell t2"><div class="what" style="color:var(--t2)">Clerk 2</div></div>
+          <div class="n"></div>
+        </div>
+        <div class="sched" id="sched"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="back">◀ Back</button>
+        <button class="btn primary" id="fwd">Next step ▶</button>
+        <button class="btn" id="playAll">Run it all</button>
+        <button class="btn sm" id="reset">Reset</button>
+        <span class="note" id="stepNote" style="margin-left:4px"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The ledger</h2>
+      <p class="sub">Nothing is ever painted over. Each change adds a new version, stamped with the moment it became visible — which is how two clerks can be reading different pasts at the same instant. A coloured underline marks the version that clerk is reading right now.</p>
+      <div class="ledger" id="ledger"></div>
+      <div id="arrowBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>What each clerk can see</h2>
+      <p class="sub">Same database, same moment, two different answers. This panel is the whole subject.</p>
+      <div class="views">
+        <div class="view v1"><div class="vh">Clerk 1 sees</div><table id="view1"></table><div class="status" id="st1"></div></div>
+        <div class="view v2"><div class="vh">Clerk 2 sees</div><table id="view2"></table><div class="status" id="st2"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The same schedule, at every level</h2>
+      <p class="sub">One click each. Nothing about the two clerks changes — only what the database is prepared to allow.</p>
+      <div class="strip" id="strip"></div>
+    </div>
+
+    <div class="card">
+      <h2>What just happened</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card">
+      <h2>Show me</h2>
+      <p class="sub" style="margin-bottom:10px">Nine situations, in the order they get harder. Start at the top.</p>
+      <div class="plist" id="presets"></div>
+    </div>
+
+    <div class="card">
+      <h3>Reading the screen</h3>
+      <table class="k">
+        <tr><td>version</td><td>one value of one row, alive between two moments</td></tr>
+        <tr><td>dashed box</td><td>a change made but not committed — only its own clerk can see it</td></tr>
+        <tr><td>waiting</td><td>this clerk is stuck until the other one finishes</td></tr>
+        <tr><td>refused</td><td>the database threw this transaction out; the app must run it again</td></tr>
+        <tr><td>arrow</td><td>one clerk read something the other then changed</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>The four mechanisms</h3>
+      <table class="k">
+        <tr><td>read&nbsp;uncommitted</td><td>no locks, and you can see other people's unfinished work</td></tr>
+        <tr><td>read&nbsp;committed</td><td>each statement reads the newest committed data</td></tr>
+        <tr><td>snapshot</td><td>the whole transaction reads one frozen moment, and the first one to commit wins any clash</td></tr>
+        <tr><td>serializable<br>(tracking)</td><td>snapshot, plus bookkeeping about what was <em>read</em> — this is how Postgres does it</td></tr>
+        <tr><td>serializable<br>(locking)</td><td>no versions at all: locks, held to the end — this is how SQL Server and older engines do it</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<hr class="rule">
+<p class="note">This models one integer per row, which is enough: every anomaly here is about <em>when</em> you see a value, never about what type it is. The engine is a direct port of the Java one in the lab, and both are checked against the same expected results.</p>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================ the engine
+   A direct port of MiniDb.java: versioned rows, snapshots, first-committer-wins,
+   SSI read tracking, and two-phase locking. Every event is snapshotted so that
+   stepping backwards is exact rather than approximate.                        */
+
+const LEVELS = [
+  { id:'RU',   name:'Read uncommitted', short:'READ UNCOMM.' },
+  { id:'RC',   name:'Read committed',   short:'READ COMMITTED' },
+  { id:'SNAP', name:'Snapshot',         short:'SNAPSHOT' },
+  { id:'SSI',  name:'Serializable (tracking)', short:'SERIALIZABLE / tracking' },
+  { id:'2PL',  name:'Serializable (locking)',  short:'SERIALIZABLE / locking' }
+];
+
+function newDb(level){
+  return {
+    level, clock: 1,
+    store: {},                 // key -> [{value, deleted, begin, end}]
+    tx: {},                    // 1,2 -> transaction
+    sharedLocks: {}, exclusiveLocks: {}, tableShared: [],
+    events: []
+  };
+}
+const INF = Number.MAX_SAFE_INTEGER;
+
+function seed(db, key, value){
+  (db.store[key] = db.store[key] || []).push({ value, deleted:false, begin: db.clock, end: INF });
+  db.clock++;
+}
+function begin(db, id){
+  db.tx[id] = { id, startTs: db.clock++, commitTs: 0, status:'active',
+                writes:{}, readKeys:[], readPreds:[], rwIn:[], rwOut:[],
+                shared:[], exclusive:[], tableShared:false };
+  return db.tx[id];
+}
+function readTs(db, t){ return db.level === 'RC' || db.level === 'RU' ? db.clock : t.startTs; }
+function versionAt(db, key, ts){
+  for(const v of (db.store[key] || [])) if(v.begin <= ts && ts < v.end) return v.deleted ? null : v.value;
+  return null;
+}
+function peekUncommitted(db, self, key){
+  for(const id of [1,2]){
+    const u = db.tx[id];
+    if(u && u !== self && u.status === 'active' && key in u.writes) return u.writes[key];
+  }
+  return versionAt(db, key, db.clock);
+}
+
+class Blocked { constructor(why){ this.why = why; } }
+class Abort   { constructor(code, msg){ this.code = code; this.msg = msg; } }
+
+function dbGet(db, t, key){
+  if(db.level === '2PL') lockShared(db, t, key);
+  if(db.level === 'SSI' && !t.readKeys.includes(key)) t.readKeys.push(key);
+  if(key in t.writes) return t.writes[key];
+  return db.level === 'RU' ? peekUncommitted(db, t, key) : versionAt(db, key, readTs(db, t));
+}
+function dbScan(db, t, label, pred){
+  if(db.level === '2PL') lockTableShared(db, t);
+  if(db.level === 'SSI') t.readPreds.push({ label, pred });
+  const ts = readTs(db, t);
+  const keys = new Set([...Object.keys(db.store), ...Object.keys(t.writes)]);
+  const out = [];
+  for(const k of keys){
+    const v = (k in t.writes) ? t.writes[k]
+            : db.level === 'RU' ? peekUncommitted(db, t, k) : versionAt(db, k, ts);
+    if(v === null || v === undefined) continue;
+    if(pred(k, v)) out.push([k, v]);
+  }
+  return out;
+}
+function dbPut(db, t, key, value){
+  if(db.level === '2PL') lockExclusive(db, t, key);
+  else if(db.level !== 'RU') blockIfSomeoneElseIsWriting(db, t, key);
+  if(db.level === 'SSI') noteConflicts(db, t, key, value);
+  t.writes[key] = value;
+}
+/** UPDATE x = x + n : takes the lock first, then reads the newest committed value. */
+function dbAdd(db, t, key, delta){
+  if(db.level === '2PL') lockExclusive(db, t, key);
+  else if(db.level !== 'RU') blockIfSomeoneElseIsWriting(db, t, key);
+  const base = (key in t.writes) ? t.writes[key] : versionAt(db, key, db.clock);
+  if(db.level === 'SSI') noteConflicts(db, t, key, base + delta);
+  t.writes[key] = base + delta;
+  return base + delta;
+}
+
+function concurrent(a, b){
+  const aFirst = a.commitTs && a.commitTs < b.startTs;
+  const bFirst = b.commitTs && b.commitTs < a.startTs;
+  return !aFirst && !bFirst;
+}
+function noteConflicts(db, t, key, value){
+  for(const id of [1,2]){
+    const u = db.tx[id];
+    if(!u || u === t || !concurrent(u, t)) continue;
+    let readIt = u.readKeys.includes(key);
+    if(!readIt){
+      const before = versionAt(db, key, u.startTs);
+      for(const p of u.readPreds){
+        if((before !== null && p.pred(key, before)) || (value !== null && p.pred(key, value))){ readIt = true; break; }
+      }
+    }
+    if(readIt){
+      if(!u.rwOut.includes(t.id)) u.rwOut.push(t.id);
+      if(!t.rwIn.includes(u.id))  t.rwIn.push(u.id);
+    }
+  }
+}
+function isPivot(db, t){
+  const live = id => db.tx[id] && db.tx[id].status !== 'aborted';
+  return t.rwIn.some(live) && t.rwOut.some(live);
+}
+
+function blockIfSomeoneElseIsWriting(db, t, key){
+  for(const id of [1,2]){
+    const u = db.tx[id];
+    if(u && u !== t && u.status === 'active' && key in u.writes)
+      throw new Blocked('Clerk ' + u.id + ' has an uncommitted change to ' + key);
+  }
+}
+function lockShared(db, t, key){
+  const x = db.exclusiveLocks[key];
+  if(x !== undefined && x !== t.id) throw new Blocked('Clerk ' + x + ' holds a write lock on ' + key);
+  (db.sharedLocks[key] = db.sharedLocks[key] || []);
+  if(!db.sharedLocks[key].includes(t.id)) db.sharedLocks[key].push(t.id);
+  if(!t.shared.includes(key)) t.shared.push(key);
+}
+function lockExclusive(db, t, key){
+  const x = db.exclusiveLocks[key];
+  if(x !== undefined && x !== t.id) throw new Blocked('Clerk ' + x + ' holds a write lock on ' + key);
+  for(const s of (db.sharedLocks[key] || [])) if(s !== t.id) throw new Blocked('Clerk ' + s + ' holds a read lock on ' + key);
+  for(const s of db.tableShared) if(s !== t.id) throw new Blocked('Clerk ' + s + ' has a read lock on the whole table');
+  db.exclusiveLocks[key] = t.id;
+  if(!t.exclusive.includes(key)) t.exclusive.push(key);
+}
+function lockTableShared(db, t){
+  for(const k in db.exclusiveLocks)
+    if(db.exclusiveLocks[k] !== t.id) throw new Blocked('Clerk ' + db.exclusiveLocks[k] + ' holds a write lock on ' + k);
+  if(!db.tableShared.includes(t.id)) db.tableShared.push(t.id);
+  t.tableShared = true;
+}
+function releaseLocks(db, t){
+  for(const k of t.shared) db.sharedLocks[k] = (db.sharedLocks[k] || []).filter(x => x !== t.id);
+  for(const k of t.exclusive) if(db.exclusiveLocks[k] === t.id) delete db.exclusiveLocks[k];
+  db.tableShared = db.tableShared.filter(x => x !== t.id);
+  t.shared = []; t.exclusive = []; t.tableShared = false;
+}
+
+function dbCommit(db, t){
+  if(db.level === 'SNAP' || db.level === 'SSI'){
+    for(const key in t.writes)
+      for(const v of (db.store[key] || []))
+        if(v.begin > t.startTs){
+          abortTx(db, t);
+          throw new Abort('40001', 'someone else committed a change to ' + key + ' after Clerk ' + t.id + ' started');
+        }
+  }
+  if(db.level === 'SSI' && isPivot(db, t)){
+    abortTx(db, t);
+    throw new Abort('40001', 'Clerk ' + t.id + ' read something the other clerk changed AND changed something the other clerk read — no order of the two can explain that');
+  }
+  const ts = db.clock++;
+  for(const key in t.writes){
+    const chain = db.store[key] = db.store[key] || [];
+    for(let i = 0; i < chain.length; i++) if(chain[i].end === INF) chain[i] = { ...chain[i], end: ts };
+    chain.push({ value: t.writes[key] === null ? 0 : t.writes[key], deleted: t.writes[key] === null, begin: ts, end: INF });
+  }
+  t.commitTs = ts; t.status = 'committed';
+  releaseLocks(db, t);
+}
+function abortTx(db, t){ t.writes = {}; t.status = 'aborted'; releaseLocks(db, t); }
+function dbRollback(db, t){ if(t.status === 'active') abortTx(db, t); }
+
+/* ============================================================ scenarios */
+
+const acct = db => { seed(db, 'alice', 100); seed(db, 'bob', 100); };
+const RICH    = (k, v) => (k === 'alice' || k === 'bob' || k === 'carol') && v > 50;
+const ON_CALL = (k, v) => k.startsWith('dr ') && v === 1;
+const SLOT    = (k, v) => k.startsWith('booking ') && v === 11;
+
+function mk(txn, what, sql, run){ return { txn, what, sql, run }; }
+
+const SCENARIOS = [
+  { key:'dirty-read', name:'Reading someone’s unfinished work', blurb:'Clerk 1 types a wrong number and then takes it back.',
+    q:'Clerk 2 reads Alice’s balance while Clerk 1’s typo is still uncommitted. Can Clerk 2 be shown 999?',
+    answers:['Yes, at some levels','No, never'], correct:0,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'sets Alice to 999 (a typo)','UPDATE acct SET balance = 999 WHERE name = \'alice\'',(db,t)=>{ dbPut(db,t,'alice',999); return 'ok'; }),
+      mk(2,'reads Alice’s balance','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(1,'takes it back','ROLLBACK',(db,t)=>{ dbRollback(db,t); return 'rolled back'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.obs['2:reads Alice’s balance'] === '999',
+    badLine:'Clerk 2 was shown 999 — a number that was never true and no longer exists anywhere.',
+    okLine:'Clerk 2 was shown only committed data, so the typo never escaped.' },
+
+  { key:'dirty-write', name:'Writing over unfinished work', blurb:'Both clerks change the same row before either has finished.',
+    q:'Clerk 1 has changed Alice’s balance but not committed. Can Clerk 2 change the same row right now?',
+    answers:['Yes, at some levels','No, it always waits'], correct:0,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'sets Alice to 110','UPDATE acct SET balance = 110',(db,t)=>{ dbPut(db,t,'alice',110); return 'ok'; }),
+      mk(2,'sets Alice to 120','UPDATE acct SET balance = 120',(db,t)=>{ dbPut(db,t,'alice',120); return 'ok'; }),
+      mk(1,'takes it back','ROLLBACK',(db,t)=>{ dbRollback(db,t); return 'rolled back'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.steps.some(s => s.txn === 2 && s.what.startsWith('sets Alice to 120') && s.kind === 'ok'),
+    badLine:'Clerk 2 painted over a change nobody had agreed to yet. Every standard says this must never be allowed.',
+    okLine:'Clerk 2 had to wait for Clerk 1 to finish before touching the row.' },
+
+  { key:'non-repeatable', name:'The same question, two answers', blurb:'One clerk reads a balance twice and gets different numbers.',
+    q:'Clerk 1 reads Alice, Clerk 2 changes and commits her, Clerk 1 reads Alice again. Do the two reads agree?',
+    answers:['They can disagree','They always agree'], correct:0,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'reads Alice','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(2,'sets Alice to 200','UPDATE acct SET balance = 200',(db,t)=>{ dbPut(db,t,'alice',200); return 'ok'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(1,'reads Alice again','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.obs['1:reads Alice'] !== undefined && r.obs['1:reads Alice again'] !== undefined
+              && r.obs['1:reads Alice'] !== r.obs['1:reads Alice again'],
+    badLine:'The same question got two different answers inside one transaction. Any total computed across them is nonsense.',
+    okLine:'Both reads returned the same value, so Clerk 1’s work is internally consistent.' },
+
+  { key:'phantom', name:'A row that appears mid-count', blurb:'A count is run twice and a new row shows up in between.',
+    q:'Clerk 1 counts accounts over 50, Clerk 2 inserts a new one, Clerk 1 counts again. Same number?',
+    answers:['It can change','It cannot change'], correct:0,
+    keys:['alice','bob','carol'], seed:acct,
+    steps:[
+      mk(1,'counts accounts over 50','SELECT COUNT(*) FROM acct WHERE balance > 50',(db,t)=>String(dbScan(db,t,'balance > 50',RICH).length)),
+      mk(2,'adds Carol with 500','INSERT INTO acct VALUES (\'carol\', 500)',(db,t)=>{ dbPut(db,t,'carol',500); return 'ok'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(1,'counts again','SELECT COUNT(*) FROM acct WHERE balance > 50',(db,t)=>String(dbScan(db,t,'balance > 50',RICH).length)),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.obs['1:counts accounts over 50'] !== undefined && r.obs['1:counts again'] !== undefined
+              && r.obs['1:counts accounts over 50'] !== r.obs['1:counts again'],
+    badLine:'A row appeared inside a question that had already been answered. This is the one plain locking of rows cannot stop — the row did not exist to be locked.',
+    okLine:'The second count matched the first: the new row was not inside Clerk 1’s view of the world.' },
+
+  { key:'lost-update', name:'A deposit that vanishes', blurb:'Two deposits of 10 land at once. One of them disappears.',
+    q:'Both clerks read 100, both write back 110. What does the balance end on?',
+    answers:['110 — one deposit is lost','120 — both land'], correct:0,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'reads Alice','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(2,'reads Alice','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(1,'writes what it read + 10','UPDATE acct SET balance = 110',(db,t,o)=>{ dbPut(db,t,'alice',Number(o['1:reads Alice'])+10); return 'ok'; }),
+      mk(2,'writes what it read + 10','UPDATE acct SET balance = 110',(db,t,o)=>{ dbPut(db,t,'alice',Number(o['2:reads Alice'])+10); return 'ok'; }),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.final === 110,
+    badLine:'The balance ended on 110. Two deposits of 10 arrived and one simply is not there — with no error, anywhere.',
+    okLine:'Either both deposits landed, or one clerk was refused and told to try again.' },
+
+  { key:'lost-update-fix', name:'The same deposits, done in SQL', blurb:'One statement each: add 10 to whatever is there.',
+    q:'Same race, but now each deposit is a single UPDATE that adds 10. Does one still vanish?',
+    answers:['Yes, still lost','No, both land'], correct:1,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'reads Alice (just to look)','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(2,'reads Alice (just to look)','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(1,'adds 10 in one statement','UPDATE acct SET balance = balance + 10',(db,t)=>String(dbAdd(db,t,'alice',10))),
+      mk(2,'adds 10 in one statement','UPDATE acct SET balance = balance + 10',(db,t)=>String(dbAdd(db,t,'alice',10))),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.final === 110,
+    badLine:'Still 110 — the arithmetic in SQL did not save it here.',
+    okLine:'120. The database re-read the row after taking the lock, so the second deposit added to the first one’s result.' },
+
+  { key:'read-skew', name:'An audit that finds money that is not there', blurb:'Two balances read either side of a transfer.',
+    q:'Clerk 1 reads Alice (100), a transfer of 50 commits, Clerk 1 reads Bob. What do the two reads add up to?',
+    answers:['250 — money out of nowhere','200 — always correct'], correct:0,
+    keys:['alice','bob'], seed:acct,
+    steps:[
+      mk(1,'reads Alice','SELECT balance FROM acct WHERE name = \'alice\'',(db,t)=>String(dbGet(db,t,'alice'))),
+      mk(2,'moves 50 from Alice to Bob','UPDATE acct SET balance = 50 WHERE name = \'alice\'',(db,t)=>{ dbPut(db,t,'alice',50); dbPut(db,t,'bob',150); return 'ok'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(1,'reads Bob','SELECT balance FROM acct WHERE name = \'bob\'',(db,t)=>String(dbGet(db,t,'bob'))),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => { const a = Number(r.obs['1:reads Alice']), b = Number(r.obs['1:reads Bob']);
+                return Number.isFinite(a) && Number.isFinite(b) && a + b !== 200; },
+    badLine:'The audit added up to something that was never the truth at any single moment. Neither read was wrong on its own.',
+    okLine:'Both reads came from one consistent picture, so the total is right.' },
+
+  { key:'write-skew', name:'Both doctors go off call', blurb:'The hard one. Nobody touches the same row, and the rule still breaks.',
+    q:'Two doctors are on call. Each checks that the other is still on, then signs off. How many are left?',
+    answers:['0 — the rule breaks','1 — one is refused'], correct:0,
+    keys:['dr alice','dr bob'], seed: db => { seed(db,'dr alice',1); seed(db,'dr bob',1); },
+    steps:[
+      mk(1,'counts who is on call','SELECT COUNT(*) FROM doctors WHERE on_call',(db,t)=>String(dbScan(db,t,'on call',ON_CALL).length)),
+      mk(2,'counts who is on call','SELECT COUNT(*) FROM doctors WHERE on_call',(db,t)=>String(dbScan(db,t,'on call',ON_CALL).length)),
+      mk(1,'signs Alice off','UPDATE doctors SET on_call = false WHERE id = 1',(db,t)=>{ dbPut(db,t,'dr alice',0); return 'ok'; }),
+      mk(2,'signs Bob off','UPDATE doctors SET on_call = false WHERE id = 2',(db,t)=>{ dbPut(db,t,'dr bob',0); return 'ok'; }),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.finalCount === 0,
+    badLine:'Nobody is on call. Each clerk’s decision was correct on its own, and the two rows they changed were different rows — which is why a snapshot cannot see this coming.',
+    okLine:'One doctor is still on call. The database noticed that each clerk had read what the other was about to change.' },
+
+  { key:'double-booking', name:'The room booked twice', blurb:'Write skew where the row being fought over does not exist yet.',
+    q:'Both clerks check that room 1 is free on Monday, see nothing, and book it. How many bookings end up there?',
+    answers:['2 — booked twice','1 — one is refused'], correct:0,
+    keys:['booking 101','booking 102'], seed: db => {},
+    steps:[
+      mk(1,'checks room 1 Monday','SELECT COUNT(*) FROM bookings WHERE room=1 AND day=1',(db,t)=>String(dbScan(db,t,'room 1 monday',SLOT).length)),
+      mk(2,'checks room 1 Monday','SELECT COUNT(*) FROM bookings WHERE room=1 AND day=1',(db,t)=>String(dbScan(db,t,'room 1 monday',SLOT).length)),
+      mk(1,'books it','INSERT INTO bookings VALUES (101, 1, 1)',(db,t)=>{ dbPut(db,t,'booking 101',11); return 'ok'; }),
+      mk(2,'books it','INSERT INTO bookings VALUES (102, 1, 1)',(db,t)=>{ dbPut(db,t,'booking 102',11); return 'ok'; }),
+      mk(1,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; }),
+      mk(2,'finishes','COMMIT',(db,t)=>{ dbCommit(db,t); return 'committed'; })],
+    bad: r => r.finalCount === 2,
+    badLine:'The room is booked twice. There was no row to lock when either clerk looked, which is why row locks are no help here.',
+    okLine:'One booking stands and the other clerk was refused.' }
+];
+
+/* ============================================================ the driver */
+
+function runSchedule(sc, levelId, order){
+  const db = newDb(levelId);
+  sc.seed(db);
+  const t = { 1: begin(db, 1), 2: begin(db, 2) };
+  const steps = order.map(i => ({ ...sc.steps[i], idx:i }));
+  const obs = {};
+  const queue = { 1: [], 2: [] };
+  const dead = { 1:false, 2:false };
+  const results = new Array(sc.steps.length).fill(null);
+  const frames = [];
+
+  const snap = (msg, actor, kind) => {
+    frames.push({
+      msg, actor, kind,
+      store: JSON.parse(JSON.stringify(db.store)),
+      clock: db.clock,
+      tx: JSON.parse(JSON.stringify({ 1:db.tx[1], 2:db.tx[2] })),
+      results: results.slice()
+    });
+  };
+  snap('Both clerks open a transaction. Clerk 1 is working as of moment ' + t[1].startTs
+       + ', Clerk 2 as of moment ' + t[2].startTs + '.', 0, 'begin');
+
+  const pump = who => {
+    while(queue[who].length && !dead[who]){
+      const head = queue[who][0];
+      const s = head.step, waited = head.waited;
+      try {
+        const v = s.run(db, t[who], obs);
+        queue[who].shift();
+        obs[who + ':' + s.what] = v;
+        results[s.idx] = { kind: waited ? 'waited' : 'ok', value: v };
+        snap('Clerk ' + who + ' ' + s.what + (v && v !== 'ok' && v !== 'committed' && v !== 'rolled back' ? ' — and got ' + v : '') + '.'
+             + (waited ? ' It had been waiting; the other clerk finishing let it through.' : ''), who, waited ? 'waited' : 'ok');
+      } catch (e) {
+        if(e instanceof Blocked){
+          if(!waited){
+            head.waited = true;
+            results[s.idx] = { kind:'waiting', value:null, why:e.why };
+            snap('Clerk ' + who + ' cannot ' + s.what + ' yet: ' + e.why + '. It waits.', who, 'wait');
+          }
+          return;
+        }
+        queue[who].shift();
+        dead[who] = true;
+        results[s.idx] = { kind:'refused', value:null, why:e.msg, code:e.code };
+        snap('The database refuses Clerk ' + who + ': ' + e.msg + '. Everything it did is undone, and the application is expected to run it again.', who, 'refused');
+        queue[who].length = 0;
+      }
+    }
+  };
+
+  for(const s of steps){
+    queue[s.txn].push({ step:s, waited:false });
+    pump(s.txn);
+    pump(s.txn === 1 ? 2 : 1);
+  }
+  for(let round = 0; round < 8; round++){
+    const before = queue[1].length + queue[2].length;
+    if(before === 0) break;
+    pump(1); pump(2);
+    if(queue[1].length + queue[2].length === before){
+      if(queue[1].length && queue[2].length){
+        abortTx(db, t[2]); dead[2] = true;
+        const s = queue[2][0].step;
+        results[s.idx] = { kind:'refused', value:null, why:'deadlock — chosen as the victim', code:'40P01' };
+        snap('Neither clerk can move: each is waiting for a lock the other holds. The database breaks the tie by throwing Clerk 2 out.', 2, 'refused');
+        queue[2].length = 0;
+      } else break;
+    }
+  }
+  for(const who of [1,2]) if(queue[who].length){
+    const s = queue[who][0].step;
+    results[s.idx] = { kind:'refused', value:null, why:'still waiting when the schedule ended', code:'40P01' };
+    dead[who] = true; queue[who].length = 0;
+  }
+  for(const who of [1,2]) if(db.tx[who].status === 'active') dbRollback(db, db.tx[who]);
+
+  const finalOf = k => versionAt(db, k, db.clock);
+  const r = {
+    obs, results, frames, store: db.store, db,
+    final: finalOf(sc.keys[0]),
+    finalCount: sc.keys.filter(k => { const v = finalOf(k); return v !== null && (ON_CALL(k, v) || SLOT(k, v)); }).length,
+    steps: steps.map(s => ({ txn:s.txn, what:s.what, kind: results[s.idx] ? results[s.idx].kind : 'skipped' })),
+    refused: results.some(x => x && x.kind === 'refused'),
+    waited: results.some(x => x && (x.kind === 'waiting' || x.kind === 'waited'))
+  };
+  r.bothCommitted = !r.refused;
+  r.anomaly = r.bothCommitted && sc.bad(r);
+  r.verdict = r.anomaly ? 'allowed' : r.refused ? 'err' : r.waited ? 'wait' : 'safe';
+  return r;
+}
+
+/* ============================================================ state + rendering */
+
+const $ = id => document.getElementById(id);
+let S = { sc: 0, level: 'RC', order: null, step: 0, predicted: null, logs: [] };
+
+function scenario(){ return SCENARIOS[S.sc]; }
+function order(){ return S.order || scenario().steps.map((_, i) => i); }
+
+function load(i){
+  S.sc = i; S.order = null; S.step = 0; S.predicted = null; S.level = 'RC'; S.logs = [];
+  renderAll();
+}
+
+function renderAll(){
+  const sc = scenario();
+  const r = runSchedule(sc, S.level, order());
+  S.step = Math.min(S.step, r.frames.length - 1);
+  renderPredict(sc, r);
+  renderVerdict(sc, r);
+  renderSchedule(sc, r);
+  renderLedger(sc, r);
+  renderViews(sc, r);
+  renderStrip(sc);
+  renderLog(r);
+  renderPresets();
+  $('back').disabled = S.step <= 0;
+  $('fwd').disabled = S.step >= r.frames.length - 1;
+  $('stepNote').textContent = 'Moment ' + (S.step + 1) + ' of ' + r.frames.length;
+}
+
+function frame(r){ return r.frames[Math.min(S.step, r.frames.length - 1)]; }
+
+function renderVerdict(sc, r){
+  const v = $('verdict');
+  const atEnd = S.step >= r.frames.length - 1;
+  if(!atEnd){
+    v.className = 'verdict';
+    v.innerHTML = '<div class="tag">In progress</div><div class="headline">'
+      + frame(r).msg + '</div><p class="why">Keep stepping to the end to see how it turns out. '
+      + 'The ledger below shows exactly what exists right now, and what each clerk can see of it.</p>';
+    return;
+  }
+  if(r.anomaly){
+    v.className = 'verdict no';
+    v.innerHTML = '<div class="tag">The books are wrong</div><div class="headline">'
+      + sc.name + ' — and nothing complained</div><p class="why">' + sc.badLine
+      + '<br><br>Both clerks committed successfully. There is no error to catch, no log line to alert on, and no way for the '
+      + 'application to know. Try a stronger level in the strip below.</p>';
+  } else {
+    v.className = 'verdict ok';
+    const how = r.refused
+      ? 'One transaction was <b>refused</b>. That is not an outage — it is the guarantee being delivered, addressed to your code, which must run the transaction again from the start.'
+      : r.waited ? 'One clerk had to <b>wait</b> for the other. You paid for this in latency, not in errors.'
+      : 'Neither clerk waited and neither was refused. This level was enough on its own.';
+    v.innerHTML = '<div class="tag">Prevented</div><div class="headline">The books are consistent</div>'
+      + '<p class="why">' + sc.okLine + '<br><br>' + how + '</p>';
+  }
+}
+
+function renderSchedule(sc, r){
+  const ord = order();
+  const cur = frame(r);
+  const doneCount = S.step;
+  let seen = 0;
+  let h = '';
+  ord.forEach((idx, pos) => {
+    const s = sc.steps[idx];
+    const res = cur.results[idx];
+    const isNow = cur.actor === s.txn && res && lastActedIndex(cur, ord, sc) === idx;
+    let badge = '';
+    if(res){
+      if(res.kind === 'waiting') badge = '<span class="badge wait">waiting</span>';
+      else if(res.kind === 'refused') badge = '<span class="badge refused">refused</span>';
+      else if(res.kind === 'waited') badge = '<span class="badge wait">waited, then done</span>';
+      else if(res.value && res.value !== 'ok' && res.value !== 'committed' && res.value !== 'rolled back')
+        badge = '<span class="badge saw">saw ' + res.value + '</span>';
+    }
+    const cls = res ? (isNow ? 'now' : 'done') : 'future';
+    const cellA = s.txn === 1
+      ? '<div class="cell t1"><div class="what">' + s.what + badge + '</div><div class="sql">' + s.sql + '</div></div><div class="cell t2 empty"></div>'
+      : '<div class="cell t1 empty"></div><div class="cell t2"><div class="what">' + s.what + badge + '</div><div class="sql">' + s.sql + '</div></div>';
+    h += '<div class="srow ' + (s.txn === 1 ? 't1lane' : 't2lane') + ' ' + cls + '">'
+       + '<div class="n">' + (pos + 1) + '</div>' + cellA
+       + '<div class="mv"><button data-up="' + pos + '" title="move earlier" aria-label="move step earlier">▲</button>'
+       + '<button data-down="' + pos + '" title="move later" aria-label="move step later">▼</button></div></div>';
+  });
+  $('sched').innerHTML = h;
+}
+
+/** which step the current frame is about, so exactly one row is highlighted */
+function lastActedIndex(fr, ord, sc){
+  for(let i = ord.length - 1; i >= 0; i--){
+    const idx = ord[i];
+    if(fr.results[idx] && sc.steps[idx].txn === fr.actor) return idx;
+  }
+  return -1;
+}
+
+function renderLedger(sc, r){
+  const fr = frame(r);
+  let h = '';
+  const keys = new Set([...sc.keys, ...Object.keys(fr.store)]);
+  for(const k of keys){
+    const chain = fr.store[k] || [];
+    let boxes = '';
+    if(!chain.length) boxes = '<span class="ver" style="opacity:.5">no row yet</span>';
+    for(const v of chain){
+      const current = v.end === INF;
+      const seenBy = [1,2].filter(id => {
+        const t = fr.tx[id];
+        if(!t || t.status === 'aborted') return false;
+        const ts = (S.level === 'RC' || S.level === 'RU') ? fr.clock : t.startTs;
+        return v.begin <= ts && ts < v.end && !(k in t.writes);
+      });
+      const seenCls = seenBy.length === 2 ? ' seen12' : seenBy.length === 1 ? (' seen' + seenBy[0]) : '';
+      boxes += '<span class="ver' + (current ? ' current' : ' dead') + seenCls + '">'
+             + (v.deleted ? 'deleted' : v.value)
+             + '<small>' + v.begin + (current ? '→ now' : '→' + v.end) + '</small></span>';
+    }
+    for(const id of [1,2]){
+      const t = fr.tx[id];
+      if(t && t.status === 'active' && (k in t.writes))
+        boxes += '<span class="pend p' + id + '">' + t.writes[k] + ' <small>Clerk ' + id + ', not committed</small></span>';
+    }
+    h += '<div class="lrow"><div class="lkey">' + k + '</div><div class="chain">' + boxes + '</div></div>';
+  }
+  $('ledger').innerHTML = h;
+
+  // SSI arrows
+  let ah = '';
+  if(S.level === 'SSI'){
+    for(const id of [1,2]){
+      const t = fr.tx[id];
+      if(!t) continue;
+      for(const other of t.rwOut)
+        ah += '<div class="arrow">Clerk <b class="a' + id + '">' + id + '</b> read something Clerk <b class="a'
+           + other + '">' + other + '</b> then changed &nbsp;→&nbsp; Clerk ' + id + ' must come first</div>';
+      if(t.rwIn.length && t.rwOut.length)
+        ah += '<div class="arrow pivot">Clerk ' + id + ' has an arrow coming in AND going out. No order of these two '
+           + 'transactions can be right, so this one gets refused.</div>';
+    }
+  }
+  $('arrowBox').innerHTML = ah ? '<div class="arrows">' + ah + '</div>' : '';
+}
+
+function renderViews(sc, r){
+  const fr = frame(r);
+  for(const id of [1,2]){
+    const t = fr.tx[id];
+    let rows = '';
+    const keys = new Set([...sc.keys, ...Object.keys(fr.store)]);
+    for(const k of keys){
+      let v;
+      if(t && (k in t.writes)) v = t.writes[k] + ' (its own, uncommitted)';
+      else {
+        const ts = (S.level === 'RC' || S.level === 'RU') ? fr.clock : (t ? t.startTs : fr.clock);
+        let val = null;
+        for(const ver of (fr.store[k] || [])) if(ver.begin <= ts && ts < ver.end) val = ver.deleted ? null : ver.value;
+        if(S.level === 'RU'){
+          const o = fr.tx[id === 1 ? 2 : 1];
+          if(o && o.status === 'active' && (k in o.writes)) val = o.writes[k] + ' (the other clerk’s, uncommitted)';
+        }
+        v = val === null ? '—' : val;
+      }
+      rows += '<tr><td>' + k + '</td><td>' + v + '</td></tr>';
+    }
+    $('view' + id).innerHTML = rows;
+    const st = t ? (t.status === 'committed' ? 'finished at moment ' + t.commitTs
+                  : t.status === 'aborted' ? 'thrown out — nothing it did survives'
+                  : (S.level === 'RC' || S.level === 'RU'
+                      ? 'reads whatever is newest each time it looks'
+                      : 'reading the world as it was at moment ' + t.startTs)) : '';
+    $('st' + id).textContent = st;
+  }
+}
+
+function renderStrip(sc){
+  $('strip').innerHTML = LEVELS.map(l => {
+    const r = runSchedule(sc, l.id, order());
+    const label = r.anomaly ? 'the books go wrong'
+                : r.refused ? 'prevented — by refusing one'
+                : r.waited  ? 'prevented — by waiting'
+                : 'prevented — no cost';
+    const cls = r.anomaly ? 'allowed' : r.refused ? 'err' : r.waited ? 'wait' : 'safe';
+    return '<button class="lv' + (S.level === l.id ? ' on' : '') + '" data-level="' + l.id + '">'
+         + '<div class="nm">' + l.name + '</div><div class="vd ' + cls + '">' + label + '</div></button>';
+  }).join('');
+}
+
+function renderLog(r){
+  const upto = r.frames.slice(0, S.step + 1).slice(-14).reverse();
+  $('log').innerHTML = upto.map(f => {
+    const who = f.actor === 1 ? 'c1' : f.actor === 2 ? 'c2' : '';
+    return '<div><span class="s ' + who + '">' + f.msg + '</span></div>';
+  }).join('');
+}
+
+function renderPresets(){
+  $('presets').innerHTML = SCENARIOS.map((p, i) =>
+    '<button class="pitem' + (S.sc === i ? ' on' : '') + '" data-preset="' + i + '">'
+    + p.name + '<small>' + p.blurb + '</small></button>').join('');
+}
+
+function renderPredict(sc, r){
+  const box = $('predictBox');
+  if(S.predicted === null){
+    box.innerHTML = '<div class="predict"><p class="q">' + sc.q + '</p><div class="row">'
+      + sc.answers.map((a, i) => '<button class="btn" data-pred="' + i + '">' + a + '</button>').join('')
+      + '<button class="btn sm" data-pred="skip">Just show me</button></div>'
+      + '<p class="res" style="color:var(--muted);font-size:13px">Answer for <b>read committed</b> — the default in Postgres, SQL Server, Oracle and MySQL-with-RC. The strip further down shows all five levels at once.</p></div>';
+  } else if(S.predicted === 'skip'){ box.innerHTML = '';
+  } else {
+    const hit = S.predicted === sc.correct;
+    box.innerHTML = '<div class="predict"><p class="q">' + sc.q + '</p><p class="res">You said <b>'
+      + sc.answers[S.predicted] + '</b>. ' + (hit ? '<b class="hit">That is right.</b>' : '<b class="miss">Not this time.</b>')
+      + ' The answer is <b>' + sc.answers[sc.correct] + '</b>. Step through below to see why, then change the level.</p></div>';
+  }
+}
+
+/* ============================================================ interaction */
+
+document.addEventListener('click', e => {
+  const p = e.target.closest('[data-preset]');
+  if(p){ load(+p.dataset.preset); return; }
+  const l = e.target.closest('[data-level]');
+  if(l){ S.level = l.dataset.level; S.step = 0; renderAll(); return; }
+  const pr = e.target.closest('[data-pred]');
+  if(pr){ S.predicted = pr.dataset.pred === 'skip' ? 'skip' : +pr.dataset.pred; renderAll(); return; }
+  const up = e.target.closest('[data-up]');
+  if(up){ move(+up.dataset.up, -1); return; }
+  const dn = e.target.closest('[data-down]');
+  if(dn){ move(+dn.dataset.down, 1); return; }
+});
+
+function move(pos, dir){
+  const o = order().slice();
+  const to = pos + dir;
+  if(to < 0 || to >= o.length) return;
+  [o[pos], o[to]] = [o[to], o[pos]];
+  S.order = o; S.step = 0;
+  renderAll();
+}
+
+$('fwd').onclick = () => { S.step++; renderAll(); };
+$('back').onclick = () => { S.step = Math.max(0, S.step - 1); renderAll(); };
+$('playAll').onclick = () => {
+  const r = runSchedule(scenario(), S.level, order());
+  S.step = r.frames.length - 1; renderAll();
+};
+$('reset').onclick = () => { S.order = null; S.step = 0; renderAll(); };
+
+load(0);
+</script>

@@ -1,0 +1,625 @@
+<title>CAP Partition Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F5F7F9;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1F4;
+    --ink: #1F2933;
+    --muted: #61707E;
+    --line: #D5DDE3;
+    --cut: #C7402D;
+    --ok: #1F8A5D;
+    --warn: #B97E0E;
+    --action: #2563A8;
+    --action-ink: #FFFFFF;
+    --island-a: rgba(37, 99, 168, 0.08);
+    --island-b: rgba(31, 138, 93, 0.08);
+    --tint-ok: rgba(31, 138, 93, 0.10);
+    --tint-warn: rgba(185, 126, 14, 0.12);
+    --tint-cut: rgba(199, 64, 45, 0.10);
+    --shadow: 0 1px 3px rgba(31, 41, 51, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161D; --surface: #1A222C; --surface-2: #212B37;
+      --ink: #E4EAF0; --muted: #8B99A8; --line: #33404E;
+      --cut: #E2604A; --ok: #35B47F; --warn: #D9A03C;
+      --action: #5B9BD9; --action-ink: #10161D;
+      --island-a: rgba(91, 155, 217, 0.10);
+      --island-b: rgba(53, 180, 127, 0.10);
+      --tint-ok: rgba(53, 180, 127, 0.13);
+      --tint-warn: rgba(217, 160, 60, 0.15);
+      --tint-cut: rgba(226, 96, 74, 0.14);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161D; --surface: #1A222C; --surface-2: #212B37;
+    --ink: #E4EAF0; --muted: #8B99A8; --line: #33404E;
+    --cut: #E2604A; --ok: #35B47F; --warn: #D9A03C;
+    --action: #5B9BD9; --action-ink: #10161D;
+    --island-a: rgba(91, 155, 217, 0.10);
+    --island-b: rgba(53, 180, 127, 0.10);
+    --tint-ok: rgba(53, 180, 127, 0.13);
+    --tint-warn: rgba(217, 160, 60, 0.15);
+    --tint-cut: rgba(226, 96, 74, 0.14);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; display: flex; flex-direction: column; gap: 16px; }
+  h1 { font-family: "Bitter", Georgia, serif; font-size: 1.75rem; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+  h2 { font-family: "Bitter", Georgia, serif; font-size: 1.02rem; font-weight: 600; margin: 0 0 10px; }
+  h3 { font-family: "Bitter", Georgia, serif; font-size: 0.9rem; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0 0 10px; }
+  .lede { color: var(--muted); max-width: 72ch; }
+  .lede b { color: var(--ink); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  /* story strip */
+  .story { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 700px) { .story { grid-template-columns: 1fr; } }
+  .story div { font-size: 0.88rem; color: var(--muted); }
+  .story b { color: var(--ink); }
+
+  /* controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+  .ctl { display: flex; align-items: center; gap: 6px; }
+  .ctl-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  button, select {
+    font: inherit; font-weight: 500; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--ink); padding: 6px 11px;
+  }
+  button { cursor: pointer; font-weight: 600; }
+  button:hover:not(:disabled), select:hover { background: var(--surface-2); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+  button.primary { background: var(--action); border-color: var(--action); color: var(--action-ink); }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.danger { background: var(--cut); border-color: var(--cut); color: #fff; }
+  button.danger:hover:not(:disabled) { filter: brightness(1.08); }
+  button.tiny { padding: 4px 9px; font-size: 0.8rem; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; }
+  .seg button[aria-pressed="true"] { background: var(--action); color: var(--action-ink); }
+  .slider-row { display: flex; align-items: center; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 0.85rem; }
+  input[type="range"] { width: 66px; accent-color: var(--action); }
+  .rw-note { font-size: 0.78rem; color: var(--muted); }
+  .rw-note strong { color: var(--ink); }
+
+  /* verdict banner */
+  .verdict { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 12px 14px; background: var(--surface); }
+  .verdict.ok { border-left-color: var(--ok); background: var(--tint-ok); }
+  .verdict.stale { border-left-color: var(--warn); background: var(--tint-warn); }
+  .verdict.refused { border-left-color: var(--cut); background: var(--tint-cut); }
+  .verdict.conflict { border-left-color: var(--ink); background: var(--surface-2); }
+  .verdict.info { border-left-color: var(--muted); }
+  .verdict-head { font-family: "Bitter", Georgia, serif; font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+  .verdict-body { font-size: 0.9rem; color: var(--muted); }
+  .verdict-body b { color: var(--ink); }
+
+  /* stage */
+  svg { display: block; width: 100%; height: auto; }
+  .island-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; fill: var(--muted); font-weight: 600; }
+  .node-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .node-box.flash { stroke: var(--ok); stroke-width: 3; }
+  .node-name { font-family: "Bitter", Georgia, serif; font-weight: 700; font-size: 14px; fill: var(--ink); }
+  .node-sub { font-size: 9.5px; fill: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .node-val { font-family: "IBM Plex Mono", monospace; font-size: 15px; fill: var(--ink); font-weight: 500; }
+  .node-ver { font-family: "IBM Plex Mono", monospace; font-size: 10px; fill: var(--muted); }
+  .node-val.behind { fill: var(--warn); }
+  .cable { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .cable.dead { stroke: var(--cut); stroke-dasharray: 5 5; opacity: 0.5; }
+  .clink { stroke: var(--action); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.75; }
+  .cut-line { stroke: var(--cut); stroke-width: 2.5; stroke-dasharray: 8 6; }
+  .cut-badge { font-size: 10.5px; font-weight: 700; fill: var(--cut); text-transform: uppercase; letter-spacing: 0.08em; }
+  .client-dot { fill: var(--surface-2); stroke: var(--action); stroke-width: 1.5; }
+  .client-name { font-size: 12px; font-weight: 700; fill: var(--ink); }
+  .msg-dot { fill: var(--action); }
+  .cable-legend { font-size: 10px; fill: var(--muted); }
+
+  /* client desks */
+  .desks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+  @media (max-width: 560px) { .desks { grid-template-columns: 1fr; } }
+  .desk { border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+  .desk-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); }
+  .desk-actions { display: flex; gap: 8px; }
+  .desk-actions button { flex: 1; }
+
+  /* tallies + log */
+  .tallies { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .tally { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface-2); }
+  .tally .num { font-family: "IBM Plex Mono", monospace; font-size: 1.35rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .tally .lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+  .tally.c-bad .num { color: var(--warn); }
+  .tally.a-bad .num { color: var(--cut); }
+  .log { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .log-entry { display: flex; gap: 8px; align-items: flex-start; font-size: 0.85rem; }
+  .badge {
+    flex: none; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
+    padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-top: 2px;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+  .badge.ok { background: var(--ok); color: #fff; }
+  .badge.stale { background: var(--warn); color: #fff; }
+  .badge.refused { background: var(--cut); color: #fff; }
+  .badge.info { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+  .badge.conflict { background: var(--ink); color: var(--bg); }
+  .log-text { min-width: 0; }
+  .log-tech { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+  .log-entry.dim .log-text { color: var(--muted); }
+
+  /* experiments */
+  .experiments ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .experiments li { max-width: 78ch; }
+  .expect { color: var(--muted); font-size: 0.87rem; margin-top: 2px; }
+  .exp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .kbd { font-family: "IBM Plex Mono", monospace; font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+  .footnote { font-size: 0.82rem; color: var(--muted); max-width: 78ch; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>CAP Partition Lab</h1>
+    <p class="lede">
+      One bank account, copied onto three machines. Cut the network between them
+      and you hit the wall the CAP theorem describes: every request must either be
+      <b>refused</b> (the answer stays correct, the customer gets nothing) or
+      <b>answered anyway</b> (the customer gets served, the answer may be wrong).
+      There is no third option. Cut the cable below and try to find one.
+    </p>
+  </header>
+
+  <div class="card story">
+    <div><b>The account.</b> Your balance starts at <b>$100</b>. Each machine (A, B, C) keeps its own copy — that's what "replica" means.</div>
+    <div><b>The customers.</b> Two people share the account: <b>L</b> and <b>R</b>. Each is connected to one machine, and you choose which.</div>
+    <div><b>The storm.</b> Cutting the network stops the <em>machines</em> from talking to each other. Each customer can still reach their own machine.</div>
+  </div>
+
+  <div class="card controls">
+    <div class="ctl">
+      <span class="ctl-label">Mode</span>
+      <span class="seg" role="group" aria-label="Consistency mode">
+        <button id="btn-cp" aria-pressed="true">CP · refuse if unsure</button>
+        <button id="btn-ap" aria-pressed="false">AP · always answer</button>
+      </span>
+    </div>
+    <div class="ctl slider-row">
+      <span class="ctl-label" title="How many machines must confirm a write">W</span>
+      <input type="range" id="w-slider" min="1" max="3" value="2" aria-label="Write quorum W">
+      <span id="w-val">2</span>
+      <span class="ctl-label" title="How many machines must be asked for a read">R</span>
+      <input type="range" id="r-slider" min="1" max="3" value="2" aria-label="Read quorum R">
+      <span id="r-val">2</span>
+    </div>
+    <span class="rw-note" id="rw-note"></span>
+    <div class="ctl" style="margin-left:auto">
+      <span class="ctl-label">Split</span>
+      <select id="split-select" aria-label="Where the network tears">
+        <option value="A|BC">A alone | B,C together</option>
+        <option value="AB|C">A,B together | C alone</option>
+      </select>
+      <button id="btn-partition" class="danger">✂ Cut the network</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="verdict info" id="verdict">
+    <div class="verdict-head" id="verdict-head">Nothing has happened yet</div>
+    <div class="verdict-body" id="verdict-body">Press a customer's <b>Withdraw / deposit</b> or <b>Check balance</b> button, or run a guided experiment below.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <svg id="stage" viewBox="0 0 600 330" role="img" aria-label="Three replica machines and two customers, with the network between machines">
+        <rect id="island-left" x="8" y="34" width="192" height="230" rx="10" fill="var(--island-a)" opacity="0"></rect>
+        <rect id="island-right" x="210" y="34" width="382" height="230" rx="10" fill="var(--island-b)" opacity="0"></rect>
+        <text class="island-label" x="20" y="50" id="label-left" opacity="0">Island 1</text>
+        <text class="island-label" x="222" y="50" id="label-right" opacity="0">Island 2</text>
+
+        <path id="cable-ac" class="cable" d="M 110 92 Q 300 40 490 92"></path>
+        <line id="cable-ab" class="cable" x1="162" y1="140" x2="248" y2="140"></line>
+        <line id="cable-bc" class="cable" x1="352" y1="140" x2="438" y2="140"></line>
+        <text class="cable-legend" x="300" y="34" text-anchor="middle">machine-to-machine network</text>
+
+        <line id="cut-line" class="cut-line" x1="205" y1="40" x2="205" y2="258" visibility="hidden"></line>
+        <text id="cut-label" class="cut-badge" x="205" y="30" text-anchor="middle" visibility="hidden">cut</text>
+
+        <g id="links"></g>
+        <g id="node-A"></g>
+        <g id="node-B"></g>
+        <g id="node-C"></g>
+
+        <g id="client-L">
+          <circle class="client-dot" cx="110" cy="262" r="17"></circle>
+          <text class="client-name" x="110" y="267" text-anchor="middle">L</text>
+        </g>
+        <g id="client-R">
+          <circle class="client-dot" cx="490" cy="262" r="17"></circle>
+          <text class="client-name" x="490" y="267" text-anchor="middle">R</text>
+        </g>
+      </svg>
+
+      <div class="desks">
+        <div class="desk">
+          <div class="desk-row">
+            <b style="color:var(--ink)">Customer L</b> is talking to machine
+            <select id="route-L" aria-label="Which machine customer L talks to">
+              <option value="A" selected>A</option><option value="B">B</option><option value="C">C</option>
+            </select>
+          </div>
+          <div class="desk-actions">
+            <button class="primary" id="btn-write-L">Deposit</button>
+            <button id="btn-read-L">Check balance</button>
+          </div>
+        </div>
+        <div class="desk">
+          <div class="desk-row">
+            <b style="color:var(--ink)">Customer R</b> is talking to machine
+            <select id="route-R" aria-label="Which machine customer R talks to">
+              <option value="A">A</option><option value="B">B</option><option value="C" selected>C</option>
+            </select>
+          </div>
+          <div class="desk-actions">
+            <button class="primary" id="btn-write-R">Deposit</button>
+            <button id="btn-read-R">Check balance</button>
+          </div>
+        </div>
+      </div>
+      <p class="footnote" style="margin-top:10px">
+        Change the machine a customer talks to and re-run any experiment. Nothing about
+        the customer changed — but who gets refused does. <b>Which side of the tear your
+        connection lands on decides whether you see an outage.</b>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Scoreboard</h2>
+      <div class="tallies">
+        <div class="tally" id="tally-c"><div class="num" id="c-count">0</div><div class="lbl">times a customer saw wrong data</div></div>
+        <div class="tally" id="tally-a"><div class="num" id="a-count">0</div><div class="lbl">times a customer was refused</div></div>
+      </div>
+      <h2>What happened</h2>
+      <div class="log" id="log" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="card experiments">
+    <h2>Guided experiments</h2>
+    <ol>
+      <li>
+        <div class="exp-head"><h3>A normal day</h3><button class="tiny" id="run-1">Run this for me</button></div>
+        L deposits, then R checks the balance — network intact.
+        <div class="expect">Watch for: the deposit reaches all three machines, and R sees the new balance. Both correct <em>and</em> available. CAP costs you nothing until the network breaks.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>The storm, in CP mode</h3><button class="tiny" id="run-2">Run this for me</button></div>
+        Cut the network, then L and R each try to deposit and check.
+        <div class="expect">Watch for: L (alone with machine A) is <b>refused both times</b> — the machine would rather say nothing than risk a wrong answer. R still works, because B and C are a majority. Notice the outage is <em>partial</em>: it hits whoever is stuck on the small side.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>The storm, in AP mode</h3><button class="tiny" id="run-3">Run this for me</button></div>
+        Same cut, but now every machine answers with whatever it knows.
+        <div class="expect">Watch for: nobody is refused — and R's balance is <b>wrong</b>. That is the whole theorem in two clicks: the same storm, the other casualty.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>Both sides deposit, then the storm ends</h3><button class="tiny" id="run-4">Run this for me</button></div>
+        In AP mode both customers deposit during the cut, then the network heals.
+        <div class="expect">Watch for: the machines re-sync — and one deposit that the bank already confirmed is <b>silently thrown away</b>. AP doesn't cancel the pain; it postpones it to cleanup time.</div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var NODES = {
+    A: { x: 110, y: 140, sub: "replica" },
+    B: { x: 300, y: 140, sub: "replica" },
+    C: { x: 490, y: 140, sub: "replica" }
+  };
+  var CLIENT_POS = { L: { x: 110, y: 262 }, R: { x: 490, y: 262 } };
+  var SPLITS = {
+    "A|BC": { islands: { A: 0, B: 1, C: 1 }, cutX: 205, leftW: 192, rightX: 210, rightW: 382 },
+    "AB|C": { islands: { A: 0, B: 0, C: 1 }, cutX: 395, leftW: 382, rightX: 400, rightW: 192 }
+  };
+
+  var state, W = 2, R = 2, busy = false;
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(id) { return document.getElementById(id); }
+
+  function freshState() {
+    return {
+      partitioned: false, split: "A|BC", clock: 1,
+      latest: { value: 100, ver: 1 }, nextDeposit: 50,
+      cViolations: 0, aViolations: 0,
+      wroteDuring: {}, route: { L: "A", R: "C" },
+      nodes: { A: { value: 100, ver: 1 }, B: { value: 100, ver: 1 }, C: { value: 100, ver: 1 } }
+    };
+  }
+  function islandOf(id) { return SPLITS[state.split].islands[id]; }
+  function reachableFrom(nodeId) {
+    var ids = Object.keys(NODES);
+    if (!state.partitioned) return ids;
+    return ids.filter(function (id) { return islandOf(id) === islandOf(nodeId); });
+  }
+  function money(v) { return "$" + v; }
+
+  /* ---------- rendering ---------- */
+  function renderNodes() {
+    Object.keys(NODES).forEach(function (id) {
+      var n = NODES[id], d = state.nodes[id];
+      var behind = d.ver < state.latest.ver ? " behind" : "";
+      $("node-" + id).innerHTML =
+        '<rect class="node-box" id="box-' + id + '" x="' + (n.x - 52) + '" y="' + (n.y - 36) + '" width="104" height="72" rx="8"></rect>' +
+        '<text class="node-name" x="' + (n.x - 40) + '" y="' + (n.y - 16) + '">' + id + "</text>" +
+        '<text class="node-sub" x="' + (n.x - 26) + '" y="' + (n.y - 16) + '">' + n.sub + "</text>" +
+        '<text class="node-val' + behind + '" x="' + (n.x - 40) + '" y="' + (n.y + 6) + '">' + money(d.value) + "</text>" +
+        '<text class="node-ver" x="' + (n.x - 40) + '" y="' + (n.y + 24) + '">update #' + d.ver + "</text>";
+    });
+  }
+  function renderLinks() {
+    var out = "";
+    ["L", "R"].forEach(function (c) {
+      var p = CLIENT_POS[c], n = NODES[state.route[c]];
+      out += '<line class="clink" x1="' + p.x + '" y1="' + (p.y - 17) + '" x2="' + n.x + '" y2="' + (n.y + 36) + '"></line>';
+    });
+    $("links").innerHTML = out;
+  }
+  function renderAll() {
+    renderNodes(); renderLinks();
+    var on = state.partitioned, sp = SPLITS[state.split];
+    $("cut-line").setAttribute("x1", sp.cutX); $("cut-line").setAttribute("x2", sp.cutX);
+    $("cut-label").setAttribute("x", sp.cutX);
+    $("island-left").setAttribute("width", sp.leftW);
+    $("island-right").setAttribute("x", sp.rightX);
+    $("island-right").setAttribute("width", sp.rightW);
+    $("label-right").setAttribute("x", sp.rightX + 12);
+    ["cut-line", "cut-label"].forEach(function (i) { $(i).setAttribute("visibility", on ? "visible" : "hidden"); });
+    ["island-left", "island-right", "label-left", "label-right"].forEach(function (i) { $(i).setAttribute("opacity", on ? 1 : 0); });
+    [["cable-ab", "A", "B"], ["cable-bc", "B", "C"], ["cable-ac", "A", "C"]].forEach(function (c) {
+      $(c[0]).classList.toggle("dead", on && islandOf(c[1]) !== islandOf(c[2]));
+    });
+    $("btn-partition").textContent = on ? "Repair the network" : "✂ Cut the network";
+    $("btn-partition").classList.toggle("danger", !on);
+    $("split-select").disabled = on;
+    $("c-count").textContent = state.cViolations;
+    $("a-count").textContent = state.aViolations;
+    $("tally-c").classList.toggle("c-bad", state.cViolations > 0);
+    $("tally-a").classList.toggle("a-bad", state.aViolations > 0);
+    $("w-val").textContent = W; $("r-val").textContent = R;
+    var guaranteed = (R + W) > 3;
+    $("rw-note").innerHTML = "R+W " + (guaranteed ? "&gt;" : "&le;") + " 3 &mdash; a check " +
+      (guaranteed ? "<strong>must</strong> see the newest deposit" : "<strong>can show stale data</strong>");
+  }
+  function flashNode(id) {
+    var box = $("box-" + id);
+    if (!box) return;
+    box.classList.add("flash");
+    setTimeout(function () { box.classList.remove("flash"); }, 700);
+  }
+  function animateMsg(x1, y1, x2, y2) {
+    if (reduceMotion) return;
+    var dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("class", "msg-dot"); dot.setAttribute("r", "5");
+    dot.setAttribute("cx", x1); dot.setAttribute("cy", y1);
+    $("stage").appendChild(dot);
+    var anim = dot.animate(
+      [{ transform: "translate(0,0)" }, { transform: "translate(" + (x2 - x1) + "px," + (y2 - y1) + "px)" }],
+      { duration: 430, easing: "ease-in-out" });
+    anim.onfinish = function () { dot.remove(); };
+  }
+
+  function report(kind, head, body, tech, dim) {
+    var v = $("verdict");
+    v.className = "verdict " + kind;
+    $("verdict-head").textContent = head;
+    $("verdict-body").innerHTML = body;
+    var entry = document.createElement("div");
+    entry.className = "log-entry" + (dim ? " dim" : "");
+    var badge = document.createElement("span");
+    badge.className = "badge " + kind;
+    badge.textContent = kind === "info" ? "note" : kind;
+    var text = document.createElement("div");
+    text.className = "log-text";
+    var main = document.createElement("div");
+    main.innerHTML = body;
+    text.appendChild(main);
+    if (tech) {
+      var t = document.createElement("div");
+      t.className = "log-tech"; t.textContent = tech;
+      text.appendChild(t);
+    }
+    entry.appendChild(badge); entry.appendChild(text);
+    $("log").prepend(entry);
+  }
+
+  /* ---------- operations ---------- */
+  function doWrite(clientId) {
+    var coord = state.route[clientId], amount = state.nextDeposit;
+    var value = state.nodes[coord].value + amount;
+    var reach = reachableFrom(coord), p = CLIENT_POS[clientId], n = NODES[coord];
+    animateMsg(p.x, p.y, n.x, n.y);
+    if (reach.length < W) {
+      state.aViolations++;
+      report("refused",
+        "Customer " + clientId + " was turned away",
+        "Machine <b>" + coord + "</b> needs " + W + " machines to agree before saving a deposit, but the cut leaves it able to reach only " + reach.length + ". Rather than risk two machines disagreeing, it <b>refused to serve " + clientId + " at all</b>. The data stays correct; the customer goes home empty-handed. That is availability being sacrificed.",
+        "write refused · reachable " + reach.length + " < W=" + W + " · coordinator " + coord);
+      renderAll(); return;
+    }
+    state.clock++;
+    var ver = state.clock;
+    reach.forEach(function (id) {
+      state.nodes[id] = { value: value, ver: ver };
+      if (id !== coord) animateMsg(n.x, n.y, NODES[id].x, NODES[id].y);
+      flashNode(id);
+    });
+    if (ver > state.latest.ver) state.latest = { value: value, ver: ver };
+    if (state.partitioned) state.wroteDuring[islandOf(coord)] = { value: value, ver: ver, client: clientId };
+    report("ok",
+      "Customer " + clientId + " deposited " + money(amount),
+      "Machine <b>" + coord + "</b> saved the new balance of <b>" + money(value) + "</b> and copied it to " + reach.length + " machine" + (reach.length > 1 ? "s" : "") + " (" + reach.join(", ") + "). " + clientId + " has a confirmation.",
+      "write ok · W=" + W + " satisfied by " + reach.join(",") + " · update #" + ver);
+    renderAll();
+  }
+
+  function doRead(clientId) {
+    var coord = state.route[clientId];
+    var reach = reachableFrom(coord), p = CLIENT_POS[clientId], n = NODES[coord];
+    animateMsg(p.x, p.y, n.x, n.y);
+    if (reach.length < R) {
+      state.aViolations++;
+      report("refused",
+        "Customer " + clientId + " was turned away",
+        "Machine <b>" + coord + "</b> wants to check with " + R + " machines before trusting a balance, but the cut leaves it able to reach only " + reach.length + ". It <b>refused to answer</b> rather than give a number it can't stand behind. Availability sacrificed.",
+        "read refused · reachable " + reach.length + " < R=" + R + " · coordinator " + coord);
+      renderAll(); return;
+    }
+    var contacted = reach.slice(0, R);
+    if (contacted.indexOf(coord) === -1) contacted[0] = coord;
+    var best = state.nodes[contacted[0]];
+    contacted.forEach(function (id) { if (state.nodes[id].ver > best.ver) best = state.nodes[id]; });
+    if (best.ver < state.latest.ver) {
+      state.cViolations++;
+      report("stale",
+        "Customer " + clientId + " was shown the wrong balance",
+        "The machines " + clientId + " could reach still say <b>" + money(best.value) + "</b>, but a deposit already confirmed elsewhere makes the real balance <b>" + money(state.latest.value) + "</b>. " + clientId + " got a fast, confident, <b>wrong</b> answer — and nothing anywhere logged an error. That is consistency being sacrificed.",
+        "stale read · returned update #" + best.ver + " · newest is #" + state.latest.ver + " · asked " + contacted.join(","));
+    } else {
+      report("ok",
+        "Customer " + clientId + " saw the correct balance",
+        "Asked " + contacted.length + " machine" + (contacted.length > 1 ? "s" : "") + " (" + contacted.join(", ") + ") and got <b>" + money(best.value) + "</b>, which is the newest value in the system.",
+        "read ok · R=" + R + " satisfied · update #" + best.ver);
+    }
+    renderAll();
+  }
+
+  function togglePartition() {
+    if (!state.partitioned) {
+      state.partitioned = true; state.wroteDuring = {};
+      report("info", "The network is cut",
+        "The machines can no longer talk to each other across the tear. Each customer can still reach their own machine — so every request now forces the choice.",
+        "partition " + state.split, true);
+    } else { state.partitioned = false; heal(); }
+    renderAll();
+  }
+
+  function heal() {
+    var winner = null;
+    Object.keys(NODES).forEach(function (id) {
+      if (!winner || state.nodes[id].ver > winner.ver) winner = state.nodes[id];
+    });
+    var sides = Object.keys(state.wroteDuring);
+    var conflict = sides.length > 1;
+    var loser = null;
+    if (conflict) {
+      sides.forEach(function (s) {
+        var wr = state.wroteDuring[s];
+        if (wr.ver !== winner.ver) loser = wr;
+      });
+    }
+    Object.keys(NODES).forEach(function (id) {
+      if (state.nodes[id].ver !== winner.ver) { state.nodes[id] = { value: winner.value, ver: winner.ver }; flashNode(id); }
+    });
+    state.latest = { value: winner.value, ver: winner.ver };
+    if (conflict && loser) {
+      report("conflict", "One confirmed deposit was thrown away",
+        "Both sides took deposits while the cut was open, so the machines came back with two different balances. The tie-break rule (keep the newest write) chose <b>" + money(winner.value) + "</b> — which means customer <b>" + loser.client + "</b>'s deposit of " + money(loser.value) + ", <b>already confirmed at the counter</b>, no longer exists anywhere. Eventual consistency promises the machines will agree; it does not promise they will agree on <em>your</em> version of events.",
+        "heal · last-write-wins kept #" + winner.ver + " · discarded #" + loser.ver);
+    } else {
+      report("info", "The network is repaired",
+        "The machines re-synced to <b>" + money(winner.value) + "</b>. Only one side took deposits, so there was nothing to reconcile and nothing was lost.",
+        "heal · converged on update #" + winner.ver, true);
+    }
+  }
+
+  /* ---------- controls ---------- */
+  function setMode(cp) {
+    W = cp ? 2 : 1; R = cp ? 2 : 1;
+    $("w-slider").value = W; $("r-slider").value = R;
+    syncModeButtons();
+    report("info", cp ? "Mode: CP — refuse when unsure" : "Mode: AP — always answer",
+      cp ? "Every deposit needs 2 of 3 machines to agree, and every balance check asks 2 of 3. A machine that can't reach enough others will refuse to serve."
+         : "One machine is enough to accept a deposit or answer a balance check. Nobody is ever refused — but answers can be out of date.",
+      "W=" + W + " · R=" + R, true);
+    renderAll();
+  }
+  function syncModeButtons() {
+    $("btn-cp").setAttribute("aria-pressed", String(W === 2 && R === 2));
+    $("btn-ap").setAttribute("aria-pressed", String(W === 1 && R === 1));
+  }
+  function resetAll() {
+    state = freshState();
+    $("log").innerHTML = "";
+    $("route-L").value = "A"; $("route-R").value = "C"; $("split-select").value = "A|BC";
+    report("info", "Fresh start", "Three machines, one account, balance <b>$100</b>, network intact.", null, true);
+    renderAll();
+  }
+
+  var ALL_BTNS = ["btn-cp", "btn-ap", "btn-partition", "btn-reset", "btn-write-L", "btn-read-L", "btn-write-R", "btn-read-R", "run-1", "run-2", "run-3", "run-4"];
+  function setBusy(v) { busy = v; ALL_BTNS.forEach(function (id) { $(id).disabled = v; }); }
+  function runSequence(steps) {
+    if (busy) return;
+    setBusy(true);
+    var delay = reduceMotion ? 60 : 1150, i = 0;
+    (function next() {
+      if (i >= steps.length) { setBusy(false); return; }
+      steps[i++]();
+      setTimeout(next, delay);
+    })();
+  }
+
+  $("btn-cp").addEventListener("click", function () { setMode(true); });
+  $("btn-ap").addEventListener("click", function () { setMode(false); });
+  $("w-slider").addEventListener("input", function (e) { W = +e.target.value; syncModeButtons(); renderAll(); });
+  $("r-slider").addEventListener("input", function (e) { R = +e.target.value; syncModeButtons(); renderAll(); });
+  $("btn-partition").addEventListener("click", togglePartition);
+  $("btn-reset").addEventListener("click", resetAll);
+  $("split-select").addEventListener("change", function (e) { state.split = e.target.value; renderAll(); });
+  ["L", "R"].forEach(function (c) {
+    $("route-" + c).addEventListener("change", function (e) {
+      state.route[c] = e.target.value;
+      report("info", "Customer " + c + " reconnected",
+        "Customer " + c + " now talks to machine <b>" + e.target.value + "</b>. Same customer, same requests — but a different side of any future tear.",
+        null, true);
+      renderAll();
+    });
+  });
+  $("btn-write-L").addEventListener("click", function () { doWrite("L"); });
+  $("btn-read-L").addEventListener("click", function () { doRead("L"); });
+  $("btn-write-R").addEventListener("click", function () { doWrite("R"); });
+  $("btn-read-R").addEventListener("click", function () { doRead("R"); });
+
+  $("run-1").addEventListener("click", function () {
+    runSequence([resetAll, function () { setMode(true); }, function () { doWrite("L"); }, function () { doRead("R"); }]);
+  });
+  $("run-2").addEventListener("click", function () {
+    runSequence([resetAll, function () { setMode(true); }, togglePartition,
+      function () { doWrite("L"); }, function () { doRead("L"); },
+      function () { doWrite("R"); }, function () { doRead("R"); }]);
+  });
+  $("run-3").addEventListener("click", function () {
+    runSequence([resetAll, function () { setMode(false); }, togglePartition,
+      function () { doWrite("L"); }, function () { doRead("R"); }]);
+  });
+  $("run-4").addEventListener("click", function () {
+    runSequence([resetAll, function () { setMode(false); }, togglePartition,
+      function () { doWrite("L"); }, function () { doWrite("R"); }, togglePartition]);
+  });
+
+  state = freshState();
+  report("info", "Fresh start", "Three machines, one account, balance <b>$100</b>, network intact. Try a guided experiment below, or press the buttons yourself.", null, true);
+  renderAll();
+})();
+</script>

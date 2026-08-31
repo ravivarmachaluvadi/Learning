@@ -1,0 +1,847 @@
+<title>Merge Without a Referee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+:root{
+  --ground:#EFF3F1; --surface:#FFFFFF; --surface-2:#F6F8F7; --line:#D3DCD9;
+  --ink:#151F1D; --muted:#5C6B67; --faint:#8A9995;
+  --alive:#0C6A5B; --alive-soft:#DCEFE9;
+  --dead:#A2384F; --dead-soft:#F6E2E6;
+  --flash:#B96A0C; --flash-soft:#FBEBD6;
+  --wire:#3C5B8F; --wire-soft:#E1E9F5;
+  --ok:#0C6A5B; --split:#A2384F;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1614; --surface:#16211E; --surface-2:#1D2B27; --line:#2C3D38;
+    --ink:#E6EDEA; --muted:#9BAAA5; --faint:#71827D;
+    --alive:#4FD3B4; --alive-soft:#12332C;
+    --dead:#F291A6; --dead-soft:#3A1F27;
+    --flash:#F3B65E; --flash-soft:#3B2A12;
+    --wire:#8FB2E8; --wire-soft:#1A2739;
+    --ok:#4FD3B4; --split:#F291A6;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1614; --surface:#16211E; --surface-2:#1D2B27; --line:#2C3D38;
+  --ink:#E6EDEA; --muted:#9BAAA5; --faint:#71827D;
+  --alive:#4FD3B4; --alive-soft:#12332C;
+  --dead:#F291A6; --dead-soft:#3A1F27;
+  --flash:#F3B65E; --flash-soft:#3B2A12;
+  --wire:#8FB2E8; --wire-soft:#1A2739;
+  --ok:#4FD3B4; --split:#F291A6;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:36px 22px 90px}
+
+h1,h2,h3,.ui{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(30px,5vw,50px); line-height:1.04; letter-spacing:-.025em; font-weight:700; margin:0 0 12px; text-wrap:balance}
+h2{font-size:20px; letter-spacing:-.01em; font-weight:600; margin:0 0 8px}
+h3{font-size:14px; font-weight:600; margin:0 0 6px}
+p{margin:0 0 12px; max-width:66ch}
+.lede{font-size:19px; color:var(--muted); max-width:64ch}
+.eyebrow{
+  font-family:Archivo,sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0 0 10px;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
+
+header.hero{border-bottom:1px solid var(--line); padding-bottom:26px; margin-bottom:26px}
+
+/* ---------- panels ---------- */
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 18px 16px; margin-bottom:18px}
+.panel-head{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; justify-content:space-between; margin-bottom:12px}
+.hint{font-size:14.5px; color:var(--muted); max-width:70ch; margin:0 0 12px}
+
+/* ---------- controls ---------- */
+button{
+  font-family:Archivo,sans-serif; font-size:13px; font-weight:600;
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:7px; padding:6px 11px; cursor:pointer; line-height:1.4;
+}
+button:hover:not(:disabled){border-color:var(--alive); color:var(--alive)}
+button:disabled{opacity:.38; cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--flash); outline-offset:2px}
+button.primary{background:var(--alive); border-color:var(--alive); color:var(--surface)}
+button.primary:hover{filter:brightness(1.08); color:var(--surface)}
+button.on{background:var(--alive-soft); border-color:var(--alive); color:var(--alive)}
+button.tiny{font-size:11.5px; padding:3px 7px; border-radius:5px}
+select{
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; padding:5px 7px;
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line); border-radius:6px;
+}
+.row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+
+/* ---------- mode tabs ---------- */
+.modes{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; margin-bottom:6px}
+.mode{
+  text-align:left; padding:11px 13px; border-radius:var(--radius);
+  background:var(--surface); border:1px solid var(--line); cursor:pointer;
+}
+.mode:hover{border-color:var(--alive)}
+.mode[aria-pressed="true"]{border-color:var(--alive); background:var(--alive-soft); box-shadow:inset 3px 0 0 var(--alive)}
+.mode .t{display:block; font-size:14px; font-weight:700; color:var(--ink); margin-bottom:2px}
+.mode .s{display:block; font-family:"Source Serif 4",serif; font-size:13px; font-weight:400; color:var(--muted); line-height:1.4}
+.mode[aria-pressed="true"] .t{color:var(--alive)}
+
+/* ---------- verdict ---------- */
+.verdict{
+  border:1px solid var(--line); border-left:5px solid var(--ok);
+  background:var(--surface); border-radius:var(--radius); padding:13px 16px; margin-bottom:16px;
+}
+.verdict.split{border-left-color:var(--split)}
+.verdict .v-main{font-family:Archivo,sans-serif; font-weight:600; font-size:16px}
+.verdict .v-sub{font-size:14.5px; color:var(--muted); margin-top:3px}
+
+/* ---------- replica cards ---------- */
+.floor{display:grid; grid-template-columns:1.35fr .8fr; gap:16px; align-items:start}
+@media (max-width:880px){ .floor{grid-template-columns:1fr} }
+.reps{display:flex; flex-direction:column; gap:12px}
+.rep{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:12px 14px 13px; position:relative; overflow:hidden;
+}
+.rep.changed{animation:pulse 1s ease-out}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 var(--flash); border-color:var(--flash)}
+  100%{box-shadow:0 0 0 8px transparent; border-color:var(--line)}
+}
+@media (prefers-reduced-motion:reduce){ .rep.changed{animation:none; border-color:var(--flash)} }
+.rep-top{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px}
+.rep-name{font-family:Archivo,sans-serif; font-weight:700; font-size:16px}
+.grp{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; padding:2px 6px; border-radius:20px;
+  border:1px solid var(--line); color:var(--muted);
+}
+.grp.b{background:var(--dead-soft); border-color:var(--dead); color:var(--dead)}
+.seen{
+  font-size:13px; color:var(--faint); font-family:Archivo,sans-serif;
+  text-transform:uppercase; letter-spacing:.1em; font-weight:600;
+}
+.value{
+  font-family:"IBM Plex Mono",monospace; font-size:17px; font-weight:600;
+  padding:7px 10px; border-radius:7px; background:var(--alive-soft); color:var(--alive);
+  display:inline-block; margin:2px 0 9px; min-width:120px;
+}
+.value.empty{background:var(--surface-2); color:var(--faint)}
+.stored{
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted);
+  background:var(--surface-2); border:1px dashed var(--line); border-radius:7px;
+  padding:7px 9px; margin-bottom:9px; overflow-x:auto; white-space:nowrap;
+}
+.dot{color:var(--alive)}
+.tomb{color:var(--dead); text-decoration:line-through}
+
+/* ---------- wire ---------- */
+.wire-list{display:flex; flex-direction:column; gap:8px; max-height:430px; overflow-y:auto}
+.msg{
+  border:1px solid var(--wire); background:var(--wire-soft); border-radius:8px; padding:8px 10px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px;
+}
+.msg .hdr{display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:5px; color:var(--wire); font-weight:600}
+.msg .body{color:var(--muted); font-size:11.5px; margin-bottom:6px; overflow-x:auto; white-space:nowrap}
+.msg.blocked{border-color:var(--dead); background:var(--dead-soft); opacity:.75}
+.empty-note{color:var(--faint); font-size:14px; font-style:italic}
+
+/* ---------- log ---------- */
+.log{max-height:280px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:0}
+.entry{padding:9px 0; border-bottom:1px solid var(--line)}
+.entry:first-child{border-bottom:none}
+.entry .n{font-size:15px}
+.entry .tech{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--faint); margin-top:3px}
+.entry.hi .n{color:var(--flash); font-weight:600}
+
+/* ---------- scenarios ---------- */
+.scen-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:10px}
+.scen{
+  text-align:left; padding:11px 13px; border-radius:var(--radius); background:var(--surface);
+  border:1px solid var(--line); cursor:pointer;
+}
+.scen:hover{border-color:var(--flash)}
+.scen .q{display:block; font-size:13.5px; font-weight:700; margin-bottom:3px; font-family:Archivo,sans-serif}
+.scen .w{display:block; font-family:"Source Serif 4",serif; font-weight:400; font-size:13px; color:var(--muted); line-height:1.45}
+.scen.done{border-color:var(--alive); background:var(--alive-soft)}
+
+.ask{border:1px solid var(--flash); background:var(--flash-soft); border-radius:var(--radius); padding:15px 17px; margin-bottom:16px}
+.ask .qq{font-family:Archivo,sans-serif; font-weight:700; font-size:17px; margin-bottom:4px}
+.ask .setup{font-size:15px; color:var(--muted); margin-bottom:11px; max-width:70ch}
+.ask .opts{display:flex; flex-wrap:wrap; gap:8px}
+.ask .opts button{background:var(--surface)}
+.result{margin-top:12px; padding-top:11px; border-top:1px solid var(--line); font-size:15.5px}
+.result .tag{
+  font-family:Archivo,sans-serif; font-weight:700; font-size:11px; letter-spacing:.13em;
+  text-transform:uppercase; padding:2px 7px; border-radius:4px; margin-right:8px;
+}
+.tag.right{background:var(--alive); color:var(--surface)}
+.tag.wrong{background:var(--dead); color:var(--surface)}
+
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted); margin-top:10px}
+.legend span{display:flex; align-items:center; gap:6px}
+.sw{width:13px; height:13px; border-radius:3px; border:1px solid var(--line); display:inline-block}
+
+footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line); color:var(--faint); font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Replicated data · no coordinator · no locks</p>
+  <h1>Merge Without a Referee</h1>
+  <p class="lede">
+    Three phones hold the same shopping list. They edit it while offline, then
+    sync in whatever order the network feels like — dropping messages, delivering
+    some twice, and cutting the group in half for a while. Nobody is in charge.
+    Watch which designs survive that, and which quietly throw someone's work away.
+  </p>
+</header>
+
+<div class="panel">
+  <p class="eyebrow">Step 1 · pick how a list is stored and merged</p>
+  <div class="modes" id="modes"></div>
+  <p class="hint" id="modeHint"></p>
+</div>
+
+<div class="verdict" id="verdict"></div>
+
+<div class="floor">
+  <div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>The three phones</h2>
+          <p class="hint" style="margin:0">
+            The big green box is <strong>what the person sees</strong>. The dashed
+            box under it is <strong>what is actually stored</strong> — this is the
+            whole trick, and the reason to watch the dashed box more than the green one.
+          </p>
+        </div>
+      </div>
+      <div class="reps" id="reps"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--alive-soft);border-color:var(--alive)"></i> what the user sees</span>
+        <span><i class="sw" style="background:var(--surface-2)"></i> what is stored</span>
+        <span><i class="sw" style="background:var(--wire-soft);border-color:var(--wire)"></i> message on the wire</span>
+        <span><i class="sw" style="background:var(--dead-soft);border-color:var(--dead)"></i> torn-up receipt / blocked</span>
+        <span><i class="sw" style="border-color:var(--flash);background:var(--flash-soft)"></i> just changed</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2>Messages on the wire</h2></div>
+      <p class="hint">
+        Sending does not deliver. Every message sits here until you deliver it —
+        in any order you like — or duplicate it, or throw it away. That is the
+        experiment: the network is yours to abuse.
+      </p>
+      <div class="row" style="margin-bottom:10px">
+        <button id="deliverAll">Deliver everything</button>
+        <button id="shuffleDeliver">Deliver in reverse</button>
+      </div>
+      <div class="wire-list" id="wire"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Network</h2></div>
+      <p class="hint">
+        Put phones in different groups to cut the network between them. Messages
+        between groups cannot be sent or delivered until you heal it.
+      </p>
+      <div class="row" id="netCtl"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h2>What just happened</h2>
+    <div class="row">
+      <button id="undo">← Step back</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Guess first, then watch</h2>
+      <p class="hint" style="margin:0">
+        Each of these sets up a situation, asks you what will happen, and then
+        plays it out with narration. Being wrong here is the point.
+      </p>
+    </div>
+  </div>
+  <div id="askSlot"></div>
+  <div class="scen-grid" id="scens"></div>
+</div>
+
+<footer>
+  Companion to the <span class="mono">crdts</span> lab —
+  <span class="mono">java src/Sim.java</span>,
+  <span class="mono">java src/Tests.java</span>,
+  <span class="mono">java src/Experiments.java</span>.
+  Every outcome on this page matches a test or experiment in that lab.
+</footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const NAMES = ["Amira","Ben","Cara"];
+const ITEMS = ["bread","milk","eggs","jam"];
+
+const MODES = {
+  lww: {
+    title:"Whole list, newest wins",
+    sub:"Each phone sends its entire list with a timestamp. The newest one replaces the rest.",
+    hint:"This is what most apps do by accident. Watch the stored box: it holds a list and a clock reading, and nothing else. When two lists meet, one of them stops existing."
+  },
+  twop: {
+    title:"Adds plus a blacklist",
+    sub:"Keep every item ever added, and a separate list of words that are banned.",
+    hint:"The first honest attempt at delete. Both halves only ever grow, so merging is just union — it always converges. Try removing an item and adding it back."
+  },
+  orset: {
+    title:"Receipts (OR-Set)",
+    sub:"Every add mints a unique receipt. A remove tears up only the receipts it can see.",
+    hint:"An add is an event, not a word. The stored box shows each item with its receipts; torn-up receipts are struck through. This is the design that survives everything on this page."
+  },
+  gcount: {
+    title:"Scoreboard counter",
+    sub:"One row per phone. You may only raise your own row. Merging takes the bigger of each row.",
+    hint:"A number instead of a list, to isolate one idea: taking the maximum of a row you already have changes nothing, so a message delivered ten times counts once."
+  }
+};
+
+const SCENARIOS = [
+  {
+    id:"lww-lost", mode:"lww",
+    card:"Two people add one item each, offline",
+    cardSub:"Whole list, newest wins",
+    q:"Amira adds milk. Ben adds eggs. Neither has signal. They land and sync. What does the list hold?",
+    setup:"Both phones start from [bread].",
+    opts:[
+      {t:"bread, milk, eggs — both survive", ok:false},
+      {t:"One of the two items is silently gone", ok:true},
+      {t:"The app shows a conflict screen", ok:false}
+    ],
+    why:"Ben's phone sent a complete list that simply did not contain milk. The server cannot tell 'Ben deleted milk' from 'Ben never heard of milk', so keeping the newest list destroys Amira's edit with no error anywhere. The Java lab measures this: 67% of all increments lost across 1,000 rounds.",
+    steps:[["add",0,"bread"],["sync",0],["deliverAll"],["add",0,"milk"],["add",1,"eggs"],["sync",0],["sync",1],["deliverAll"]]
+  },
+  {
+    id:"orset-both", mode:"orset",
+    card:"The same two offline adds, with receipts",
+    cardSub:"OR-Set",
+    q:"Same story — Amira adds milk, Ben adds eggs, both offline. Now what?",
+    setup:"Both phones start from [bread]. Every add mints a receipt like amira#2.",
+    opts:[
+      {t:"Both survive", ok:true},
+      {t:"One is lost, same as before", ok:false},
+      {t:"You get two copies of bread", ok:false}
+    ],
+    why:"Nobody sends a list any more; they send receipts. Amira's message says 'amira#2 says milk exists'. Ben's says 'ben#1 says eggs exists'. Those are two different facts, and union keeps both. Bread does not double because both phones hold the same receipt for it, and a set ignores a receipt it already has.",
+    steps:[["add",0,"bread"],["sync",0],["deliverAll"],["add",0,"milk"],["add",1,"eggs"],["sync",0],["sync",1],["deliverAll"]]
+  },
+  {
+    id:"twop-readd", mode:"twop",
+    card:"Remove an item, then change your mind",
+    cardSub:"Adds plus a blacklist",
+    q:"Amira removes milk, then adds milk again. Is milk in the list?",
+    setup:"Adds go in one pile, removes go in a blacklist, and the list shown is adds minus blacklist.",
+    opts:[
+      {t:"Yes — she added it again", ok:false},
+      {t:"No — it can never come back", ok:true},
+      {t:"It flickers depending on sync order", ok:false}
+    ],
+    why:"The blacklist bans the word 'milk', not one particular add. The new add lands in the adds pile, where the blacklist cancels it again. All three phones agree perfectly — on an answer that is wrong. Converging is not the same thing as being correct.",
+    steps:[["add",0,"milk"],["sync",0],["deliverAll"],["remove",0,"milk"],["add",0,"milk"],["sync",0],["deliverAll"]]
+  },
+  {
+    id:"orset-readd", mode:"orset",
+    card:"Remove and re-add, with receipts",
+    cardSub:"OR-Set",
+    q:"Amira removes milk, then adds milk again. Is milk in the list?",
+    setup:"The remove tears up the receipts Amira can see. The new add mints a fresh one.",
+    opts:[
+      {t:"Yes — the new receipt is untouched", ok:true},
+      {t:"No — removes are permanent", ok:false}
+    ],
+    why:"The torn-up receipt is amira#1. The second add mints amira#2, and no torn receipt names amira#2. This is the entire fix for the previous scenario, and it is one word long: remove receipts, not values.",
+    steps:[["add",0,"milk"],["sync",0],["deliverAll"],["remove",0,"milk"],["add",0,"milk"],["sync",0],["deliverAll"]]
+  },
+  {
+    id:"orset-concurrent", mode:"orset",
+    card:"One deletes while the other re-adds",
+    cardSub:"OR-Set · the interesting case",
+    q:"Ben deletes milk. At the same moment, offline, Amira adds milk again. After they sync, is milk there?",
+    setup:"Both phones have milk with receipt amira#1. Then the network is cut, and they act simultaneously.",
+    opts:[
+      {t:"Milk stays — the add wins", ok:true},
+      {t:"Milk goes — the delete wins", ok:false},
+      {t:"Whoever's message arrives last wins", ok:false}
+    ],
+    why:"Ben's delete names exactly one receipt: amira#1. Amira's new add mints amira#4 — a receipt Ben had never seen and therefore could not have meant to destroy. Add-wins is not a tie-break, it falls out of the rule 'you can only remove what you have observed'. It is also a product decision: a stray item in a cart is annoying, an item that refuses to be deleted is worse. Know which one you bought.",
+    steps:[["add",0,"milk"],["sync",0],["deliverAll"],["cut",1],["remove",1,"milk"],["add",0,"milk"],["heal"],["sync",0],["sync",1],["deliverAll"]]
+  },
+  {
+    id:"dup", mode:"gcount",
+    card:"The same message, delivered five times",
+    cardSub:"Scoreboard counter",
+    q:"Amira taps +1 once, Ben taps +1 once. Amira's message is then delivered five times because her phone kept retrying. What does the counter read?",
+    setup:"One row per phone; merging takes the larger of each row; the counter shown is the sum of rows.",
+    opts:[
+      {t:"2", ok:true},
+      {t:"6", ok:false},
+      {t:"7", ok:false}
+    ],
+    why:"Merging replaces Ben's copy of Amira's row with max(1,1) = 1. Doing that five more times still gives 1. Had merge added the rows instead, the same five duplicates would have read 7 — the lab measures exactly that. Idempotence is not a nicety; it is what lets you retry a message without inventing data.",
+    steps:[["inc",0],["inc",1],["sync",0],["sync",1],["dupAll",4],["deliverAll"]]
+  },
+  {
+    id:"partition", mode:"orset",
+    card:"Cut the group in half, then heal it",
+    cardSub:"OR-Set · partition",
+    q:"Amira is on one side of a network split, Ben and Cara on the other. Everyone keeps editing. When the split heals, what is needed to bring them back together?",
+    setup:"No leader, no log replay, no rollback is available — only ordinary syncing.",
+    opts:[
+      {t:"Just sync as usual; they converge", ok:true},
+      {t:"Someone must be elected to decide", ok:false},
+      {t:"The minority side's edits must be rolled back", ok:false}
+    ],
+    why:"During the split the two sides genuinely disagree, and that is allowed — the promise is only that they agree once messages flow again. Nothing special happens at healing time: the same merge that handles a normal sync handles a two-hour outage, because merge does not care how old the news is.",
+    steps:[["add",0,"bread"],["sync",0],["deliverAll"],["cut",0],["add",0,"jam"],["add",1,"eggs"],["remove",1,"bread"],["sync",1],["deliverAll"],["heal"],["sync",0],["sync",1],["sync",2],["deliverAll"],["sync",0],["sync",1],["sync",2],["deliverAll"]]
+  },
+  {
+    id:"skew", mode:"lww",
+    card:"One phone's clock is a minute fast",
+    cardSub:"Whole list, newest wins",
+    q:"Amira's clock runs 60 seconds fast. She edits the list, and then Ben makes a genuinely later edit. Whose edit survives?",
+    setup:"The stored box shows each phone's clock reading. Amira's is offset by +60000.",
+    opts:[
+      {t:"Ben's — it really did happen later", ok:false},
+      {t:"Amira's — her clock says a bigger number", ok:true}
+    ],
+    why:"Under newest-wins, the wall clock IS your conflict-resolution algorithm. A clock 60 seconds fast destroyed 1,000 of 1,000 genuinely-newer writes in the lab's measurement — with no error, no log line and no metric. This is the same failure the quorums-and-replication lab found from the storage side.",
+    steps:[["skew",0,60000],["add",0,"jam"],["add",1,"eggs"],["sync",0],["sync",1],["deliverAll"]]
+  }
+];
+
+/* ---------------- pure state ---------------- */
+
+function emptyStore(mode){
+  if (mode === "lww")    return {items:[], ts:0, who:"—"};
+  if (mode === "twop")   return {added:[], removed:[]};
+  if (mode === "orset")  return {live:{}, killed:[]};
+  return {rows:{}};
+}
+
+function initState(mode){
+  return {
+    mode,
+    reps: NAMES.map(n => ({name:n, group:0, skew:0, store:emptyStore(mode)})),
+    wire: [], log: [], dots:[0,0,0], clock:1000, msgId:1, changed:[]
+  };
+}
+
+const clone = s => JSON.parse(JSON.stringify(s));
+const uniq  = a => [...new Set(a)].sort();
+
+function merge(mode, a, b){
+  if (mode === "lww")
+    return (b.ts > a.ts || (b.ts === a.ts && b.who > a.who)) ? clone(b) : clone(a);
+  if (mode === "twop")
+    return {added:uniq([...a.added,...b.added]), removed:uniq([...a.removed,...b.removed])};
+  if (mode === "orset"){
+    const killed = uniq([...a.killed, ...b.killed]);
+    const live = {};
+    for (const src of [a.live, b.live])
+      for (const [item, dots] of Object.entries(src))
+        live[item] = uniq([...(live[item]||[]), ...dots]);
+    for (const item of Object.keys(live)){
+      live[item] = live[item].filter(d => !killed.includes(d));
+      if (!live[item].length) delete live[item];
+    }
+    return {live, killed};
+  }
+  const rows = {...a.rows};
+  for (const [k,v] of Object.entries(b.rows)) rows[k] = Math.max(rows[k]||0, v);
+  return {rows};
+}
+
+function visible(mode, st){
+  if (mode === "lww")   return [...st.items].sort();
+  if (mode === "twop")  return st.added.filter(x => !st.removed.includes(x)).sort();
+  if (mode === "orset") return Object.keys(st.live).sort();
+  return Object.values(st.rows).reduce((a,b)=>a+b,0);
+}
+
+function valueText(mode, st){
+  const v = visible(mode, st);
+  if (mode === "gcount") return String(v);
+  return v.length ? "[" + v.join(", ") + "]" : "[ empty ]";
+}
+
+function storedHTML(mode, st, rep){
+  if (mode === "lww")
+    return `list=[${st.items.sort().join(", ")}] &nbsp;clock=<b>${st.ts}</b> &nbsp;by=${st.who}`;
+  if (mode === "twop")
+    return `added={${st.added.join(", ")||"—"}} &nbsp;<span class="tomb">blacklist={${st.removed.join(", ")||"—"}}</span>`;
+  if (mode === "orset"){
+    const live = Object.entries(st.live)
+      .map(([i,d]) => `${i}<span class="dot">(${d.join(" ")})</span>`).join(" · ") || "—";
+    const dead = st.killed.length ? ` &nbsp;<span class="tomb">torn: ${st.killed.join(" ")}</span>` : "";
+    return live + dead;
+  }
+  const rows = Object.entries(st.rows).map(([k,v]) => `${k}=${v}`).join(" · ") || "—";
+  return `rows{ ${rows} } → sum ${visible(mode,st)}`;
+}
+
+/* ---------------- reducer ---------------- */
+
+function apply(s, act){
+  const st = clone(s);
+  st.changed = [];
+  const [kind, ...a] = act;
+  const R = i => st.reps[i];
+
+  if (kind === "add"){
+    const i = a[0], item = a[1], r = R(i);
+    if (st.mode === "lww"){ r.store.items = uniq([...r.store.items, item]); r.store.ts = (st.clock += 7) + r.skew; r.store.who = r.name; }
+    else if (st.mode === "twop"){ r.store.added = uniq([...r.store.added, item]); }
+    else if (st.mode === "orset"){
+      const dot = r.name.toLowerCase() + "#" + (++st.dots[i]);
+      r.store.live[item] = uniq([...(r.store.live[item]||[]), dot]);
+      st.lastDot = dot;
+    }
+    st.changed = [i];
+    log(st, `${r.name} adds ${item}.`, techAdd(st, i, item));
+  }
+
+  else if (kind === "remove"){
+    const i = a[0], item = a[1], r = R(i);
+    if (st.mode === "lww"){ r.store.items = r.store.items.filter(x=>x!==item); r.store.ts = (st.clock += 7) + r.skew; r.store.who = r.name; }
+    else if (st.mode === "twop"){ r.store.removed = uniq([...r.store.removed, item]); }
+    else if (st.mode === "orset"){
+      const seen = r.store.live[item] || [];
+      r.store.killed = uniq([...r.store.killed, ...seen]);
+      delete r.store.live[item];
+      st.lastTorn = seen;
+    }
+    st.changed = [i];
+    log(st, `${r.name} removes ${item}.`, techRemove(st, i, item));
+  }
+
+  else if (kind === "inc"){
+    const i = a[0], r = R(i);
+    r.store.rows[r.name] = (r.store.rows[r.name]||0) + 1;
+    st.changed = [i];
+    log(st, `${r.name} taps +1.`, `${r.name} raises her own row to ${r.store.rows[r.name]}. No other row is touched.`);
+  }
+
+  else if (kind === "skew"){
+    const i = a[0]; R(i).skew = a[1];
+    log(st, `${R(i).name}'s clock is set ${a[1]/1000} seconds fast.`, `skew(${R(i).name}) = +${a[1]}ms`);
+  }
+
+  else if (kind === "sync"){
+    const i = a[0], from = R(i);
+    let n = 0, blocked = 0;
+    st.reps.forEach((to, j) => {
+      if (j === i) return;
+      if (to.group !== from.group){ blocked++; return; }
+      st.wire.push({id: st.msgId++, from:i, to:j, payload: clone(from.store)});
+      n++;
+    });
+    log(st,
+      `${from.name} mails a snapshot of everything she stores to ${n === 0 ? "nobody she can reach" : n === 1 ? "the one phone she can reach" : "both other phones"}.`,
+      `${n} message(s) queued${blocked ? `, ${blocked} blocked by the network split` : ""}. Nothing has been delivered yet.`);
+  }
+
+  else if (kind === "deliver"){
+    const m = st.wire.find(x => x.id === a[0]);
+    if (m){
+      st.wire = st.wire.filter(x => x.id !== m.id);
+      if (st.reps[m.from].group !== st.reps[m.to].group){
+        log(st, `The message to ${st.reps[m.to].name} could not get through — the network is cut.`, `msg ${m.id} dropped: ${st.reps[m.from].name} and ${st.reps[m.to].name} are in different groups.`);
+      } else {
+        const before = valueText(st.mode, st.reps[m.to].store);
+        st.reps[m.to].store = merge(st.mode, st.reps[m.to].store, m.payload);
+        const after = valueText(st.mode, st.reps[m.to].store);
+        st.changed = [m.to];
+        log(st,
+          `${st.reps[m.to].name} merges ${st.reps[m.from].name}'s snapshot. ${before === after ? "Nothing she sees changes." : `What she sees goes from ${before} to ${after}.`}`,
+          mergeTech(st, m));
+      }
+    }
+  }
+
+  else if (kind === "deliverAll" || kind === "deliverRev"){
+    let ids = st.wire.map(m => m.id);
+    if (kind === "deliverRev") ids = ids.reverse();
+    let acc = st;
+    for (const id of ids) acc = apply(acc, ["deliver", id]);
+    acc.changed = ids.length ? [0,1,2] : [];
+    if (!ids.length) log(acc, "There is nothing on the wire to deliver.", "wire is empty");
+    return acc;
+  }
+
+  else if (kind === "dup"){
+    const m = st.wire.find(x => x.id === a[0]);
+    if (m){ st.wire.push({...clone(m), id: st.msgId++}); log(st, `That message is duplicated — the sender retried.`, `a second identical copy of msg ${m.id} is now queued`); }
+  }
+
+  else if (kind === "dupAll"){
+    const copies = a[0], base = [...st.wire];
+    for (let k=0;k<copies;k++) for (const m of base) st.wire.push({...clone(m), id: st.msgId++});
+    log(st, `Every pending message is queued ${copies} more times — a phone retrying on a bad connection.`, `${base.length * copies} duplicate message(s) added`);
+  }
+
+  else if (kind === "drop"){
+    st.wire = st.wire.filter(x => x.id !== a[0]);
+    log(st, "That message is thrown away. Nobody is told.", `msg ${a[0]} dropped`);
+  }
+
+  else if (kind === "cut"){
+    st.reps[a[0]].group = 1;
+    log(st, `${st.reps[a[0]].name} is cut off from the others.`, `${st.reps[a[0]].name} moved to network group B`);
+  }
+
+  else if (kind === "group"){
+    st.reps[a[0]].group = a[1];
+    log(st, `${st.reps[a[0]].name} moves to network group ${a[1] ? "B" : "A"}.`, `partition groups changed`);
+  }
+
+  else if (kind === "heal"){
+    st.reps.forEach(r => r.group = 0);
+    log(st, "The network heals. Everyone can reach everyone again.", "all replicas back in one group");
+  }
+
+  return st;
+}
+
+function techAdd(st, i, item){
+  const r = st.reps[i];
+  if (st.mode === "lww")   return `${r.name}'s whole list is now [${r.store.items.join(", ")}], stamped ${r.store.ts}. Sending it will REPLACE the others' lists.`;
+  if (st.mode === "twop")  return `"${item}" appended to the adds pile. Nothing else changes.`;
+  if (st.mode === "orset") return `mints receipt ${st.lastDot} for "${item}". No other phone can ever mint that name.`;
+  return "";
+}
+function techRemove(st, i, item){
+  const r = st.reps[i];
+  if (st.mode === "lww")   return `${r.name}'s list is now [${r.store.items.join(", ")||"—"}], stamped ${r.store.ts}.`;
+  if (st.mode === "twop")  return `"${item}" added to the blacklist — permanently, by name.`;
+  if (st.mode === "orset") return (st.lastTorn && st.lastTorn.length)
+      ? `tears up receipt(s) ${st.lastTorn.join(" ")} — only the ones she had already seen.`
+      : `she holds no receipt for "${item}", so there is nothing to tear up.`;
+  return "";
+}
+function mergeTech(st, m){
+  const to = st.reps[m.to];
+  if (st.mode === "lww")   return `keeps whichever of the two lists has the larger clock reading; the other list ceases to exist.`;
+  if (st.mode === "twop")  return `adds ∪ adds, blacklist ∪ blacklist.`;
+  if (st.mode === "orset") return `receipts ∪ receipts, torn ∪ torn, then every torn receipt is subtracted. ${to.store.killed.length} torn receipt(s) now stored.`;
+  return `row-by-row maximum → ${Object.entries(to.store.rows).map(([k,v])=>k+"="+v).join(" · ")}`;
+}
+function log(st, text, tech){ st.log.push({text, tech}); }
+
+/* ---------------- app ---------------- */
+
+let mode = "orset";
+let state = initState(mode);
+let history = [];
+let active = null;      // active scenario awaiting an answer
+let answered = {};
+let playing = false;
+
+const $ = id => document.getElementById(id);
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function push(act){
+  history.push(clone(state));
+  state = apply(state, act);
+  render();
+}
+
+function setMode(m, quiet){
+  mode = m; state = initState(m); history = [];
+  if (!quiet) state.log.push({text:`Switched to: ${MODES[m].title}. Everything is reset.`, tech:MODES[m].sub});
+  render();
+}
+
+function render(){
+  // modes
+  $("modes").innerHTML = Object.entries(MODES).map(([k,v]) =>
+    `<button class="mode" data-mode="${k}" aria-pressed="${k===mode}">
+       <span class="t">${v.title}</span><span class="s">${v.sub}</span></button>`).join("");
+  $("modeHint").textContent = MODES[mode].hint;
+
+  // verdict
+  const views = state.reps.map(r => valueText(mode, r.store));
+  const distinct = [...new Set(views)];
+  const v = $("verdict");
+  v.className = "verdict" + (distinct.length > 1 ? " split" : "");
+  v.innerHTML = distinct.length === 1
+    ? `<div class="v-main">All three phones agree: <span class="mono">${distinct[0]}</span></div>
+       <div class="v-sub">Converged. Every phone would show the same thing to its owner right now.</div>`
+    : `<div class="v-main">${distinct.length} different versions exist right now</div>
+       <div class="v-sub">${state.reps.map(r=>`${r.name} sees <span class="mono">${valueText(mode,r.store)}</span>`).join(" · ")}
+       ${state.wire.length ? ` — ${state.wire.length} message(s) still undelivered.` : " — and the wire is empty, so nothing will fix this on its own."}</div>`;
+
+  // replicas
+  $("reps").innerHTML = state.reps.map((r,i) => {
+    const acts = mode === "gcount"
+      ? `<button class="tiny" data-act="inc" data-i="${i}">+1</button>`
+      : `<span class="mono" style="font-size:12px;color:var(--faint)">add</span>
+         ${ITEMS.map(it=>`<button class="tiny" data-act="add" data-i="${i}" data-item="${it}">${it}</button>`).join("")}
+         <span class="mono" style="font-size:12px;color:var(--faint);margin-left:6px">remove</span>
+         ${ITEMS.map(it=>`<button class="tiny" data-act="remove" data-i="${i}" data-item="${it}">${it}</button>`).join("")}`;
+    const skewCtl = mode === "lww"
+      ? `<button class="tiny ${r.skew?"on":""}" data-act="skew" data-i="${i}">clock ${r.skew? "+"+(r.skew/1000)+"s fast" : "accurate"}</button>` : "";
+    return `<div class="rep ${state.changed.includes(i)?"changed":""}">
+      <div class="rep-top">
+        <span class="rep-name">${r.name}</span>
+        <span class="grp ${r.group?"b":""}">group ${r.group?"B":"A"}</span>
+        ${skewCtl}
+        <span style="flex:1"></span>
+        <button class="tiny" data-act="sync" data-i="${i}">Sync to everyone →</button>
+      </div>
+      <div class="seen">what ${r.name} sees</div>
+      <div class="value ${valueText(mode,r.store)==="[ empty ]"?"empty":""}">${valueText(mode, r.store)}</div>
+      <div class="stored">${storedHTML(mode, r.store, r)}</div>
+      <div class="row">${acts}</div>
+    </div>`;
+  }).join("");
+
+  // wire
+  $("wire").innerHTML = state.wire.length ? state.wire.map(m => {
+    const blocked = state.reps[m.from].group !== state.reps[m.to].group;
+    return `<div class="msg ${blocked?"blocked":""}">
+      <div class="hdr"><span>${state.reps[m.from].name} → ${state.reps[m.to].name}</span><span>#${m.id}</span></div>
+      <div class="body">${blocked ? "blocked by the network split" : storedHTML(mode, m.payload, state.reps[m.from])}</div>
+      <div class="row">
+        <button class="tiny" data-act="deliver" data-id="${m.id}">Deliver</button>
+        <button class="tiny" data-act="dup" data-id="${m.id}">Duplicate</button>
+        <button class="tiny" data-act="drop" data-id="${m.id}">Drop</button>
+      </div></div>`;
+  }).join("") : `<p class="empty-note">Nothing in flight. Press “Sync to everyone” on a phone.</p>`;
+
+  // network
+  $("netCtl").innerHTML = state.reps.map((r,i) =>
+    `<button class="tiny ${r.group?"on":""}" data-act="group" data-i="${i}">${r.name}: group ${r.group?"B":"A"}</button>`
+  ).join("") + `<button class="tiny" data-act="heal">Heal — everyone in group A</button>`;
+
+  // log
+  $("log").innerHTML = state.log.slice(-40).map((e,idx,arr) =>
+    `<div class="entry ${idx===arr.length-1?"hi":""}"><div class="n">${e.text}</div>${e.tech?`<div class="tech">${e.tech}</div>`:""}</div>`).join("")
+    || `<p class="empty-note">Nothing has happened yet.</p>`;
+
+  $("undo").disabled = history.length === 0;
+
+  // scenarios
+  $("scens").innerHTML = SCENARIOS.map(s =>
+    `<button class="scen ${answered[s.id]?"done":""}" data-scen="${s.id}">
+       <span class="q">${s.card}</span><span class="w">${s.cardSub}${answered[s.id]?" · done":""}</span></button>`).join("");
+
+  renderAsk();
+}
+
+function renderAsk(){
+  const slot = $("askSlot");
+  if (!active){ slot.innerHTML = ""; return; }
+  const s = active.s;
+  slot.innerHTML = `<div class="ask">
+    <div class="qq">${s.q}</div>
+    <div class="setup">${s.setup} &nbsp;<span class="mono" style="font-size:12.5px">mode: ${MODES[s.mode].title}</span></div>
+    ${active.picked == null
+      ? `<div class="opts">${s.opts.map((o,i)=>`<button data-opt="${i}">${o.t}</button>`).join("")}</div>`
+      : `<div class="opts">${s.opts.map((o,i)=>
+            `<button disabled class="${o.ok?"on":""}">${o.ok?"✓ ":""}${o.t}</button>`).join("")}</div>
+         <div class="result">
+           <span class="tag ${s.opts[active.picked].ok?"right":"wrong"}">${s.opts[active.picked].ok?"you were right":"not quite"}</span>
+           ${s.why}
+           ${active.done ? `<div style="margin-top:9px"><button data-replay="1">Replay it</button> <button data-close="1">Close and play freely</button></div>` : `<div class="mono" style="margin-top:9px;color:var(--faint)">playing…</div>`}
+         </div>`}
+  </div>`;
+}
+
+async function play(s){
+  playing = true;
+  setMode(s.mode, true);
+  state.log.push({text:`Setting up: ${s.card}.`, tech:MODES[s.mode].sub});
+  render();
+  const gap = reduced ? 0 : 850;
+  for (const act of s.steps){
+    await new Promise(r => setTimeout(r, gap));
+    history.push(clone(state));
+    state = apply(state, act);
+    render();
+  }
+  playing = false;
+  active.done = true;
+  renderAsk();
+}
+
+document.addEventListener("click", (ev) => {
+  const t = ev.target.closest("button");
+  if (!t) return;
+
+  if (t.dataset.mode){ active = null; setMode(t.dataset.mode); return; }
+  if (t.dataset.scen){
+    const s = SCENARIOS.find(x => x.id === t.dataset.scen);
+    active = {s, picked:null, done:false};
+    setMode(s.mode, true);
+    state.log.push({text:`Ready: ${s.card}. Answer the question above, then it plays.`, tech:s.setup});
+    render();
+    document.querySelector(".ask")?.scrollIntoView({behavior: reduced?"auto":"smooth", block:"center"});
+    return;
+  }
+  if (t.dataset.opt != null && active){
+    active.picked = Number(t.dataset.opt);
+    answered[active.s.id] = true;
+    renderAsk();
+    play(active.s);
+    return;
+  }
+  if (t.dataset.replay && active){ active.done = false; renderAsk(); play(active.s); return; }
+  if (t.dataset.close){ active = null; renderAsk(); return; }
+
+  if (playing) return;
+  const a = t.dataset.act;
+  if (!a) return;
+  const i = Number(t.dataset.i), id = Number(t.dataset.id);
+  if (a === "add")      push(["add", i, t.dataset.item]);
+  else if (a === "remove") push(["remove", i, t.dataset.item]);
+  else if (a === "inc")    push(["inc", i]);
+  else if (a === "sync")   push(["sync", i]);
+  else if (a === "deliver")push(["deliver", id]);
+  else if (a === "dup")    push(["dup", id]);
+  else if (a === "drop")   push(["drop", id]);
+  else if (a === "group")  push(["group", i, state.reps[i].group ? 0 : 1]);
+  else if (a === "heal")   push(["heal"]);
+  else if (a === "skew")   push(["skew", i, state.reps[i].skew ? 0 : 60000]);
+});
+
+$("deliverAll").onclick    = () => { if(!playing) push(["deliverAll"]); };
+$("shuffleDeliver").onclick= () => { if(!playing) push(["deliverRev"]); };
+$("undo").onclick = () => { if (history.length && !playing){ state = history.pop(); render(); } };
+$("reset").onclick= () => { if(!playing){ active = null; setMode(mode); } };
+
+setMode("orset", true);
+state.log.push({text:"Three phones, one shopping list, nobody in charge.", tech:"Pick a storage design above, or jump straight to a “guess first” situation at the bottom."});
+render();
+})();
+</script>

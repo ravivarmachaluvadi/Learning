@@ -1,0 +1,836 @@
+<title>Saga Trip Desk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #EFF1F5;
+    --surface: #FBFCFE;
+    --surface-2: #E4E8EF;
+    --ink: #1F2B3A;
+    --muted: #61707F;
+    --line: #CBD4DE;
+    --accent: #2456A6;
+    --accent-ink: #FBFCFE;
+    --ok: #2E7D4F;   --ok-bg: #E2EFE6;
+    --bad: #B3372E;  --bad-bg: #F6E3E0;
+    --warn: #A8771C; --warn-bg: #F4ECD9;
+    --comp: #7A4FA0; --comp-bg: #EEE6F5;
+    --shadow: 0 1px 3px rgba(31, 43, 58, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161D;
+      --surface: #192230;
+      --surface-2: #212C3C;
+      --ink: #E4E9F0;
+      --muted: #90A0B0;
+      --line: #324052;
+      --accent: #6FA3E8;
+      --accent-ink: #0E1520;
+      --ok: #6FC08E;   --ok-bg: #1C3128;
+      --bad: #E08074;  --bad-bg: #392422;
+      --warn: #D8AE5C; --warn-bg: #37301C;
+      --comp: #B48BD6; --comp-bg: #2C2338;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161D;
+    --surface: #192230;
+    --surface-2: #212C3C;
+    --ink: #E4E9F0;
+    --muted: #90A0B0;
+    --line: #324052;
+    --accent: #6FA3E8;
+    --accent-ink: #0E1520;
+    --ok: #6FC08E;   --ok-bg: #1C3128;
+    --bad: #E08074;  --bad-bg: #392422;
+    --warn: #D8AE5C; --warn-bg: #37301C;
+    --comp: #B48BD6; --comp-bg: #2C2338;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header h1 {
+    font-family: "Bricolage Grotesque", "Arial Black", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  .tagline { color: var(--muted); margin: 0 0 14px; max-width: 66ch; }
+  .story {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    max-width: 76ch;
+    margin: 0 0 22px;
+  }
+  .story p { margin: 6px 0; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+  fieldset.ctl {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 8px 12px 10px;
+    margin: 0;
+    min-width: 230px;
+    flex: 1 1 230px;
+  }
+  fieldset.ctl legend {
+    font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); padding: 0 6px;
+  }
+  .ctl label { display: block; cursor: pointer; padding: 2px 0; }
+  .ctl select {
+    width: 100%; font: inherit; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px;
+  }
+  .ctl .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 20px; }
+  button {
+    font: inherit; font-weight: 600;
+    border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink);
+    padding: 9px 15px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.tour { border-color: var(--warn); }
+
+  .board-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .board {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.25fr 1fr 1fr 1fr;
+    gap: 22px;
+    min-width: 980px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px 12px;
+    min-height: 240px;
+    position: relative;
+    outline: 2px solid transparent;
+    transition: outline-color 0.2s;
+  }
+  .card.active { outline-color: var(--accent); }
+  .card.compensating { outline-color: var(--comp); }
+  .card.dead { filter: grayscale(0.9); opacity: 0.75; }
+  .card.dead::after {
+    content: "💥 crashed — saga frozen";
+    position: absolute; inset: auto 8px 8px 8px;
+    text-align: center; background: var(--bad-bg); color: var(--bad);
+    font-weight: 600; border-radius: 6px; padding: 4px;
+  }
+  .card h3 { margin: 0 0 2px; font-size: 0.98rem; font-family: "Bricolage Grotesque", sans-serif; }
+  .card .role { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 8px; }
+
+  .kv {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 26px;
+    margin-top: 6px;
+    overflow-x: auto;
+  }
+  .kv .tname {
+    display: block;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .kv div { white-space: nowrap; padding: 1px 0; }
+  .kv .empty { color: var(--muted); font-style: italic; font-family: "IBM Plex Sans", sans-serif; }
+  .kv .ok { color: var(--ok); }
+  .kv .bad { color: var(--bad); }
+  .kv .compc { color: var(--comp); font-weight: 600; }
+  .cap {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 1.55rem; font-weight: 600; margin: 4px 0 0;
+  }
+  .cap small {
+    display: block; font-size: 0.72rem; color: var(--muted);
+    font-family: "IBM Plex Sans", sans-serif; font-weight: 400;
+  }
+
+  #ticket {
+    position: absolute; z-index: 5; font-size: 1.5rem; left: 0; top: 0;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    transition: transform 0.55s cubic-bezier(.45,0,.35,1), opacity 0.3s;
+    opacity: 0; pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) { #ticket { transition: none; } }
+
+  .verdict {
+    margin-top: 20px; border-radius: 10px; padding: 14px 18px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .verdict .v-state {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: 1.2rem; margin: 0 0 2px;
+  }
+  .verdict .v-why { margin: 0; color: var(--muted); max-width: 92ch; }
+  .verdict.ok    { background: var(--ok-bg);   border-color: var(--ok); }
+  .verdict.ok .v-state    { color: var(--ok); }
+  .verdict.bad   { background: var(--bad-bg);  border-color: var(--bad); }
+  .verdict.bad .v-state   { color: var(--bad); }
+  .verdict.warn  { background: var(--warn-bg); border-color: var(--warn); }
+  .verdict.warn .v-state  { color: var(--warn); }
+  .verdict.comp  { background: var(--comp-bg); border-color: var(--comp); }
+  .verdict.comp .v-state  { color: var(--comp); }
+
+  .log-wrap { margin-top: 22px; }
+  .log-wrap h2 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: 1.12rem; margin: 0 0 8px;
+  }
+  #log {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px;
+    max-height: 300px; overflow-y: auto;
+  }
+  .entry { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .entry:last-child { border-bottom: none; }
+  .entry .plain { margin: 0; }
+  .entry .tech {
+    margin: 2px 0 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem; color: var(--muted);
+  }
+  .entry.act .plain {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 600; color: var(--accent);
+  }
+  .entry.crash .plain { color: var(--bad); font-weight: 600; }
+  .entry.compe .plain { color: var(--comp); }
+  .entry.peek .plain { color: var(--warn); }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 84ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Saga Trip Desk</h1>
+  <p class="tagline">A travel agency books a trip — flight, then hotel, then car — across three companies that share nothing. No single transaction can cover all three. Watch a saga book them one commit at a time, and undo them backwards when a step fails.</p>
+</header>
+
+<div class="story">
+  <p><strong>The setup.</strong> Each company has <strong>1</strong> seat / room / car left. A trip needs all three: half a trip is worse than none. The coordinator keeps a <strong>durable log</strong> of what's done — its only memory if it crashes.</p>
+  <p><strong>New here?</strong> Press <em>“Run the whole story for me”</em>: four narrated acts — a smooth booking, a failure with the undo cascade, a coordinator crash and recovery, and the same saga with no coordinator at all.</p>
+</div>
+
+<div class="controls">
+  <fieldset class="ctl">
+    <legend>Who coordinates the trip?</legend>
+    <label><input type="radio" name="mode" value="orch" checked> A coordinator drives each step (orchestration)</label>
+    <label><input type="radio" name="mode" value="choreo"> Companies react to each other's events (choreography)</label>
+    <div class="hint" id="modeHint">Orchestration: one place knows the plan and keeps the saga log.</div>
+  </fieldset>
+  <fieldset class="ctl">
+    <legend>What goes wrong on this trip?</legend>
+    <select id="failSel">
+      <option value="none">Nothing — everything is available</option>
+      <option value="flight">The flight is sold out</option>
+      <option value="hotel">The hotel is sold out</option>
+      <option value="car">The car is sold out</option>
+      <option value="car+cancelfail">Car sold out — and the hotel's cancel line times out twice</option>
+    </select>
+    <div class="hint" id="failHint">Failures strike the booking (or cancellation) attempt itself.</div>
+  </fieldset>
+  <fieldset class="ctl">
+    <legend>Step or crash — your call</legend>
+    <div class="hint">“Next step” runs ONE action at a time. Crash the coordinator between any two actions and see what its log does and doesn't remember.</div>
+  </fieldset>
+</div>
+
+<div class="actions">
+  <button class="primary" id="btnStart">🧳 Start booking a trip</button>
+  <button id="btnStep" disabled>⏭ Next step</button>
+  <button id="btnPeek">👀 Second customer asks: any rooms left?</button>
+  <button id="btnCrash" disabled>💥 Crash the coordinator</button>
+  <button id="btnRestart" disabled>🔁 Restart coordinator (recover from log)</button>
+  <button id="btnReset">🧹 Reset everything</button>
+  <button class="tour" id="btnStory">▶ Run the whole story for me</button>
+</div>
+
+<div class="board-scroll">
+  <div class="board" id="board">
+    <div id="ticket">🎫</div>
+
+    <div class="card" id="c-orch">
+      <h3>🗂 Coordinator</h3>
+      <span class="role" id="orchRole">runs the plan: flight → hotel → car; on failure, undoes backwards</span>
+      <div class="kv"><span class="tname">saga log (durable — survives crashes)</span>
+        <div id="sagaLog"><div class="empty">empty</div></div></div>
+      <div class="kv"><span class="tname" id="planTitle">next actions in the plan</span>
+        <div id="planView"><div class="empty">no trip in progress</div></div></div>
+    </div>
+
+    <div class="card" id="c-flight">
+      <h3>✈️ Airline</h3>
+      <span class="role">its own database, its own commits</span>
+      <p class="cap"><span id="capFlight">1</span> seat<small>capacity remaining</small></p>
+      <div class="kv"><span class="tname">bookings</span>
+        <div id="bkFlight"><div class="empty">none</div></div></div>
+    </div>
+
+    <div class="card" id="c-hotel">
+      <h3>🏨 Hotel</h3>
+      <span class="role">its own database, its own commits</span>
+      <p class="cap"><span id="capHotel">1</span> room<small>capacity remaining</small></p>
+      <div class="kv"><span class="tname">bookings</span>
+        <div id="bkHotel"><div class="empty">none</div></div></div>
+    </div>
+
+    <div class="card" id="c-car">
+      <h3>🚗 Car rental</h3>
+      <span class="role">its own database, its own commits</span>
+      <p class="cap"><span id="capCar">1</span> car<small>capacity remaining</small></p>
+      <div class="kv"><span class="tname">bookings</span>
+        <div id="bkCar"><div class="empty">none</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict" id="verdict">
+  <p class="v-state" id="vState">Ready.</p>
+  <p class="v-why" id="vWhy">Start a trip — or run the guided story.</p>
+</div>
+
+<div class="log-wrap">
+  <h2>What just happened</h2>
+  <div id="log"></div>
+</div>
+
+<footer>Part of the <code>saga</code> learning lab — <code>README.md</code> has the full mechanism; <code>SagaLab.java</code> runs these same experiments in code. Companion lab: <code>transactional-outbox</code> — how each company's “booked!” event travels reliably.</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ state */
+const SERVICES = ["flight", "hotel", "car"];
+const LABEL = { flight: "Airline", hotel: "Hotel", car: "Car rental" };
+const CARD = { flight: "c-flight", hotel: "c-hotel", car: "c-car" };
+
+const S = {
+  svc: {},            // name -> {cap, bookings: {tripId: "BOOKED"/"CANCELLED"}}
+  log: [],            // saga log entries: "trip-1:flight:done", ...
+  queue: [],          // pending actions: {run, label, kind}
+  tripId: null,
+  tripN: 0,
+  crashed: false,
+  finished: null,     // "COMPLETED" | "ABORTED" | null
+  cancelFailsLeft: 0, // hotel cancel-line timeouts remaining
+  touring: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const mode = () => document.querySelector('input[name="mode"]:checked').value;
+
+function initServices() {
+  for (const n of SERVICES) S.svc[n] = { cap: 1, bookings: {} };
+}
+initServices();
+
+/* ------------------------------------------------------------------ log + narration */
+function say(plain, tech, cls) {
+  const e = document.createElement("div");
+  e.className = "entry" + (cls ? " " + cls : "");
+  const p = document.createElement("p");
+  p.className = "plain";
+  p.textContent = plain;
+  e.appendChild(p);
+  if (tech) {
+    const t = document.createElement("p");
+    t.className = "tech";
+    t.textContent = tech;
+    e.appendChild(t);
+  }
+  const box = $("log");
+  box.appendChild(e);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ------------------------------------------------------------------ ticket animation */
+async function flyTicket(fromId, toId) {
+  const tk = $("ticket");
+  const board = $("board");
+  const a = $(fromId).getBoundingClientRect();
+  const b = $(toId).getBoundingClientRect();
+  const p = board.getBoundingClientRect();
+  tk.style.transition = "none";
+  tk.style.transform = `translate(${a.left - p.left + a.width / 2}px, ${a.top - p.top + 34}px)`;
+  tk.style.opacity = "1";
+  tk.getBoundingClientRect();
+  tk.style.transition = "";
+  tk.style.transform = `translate(${b.left - p.left + b.width / 2}px, ${b.top - p.top + 34}px)`;
+  await sleep(600);
+  tk.style.opacity = "0";
+}
+
+function pulse(cardId, cls) {
+  const el = $(cardId);
+  el.classList.add(cls || "active");
+  setTimeout(() => el.classList.remove(cls || "active"), 700);
+}
+
+/* ------------------------------------------------------------------ service behavior */
+function forcedFail(step) {
+  const v = $("failSel").value;
+  return v === step || (v === "car+cancelfail" && step === "car");
+}
+
+function book(step, tripId) {
+  const s = S.svc[step];
+  if (s.bookings[tripId] === "BOOKED") return "already-booked";
+  if (forcedFail(step) || s.cap <= 0) return "sold-out";
+  s.cap -= 1;
+  s.bookings[tripId] = "BOOKED";
+  return "booked";
+}
+
+function cancel(step, tripId) {
+  if (step === "hotel" && S.cancelFailsLeft > 0) {
+    S.cancelFailsLeft -= 1;
+    return "timeout";
+  }
+  const s = S.svc[step];
+  if (s.bookings[tripId] === "BOOKED") {
+    s.bookings[tripId] = "CANCELLED";
+    s.cap += 1;
+    return "cancelled";
+  }
+  return "noop";
+}
+
+/* ------------------------------------------------------------------ orchestration plan */
+function logged(entry) { return S.log.includes(S.tripId + ":" + entry); }
+function writeLog(entry) { S.log.push(S.tripId + ":" + entry); }
+
+function buildForwardPlan(startIndex) {
+  // one saga step = TWO queue actions: (1) act at the service, (2) write log.
+  // The coordinator can die between them — that gap is the whole lesson.
+  const q = [];
+  for (let i = startIndex; i < SERVICES.length; i++) {
+    const step = SERVICES[i];
+    if (logged(step + ":done")) {
+      q.push({
+        kind: "skip", label: "skip " + step + " (log says done)",
+        run: async () => {
+          pulse("c-orch");
+          say(`The coordinator's log already says “${step}: done” — it skips the ${LABEL[step].toLowerCase()} without calling anyone.`,
+            `log contains ${S.tripId}:${step}:done → skip`);
+        },
+      });
+      continue;
+    }
+    q.push({
+      kind: "book", step, label: "ask " + LABEL[step] + " to book",
+      run: async () => {
+        await flyTicket("c-orch", CARD[step]);
+        pulse(CARD[step]);
+        const r = book(step, S.tripId);
+        if (r === "booked") {
+          say(`The ${LABEL[step].toLowerCase()} books ${S.tripId} — a normal local commit in its own database. Capacity is now ${S.svc[step].cap}.`,
+            `${step}.book('${S.tripId}') → BOOKED`);
+        } else if (r === "already-booked") {
+          say(`The ${LABEL[step].toLowerCase()} answers: “${S.tripId}? I already have that booking.” No double charge — the booking id made the retry harmless (idempotency).`,
+            `${step}.book('${S.tripId}') → already-booked (idempotent)`);
+        } else {
+          say(`The ${LABEL[step].toLowerCase()} refuses: sold out. The saga cannot go forward — time to undo what's already committed, in reverse.`,
+            `${step}.book('${S.tripId}') → StepFailed`, "crash");
+          writeLog(step + ":failed");
+          S.queue = buildCompensationPlan();
+          return;
+        }
+      },
+    });
+    q.push({
+      kind: "log", step, label: "write “" + step + ": done” to the log",
+      run: async () => {
+        pulse("c-orch");
+        writeLog(step + ":done");
+        say(`The coordinator writes “${step}: done” into its durable saga log. If it crashes now, a successor will know this step is finished.`,
+          `sagaLog.append('${S.tripId}:${step}:done')`);
+      },
+    });
+  }
+  q.push({
+    kind: "complete", label: "declare the trip complete",
+    run: async () => {
+      pulse("c-orch");
+      writeLog("SAGA_COMPLETED");
+      S.finished = "COMPLETED";
+      say(`All three bookings exist. The saga is COMPLETE — and no distributed transaction was ever involved: three ordinary commits, glued by the log.`,
+        `sagaLog.append('${S.tripId}:SAGA_COMPLETED')`);
+    },
+  });
+  return q;
+}
+
+function buildCompensationPlan() {
+  const q = [];
+  const completed = SERVICES.filter((s) => logged(s + ":done"));
+  for (const step of completed.slice().reverse()) {
+    q.push({
+      kind: "comp", step, label: "cancel the " + LABEL[step].toLowerCase(),
+      run: async function compRun() {
+        await flyTicket("c-orch", CARD[step]);
+        pulse(CARD[step], "compensating");
+        const r = cancel(step, S.tripId);
+        if (r === "timeout") {
+          say(`The ${LABEL[step].toLowerCase()}'s cancel line times out. A compensation is NOT allowed to give up — the trip is half-undone — so the coordinator will retry this exact cancel.`,
+            `${step}.cancel('${S.tripId}') → timeout — will retry`, "crash");
+          S.queue.unshift({ kind: "comp", step, label: "retry cancelling the " + LABEL[step].toLowerCase(), run: compRun });
+          return;
+        }
+        say(`COMPENSATE: the ${LABEL[step].toLowerCase()} cancels ${S.tripId} — a new forward transaction that undoes the booking's effect. Capacity back to ${S.svc[step].cap}.`,
+          `${step}.cancel('${S.tripId}') → ${r}`, "compe");
+        writeLog(step + ":compensated");
+      },
+    });
+  }
+  q.push({
+    kind: "abort", label: "declare the trip aborted",
+    run: async () => {
+      pulse("c-orch");
+      writeLog("SAGA_ABORTED");
+      S.finished = "ABORTED";
+      say(`Every committed step has been undone, newest first. The saga is ABORTED — the customer gets “no trip”, never “half a trip”.`,
+        `sagaLog.append('${S.tripId}:SAGA_ABORTED')`, "compe");
+    },
+  });
+  return q;
+}
+
+/* ------------------------------------------------------------------ choreography plan */
+function buildChoreoPlan() {
+  // no coordinator, no saga log: each action = a service reacting to an event
+  const chain = [
+    { ev: "TripRequested", step: "flight", okEv: "FlightBooked", failEv: "FlightFailed" },
+    { ev: "FlightBooked", step: "hotel", okEv: "HotelBooked", failEv: "HotelFailed" },
+    { ev: "HotelBooked", step: "car", okEv: "CarBooked", failEv: "CarFailed" },
+  ];
+  const q = [];
+  const emit = (name) => say(`event on the bus: ${name}`, null, "act");
+  for (const link of chain) {
+    q.push({
+      kind: "react", step: link.step,
+      label: LABEL[link.step] + " reacts to " + link.ev,
+      run: async () => {
+        await flyTicket(CARD[link.step === "flight" ? "flight" : SERVICES[SERVICES.indexOf(link.step) - 1]], CARD[link.step]);
+        pulse(CARD[link.step]);
+        const r = book(link.step, S.tripId);
+        if (r === "booked" || r === "already-booked") {
+          say(`Hearing “${link.ev}”, the ${LABEL[link.step].toLowerCase()} books ${S.tripId} and announces “${link.okEv}”. Nobody told it to — it subscribed.`,
+            `on ${link.ev}: ${link.step}.book → publish ${link.okEv}`);
+          if (link.okEv === "CarBooked") {
+            S.finished = "COMPLETED";
+            say(`“CarBooked” is the last event — the trip is complete. But notice: no log anywhere says so; you'd have to correlate events to know.`, null);
+          }
+        } else {
+          say(`Hearing “${link.ev}”, the ${LABEL[link.step].toLowerCase()} tries to book — sold out. It announces “${link.failEv}”, and the undo chain must now ripple backwards through subscriptions.`,
+            `on ${link.ev}: ${link.step}.book → StepFailed → publish ${link.failEv}`, "crash");
+          const idx = SERVICES.indexOf(link.step);
+          const undo = [];
+          for (let i = idx - 1; i >= 0; i--) {
+            const undoStep = SERVICES[i];
+            undo.push({
+              kind: "comp", step: undoStep,
+              label: LABEL[undoStep] + " reacts to a failure/cancel event",
+              run: async () => {
+                pulse(CARD[undoStep], "compensating");
+                cancel(undoStep, S.tripId);
+                say(`Hearing the failure, the ${LABEL[undoStep].toLowerCase()} cancels its booking and announces the cancellation — the next subscriber upstream takes it from there.`,
+                  `${undoStep}.cancel('${S.tripId}') → publish ${LABEL[undoStep]}Cancelled`, "compe");
+              },
+            });
+          }
+          undo.push({
+            kind: "abort", label: "chain ends",
+            run: async () => {
+              S.finished = "ABORTED";
+              say(`The cancellation chain has run dry. The trip is undone — but that fact exists only as a trail of events. “Where is ${S.tripId} stuck?” has no single place to look.`, null, "compe");
+            },
+          });
+          S.queue = undo;   // drop any remaining forward reactions
+          return;
+        }
+      },
+    });
+  }
+  return q;
+}
+
+/* ------------------------------------------------------------------ render */
+function fill(el, rows, emptyText) {
+  el.textContent = "";
+  if (!rows.length) {
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = emptyText;
+    el.appendChild(d);
+    return;
+  }
+  for (const r of rows) {
+    const d = document.createElement("div");
+    d.textContent = r.text;
+    if (r.cls) d.className = r.cls;
+    el.appendChild(d);
+  }
+}
+
+function render() {
+  for (const n of SERVICES) {
+    $("cap" + LABEL[n].split(" ")[0].replace("Airline", "Flight")).textContent = S.svc[n].cap;
+    fill($("bk" + LABEL[n].split(" ")[0].replace("Airline", "Flight")),
+      Object.entries(S.svc[n].bookings).map(([id, st]) => ({
+        text: id + "  " + st,
+        cls: st === "BOOKED" ? "ok" : "compc",
+      })), "none");
+  }
+  fill($("sagaLog"),
+    mode() === "choreo"
+      ? [{ text: "— none: choreography has no coordinator —", cls: "empty" }]
+      : S.log.map((e) => ({ text: e })),
+    "empty");
+  fill($("planView"),
+    S.queue.map((a, i) => ({ text: (i === 0 ? "→ " : "  ") + a.label })),
+    S.finished ? "trip " + S.finished.toLowerCase() : "no trip in progress");
+  $("c-orch").classList.toggle("dead", S.crashed);
+  $("orchRole").textContent = mode() === "choreo"
+    ? "not used — in choreography the plan lives inside the companies' subscriptions"
+    : "runs the plan: flight → hotel → car; on failure, undoes backwards";
+  $("planTitle").textContent = mode() === "choreo" ? "next event reactions" : "next actions in the plan";
+  updateButtons();
+  updateVerdict();
+}
+
+function updateButtons() {
+  const t = S.touring;
+  $("btnStart").disabled = t || (S.queue.length > 0 && !S.finished) || S.crashed;
+  $("btnStep").disabled = t || S.crashed || S.queue.length === 0;
+  $("btnCrash").disabled = t || S.crashed || mode() === "choreo" || S.queue.length === 0;
+  $("btnRestart").disabled = t || !S.crashed;
+  $("btnPeek").disabled = t;
+  $("btnReset").disabled = t;
+  $("btnStory").disabled = t;
+}
+
+function setVerdict(cls, state, why) {
+  $("verdict").className = "verdict" + (cls ? " " + cls : "");
+  $("vState").textContent = state;
+  $("vWhy").textContent = why;
+}
+
+function heldSteps() {
+  return SERVICES.filter((n) => S.svc[n].bookings[S.tripId] === "BOOKED");
+}
+
+function updateVerdict() {
+  if (!S.tripId) {
+    setVerdict("", "Ready.", "Start a trip — or run the guided story.");
+    return;
+  }
+  const held = heldSteps();
+  if (S.finished === "COMPLETED") {
+    setVerdict("ok", "✓ Trip booked — all three or none, delivered.",
+      `Flight, hotel and car are all committed for ${S.tripId}. Three independent local transactions ended up atomic-in-effect.`);
+  } else if (S.finished === "ABORTED") {
+    setVerdict(held.length ? "bad" : "ok",
+      held.length ? "✗ Aborted but not fully undone!" : "✓ Cleanly aborted — no half trip.",
+      held.length
+        ? `Still holding: ${held.join(", ")}. A compensation has not landed yet.`
+        : `A step failed, and every completed booking was cancelled in reverse order. The customer sees “no trip”, not “half a trip” — and never a charge without a trip.`);
+  } else if (S.crashed) {
+    setVerdict("bad", "⏸ Coordinator down — saga frozen mid-flight.",
+      `Provisional bookings (${held.join(", ") || "none yet"}) are sitting in real databases while nothing drives the saga. Only the durable log can save this trip — restart the coordinator.`);
+  } else {
+    setVerdict("warn", "⏳ Saga in flight — the world can already see it.",
+      `${held.length ? "Held so far: " + held.join(", ") + ". " : ""}These are real commits, visible to everyone, yet the trip may still abort. That visibility of maybe-temporary state is the isolation ACID would have given you — and sagas don't.`);
+  }
+}
+
+/* ------------------------------------------------------------------ user actions */
+function startTrip() {
+  if (S.queue.length > 0 && !S.finished) return;
+  S.tripN += 1;
+  S.tripId = "trip-" + S.tripN;
+  S.finished = null;
+  S.cancelFailsLeft = $("failSel").value === "car+cancelfail" ? 2 : 0;
+  if (mode() === "orch") {
+    writeLog("SAGA_STARTED");
+    S.queue = buildForwardPlan(0);
+    say(`A customer asks for a full trip. The coordinator opens saga ${S.tripId}, logs that it started, and will drive: flight → hotel → car. Step through it.`,
+      `sagaLog.append('${S.tripId}:SAGA_STARTED')`, "act");
+  } else {
+    S.queue = buildChoreoPlan();
+    say(`A customer asks for a full trip. In choreography there is no coordinator: the request is just an event — “TripRequested” for ${S.tripId} — and whoever subscribed will react.`,
+      `bus.publish('TripRequested', '${S.tripId}')`, "act");
+  }
+  render();
+}
+
+async function nextStep() {
+  if (S.crashed || !S.queue.length) return;
+  const action = S.queue.shift();
+  await action.run();
+  render();
+}
+
+function crashOrch() {
+  if (mode() === "choreo" || S.crashed) return;
+  S.crashed = true;
+  S.queue = [];
+  say(`💥 The coordinator process dies. Its in-memory plan is gone. The three companies' databases — and the saga log — are unharmed: they were never inside the coordinator.`,
+    "in-memory plan lost; durable saga log intact", "crash");
+  render();
+}
+
+function restartOrch() {
+  if (!S.crashed) return;
+  S.crashed = false;
+  const doneCount = SERVICES.filter((s) => logged(s + ":done")).length;
+  const aborting = SERVICES.some((s) => logged(s + ":failed"));
+  S.queue = aborting ? buildCompensationPlan() : buildForwardPlan(0);
+  say(`🔁 A fresh coordinator starts, knowing NOTHING except the saga log. It reads: ${doneCount} step(s) confirmed done. It rebuilds the plan — logged steps will be skipped; any step that acted but wasn't logged will be retried, and the company's booking-id check will absorb the duplicate.`,
+    `rebuild plan for ${S.tripId} from durable log`, "act");
+  render();
+}
+
+function peek() {
+  const cap = S.svc.hotel.cap;
+  const inFlight = S.tripId && !S.finished;
+  say(`👀 A second customer phones the hotel: “any rooms left?” — answer: ${cap}. ` +
+    (cap === 0 && inFlight
+      ? `They are turned away — yet the room is held by a saga that might still abort and give it back. This customer just read state that may later be undone: the isolation anomaly.`
+      : cap === 0
+        ? `Sold out — by a finished trip, so this answer is final and honest.`
+        : `Rooms available — nothing provisional is being hidden right now.`),
+    `hotel.capacity == ${cap}`, "peek");
+}
+
+function reset(silent) {
+  initServices();
+  Object.assign(S, {
+    log: [], queue: [], tripId: null, finished: null,
+    crashed: false, cancelFailsLeft: 0,
+  });
+  if (!silent) say("🧹 Everything reset: capacity 1 everywhere, logs empty.", "");
+  render();
+}
+
+/* ------------------------------------------------------------------ guided story */
+function setRadio(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) el.checked = true;
+}
+
+async function drain(pause) {
+  while (S.queue.length && !S.crashed) {
+    await nextStep();
+    await sleep(pause);
+  }
+}
+
+async function runStory() {
+  if (S.touring) return;
+  S.touring = true;
+  updateButtons();
+  const N = 1150;
+  try {
+    reset(true);
+    say("— ACT 1 · A smooth trip: three commits, zero distributed transactions —", "", "act");
+    setRadio("mode", "orch");
+    $("failSel").value = "none";
+    startTrip();
+    await sleep(N); await drain(700); await sleep(N);
+
+    say("— ACT 2 · The car is sold out: undo backwards, and a nosy customer —", "", "act");
+    reset(true);
+    $("failSel").value = "car";
+    startTrip();
+    await sleep(N);
+    await nextStep(); await sleep(500); await nextStep(); await sleep(500); // flight book+log
+    await nextStep(); await sleep(500); await nextStep(); await sleep(N);  // hotel book+log
+    peek(); await sleep(N * 1.6);
+    await drain(700); await sleep(600);
+    peek(); await sleep(N * 1.6);
+
+    say("— ACT 3 · The coordinator dies mid-saga; the log resurrects the trip —", "", "act");
+    reset(true);
+    $("failSel").value = "none";
+    startTrip();
+    await sleep(N);
+    await nextStep(); await sleep(500); await nextStep(); await sleep(500); // flight book+log
+    await nextStep(); await sleep(N);                                      // hotel BOOKED, not yet logged
+    crashOrch(); await sleep(N * 1.6);
+    restartOrch(); await sleep(N);
+    await drain(700); await sleep(600);
+    say("Watch what recovery did: flight was skipped (logged), the hotel was asked AGAIN and answered “already booked” — the booking id absorbed the duplicate. Log for durability, idempotency for the gaps.", "", "act");
+    await sleep(N * 1.8);
+
+    say("— ACT 4 · Same saga, no coordinator: choreography —", "", "act");
+    reset(true);
+    setRadio("mode", "choreo");
+    $("failSel").value = "car";
+    startTrip();
+    await sleep(N); await drain(800); await sleep(600);
+    say("It worked — but the plan is written nowhere: it lives spread across subscriptions, and so does the undo chain. Fine at three steps; at ten, you'll wish for the coordinator and its log.", "", "act");
+    setRadio("mode", "orch");
+  } finally {
+    S.touring = false;
+    render();
+  }
+}
+
+/* ------------------------------------------------------------------ wiring */
+$("btnStart").addEventListener("click", startTrip);
+$("btnStep").addEventListener("click", nextStep);
+$("btnCrash").addEventListener("click", crashOrch);
+$("btnRestart").addEventListener("click", restartOrch);
+$("btnPeek").addEventListener("click", peek);
+$("btnReset").addEventListener("click", () => reset(false));
+$("btnStory").addEventListener("click", runStory);
+document.querySelectorAll('input[name="mode"]').forEach((i) =>
+  i.addEventListener("change", () => {
+    $("modeHint").textContent = mode() === "orch"
+      ? "Orchestration: one place knows the plan and keeps the saga log."
+      : "Choreography: no coordinator, no saga log — the flow lives in who subscribed to what.";
+    reset(true);
+    render();
+  }));
+
+render();
+say("Welcome to the trip desk. Pick a failure, start a trip, and press “Next step” — or run the whole story.", "");
+</script>

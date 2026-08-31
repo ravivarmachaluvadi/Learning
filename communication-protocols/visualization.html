@@ -1,0 +1,659 @@
+<title>The Protocol Playground</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F6F7F9; --panel: #FFFFFF; --panel2: #EEF0F4;
+    --ink: #20242B; --ink-soft: #5A616D; --line: #D9DDE4;
+    --client: #2563EB; --push: #0E9F6E; --waste: #B45309;
+    --event: #DC2626; --broker: #7C3AED;
+    --ok-bg: #E7F6EF; --bad-bg: #FBEAEA; --note-bg: #FFF7E8;
+    --lane: #C6CBD4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171C; --panel: #1C2129; --panel2: #232935;
+      --ink: #E8EAEE; --ink-soft: #9AA3B0; --line: #313945;
+      --client: #6C9BFF; --push: #34C08B; --waste: #E0A34E;
+      --event: #F06A6A; --broker: #A78BFA;
+      --ok-bg: #16302655; --bad-bg: #3A1E1E88; --note-bg: #33290F88;
+      --lane: #47505E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171C; --panel: #1C2129; --panel2: #232935;
+    --ink: #E8EAEE; --ink-soft: #9AA3B0; --line: #313945;
+    --client: #6C9BFF; --push: #34C08B; --waste: #E0A34E;
+    --event: #F06A6A; --broker: #A78BFA;
+    --ok-bg: #16302655; --bad-bg: #3A1E1E88; --note-bg: #33290F88;
+    --lane: #47505E;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+  header { padding: 22px 26px 4px; max-width: 1240px; margin: 0 auto; }
+  header h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; text-wrap: balance; }
+  header p { margin: 0; color: var(--ink-soft); max-width: 72ch; }
+  .wrap { display: flex; gap: 18px; padding: 16px 26px 40px; max-width: 1240px; margin: 0 auto; align-items: flex-start; flex-wrap: wrap; }
+  .rail { flex: 0 0 320px; display: flex; flex-direction: column; gap: 14px; min-width: 280px; }
+  .stage { flex: 1 1 560px; display: flex; flex-direction: column; gap: 12px; min-width: 340px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 10px; }
+  .protos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .protos button {
+    font: 500 13px "IBM Plex Mono", monospace; padding: 8px 6px; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer;
+  }
+  .protos button.active { background: var(--client); border-color: var(--client); color: #fff; }
+  :root[data-theme="dark"] .protos button.active, .protos button.active { color: #fff; }
+  .protos button:focus-visible, button:focus-visible { outline: 2px solid var(--client); outline-offset: 1px; }
+  .slider-row { margin: 10px 0 2px; }
+  .slider-row label { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); }
+  .slider-row label b { color: var(--ink); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--client); }
+  .btnrow { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .btnrow button, .chaos button, .scen button.run {
+    font: 600 13px "IBM Plex Sans", sans-serif; padding: 7px 12px; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer;
+  }
+  .btnrow button.primary { background: var(--client); border-color: var(--client); color: #fff; }
+  .btnrow button:disabled { opacity: .4; cursor: default; }
+  .chaos button { width: 100%; margin-top: 6px; text-align: left; }
+  .chaos button b { color: var(--event); }
+  .chaos .hint { font-size: 12px; color: var(--ink-soft); margin: 2px 0 0; }
+  .scen { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
+  .scen:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .scen h3 { font-size: 14px; margin: 0 0 4px; }
+  .scen p.q { font-size: 13px; margin: 0 0 8px; color: var(--ink-soft); }
+  .choices { display: flex; flex-direction: column; gap: 5px; }
+  .choices button {
+    text-align: left; font: 400 13px "IBM Plex Sans", sans-serif; padding: 6px 10px;
+    border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer;
+  }
+  .choices button.picked { border-color: var(--client); background: var(--panel2); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 18px; height: 4px; border-radius: 2px; display: inline-block; }
+  .dotswatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  #diagram { width: 100%; height: auto; display: block; }
+  .counters { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+  .counter { background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
+  .counter .v { font: 600 19px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .counter .k { font-size: 11.5px; color: var(--ink-soft); line-height: 1.3; }
+  #verdict { border-left: 4px solid var(--client); font-size: 14.5px; }
+  #verdict.good { border-left-color: var(--push); background: var(--ok-bg); }
+  #verdict.bad { border-left-color: var(--event); background: var(--bad-bg); }
+  #verdict.note { border-left-color: var(--waste); background: var(--note-bg); }
+  #log { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 8px; }
+  .entry { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .entry .t { font: 500 11px "IBM Plex Mono", monospace; color: var(--ink-soft); }
+  .entry .msg { font-size: 13.5px; }
+  .entry .tech { font: 400 12px "IBM Plex Mono", monospace; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .entry.push { border-left-color: var(--push); }
+  .entry.req { border-left-color: var(--client); }
+  .entry.waste { border-left-color: var(--waste); }
+  .entry.event { border-left-color: var(--event); }
+  .pill { display: inline-block; font: 600 11px "IBM Plex Mono", monospace; padding: 2px 8px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); }
+  .pill.open { color: var(--push); border-color: var(--push); }
+  .pill.down { color: var(--event); border-color: var(--event); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header>
+  <h1>The Protocol Playground</h1>
+  <p>Two machines need to talk: the <b>Tiffin app</b> (top lane) and the <b>Tiffin server</b>
+  (bottom lane). Red bursts on the server lane are news — an order changing status. Pick a
+  protocol and watch how (and whether, and at what cost) the news reaches the app. Every scenario
+  on the left asks you to <b>predict before it runs</b> — that's where the learning is.</p>
+</header>
+
+<div class="wrap">
+  <div class="rail">
+    <div class="card">
+      <h2>1 · Pick the conversation shape</h2>
+      <div class="protos" id="protoButtons"></div>
+      <p id="protoBlurb" style="font-size:12.5px; color:var(--ink-soft); margin:10px 0 0;"></p>
+    </div>
+
+    <div class="card">
+      <h2>2 · The dials nobody controls in prod</h2>
+      <div class="slider-row">
+        <label>network delay, one way <b id="latVal">100 ms</b></label>
+        <input type="range" id="latency" min="1" max="6" value="2" aria-label="network delay">
+      </div>
+      <div class="slider-row">
+        <label>news happens every <b id="freqVal">3 s</b></label>
+        <input type="range" id="freq" min="0" max="4" value="2" aria-label="event frequency">
+      </div>
+      <div class="btnrow">
+        <button id="play" class="primary">▶ Play</button>
+        <button id="stepf">Step</button>
+        <button id="stepb">⟲ Step back</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="card chaos">
+      <h2>3 · Break something</h2>
+      <button id="fireEvent">📰 Make news happen <b>right now</b></button>
+      <button id="cutConn">✂️ <b>Cut the connection</b> (train tunnel)</button>
+      <button id="downBtn">💤 Take the <b id="downWho">server</b> down for 3 s</button>
+      <p class="hint">These are the failures from README §11. Predict, then break.</p>
+    </div>
+
+    <div class="card" id="scenarios">
+      <h2>4 · Predict, then run</h2>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--client)"></span> client asks</span>
+          <span><span class="swatch" style="background:var(--push)"></span> server pushes</span>
+          <span><span class="swatch" style="background:var(--waste)"></span> wasted ask</span>
+          <span><span class="dotswatch" style="background:var(--event)"></span> news happens</span>
+          <span><span class="dotswatch" style="border:2px solid var(--push); background:transparent"></span> news reaches screen</span>
+        </div>
+        <span class="pill" id="connPill">no connection</span>
+      </div>
+      <svg id="diagram" viewBox="0 0 860 330" role="img" aria-label="wire diagram"></svg>
+    </div>
+
+    <div class="card counters" id="counters"></div>
+
+    <div class="card" id="verdict">Pick a protocol and press <b>Play</b> — or run a scenario from the left rail and let it drive.</div>
+
+    <div class="card">
+      <h2>Event log — newest first</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PURE SIMULATION — no DOM in this block (node-testable).
+   1 tick = 50 ms of simulated time. State in, state out.
+   ============================================================ */
+const TICK_MS = 50;
+
+const PROTOS = {
+  polling:  { name: "Polling",      blurb: "The app asks “any news?” every 2 s. Server never speaks first. (README §10.6)" },
+  longpoll: { name: "Long poll",    blurb: "The app asks; the server HOLDS the request open until there is news, then the app immediately asks again. (§10.6)" },
+  sse:      { name: "SSE",          blurb: "One request; the response never ends. Server trickles events down it. Auto-reconnect replays missed events via Last-Event-ID. (§10.7)" },
+  websocket:{ name: "WebSocket",    blurb: "HTTP handshake upgrades to a persistent two-way pipe. Fast — but recovery after a drop is YOUR code, not the protocol's. (§10.6)" },
+  webhook:  { name: "Webhook",      blurb: "Roles flip: the provider (bottom) POSTs to YOUR endpoint (top) when news happens, retrying until you answer 2xx. (§10.8)" },
+  queue:    { name: "Queue",        blurb: "A broker lane appears. Producer drops messages in the mailbox and moves on; the consumer empties it on its own schedule — even after being down. (§10.9)" },
+};
+
+function initState(mode, latencyTicks, eventEvery) {
+  return {
+    mode, lat: latencyTicks, eventEvery,
+    t: 0, msgs: [], events: [], log: [], queue: [],
+    conn: "none",             // none | connecting | open | backoff
+    backoffUntil: 0, attempt: 0, lastDeliveredId: 0,
+    nextPollAt: 4, heldSince: null, holdReqId: null,
+    downUntil: 0,             // server (or webhook-consumer / queue-consumer) down
+    consumerBusyUntil: 0,     // queue mode
+    nextMsgId: 1, nextEventId: 1,
+    stats: { asks: 0, pushes: 0, wasted: 0, occurred: 0, delivered: 0, missed: 0, latSum: 0, retries: 0, maxDepth: 0 },
+  };
+}
+
+function addLog(s, kind, msg, tech) { s.log.push({ t: s.t, kind, msg, tech }); if (s.log.length > 200) s.log.shift(); }
+
+function send(s, from, to, kind, label, opts = {}) {
+  const m = { id: s.nextMsgId++, from, to, kind, label,
+              sentT: s.t, arriveT: s.t + s.lat, ...opts };
+  s.msgs.push(m); if (s.msgs.length > 400) s.msgs.shift();
+  return m;
+}
+
+function serverUp(s)   { return s.t >= s.downUntil; }
+
+function undelivered(s) { return s.events.filter(e => e.deliveredT === null && !e.missed); }
+
+function deliverEvents(s, ids, how) {
+  let n = 0;
+  for (const e of s.events) if (ids.includes(e.id) && e.deliveredT === null) {
+    e.deliveredT = s.t; n++;
+    s.stats.delivered++; s.stats.latSum += (s.t - e.occurredT) * TICK_MS;
+    s.lastDeliveredId = Math.max(s.lastDeliveredId, e.id);
+    addLog(s, "push", `The screen just learned “order #${e.id} updated” — ${((s.t - e.occurredT) * TICK_MS / 1000).toFixed(2)} s after it actually happened, via ${how}.`,
+           `event id=${e.id} occurred t=${e.occurredT * TICK_MS}ms delivered t=${s.t * TICK_MS}ms`);
+  }
+  return n;
+}
+
+function occurEvent(s) {
+  const e = { id: s.nextEventId++, occurredT: s.t, deliveredT: null, missed: false, attempts: 0, nextTryAt: s.t };
+  s.events.push(e); s.stats.occurred++;
+  addLog(s, "event", `News! Order #${e.id} changed status on the ${s.mode === "webhook" ? "provider" : "server"}. Nobody on the other side knows yet.`,
+         `event id=${e.id} @ t=${s.t * TICK_MS}ms`);
+  return e;
+}
+
+/* ---- one tick ---- */
+function step(s) {
+  s = structuredClone(s);
+  s.t++;
+
+  // scheduled news
+  if (s.eventEvery > 0 && s.t % s.eventEvery === 0) occurEvent(s);
+  if (s.fireNow) { occurEvent(s); s.fireNow = false; }
+
+  // deliver messages that arrive this tick
+  for (const m of s.msgs) if (m.arriveT === s.t && !m.dropped) onArrive(s, m);
+
+  // per-protocol client behaviour
+  const P = s.mode;
+  if (P === "polling") {
+    if (s.t >= s.nextPollAt) {
+      s.stats.asks++; send(s, "C", "S", "req", "GET /status");
+      s.nextPollAt = s.t + 40; // every 2 s
+    }
+  } else if (P === "longpoll") {
+    if (s.conn === "none") { s.conn = "waiting"; s.stats.asks++; send(s, "C", "S", "req", "GET /status?wait=true"); }
+    if (s.heldSince !== null && s.t - s.heldSince > 160 && serverUp(s)) { // 8 s hold cap
+      send(s, "S", "C", "resp", "200 (empty, renew)", { renew: true });
+      s.heldSince = null; s.holdReqId = null;
+    }
+  } else if (P === "sse" || P === "websocket") {
+    if (s.conn === "none") { s.conn = "connecting"; s.stats.asks++;
+      send(s, "C", "S", "req", P === "sse" ? `GET /events  Last-Event-ID:${s.lastDeliveredId}` : "GET /live  Upgrade: websocket"); }
+    if (s.conn === "backoff" && s.t >= s.backoffUntil) { s.conn = "none"; }
+    if (P === "websocket" && s.conn === "open" && s.t % 100 === 0) {
+      s.stats.asks++; send(s, "C", "S", "req", "ping ♥", { heartbeat: true });
+    }
+  } else if (P === "webhook") {
+    // provider retries undelivered events with backoff
+    for (const e of s.events) if (e.deliveredT === null && s.t >= e.nextTryAt) {
+      e.attempts++; if (e.attempts > 1) s.stats.retries++;
+      e.nextTryAt = s.t + 20 * Math.pow(2, e.attempts); // 1s, 2s, 4s…
+      s.stats.pushes++;
+      send(s, "S", "C", "push", `POST /callbacks (attempt ${e.attempts})`, { eventIds: [e.id] });
+      if (e.attempts > 1) addLog(s, "req", `No 2xx yet for order #${e.id} — the provider retries (attempt ${e.attempts}), with backoff.`,
+                                 `retry event=${e.id} next in ${20 * Math.pow(2, e.attempts) * TICK_MS}ms`);
+    }
+  } else if (P === "queue") {
+    for (const e of s.events) if (!e.published) { e.published = true; send(s, "S", "B", "pub", `publish order-${e.id}`, { eventIds: [e.id] }); }
+    // broker delivers to consumer when free & up
+    if (s.queue.length && s.t >= s.downUntil && s.t >= s.consumerBusyUntil) {
+      const id = s.queue.shift();
+      s.consumerBusyUntil = s.t + s.lat + 12; // travel + processing
+      s.stats.pushes++;
+      send(s, "B", "C", "push", `deliver order-${id}`, { eventIds: [id] });
+    }
+    s.stats.maxDepth = Math.max(s.stats.maxDepth, s.queue.length);
+  }
+
+  // server-side: push on open stream when news exists
+  if ((P === "sse" || P === "websocket") && s.conn === "open" && serverUp(s)) {
+    for (const e of undelivered(s)) if (!e.inFlight) {
+      // websocket after reconnect: events that occurred while disconnected are lost
+      e.inFlight = true; s.stats.pushes++;
+      send(s, "S", "C", "push", P === "sse" ? `data: {"order":${e.id}}` : `frame {"order":${e.id}}`, { eventIds: [e.id] });
+    }
+  }
+  if (P === "longpoll" && s.holdReqId !== null && undelivered(s).length && serverUp(s)) {
+    const ids = undelivered(s).map(e => e.id);
+    send(s, "S", "C", "resp", "200 + news", { eventIds: ids });
+    ids.forEach(id => s.events.find(e => e.id === id).inFlight = true);
+    s.heldSince = null; s.holdReqId = null;
+  }
+
+  return s;
+}
+
+function onArrive(s, m) {
+  const P = s.mode;
+  if (m.to === "S") {
+    if (!serverUp(s) && P !== "queue") { m.lost = true; return; }   // server down: request vanishes
+    if (P === "polling" && m.kind === "req") {
+      const ids = undelivered(s).map(e => e.id);
+      if (ids.length) send(s, "S", "C", "resp", "200 + news", { eventIds: ids });
+      else { s.stats.wasted++; send(s, "S", "C", "resp", "200 (nothing new)", { wasted: true });
+             addLog(s, "waste", "The app asked “any news?” — there was none. Full request, auth, response: pure cost.", "GET /status → 200 {}"); }
+    } else if (P === "longpoll" && m.kind === "req") {
+      const ids = undelivered(s).map(e => e.id);
+      if (ids.length) send(s, "S", "C", "resp", "200 + news", { eventIds: ids });
+      else { s.heldSince = s.t; s.holdReqId = m.id;
+             addLog(s, "req", "The server has no news — so it HOLDS the request open instead of answering. The ask is parked, not wasted.", "held open (long poll)"); }
+    } else if ((P === "sse" || P === "websocket") && m.kind === "req" && !m.heartbeat) {
+      send(s, "S", "C", "resp", P === "sse" ? "200 text/event-stream" : "101 Switching Protocols", { opens: true });
+      if (P === "sse") { // replay anything missed, thanks to Last-Event-ID
+        for (const e of s.events) if (e.deliveredT === null) e.inFlight = false;
+      }
+      if (P === "websocket") { // protocol replays nothing; mark missed as lost forever
+        for (const e of s.events) if (e.deliveredT === null && !e.inFlight && !e.missed && e.occurredT < m.sentT) {
+          e.missed = true; s.stats.missed++;
+          addLog(s, "event", `Order #${e.id}'s update is GONE for this client: it was pushed into a dead pipe (or occurred while disconnected) and WebSocket keeps no history. Only app-level resync could recover it.`,
+                 `event id=${e.id} lost — no replay in protocol`);
+        }
+      }
+    } else if (P === "webhook" && m.kind === "ack") {
+      // provider records success; nothing to do — delivery already counted
+    }
+  }
+  if (m.to === "C") {
+    if (P === "webhook" && m.kind === "push") {
+      if (!serverUp(s)) { // "server down" means YOUR endpoint down in webhook mode
+        m.lost = true;
+        addLog(s, "event", `The provider knocked (order #${m.eventIds[0]}) — but your endpoint is down. No 2xx, so it WILL come back.`, "POST → connection refused");
+        return;
+      }
+      const n = deliverEvents(s, m.eventIds, "a webhook POST to your endpoint");
+      if (n === 0) { s.stats.wasted++; addLog(s, "waste", `Duplicate knock for order #${m.eventIds[0]} — a retry raced the first success. Your idempotency check shrugs it off.`, "duplicate delivery (at-least-once)"); }
+      send(s, "C", "S", "ack", "200 OK");
+    } else if (m.kind === "resp" && m.opens) {
+      s.conn = "open"; s.attempt = 0;
+      addLog(s, "push", P === "sse" ? "The stream is open. From here on, news costs the app NOTHING to receive."
+                                     : "Handshake done — this connection is no longer HTTP. Either side may now speak at any time.",
+             m.label);
+    } else if (m.kind === "resp" || m.kind === "push") {
+      if (m.eventIds) deliverEvents(s, m.eventIds, P === "queue" ? "the broker" : m.kind === "push" ? "a server push" : "a poll reply");
+      if (P === "longpoll" && !m.renew) { s.conn = "none"; }      // immediately re-ask
+      if (P === "longpoll" && m.renew) { s.conn = "none"; }
+      if (P === "queue" && m.eventIds) send(s, "C", "B", "ack", `ack order-${m.eventIds[0]}`);
+    }
+  }
+  if (m.to === "B") {
+    if (m.kind === "pub") { s.queue.push(...m.eventIds);
+      addLog(s, "req", `Producer dropped order-${m.eventIds[0]} in the mailbox and moved on — it does not care whether the consumer is even alive.`, `enqueued; depth=${s.queue.length}`); }
+    // acks just remove — already shifted at delivery time
+  }
+}
+
+/* chaos actions (used by UI and scenarios) */
+function actCut(s) {
+  s = structuredClone(s);
+  if (s.conn === "open" || s.conn === "connecting" || s.conn === "waiting") {
+    s.conn = "backoff"; s.attempt++;
+    s.backoffUntil = s.t + 20 * Math.pow(2, Math.min(s.attempt - 1, 3));
+    for (const m of s.msgs) if (m.arriveT > s.t) m.dropped = true;
+    s.heldSince = null; s.holdReqId = null;
+    for (const e of s.events) if (e.inFlight && e.deliveredT === null) {
+      if (s.mode === "sse") e.inFlight = false;            // Last-Event-ID will replay it
+      else if (s.mode === "websocket" && !e.missed) {      // pushed into a dead pipe: gone
+        e.missed = true; s.stats.missed++;
+        addLog(s, "event", `Order #${e.id}'s update was mid-flight when the pipe died. WebSocket keeps no history — it is lost unless the app resyncs.`,
+               `event id=${e.id} lost in dead pipe`);
+      }
+    }
+    addLog(s, "event", `✂️ Connection cut (train tunnel). Neither side is told — each will only notice when it tries to use the pipe. Client will redial with backoff (${20 * Math.pow(2, Math.min(s.attempt - 1, 3)) * TICK_MS} ms).`,
+           "TCP RST/timeout; backoff+jitter per README §11.2");
+  } else {
+    addLog(s, "event", "✂️ Nothing persistent to cut in this mode — each exchange is its own short connection. (That is itself the lesson.)", "");
+  }
+  return s;
+}
+function actDown(s) {
+  s = structuredClone(s);
+  s.downUntil = s.t + 60; // 3 s
+  const who = s.mode === "webhook" ? "your endpoint" : s.mode === "queue" ? "the consumer" : "the server";
+  addLog(s, "event", `💤 ${who} is down for 3 s. Watch who notices, and what happens to news that fires meanwhile.`, "");
+  if ((s.mode === "sse" || s.mode === "websocket") && s.conn === "open") return actCut(s);
+  return s;
+}
+function actFire(s) { s = structuredClone(s); s.fireNow = true; return s; }
+
+/* verdict sentence */
+function verdictText(s) {
+  const st = s.stats;
+  const avg = st.delivered ? (st.latSum / st.delivered / 1000).toFixed(2) : "—";
+  const base = `${st.occurred} piece(s) of news · ${st.delivered} reached the screen` +
+    (st.missed ? ` · ${st.missed} LOST` : "") +
+    ` · avg delay ${avg} s · ${st.asks} client asks (${st.wasted} carried nothing)` +
+    (st.retries ? ` · ${st.retries} provider retries` : "") +
+    (s.mode === "queue" ? ` · deepest mailbox backlog: ${st.maxDepth}` : "");
+  return base;
+}
+
+/* export for node smoke test */
+if (typeof module !== "undefined") module.exports = { initState, step, actCut, actDown, actFire, verdictText };
+</script>
+
+<script>
+/* ============================================================
+   UI LAYER — rendering, controls, scenarios
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const LAT_MS = [50, 100, 150, 200, 250, 300];
+const FREQ = [0, 40, 60, 100, 200];               // ticks; 0 = only manual
+const FREQ_LABEL = ["only when I click", "2 s", "3 s", "5 s", "10 s"];
+
+let state = null, history = [], timer = null, mode = "polling";
+let scenario = null, userPick = null, verdictHold = false;
+
+function freshState() {
+  const lat = +$("latency").value;               // 1..6 ticks
+  const ev = FREQ[+$("freq").value];
+  return initState(mode, lat, ev);
+}
+
+function reset() {
+  stop(); state = freshState(); history = []; scenario = null; userPick = null; verdictHold = false;
+  $("verdict").className = "card";
+  $("verdict").innerHTML = "Press <b>Play</b>, or fire news by hand and step through tick by tick.";
+  draw();
+}
+
+function stop() { if (timer) { clearInterval(timer); timer = null; $("play").textContent = "▶ Play"; } }
+
+function tick() {
+  history.push(state); if (history.length > 1200) history.shift();
+  state = step(state);
+  if (scenario) runScenarioTick();
+  draw();
+}
+
+function draw() {
+  const s = state;
+  drawDiagram(s); drawCounters(s); drawLog(s); drawPill(s);
+  if (!scenario && !verdictHold) { $("verdict").className = "card"; $("verdict").innerHTML = "<b>Scoreboard:</b> " + verdictText(s); }
+}
+
+/* ---- diagram ---- */
+const LANE_Y = { C: 60, B: 165, S: 270 };
+const PX = 3, W = 860, RIGHT = 830;
+function xOf(s, t) { return RIGHT - (s.t - t) * PX; }
+
+function drawDiagram(s) {
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const colC = css("--client"), colP = css("--push"), colW = css("--waste"),
+        colE = css("--event"), colB = css("--broker"), colL = css("--lane"),
+        ink = css("--ink"), soft = css("--ink-soft");
+  const showB = s.mode === "queue";
+  const topName = s.mode === "webhook" ? "Tiffin server — YOUR endpoint (consumer)" : s.mode === "queue" ? "Consumer service" : "Tiffin app (client)";
+  const botName = s.mode === "webhook" ? "PayFlow (provider)" : s.mode === "queue" ? "Producer service" : "Tiffin server";
+  let svg = "";
+  // lanes
+  for (const [lane, y] of Object.entries(LANE_Y)) {
+    if (lane === "B" && !showB) continue;
+    const down = (s.t < s.downUntil) && ((lane === "C" && (s.mode === "webhook" || s.mode === "queue")) || (lane === "S" && s.mode !== "webhook" && s.mode !== "queue"));
+    svg += `<line x1="20" y1="${y}" x2="${RIGHT}" y2="${y}" stroke="${down ? colE : colL}" stroke-width="2" ${down ? 'stroke-dasharray="4 4"' : ""}/>`;
+    const label = lane === "C" ? topName : lane === "B" ? "Broker (the mailbox)" : botName;
+    svg += `<text x="20" y="${y - 10}" fill="${soft}" font-size="12" font-family="IBM Plex Mono,monospace">${label}${down ? " — DOWN" : ""}</text>`;
+  }
+  if (showB && s.queue.length) {
+    for (let i = 0; i < Math.min(s.queue.length, 14); i++)
+      svg += `<rect x="${RIGHT - 18 - i * 14}" y="${LANE_Y.B - 22}" width="10" height="10" rx="2" fill="${colB}"/>`;
+    svg += `<text x="${RIGHT - 18}" y="${LANE_Y.B - 30}" fill="${colB}" font-size="11" text-anchor="end" font-family="IBM Plex Mono,monospace">backlog: ${s.queue.length}</text>`;
+  }
+  // messages
+  for (const m of s.msgs) {
+    const x1 = xOf(s, m.sentT), y1 = LANE_Y[m.from], y2 = LANE_Y[m.to];
+    if (x1 < -40 && xOf(s, m.arriveT) < -40) continue;
+    const col = m.wasted ? colW : (m.from === "C" ? colC : m.kind === "pub" || m.from === "B" ? colB : colP);
+    const frac = Math.min(1, (s.t - m.sentT) / Math.max(1, m.arriveT - m.sentT));
+    const x2 = x1 + (xOf(s, m.arriveT) - x1) * 1, yEnd = y1 + (y2 - y1) * frac, xEnd = x1 + (x2 - x1) * frac;
+    if (m.dropped && frac < 1) continue;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${xEnd}" y2="${yEnd}" stroke="${col}" stroke-width="${m.kind === "push" ? 2.5 : 1.5}" opacity="${m.lost ? .35 : .8}" ${m.lost ? 'stroke-dasharray="3 3"' : ""}/>`;
+    if (frac < 1) svg += `<circle cx="${xEnd}" cy="${yEnd}" r="4" fill="${col}"/>`;
+    else if (m.arriveT >= s.t - 6) svg += `<circle cx="${xEnd}" cy="${yEnd}" r="6" fill="none" stroke="${col}" stroke-width="2"/>`;
+  }
+  // events
+  for (const e of s.events) {
+    const x = xOf(s, e.occurredT); if (x < -20) continue;
+    const y = LANE_Y.S;
+    svg += `<circle cx="${x}" cy="${y}" r="6" fill="${colE}"/><text x="${x}" y="${y + 22}" fill="${colE}" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">#${e.id}</text>`;
+    if (e.deliveredT !== null) {
+      const xd = xOf(s, e.deliveredT), yd = s.mode === "webhook" ? LANE_Y.C : LANE_Y.C;
+      if (xd > -20) svg += `<circle cx="${xd}" cy="${yd}" r="7" fill="none" stroke="${colP}" stroke-width="2.5"/><text x="${xd}" y="${yd - 14}" fill="${colP}" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">#${e.id}✓</text>`;
+    }
+    if (e.missed) svg += `<text x="${x}" y="${y - 12}" fill="${colE}" font-size="12" text-anchor="middle">✗ lost</text>`;
+  }
+  // clock
+  svg += `<text x="${RIGHT}" y="322" fill="${soft}" font-size="12" text-anchor="end" font-family="IBM Plex Mono,monospace">t = ${(s.t * TICK_MS / 1000).toFixed(1)} s · window shows last ${(RIGHT / PX * TICK_MS / 1000).toFixed(0)} s</text>`;
+  $("diagram").innerHTML = svg;
+}
+
+function drawCounters(s) {
+  const st = s.stats;
+  const avg = st.delivered ? (st.latSum / st.delivered / 1000).toFixed(2) + " s" : "—";
+  const items = [
+    ["news occurred", st.occurred], ["reached screen", st.delivered],
+    ["lost forever", st.missed], ["avg news delay", avg],
+    ["client asks", st.asks], ["asks with no news", st.wasted],
+    ["server pushes", st.pushes], ["provider retries", st.retries],
+  ];
+  if (s.mode === "queue") items.push(["max mailbox depth", st.maxDepth]);
+  $("counters").innerHTML = items.map(([k, v]) =>
+    `<div class="counter"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+}
+
+function drawLog(s) {
+  $("log").innerHTML = s.log.slice(-40).map(e =>
+    `<div class="entry ${e.kind}"><span class="t">${(e.t * TICK_MS / 1000).toFixed(2)} s</span>
+     <div class="msg">${e.msg}</div>${e.tech ? `<div class="tech">${e.tech}</div>` : ""}</div>`).join("");
+}
+
+function drawPill(s) {
+  const p = $("connPill");
+  const persistent = s.mode === "sse" || s.mode === "websocket";
+  if (!persistent) { p.className = "pill"; p.textContent = s.mode === "queue" ? "async — broker in the middle" : "one connection per exchange"; return; }
+  if (s.conn === "open") { p.className = "pill open"; p.textContent = "connection OPEN (persistent)"; }
+  else if (s.conn === "backoff") { p.className = "pill down"; p.textContent = "reconnecting (backoff)…"; }
+  else { p.className = "pill"; p.textContent = "connecting…"; }
+}
+
+/* ---- controls ---- */
+for (const [key, p] of Object.entries(PROTOS)) {
+  const b = document.createElement("button");
+  b.textContent = p.name; b.dataset.proto = key;
+  b.onclick = () => { mode = key; document.querySelectorAll("#protoButtons button").forEach(x => x.classList.toggle("active", x.dataset.proto === key)); $("protoBlurb").textContent = p.blurb; $("downWho").textContent = key === "webhook" ? "your endpoint" : key === "queue" ? "consumer" : "server"; reset(); };
+  $("protoButtons").appendChild(b);
+}
+document.querySelector("#protoButtons button").classList.add("active");
+$("protoBlurb").textContent = PROTOS.polling.blurb;
+
+$("latency").oninput = e => { $("latVal").textContent = LAT_MS[e.target.value - 1] + " ms"; reset(); };
+$("freq").oninput = e => { $("freqVal").textContent = FREQ_LABEL[e.target.value]; reset(); };
+$("play").onclick = () => { if (timer) stop(); else { verdictHold = false; $("play").textContent = "⏸ Pause"; timer = setInterval(tick, 60); } };
+$("stepf").onclick = () => { stop(); verdictHold = false; tick(); };
+$("stepb").onclick = () => { stop(); if (history.length) { state = history.pop(); draw(); } };
+$("reset").onclick = reset;
+$("fireEvent").onclick = () => { state = actFire(state); if (!timer) tick(); };
+$("cutConn").onclick = () => { state = actCut(state); draw(); };
+$("downBtn").onclick = () => { state = actDown(state); draw(); };
+
+/* ---- scenarios: predict, then run ---- */
+const SCENARIOS = [
+  {
+    id: "quiet", title: "The quiet hour (polling)", proto: "polling", freqIdx: 4, dur: 400,
+    q: "News comes only every 10 s, the app polls every 2 s. After 20 s, what does the scoreboard look like?",
+    choices: ["Few asks, all useful", "Many asks, ~80% carried nothing", "News arrived instantly anyway"],
+    correct: 1,
+    at: [],
+    explain: "Polling pays twice: most asks return empty (pure cost), AND news still waits up to a full poll interval to be noticed. Tighten the interval → more waste. Loosen it → more staleness. There is no good setting — that trade IS why push protocols exist (README §10.6)."
+  },
+  {
+    id: "race", title: "Breaking news race (SSE)", proto: "sse", freqIdx: 2, dur: 300,
+    q: "Same news schedule, but the app holds one open SSE stream. What's the average news delay compared to polling's ~1 s?",
+    choices: ["About the same", "Roughly the one-way network delay (~0.1 s)", "Slower — streams add overhead"],
+    correct: 1,
+    at: [],
+    explain: "Once the stream is open, the server pushes the instant news exists — the only cost left is the wire itself. One ask total, zero waste. This is §10.7, and exactly how LLM token streaming reaches your browser."
+  },
+  {
+    id: "tunnelws", title: "Train tunnel (WebSocket)", proto: "websocket", freqIdx: 1, dur: 360,
+    q: "Mid-stream, the connection dies for ~2 s while news keeps firing. After reconnect, what happened to the news from the gap?",
+    choices: ["Delivered late, automatically", "Lost — unless the app itself resyncs", "Duplicated"],
+    correct: 1,
+    at: [{ t: 100, do: actCut }],
+    explain: "WebSocket gives you a pipe, not delivery semantics. It keeps no history: whatever was pushed into the dead pipe — or occurred while redialing — is simply gone. Real apps must add sequence numbers + a “what did I miss?” fetch on reconnect. That work item is §11.2, and it ships with every WebSocket feature whether planned or not."
+  },
+  {
+    id: "tunnelsse", title: "Train tunnel, again (SSE)", proto: "sse", freqIdx: 1, dur: 360,
+    q: "Exactly the same 2 s cut — but on SSE. What happens to the news from the gap?",
+    choices: ["Lost, same as WebSocket", "Replayed after reconnect via Last-Event-ID", "The stream can't reconnect"],
+    correct: 1,
+    at: [{ t: 100, do: actCut }],
+    explain: "SSE bakes the recovery in: the client auto-reconnects and sends Last-Event-ID; the server replays everything after it. Compare the 'lost forever' counter with the WebSocket run — same failure, different protocol contract (§10.7 vs §11.2)."
+  },
+  {
+    id: "hookdown", title: "Your endpoint goes down (webhook)", proto: "webhook", freqIdx: 2, dur: 500,
+    q: "The provider fires events while YOUR endpoint is down for 3 s. Are those events lost — and do later events arrive in order?",
+    choices: ["Lost — you were down", "Retried until acked, possibly out of order", "Retried, order preserved"],
+    correct: 1,
+    at: [{ t: 40, do: actDown }],
+    explain: "No 2xx ⇒ the provider queues and retries with backoff (Stripe: days). But a retried old event can land AFTER a fresh one delivered first try — retries destroy ordering, and overlapping retries create duplicates. Hence §11.4's consumer rules: verify signature, ack fast, dedupe by event id, never trust arrival order."
+  },
+  {
+    id: "nap", title: "Consumer takes a nap (queue)", proto: "queue", freqIdx: 1, dur: 500,
+    q: "The consumer goes down for 3 s while the producer keeps publishing. What does the producer experience?",
+    choices: ["Errors — receiver is down", "Nothing at all; the mailbox absorbs it", "It must retry each message"],
+    correct: 1,
+    at: [{ t: 60, do: actDown }],
+    explain: "The producer talks only to the broker — it neither knows nor cares that the consumer napped. Messages pile up (watch the backlog), then drain on recovery. That's async's superpower AND its trap: nothing errors, so only lag monitoring tells you something is wrong (§11.5–11.6)."
+  },
+];
+
+for (const sc of SCENARIOS) {
+  const div = document.createElement("div"); div.className = "scen";
+  div.innerHTML = `<h3>${sc.title}</h3><p class="q">${sc.q}</p>
+    <div class="choices">${sc.choices.map((c, i) => `<button data-i="${i}">${c}</button>`).join("")}</div>
+    <div class="btnrow"><button class="run">Run it ▶</button></div>`;
+  div.querySelectorAll(".choices button").forEach(b => b.onclick = () => {
+    div.querySelectorAll(".choices button").forEach(x => x.classList.remove("picked"));
+    b.classList.add("picked"); userPick = { id: sc.id, i: +b.dataset.i };
+  });
+  div.querySelector(".run").onclick = () => startScenario(sc);
+  $("scenarios").appendChild(div);
+}
+
+function startScenario(sc) {
+  stop();
+  mode = sc.proto;
+  document.querySelectorAll("#protoButtons button").forEach(x => x.classList.toggle("active", x.dataset.proto === sc.proto));
+  $("protoBlurb").textContent = PROTOS[sc.proto].blurb;
+  $("downWho").textContent = sc.proto === "webhook" ? "your endpoint" : sc.proto === "queue" ? "consumer" : "server";
+  $("freq").value = sc.freqIdx; $("freqVal").textContent = FREQ_LABEL[sc.freqIdx];
+  state = freshState(); history = []; verdictHold = false; scenario = { ...sc, fired: new Set() };
+  $("verdict").className = "card"; $("verdict").innerHTML = `<b>${sc.title}</b> — running… watch the wire.`;
+  $("play").textContent = "⏸ Pause"; timer = setInterval(tick, 45);
+}
+
+function runScenarioTick() {
+  for (const a of scenario.at) if (state.t >= a.t && !scenario.fired.has(a.t)) { scenario.fired.add(a.t); state = a.do(state); }
+  if (state.t >= scenario.dur) finishScenario();
+}
+
+function finishScenario() {
+  stop();
+  const sc = scenario; scenario = null; verdictHold = true;
+  const picked = userPick && userPick.id === sc.id ? userPick.i : null;
+  const right = picked === sc.correct;
+  const v = $("verdict");
+  v.className = "card " + (picked === null ? "note" : right ? "good" : "bad");
+  v.innerHTML = `<b>${picked === null ? "You didn't predict —" : right ? "Your prediction held." : "Not quite."}</b>
+    The answer: <b>${sc.choices[sc.correct]}</b>. ${sc.explain}
+    <br><span class="mono" style="font-size:12px; color:var(--ink-soft)">final scoreboard — ${verdictText(state)}</span>`;
+}
+
+reset();
+</script>

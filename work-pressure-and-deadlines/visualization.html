@@ -1,0 +1,953 @@
+<title>The Deadline Machine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600;700&display=swap">
+
+<style>
+  :root {
+    --ground:    #F1F4F7;
+    --surface:   #FFFFFF;
+    --surface-2: #E7ECF2;
+    --line:      #D6DEE7;
+    --line-soft: #E6EBF1;
+    --ink:       #141B24;
+    --ink-2:     #47535F;
+    --ink-3:     #77838F;
+
+    --done:      #0E7C86;   /* work that actually shipped */
+    --done-soft: #DCEEF0;
+    --debt:      #A8690F;   /* rework, interrupts, everything that eats the week */
+    --debt-soft: #F6EBD8;
+    --late:      #AB2E39;   /* the promise, and the overrun */
+    --late-soft: #F8E2E4;
+    --over:      #64648C;   /* coordination overhead */
+    --over-soft: #E6E6F0;
+    --idle:      #94A2AE;
+    --on-accent: #FFFFFF;
+
+    --radius: 4px;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --display: "Archivo Black", "IBM Plex Sans", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:    #0F1319;
+      --surface:   #161C24;
+      --surface-2: #1E2630;
+      --line:      #2C3540;
+      --line-soft: #222A34;
+      --ink:       #E8EDF3;
+      --ink-2:     #AEBAC6;
+      --ink-3:     #8593A0;
+      --done:      #3FBAC4;
+      --done-soft: #12333A;
+      --debt:      #DFA349;
+      --debt-soft: #3A2D14;
+      --late:      #E9727C;
+      --late-soft: #3A1A1E;
+      --over:      #A3A2D0;
+      --over-soft: #26263A;
+      --idle:      #6B7885;
+      --on-accent: #08181A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:    #0F1319;
+    --surface:   #161C24;
+    --surface-2: #1E2630;
+    --line:      #2C3540;
+    --line-soft: #222A34;
+    --ink:       #E8EDF3;
+    --ink-2:     #AEBAC6;
+    --ink-3:     #8593A0;
+    --done:      #3FBAC4;
+    --done-soft: #12333A;
+    --debt:      #DFA349;
+    --debt-soft: #3A2D14;
+    --late:      #E9727C;
+    --late-soft: #3A1A1E;
+    --over:      #A3A2D0;
+    --over-soft: #26263A;
+    --idle:      #6B7885;
+    --on-accent: #08181A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  /* ---------- header ---------- */
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+  }
+  h1 {
+    font-family: var(--display); font-size: clamp(30px, 5.2vw, 50px);
+    line-height: 1.02; margin: 0 0 12px; letter-spacing: -0.015em; text-wrap: balance;
+  }
+  .lede { max-width: 62ch; color: var(--ink-2); margin: 0 0 6px; }
+
+  /* ---------- verdict ---------- */
+  .verdict {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; margin: 22px 0 10px;
+  }
+  .vcell { background: var(--surface); padding: 14px 16px; }
+  .vlabel {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.11em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+  }
+  .vnum {
+    font-family: var(--display); font-size: 27px; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .vnum.late { color: var(--late); }
+  .vnum.done { color: var(--done); }
+  .vsub { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .plainverdict {
+    background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--late);
+    border-radius: var(--radius); padding: 13px 16px; margin-bottom: 26px; color: var(--ink-2);
+  }
+  .plainverdict strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 20px; margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-family: var(--sans); font-weight: 700; font-size: 15px; margin: 0 0 3px;
+    letter-spacing: -0.005em;
+  }
+  .panel .hint { font-size: 13.5px; color: var(--ink-3); margin: 0 0 16px; max-width: 68ch; }
+  .cols { display: grid; grid-template-columns: 290px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+
+  /* ---------- controls ---------- */
+  .group { margin-bottom: 18px; }
+  .group-title {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.11em;
+    text-transform: uppercase; color: var(--ink-3);
+    padding-bottom: 5px; border-bottom: 1px solid var(--line-soft); margin-bottom: 11px;
+  }
+  .ctl { margin-bottom: 13px; }
+  .ctl label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; margin-bottom: 5px; gap: 10px;
+  }
+  .ctl .val { font-family: var(--mono); font-size: 12.5px; color: var(--done); font-weight: 500; }
+  .ctl .note { display: block; font-size: 11.5px; color: var(--ink-3); line-height: 1.4; margin-top: 3px; }
+  input[type=range] { width: 100%; accent-color: var(--done); margin: 0; }
+  select, button {
+    font-family: var(--sans); font-size: 13px; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 6px 10px; cursor: pointer;
+  }
+  select { width: 100%; }
+  button:hover { border-color: var(--done); }
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--done); outline-offset: 2px;
+  }
+  button.primary {
+    background: var(--done); border-color: var(--done); color: var(--on-accent); font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  .btnrow { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+
+  /* ---------- chart ---------- */
+  .chartbox {
+    position: relative; border: 1px solid var(--line-soft); border-radius: var(--radius);
+    background:
+      repeating-linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px 34px),
+      var(--surface);
+    padding: 6px;
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--ink-2); }
+  .key { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 13px; height: 13px; border-radius: 2px; flex: none; }
+  .swatch.dash { height: 0; border-top: 2px dashed var(--late); width: 16px; border-radius: 0; }
+  .swatch.dot { height: 0; border-top: 2px dotted var(--ink-3); width: 16px; border-radius: 0; }
+
+  /* ---------- capacity bar ---------- */
+  .capbar { display: flex; height: 34px; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+  .capseg { transition: width .25s ease; }
+  .capnums { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 11px; font-size: 12.5px; }
+  .capnums span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .capnums b { font-family: var(--mono); font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* ---------- log ---------- */
+  .log {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
+    max-height: 220px; overflow-y: auto; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
+  }
+  .log p { margin: 0 0 9px; color: var(--ink-2); }
+  .log p:last-child { margin-bottom: 0; }
+  .log .wk { color: var(--done); font-weight: 600; }
+  .log .empty { color: var(--ink-3); }
+
+  /* ---------- what-if ---------- */
+  .whatif { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .opt {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 14px; background: var(--surface);
+  }
+  .opt.best { border-color: var(--done); background: var(--done-soft); }
+  .opt .name { font-weight: 600; font-size: 13.5px; margin-bottom: 7px; }
+  .opt .res {
+    font-family: var(--display); font-size: 23px; font-variant-numeric: tabular-nums; line-height: 1.15;
+  }
+  .opt .delta { font-family: var(--mono); font-size: 12px; margin-top: 2px; }
+  .opt .cost { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; line-height: 1.45; }
+  .gain { color: var(--done); }
+  .loss { color: var(--late); }
+
+  /* ---------- predict ---------- */
+  .scenario { border-top: 1px solid var(--line-soft); padding-top: 15px; margin-top: 15px; }
+  .scenario:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .q { font-weight: 600; margin: 0 0 10px; }
+  .answer {
+    margin-top: 11px; padding: 12px 14px; border-radius: var(--radius);
+    border-left: 3px solid var(--done); background: var(--surface-2); font-size: 14px;
+  }
+  .answer.wrong { border-left-color: var(--debt); }
+  .answer .tag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.11em; text-transform: uppercase;
+    display: block; margin-bottom: 5px; color: var(--ink-3);
+  }
+  .footnote { font-size: 12.5px; color: var(--ink-3); max-width: 72ch; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">A working model of a project under pressure</div>
+  <h1>The Deadline Machine</h1>
+  <p class="lede">Somebody promised week 6. Below is a simulated team of five doing the work.
+    Move any lever and watch the ship date move with it — including the levers that move it the
+    wrong way. Nothing here is an opinion; every number comes from running the project.</p>
+</header>
+
+<div class="verdict" id="verdict"></div>
+<div class="plainverdict" id="plain"></div>
+
+<div class="panel">
+  <h2>Never seen this before? Press this.</h2>
+  <p class="hint">It plays the default project week by week and narrates what happens. Watch the
+    green area (work finished) against the dotted line (what the plan assumed) and the red line
+    (the promised date).</p>
+  <div class="btnrow">
+    <button class="primary" id="tour">Run the whole project and tell me what happens</button>
+    <button id="stopTour">Stop</button>
+  </div>
+</div>
+
+<div class="cols">
+  <div class="panel" style="margin-bottom:0">
+    <h2>Your levers</h2>
+    <p class="hint">These are the only things anyone in a status meeting can actually change.</p>
+
+    <div class="group">
+      <div class="group-title">The work</div>
+      <div class="ctl">
+        <label>Features in the release <span class="val" id="v-tasks">40</span></label>
+        <input type="range" id="c-tasks" min="10" max="80" step="1" value="40">
+      </div>
+      <div class="ctl">
+        <label>Date the team was given <span class="val" id="v-promise">week 6</span></label>
+        <input type="range" id="c-promise" min="3" max="24" step="1" value="6">
+        <span class="note">The promise itself changes nothing about the work. That is the point.</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">The team</div>
+      <div class="ctl">
+        <label>Engineers <span class="val" id="v-team">5</span></label>
+        <input type="range" id="c-team" min="2" max="12" step="1" value="5">
+      </div>
+      <div class="ctl">
+        <label>Hours worked per week <span class="val" id="v-hours">40</span></label>
+        <input type="range" id="c-hours" min="40" max="70" step="5" value="40">
+        <span class="note">Above 40, each extra hour is worth less than the one before it, and it
+          makes more bugs.</span>
+      </div>
+      <div class="ctl">
+        <label>Time lost to support and meetings <span class="val" id="v-int">25%</span></label>
+        <input type="range" id="c-int" min="0" max="60" step="5" value="25">
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">How the work is scheduled</div>
+      <div class="ctl">
+        <label>Tasks open at the same time <span class="val" id="v-wip">5</span></label>
+        <input type="range" id="c-wip" min="1" max="40" step="1" value="5">
+        <span class="note">Below the team size people sit idle; above it they thrash. Try 1, then 40.</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Luck</div>
+      <div class="ctl">
+        <label>Same plan, different luck <span class="val" id="v-seed">4</span></label>
+        <input type="range" id="c-seed" min="0" max="11" step="1" value="4">
+        <span class="note">Nobody knows in advance which tasks turn out to be nasty. Drag this and
+          nothing about the plan changes — only which tasks were the hard ones. The date still
+          swings by weeks. That swing is the reason a single date is the wrong kind of answer.</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-title">Panic buttons</div>
+      <div class="ctl">
+        <label>Pull one in week <span class="val" id="v-when">4</span></label>
+        <input type="range" id="c-when" min="0" max="20" step="1" value="4">
+      </div>
+      <div class="ctl">
+        <label>Which one</label>
+        <select id="c-action">
+          <option value="none">Nothing — hold the plan</option>
+          <option value="crunch">Everyone works 60-hour weeks from then on</option>
+          <option value="hire2">Add 2 engineers</option>
+          <option value="hire5">Add 5 engineers</option>
+          <option value="cut25">Cut 25% of what is not started</option>
+          <option value="cut40">Cut 40% of what is not started</option>
+        </select>
+      </div>
+      <div class="btnrow" style="margin-top:12px">
+        <button id="reset">Reset everything</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>The project, week by week</h2>
+      <p class="hint">Look at the gap between the dotted line and the solid green one. The dotted
+        line is the plan: a straight march to 40 features by the promised date. The green area is
+        what the team actually finished.</p>
+      <div class="chartbox"><svg id="chart" viewBox="0 0 760 330" role="img"
+        aria-label="Features finished each week against the plan"></svg></div>
+      <div class="legend">
+        <span class="key"><span class="swatch" style="background:var(--done)"></span>finished and working</span>
+        <span class="key"><span class="swatch" style="background:var(--surface-2);border:1px solid var(--line)"></span>still to build</span>
+        <span class="key"><span class="swatch" style="background:var(--debt)"></span>bugs waiting to be fixed</span>
+        <span class="key"><span class="swatch dot"></span>what the plan assumed</span>
+        <span class="key"><span class="swatch dash"></span>the promised date</span>
+      </div>
+      <div class="btnrow" style="margin-top:15px">
+        <button id="back">&larr; Previous week</button>
+        <button id="play">Play</button>
+        <button id="fwd">Next week &rarr;</button>
+        <input type="range" id="c-week" min="0" max="20" step="1" value="0" style="flex:1;min-width:140px">
+        <span class="val" id="v-week" style="font-family:var(--mono);font-size:13px">week 0</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 id="capTitle">Where week 1 went</h2>
+      <p class="hint" id="capHint"></p>
+      <div class="capbar" id="capbar"></div>
+      <div class="capnums" id="capnums"></div>
+    </div>
+
+    <div class="panel">
+      <h2>What just happened</h2>
+      <p class="hint">One line per event, in plain words. This is the story the burndown chart
+        never tells you.</p>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 id="whatifTitle">It is week 4 and you are behind. Four things you could do.</h2>
+  <p class="hint">Each box re-runs the identical project from this week with that one decision
+    taken, and reports the week it typically ships, averaged over twelve runs of the same project.</p>
+  <div class="whatif" id="whatif"></div>
+</div>
+
+<div class="panel">
+  <h2>Guess first, then run it</h2>
+  <p class="hint">Commit to an answer before you press it. Being wrong here is the cheapest way to
+    learn this — the expensive way is finding out in October.</p>
+  <div id="scenarios"></div>
+</div>
+
+<div class="panel">
+  <h2>What this model does and does not know</h2>
+  <p class="footnote">
+    It knows: task durations vary and are right-skewed; interrupts remove capacity; new joiners
+    ramp up over about six weeks and cost a mentor a quarter of a day; every engineer costs the
+    others a little coordination; sustained overtime buys hours and spends energy and quality; bugs
+    are created while coding and discovered weeks later, then jump the queue.
+    <br><br>
+    It does not know: dependencies between tasks (real critical paths are worse than this), people
+    quitting, morale, a task that turns out to be impossible, or the one senior engineer everything
+    routes through. The overtime and ramp-up curves have the shape published studies report, but
+    the exact constants are this model's, not a measurement of your team. Treat every number as
+    <em>the direction and rough size</em> of an effect, not a prediction. This page runs the same
+    simulation as <code>src/Project.java</code> in the lab, with the same random number generator,
+    so the two agree digit for digit.
+  </p>
+</div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   The same model as src/Project.java, ported line for line. The random number
+   generator is mulberry32 in both, so a number you read here is a number the
+   Java lab prints.
+--------------------------------------------------------------------------- */
+function mulberry32(a) {
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeRand(seed) {
+  const next = mulberry32(seed | 0);
+  return {
+    next,
+    gauss() {
+      const u1 = Math.max(next(), 1e-12), u2 = next();
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    },
+    lognormal(median, sigma) { return median * Math.exp(sigma * this.gauss()); }
+  };
+}
+function stream(worldSeed, id) {
+  return makeRand((Math.imul(worldSeed, 0x9E3779B9) + Math.imul(id, 0x85EBCA6B)) | 0);
+}
+
+const DEFAULT_PLAN = {
+  tasks: 40, medianTaskDays: 4.0, sigma: 0.7, estimateOptimism: 0.20,
+  teamSize: 5, hoursPerWeek: 40, interruptFraction: 0.25,
+  wipLimit: 5, wipTracksTeam: false,
+  defectsPerEngineerDay: 0.09, discoveryDelayDays: 15, reworkDaysPerDefect: 1.2,
+  addPeopleOnDay: -1, addPeopleCount: 0,
+  cutScopeOnDay: -1, cutScopeFraction: 0, overtimeStartsOnDay: 0,
+  skewOn: true, interruptsOn: true, reworkOn: true, commOverheadOn: true,
+  promisedWeeks: 6
+};
+
+const RAMP_DAYS = 30, MENTOR_DRAIN = 0.25, MAX_DAYS = 3000;
+
+function pointEstimateWeeks(p) {
+  return (p.tasks * p.medianTaskDays * (1 - p.estimateOptimism)) / p.teamSize / 5;
+}
+
+/* Runs the whole project and returns one snapshot per week, so stepping
+   forward and backward is just an index into an array. */
+function runProject(plan, worldSeed) {
+  const p = Object.assign({}, DEFAULT_PLAN, plan);
+  const work = stream(worldSeed, 1), qa = stream(worldSeed, 2);
+  const meanDays = p.medianTaskDays * Math.exp(p.sigma * p.sigma / 2);
+
+  let backlog = [];
+  for (let i = 0; i < p.tasks; i++) {
+    const d = p.skewOn ? work.lognormal(p.medianTaskDays, p.sigma) : meanDays;
+    backlog.push({ id: i, trueDays: Math.max(0.25, d), remaining: Math.max(0.25, d), rework: false });
+  }
+  let active = [], openDefects = [], engineers = [];
+  for (let i = 0; i < p.teamSize; i++) engineers.push(0);
+
+  const weeks = [];
+  let wk = blankWeek(0);
+  let defectAcc = 0, nextId = 10000, shipped = 0, cut = 0;
+  let defectsMade = 0, defectsFixed = 0, day = 0, firstBugWeek = -1;
+  const events = [];
+
+  function blankWeek(w) {
+    return { week: w, usable: 0, idle: 0, thrash: 0, interrupt: 0, comm: 0, mentor: 0,
+             fatigue: 0, nominal: 0, shipped: 0, scope: 0, openBugs: 0, madeBugs: 0,
+             team: 0, energy: 1, events: [] };
+  }
+  function say(w, text) { events.push({ week: w, text }); }
+
+  say(0, `${p.teamSize} engineers start on ${p.tasks} tasks. The plan on the wall says week ${p.promisedWeeks}.`);
+
+  for (day = 0; day < MAX_DAYS; day++) {
+    if (day === p.addPeopleOnDay && p.addPeopleCount > 0) {
+      for (let i = 0; i < p.addPeopleCount; i++) engineers.push(day);
+      say(Math.floor(day / 5), `${p.addPeopleCount} engineer${p.addPeopleCount > 1 ? 's' : ''} joined. For the next six weeks they work at a fraction of full speed and someone already on the team loses a quarter of every day teaching them.`);
+    }
+    if (day === p.cutScopeOnDay && p.cutScopeFraction > 0) {
+      const keep = Math.round(backlog.length * (1 - p.cutScopeFraction));
+      const n = backlog.length - keep;
+      backlog.length = keep;
+      cut += n;
+      say(Math.floor(day / 5), `${n} tasks that had not been started were cut from the release. Nobody will build them, so nobody has to test or fix them either.`);
+    }
+
+    const knownBugs = openDefects.some(d => d.discoverDay <= day);
+    if (backlog.length === 0 && active.length === 0 && !knownBugs) break;
+
+    const n = engineers.length;
+    const ot = (p.hoursPerWeek > 40 && day >= p.overtimeStartsOnDay) ? p.hoursPerWeek - 40 : 0;
+    const otWeeks = ot > 0 ? Math.floor((day - p.overtimeStartsOnDay) / 5) : 0;
+    const energy = ot > 0 ? Math.max(0.60, 1 - 0.03 * otWeeks * (ot / 20)) : 1;
+    const perPersonDays = ((40 + ot) / 5) * energy / 8;
+
+    let raw = 0, joiners = 0;
+    for (const s of engineers) {
+      if (s === 0) { raw += perPersonDays; continue; }
+      const ramp = Math.min(1, Math.max(0, (day - s) / RAMP_DAYS));
+      if (ramp < 1) joiners++;
+      raw += perPersonDays * ramp;
+    }
+    const fatigueLost = n * ((40 + ot) / 5) * (1 - energy) / 8;
+    const mentor = MENTOR_DRAIN * joiners * perPersonDays;
+    const afterMentor = Math.max(0, raw - mentor);
+    const comm = p.commOverheadOn ? Math.min(0.40, 0.02 * (n - 1)) : 0;
+    const afterComm = afterMentor * (1 - comm);
+    const interruptRate = p.interruptsOn ? p.interruptFraction : 0;
+    const capacity = afterComm * (1 - interruptRate);
+
+    wk.fatigue += fatigueLost;
+    wk.mentor += raw - afterMentor;
+    wk.comm += afterMentor - afterComm;
+    wk.interrupt += afterComm - capacity;
+    wk.nominal += n * 1;
+    wk.team = n;
+    wk.energy = energy;
+
+    // Iterate forward and splice by identity, exactly as the Java version
+    // does, so both implementations order the bug queue the same way.
+    for (const d of openDefects.slice()) {
+      if (d.discoverDay <= day) {
+        backlog.unshift({ id: nextId++, trueDays: d.reworkDays,
+                          remaining: d.reworkDays, rework: true });
+        openDefects.splice(openDefects.indexOf(d), 1);
+        defectsFixed++;
+        if (firstBugWeek < 0) {
+          firstBugWeek = Math.floor(day / 5);
+          say(firstBugWeek, `The first bugs from earlier weeks' code arrived. Bug fixes jump the queue ahead of new features, so from here on some of the team is rebuilding what already looked finished.`);
+        }
+      }
+    }
+    const wip = p.wipTracksTeam ? n : p.wipLimit;
+    while (active.length < wip && backlog.length > 0) active.push(backlog.shift());
+
+    const a = active.length;
+    if (a === 0) { wk.idle += capacity; if (endOfWeek(day)) { pushWeek(); } continue; }
+    let usable = capacity;
+    const perPerson = capacity / n;
+    if (a < n) { usable = a * perPerson; wk.idle += capacity - usable; }
+    else if (a > n) {
+      const eff = 1 / (1 + 0.2 * (a / n - 1));
+      usable = capacity * eff;
+      wk.thrash += capacity - usable;
+    }
+    wk.usable += usable;
+
+    const share = usable / a;
+    let spent = 0;
+    for (const t of active.slice()) {
+      const give = Math.min(share, t.remaining);
+      t.remaining -= give;
+      spent += give;
+      if (t.remaining <= 1e-9) {
+        active.splice(active.indexOf(t), 1);
+        if (!t.rework) shipped++;
+      }
+    }
+
+    if (p.reworkOn) {
+      const qualityMult = 1 + (ot / 20) * (1 + 0.08 * otWeeks);
+      defectAcc += spent * p.defectsPerEngineerDay * qualityMult;
+      while (defectAcc >= 1) {
+        defectAcc -= 1;
+        const disc = day + Math.round(p.discoveryDelayDays * (0.5 + qa.next()));
+        openDefects.push({ madeDay: day, discoverDay: disc, reworkDays: p.reworkDaysPerDefect * (0.5 + qa.next()) });
+        defectsMade++;
+      }
+    }
+    if (endOfWeek(day)) pushWeek();
+  }
+
+  function endOfWeek(d) { return d % 5 === 4; }
+  function pushWeek() {
+    wk.shipped = shipped;
+    wk.scope = p.tasks - cut;
+    wk.openBugs = openDefects.length;
+    wk.madeBugs = defectsMade;
+    wk.events = events.filter(e => e.week === wk.week).map(e => e.text);
+    weeks.push(wk);
+    wk = blankWeek(wk.week + 1);
+  }
+  wk.shipped = shipped; wk.scope = p.tasks - cut; wk.openBugs = openDefects.length;
+  wk.madeBugs = defectsMade;
+  wk.events = events.filter(e => e.week === wk.week).map(e => e.text);
+  weeks.push(wk);
+
+  const shipWeek = day / 5;
+  const escaped = defectsMade - defectsFixed;
+  weeks[weeks.length - 1].events.push(
+    `Shipped in week ${shipWeek.toFixed(1)} against a promise of week ${p.promisedWeeks}` +
+    (escaped > 0 ? `, with ${escaped} defect${escaped > 1 ? 's' : ''} still in the code for production to find.` : '.'));
+
+  return { weeks, shipWeek, shipped, cut, defectsMade, defectsFixed, escaped,
+           pointEstimateWeeks: pointEstimateWeeks(p), promisedWeeks: p.promisedWeeks, plan: p };
+}
+
+
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = n => (Math.round(n * 10) / 10).toFixed(1);
+
+  const base = { tasks: 40, teamSize: 5, hoursPerWeek: 40, interruptFraction: 0.25,
+                 wipLimit: 5, promisedWeeks: 6 };
+  const ui = { when: 4, action: 'none', week: 0, seed: 1004 };
+  let plan = Object.assign({}, base), run = null, playing = null, tour = null;
+
+  function withAction(p, action, week) {
+    const q = Object.assign({}, p);
+    const day = week * 5;
+    if (action === 'crunch') { q.hoursPerWeek = 60; q.overtimeStartsOnDay = day; }
+    if (action === 'hire2') { q.addPeopleOnDay = day; q.addPeopleCount = 2; q.wipTracksTeam = true; }
+    if (action === 'hire5') { q.addPeopleOnDay = day; q.addPeopleCount = 5; q.wipTracksTeam = true; }
+    if (action === 'cut25') { q.cutScopeOnDay = day; q.cutScopeFraction = 0.25; }
+    if (action === 'cut40') { q.cutScopeOnDay = day; q.cutScopeFraction = 0.40; }
+    return q;
+  }
+
+  /* Averaging 12 universes keeps a single lucky run from teaching the wrong
+     lesson, while the displayed timeline stays one concrete run (seed 1000). */
+  function meanShipWeek(p) {
+    let t = 0;
+    for (let s = 0; s < 12; s++) t += runProject(p, 1000 + s).shipWeek;
+    return t / 12;
+  }
+
+  function rebuild(keepWeek) {
+    const p = withAction(plan, ui.action, ui.when);
+    run = runProject(p, ui.seed);
+    const maxW = run.weeks.length - 1;
+    $('c-week').max = maxW;
+    ui.week = keepWeek ? Math.min(ui.week, maxW) : Math.min(ui.week, maxW);
+    $('c-week').value = ui.week;
+    draw();
+  }
+
+  /* ---------------- verdict ---------------- */
+  function drawVerdict() {
+    const spread = spreadOf(withAction(plan, ui.action, ui.when));
+    const typical = spread.mean;
+    const late = typical - run.promisedWeeks;
+    $('verdict').innerHTML = `
+      <div class="vcell"><div class="vlabel">Typically ships in</div>
+        <div class="vnum ${late > 0 ? 'late' : 'done'}">week ${fmt(typical)}</div>
+        <div class="vsub">12 runs: week ${fmt(spread.lo)} to ${fmt(spread.hi)}</div></div>
+      <div class="vcell"><div class="vlabel">Was promised</div>
+        <div class="vnum">week ${run.promisedWeeks}</div>
+        <div class="vsub">${fmt(run.pointEstimateWeeks)} wks of estimates, rounded up</div></div>
+      <div class="vcell"><div class="vlabel">This run ships in</div>
+        <div class="vnum">week ${fmt(run.shipWeek)}</div>
+        <div class="vsub">the timeline drawn below</div></div>
+      <div class="vcell"><div class="vlabel">Working on the promised day</div>
+        <div class="vnum">${doneBy(run.promisedWeeks)}/${run.plan.tasks - run.cut}</div>
+        <div class="vsub">features, in this run</div></div>
+      <div class="vcell"><div class="vlabel">Bugs left in the code</div>
+        <div class="vnum ${run.escaped > 3 ? 'late' : ''}">${run.escaped}</div>
+        <div class="vsub">found by users, not the team</div></div>`;
+
+    const ratio = typical / run.promisedWeeks;
+    let msg;
+    if (late <= 0) msg = `<strong>This plan holds.</strong> The work fits the time it was given, in
+        most of the twelve runs (week ${fmt(spread.lo)} to ${fmt(spread.hi)}).`;
+    else msg = `<strong>This plan typically ships in week ${fmt(typical)}, not week ${run.promisedWeeks}
+        — ${fmt(ratio)}&times; the promise.</strong> On the day of the deadline
+        ${doneBy(run.promisedWeeks)} of ${run.plan.tasks - run.cut} features work. Nobody in the
+        simulation was lazy: every engineer worked every day they were there. Twelve runs of this
+        same plan finish anywhere between week ${fmt(spread.lo)} and week ${fmt(spread.hi)}, which
+        is why the honest answer to "when will it be done" is a range.`;
+    $('plain').innerHTML = msg;
+  }
+  function spreadOf(p) {
+    const xs = [];
+    for (let s = 0; s < 12; s++) xs.push(runProject(p, 1000 + s).shipWeek);
+    xs.sort((a, b) => a - b);
+    return { mean: xs.reduce((a, b) => a + b, 0) / xs.length, lo: xs[0], hi: xs[xs.length - 1] };
+  }
+  function doneBy(week) {
+    const i = Math.min(Math.round(week), run.weeks.length - 1);
+    return run.weeks[i].shipped;
+  }
+
+  /* ---------------- chart ---------------- */
+  function draw() {
+    // The week cursor can never point past the end of the run.
+    ui.week = Math.max(0, Math.min(ui.week, run.weeks.length - 1));
+    drawVerdict();
+    const W = 760, H = 330, L = 46, R = 16, T = 16, B = 74;
+    const weeks = run.weeks;
+    const lastW = Math.max(weeks.length - 1, run.promisedWeeks + 1);
+    const scope0 = run.plan.tasks;
+    const x = w => L + (w / lastW) * (W - L - R);
+    const y = v => T + (1 - v / scope0) * (H - T - B);
+    const maxBug = Math.max(2, ...weeks.map(k => k.openBugs));
+    const by = v => H - 10 - (v / maxBug) * 40;
+    let s = '';
+
+    // y grid + labels
+    for (let v = 0; v <= scope0; v += Math.max(5, Math.round(scope0 / 8 / 5) * 5)) {
+      s += `<line x1="${L}" y1="${y(v)}" x2="${W - R}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+      s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)">${v}</text>`;
+    }
+    // x labels
+    const step = lastW > 24 ? 4 : (lastW > 12 ? 2 : 1);
+    for (let w = 0; w <= lastW; w += step) {
+      s += `<text x="${x(w)}" y="${H - B + 22}" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)">${w}</text>`;
+    }
+    s += `<text x="${(L + W - R) / 2}" y="${H - B + 40}" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing="0.1em">WEEK</text>`;
+
+    // remaining scope (the ceiling, which drops when scope is cut)
+    let top = `M ${x(0)} ${y(weeks[0].scope)}`;
+    weeks.forEach((k, i) => { top += ` L ${x(i)} ${y(k.scope)}`; });
+    s += `<path d="${top}" fill="none" stroke="var(--ink-3)" stroke-width="1.5"/>`;
+    s += `<text x="${x(lastW) - 4}" y="${y(weeks[weeks.length - 1].scope) - 7}" text-anchor="end" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)">everything in the release</text>`;
+
+    // shipped area
+    let a = `M ${x(0)} ${y(0)}`;
+    weeks.forEach((k, i) => { a += ` L ${x(i)} ${y(k.shipped)}`; });
+    a += ` L ${x(weeks.length - 1)} ${y(0)} Z`;
+    s += `<path d="${a}" fill="var(--done)" opacity="0.16"/>`;
+    let ln = '';
+    weeks.forEach((k, i) => { ln += (i ? ' L ' : 'M ') + x(i) + ' ' + y(k.shipped); });
+    s += `<path d="${ln}" fill="none" stroke="var(--done)" stroke-width="2.5"/>`;
+
+    // what the plan assumed: a straight line to full scope on the promised date
+    s += `<path d="M ${x(0)} ${y(0)} L ${x(run.promisedWeeks)} ${y(scope0)}" fill="none"
+           stroke="var(--ink-3)" stroke-width="1.6" stroke-dasharray="2 4"/>`;
+    // the promise
+    s += `<line x1="${x(run.promisedWeeks)}" y1="${T}" x2="${x(run.promisedWeeks)}" y2="${H - B}"
+           stroke="var(--late)" stroke-width="1.8" stroke-dasharray="6 4"/>`;
+    s += `<text x="${x(run.promisedWeeks) + 5}" y="${T + 12}" font-family="var(--mono)" font-size="10.5" fill="var(--late)">promised</text>`;
+
+    // bug debt strip
+    s += `<text x="${L - 8}" y="${H - 16}" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--debt)">bugs</text>`;
+    weeks.forEach((k, i) => {
+      if (k.openBugs > 0) {
+        const bw = Math.max(2, (W - L - R) / lastW * 0.6);
+        s += `<rect x="${x(i) - bw / 2}" y="${by(k.openBugs)}" width="${bw}" height="${H - 10 - by(k.openBugs)}" fill="var(--debt)" opacity="0.75"/>`;
+      }
+    });
+
+    // cursor
+    const cx = x(ui.week);
+    s += `<line x1="${cx}" y1="${T}" x2="${cx}" y2="${H - 6}" stroke="var(--ink)" stroke-width="1.2" opacity="0.55"/>`;
+    s += `<circle cx="${cx}" cy="${y(weeks[ui.week].shipped)}" r="4.5" fill="var(--done)" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<text x="${cx + 6}" y="${y(weeks[ui.week].shipped) - 9}" font-family="var(--mono)" font-size="11" fill="var(--ink)">${weeks[ui.week].shipped} done</text>`;
+
+    $('chart').innerHTML = s;
+    $('v-week').textContent = 'week ' + ui.week;
+    drawCapacity();
+    drawLog();
+    drawWhatIf();
+  }
+
+  /* ---------------- capacity ---------------- */
+  function drawCapacity() {
+    const k = run.weeks[ui.week];
+    const segs = [
+      ['Real feature and bug work', k.usable, 'var(--done)'],
+      ['Support, meetings, interrupts', k.interrupt, 'var(--debt)'],
+      ['Coordination between people', k.comm, 'var(--over)'],
+      ['Teaching new joiners', k.mentor, 'var(--over)'],
+      ['Hours lost to tiredness', k.fatigue, 'var(--late)'],
+      ['Context switching', k.thrash, 'var(--late)'],
+      ['Nobody had anything to pick up', k.idle, 'var(--idle)']
+    ];
+    const total = segs.reduce((a, b) => a + b[1], 0) || 1;
+    $('capTitle').textContent = `Where week ${ui.week + 1} went`;
+    $('capHint').textContent =
+      `The plan assumed ${fmt(k.nominal)} engineer-days of work this week from ${k.team} people. ` +
+      `${fmt(k.usable)} of them turned into product. Everything else is the difference between a ` +
+      `spreadsheet and a team.`;
+    $('capbar').innerHTML = segs.map(([n, v, c], i) =>
+      `<div class="capseg" style="width:${(v / total * 100).toFixed(2)}%;background:${c};opacity:${i === 3 || i === 5 ? 0.6 : 1}" title="${n}: ${fmt(v)} engineer-days"></div>`).join('');
+    $('capnums').innerHTML = segs.filter(x => x[1] > 0.05).map(([n, v, c]) =>
+      `<span><span class="swatch" style="background:${c}"></span>${n} <b>${fmt(v)}d</b></span>`).join('');
+  }
+
+  /* ---------------- log ---------------- */
+  function drawLog() {
+    let out = '';
+    for (let i = 0; i <= ui.week; i++) {
+      run.weeks[i].events.forEach(t => {
+        out += `<p><span class="wk">week ${i}</span> &nbsp;${t}</p>`;
+      });
+    }
+    if (!out) out = '<p class="empty">Nothing has happened yet. Step forward.</p>';
+    $('log').innerHTML = out;
+    $('log').scrollTop = $('log').scrollHeight;
+  }
+
+  /* ---------------- what-if ---------------- */
+  function drawWhatIf() {
+    const w = ui.week;
+    $('whatifTitle').textContent =
+      `It is week ${w} and the promised date is week ${run.plan.promisedWeeks}. Four things you could do now.`;
+    const opts = [
+      ['Hold the plan and push', 'none', 'Nothing changes. This is the default, and it is a decision.'],
+      ['Everyone on 60-hour weeks', 'crunch', 'Buys real speed for about two months, then hands it back with interest and more bugs.'],
+      ['Add 2 engineers', 'hire2', 'They are useful in about six weeks, and until then they cost the people who are already here.'],
+      ['Cut 40% of what is not started', 'cut40', 'The only lever that removes work instead of moving it. It needs someone senior to say yes.']
+    ];
+    const results = opts.map(([name, action, cost]) => {
+      const p = withAction(plan, action, w);
+      return { name, cost, ship: meanShipWeek(p) };
+    });
+    const best = Math.min(...results.map(r => r.ship));
+    const hold = results[0].ship;
+    $('whatif').innerHTML = results.map(r => {
+      const d = r.ship - hold;
+      return `<div class="opt ${r.ship === best ? 'best' : ''}">
+        <div class="name">${r.name}</div>
+        <div class="res">week ${fmt(r.ship)}</div>
+        <div class="delta ${d < -0.05 ? 'gain' : d > 0.05 ? 'loss' : ''}">${
+          Math.abs(d) < 0.05 ? '&mdash;' : (d < 0 ? fmt(-d) + ' weeks sooner' : fmt(d) + ' weeks later')}</div>
+        <div class="cost">${r.cost}</div></div>`;
+    }).join('');
+  }
+
+  /* ---------------- scenarios ---------------- */
+  const scenarios = [
+    { q: 'It is week 4. The team is behind. Someone offers you two more engineers. What happens to the ship date?',
+      opts: ['It comes in by about two weeks', 'It barely moves', 'It goes out by about a week'],
+      right: 2,
+      apply: () => ({ when: 4, action: 'hire2' }),
+      why: `Two engineers arriving in week 4 push the date <em>out</em>. They produce almost nothing for
+            their first two weeks, reach full speed around week 10, and until then they take a quarter
+            of an experienced engineer's day, every day. Hire them in week 0 and the same two people
+            pull the date in by about three weeks. The hire is not wrong — the timing is.` },
+    { q: 'Same week 4, but instead the whole team moves to 60-hour weeks until it ships. Does it ship sooner?',
+      opts: ['Yes, clearly sooner', 'Sooner at first, later in the end', 'No change at all'],
+      right: 1,
+      apply: () => ({ when: 4, action: 'crunch' }),
+      why: `Watch the green line: crunch really is ahead — by week 6 it has finished more features than
+            the 40-hour team. It stays ahead for about two months. Then tiredness has taken enough off
+            every hour, and the extra bugs made in those hours start arriving, and the two lines cross.
+            It ships later, with more than twice as many bugs left in the code, having burnt 50% more
+            hours. Crunch is a loan, not income: fine for a two-week push, ruinous as a plan.` },
+    { q: 'Nobody is allowed to say no, so all 40 tasks are started at once (open tasks = 40). What does that do?',
+      opts: ['Same date, but everything finishes together at the end', 'Much later, and almost nothing is finished early', 'Slightly faster — more parallelism'],
+      right: 1,
+      apply: () => ({ wip: 40 }),
+      why: `Ten weeks later, and by week 6 barely one feature works. Nothing was removed from the plan —
+            it was all just started. Every engineer is spread across eight tasks, paying a switching
+            cost on each. The damage is worse than the date: with nothing finished, you have nothing to
+            hand over, nothing to demo, and no way to cut scope, because every task is half-built.
+            A team with a small number of open tasks always has something finished to show.` },
+    { q: 'You cut 40% of the not-yet-started work in week 4. How much does that move the date?',
+      opts: ['About half a week', 'About four weeks sooner', 'Nothing — the work was already in flight'],
+      right: 1,
+      apply: () => ({ when: 4, action: 'cut40' }),
+      why: `Scope is the only lever that removes work instead of moving it, and it is the only one that
+            pays immediately. It also compounds: the features you did not build are features that never
+            need a bug fix. Cut the same 40% in week 12 instead and you save well under a week — by then
+            you have already paid for most of it. Cut early or do not bother.` }
+  ];
+
+  function drawScenarios() {
+    $('scenarios').innerHTML = scenarios.map((s, i) => `
+      <div class="scenario">
+        <p class="q">${i + 1}. ${s.q}</p>
+        <div class="btnrow">${s.opts.map((o, j) =>
+          `<button data-s="${i}" data-o="${j}">${o}</button>`).join('')}</div>
+        <div id="ans${i}"></div>
+      </div>`).join('');
+    $('scenarios').querySelectorAll('button').forEach(b => {
+      b.onclick = () => {
+        const i = +b.dataset.s, j = +b.dataset.o, s = scenarios[i];
+        const ok = j === s.right;
+        const a = s.apply();
+        if (a.wip) { plan.wipLimit = a.wip; $('c-wip').value = a.wip; $('v-wip').textContent = a.wip; }
+        if (a.action) {
+          ui.action = a.action; ui.when = a.when;
+          $('c-action').value = a.action; $('c-when').value = a.when; $('v-when').textContent = a.when;
+        }
+        rebuild(false);
+        ui.week = run.weeks.length - 1; $('c-week').value = ui.week; draw();
+        $('ans' + i).innerHTML = `<div class="answer ${ok ? '' : 'wrong'}">
+          <span class="tag">${ok ? 'You had it' : 'Not this time'} &middot; now running above</span>${s.why}</div>`;
+      };
+    });
+  }
+
+  /* ---------------- wiring ---------------- */
+  function bind(id, vid, fn, fmtv) {
+    $(id).addEventListener('input', e => {
+      const v = +e.target.value;
+      $(vid).textContent = fmtv ? fmtv(v) : v;
+      fn(v);
+      rebuild(true);
+    });
+  }
+  bind('c-tasks', 'v-tasks', v => plan.tasks = v);
+  bind('c-promise', 'v-promise', v => plan.promisedWeeks = v, v => 'week ' + v);
+  bind('c-team', 'v-team', v => plan.teamSize = v);
+  bind('c-hours', 'v-hours', v => plan.hoursPerWeek = v);
+  bind('c-int', 'v-int', v => plan.interruptFraction = v / 100, v => v + '%');
+  bind('c-wip', 'v-wip', v => plan.wipLimit = v);
+  bind('c-when', 'v-when', v => ui.when = v);
+  bind('c-seed', 'v-seed', v => ui.seed = 1000 + v);
+  $('c-action').addEventListener('change', e => { ui.action = e.target.value; rebuild(true); });
+  $('c-week').addEventListener('input', e => {
+    ui.week = +e.target.value; draw(); $('c-week').value = ui.week;
+  });
+  $('fwd').onclick = () => { ui.week = Math.min(ui.week + 1, run.weeks.length - 1); $('c-week').value = ui.week; draw(); };
+  $('back').onclick = () => { ui.week = Math.max(ui.week - 1, 0); $('c-week').value = ui.week; draw(); };
+  $('play').onclick = () => {
+    if (playing) { clearInterval(playing); playing = null; $('play').textContent = 'Play'; return; }
+    $('play').textContent = 'Pause';
+    playing = setInterval(() => {
+      if (ui.week >= run.weeks.length - 1) { clearInterval(playing); playing = null; $('play').textContent = 'Play'; return; }
+      ui.week++; $('c-week').value = ui.week; draw();
+    }, 420);
+  };
+  $('reset').onclick = () => {
+    plan = Object.assign({}, base); ui.action = 'none'; ui.when = 4; ui.week = 0; ui.seed = 1004;
+    $('c-tasks').value = 40; $('v-tasks').textContent = 40;
+    $('c-promise').value = 6; $('v-promise').textContent = 'week 6';
+    $('c-team').value = 5; $('v-team').textContent = 5;
+    $('c-hours').value = 40; $('v-hours').textContent = 40;
+    $('c-int').value = 25; $('v-int').textContent = '25%';
+    $('c-wip').value = 5; $('v-wip').textContent = 5;
+    $('c-when').value = 4; $('v-when').textContent = 4;
+    $('c-action').value = 'none';
+    $('c-seed').value = 4; $('v-seed').textContent = 4;
+    rebuild(false);
+  };
+  $('tour').onclick = () => {
+    $('reset').click();
+    ui.week = 0; draw();
+    if (tour) clearInterval(tour);
+    tour = setInterval(() => {
+      if (ui.week >= run.weeks.length - 1) { clearInterval(tour); tour = null; return; }
+      ui.week++; $('c-week').value = ui.week; draw();
+    }, 620);
+  };
+  $('stopTour').onclick = () => { if (tour) { clearInterval(tour); tour = null; } if (playing) { clearInterval(playing); playing = null; $('play').textContent = 'Play'; } };
+
+  drawScenarios();
+  rebuild(false);
+})();
+</script>

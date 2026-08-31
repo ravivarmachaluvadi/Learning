@@ -1,0 +1,1106 @@
+<title>The Single-Copy Illusion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+:root{
+  --bg:#EDEFEB; --surface:#FAFBF8; --surface2:#F2F4F0; --sunk:#E3E7E0;
+  --ink:#14181A; --ink2:#3B4448; --muted:#657069; --line:#D2D8CF; --line2:#BEC6BA;
+  --write:#9C5806; --write-fill:#F0DFC6; --write-edge:#C98A34;
+  --read:#0A6360; --read-fill:#CFE4E2; --read-edge:#3E9A95;
+  --bad:#A5372A; --bad-fill:#F3D8D2;
+  --good:#2C6540;
+  --dot:#14181A;
+  --shadow:0 1px 2px rgba(20,24,26,.08), 0 8px 24px rgba(20,24,26,.06);
+  --r:5px;
+  --f-disp:"IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  --f-body:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13171A; --surface:#1B2125; --surface2:#222A2E; --sunk:#0E1214;
+    --ink:#E6EBE6; --ink2:#C3CCC6; --muted:#8B978F; --line:#2E383D; --line2:#3E4A50;
+    --write:#E9A85B; --write-fill:#3A2C18; --write-edge:#A9762F;
+    --read:#5FCBC2; --read-fill:#14322F; --read-edge:#2F8B84;
+    --bad:#F2765F; --bad-fill:#3B1D18;
+    --good:#7FC796;
+    --dot:#E6EBE6;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13171A; --surface:#1B2125; --surface2:#222A2E; --sunk:#0E1214;
+  --ink:#E6EBE6; --ink2:#C3CCC6; --muted:#8B978F; --line:#2E383D; --line2:#3E4A50;
+  --write:#E9A85B; --write-fill:#3A2C18; --write-edge:#A9762F;
+  --read:#5FCBC2; --read-fill:#14322F; --read-edge:#2F8B84;
+  --bad:#F2765F; --bad-fill:#3B1D18;
+  --good:#7FC796;
+  --dot:#E6EBE6;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:15.5px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:34px 22px 80px}
+
+/* ---------- header ---------- */
+.eyebrow{
+  font-family:var(--f-mono); font-size:11px; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--muted);
+}
+h1{
+  font-family:var(--f-disp); font-weight:700; font-size:clamp(30px,5vw,46px);
+  line-height:1.04; letter-spacing:-.015em; margin:.28em 0 .3em; text-wrap:balance;
+}
+.lede{max-width:64ch; color:var(--ink2); font-size:17px; margin:0 0 6px}
+.lede b{font-weight:600; color:var(--ink)}
+h2{
+  font-family:var(--f-disp); font-weight:600; font-size:19px; letter-spacing:-.005em;
+  margin:0 0 4px; text-wrap:balance;
+}
+h3{
+  font-family:var(--f-mono); font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 10px;
+}
+p{margin:0 0 12px}
+.sub{color:var(--muted); font-size:13.5px; margin:0 0 14px; max-width:62ch}
+
+hr.rule{border:0; border-top:1px solid var(--line); margin:30px 0}
+
+/* ---------- layout ---------- */
+.grid{display:grid; grid-template-columns:minmax(0,1fr) 316px; gap:20px; align-items:start}
+@media (max-width:940px){ .grid{grid-template-columns:minmax(0,1fr)} }
+
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:18px 18px 16px; box-shadow:var(--shadow);
+}
+.card + .card{margin-top:18px}
+.rail{display:flex; flex-direction:column; gap:18px; position:sticky; top:18px}
+@media (max-width:940px){ .rail{position:static} }
+
+/* ---------- verdict ---------- */
+.verdict{
+  border:1px solid var(--line); border-left:4px solid var(--muted);
+  background:var(--surface); border-radius:var(--r); padding:15px 18px; box-shadow:var(--shadow);
+}
+.verdict.ok{border-left-color:var(--good)}
+.verdict.no{border-left-color:var(--bad)}
+.verdict .tag{
+  font-family:var(--f-mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  font-weight:600; color:var(--muted);
+}
+.verdict.ok .tag{color:var(--good)} .verdict.no .tag{color:var(--bad)}
+.verdict .headline{font-family:var(--f-disp); font-size:22px; font-weight:600; margin:2px 0 6px; line-height:1.2}
+.verdict .why{color:var(--ink2); font-size:14.5px; max-width:74ch; margin:0}
+.verdict .why + .why{margin-top:8px}
+
+/* ---------- timeline ---------- */
+.scroller{overflow-x:auto; padding-bottom:4px}
+.tl{min-width:640px; position:relative; user-select:none}
+.ruler{
+  position:relative; height:20px; border-bottom:1px solid var(--line);
+  margin-left:44px; margin-bottom:10px;
+}
+.tick{position:absolute; top:0; bottom:0; width:1px; background:var(--line)}
+.tick span{
+  position:absolute; top:1px; left:4px; font-family:var(--f-mono);
+  font-size:10px; color:var(--muted); font-variant-numeric:tabular-nums;
+}
+.lane{position:relative; height:46px; margin-left:44px; border-bottom:1px dashed var(--line)}
+.lane:last-child{border-bottom:0}
+.lane .lbl{
+  position:absolute; left:-44px; top:14px; width:38px; text-align:right;
+  font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--muted);
+}
+.gridline{position:absolute; top:0; bottom:0; width:1px; background:var(--line); opacity:.55}
+
+.bar{
+  position:absolute; top:10px; height:26px; border-radius:3px; cursor:grab;
+  border:1.5px solid; display:flex; align-items:center; justify-content:center;
+  font-family:var(--f-mono); font-size:11.5px; font-weight:500; white-space:nowrap;
+  transition:box-shadow .12s ease, filter .12s ease;
+}
+.bar:active{cursor:grabbing}
+.bar.put{background:var(--write-fill); border-color:var(--write-edge); color:var(--write)}
+.bar.get{background:var(--read-fill); border-color:var(--read-edge); color:var(--read)}
+.bar.cas{background:var(--write-fill); border-color:var(--write-edge); color:var(--write)}
+.bar.culprit{border-color:var(--bad); background:var(--bad-fill); color:var(--bad); border-width:2px}
+.bar.sel{box-shadow:0 0 0 2px var(--ink) inset}
+.bar.flash{animation:flash .8s ease}
+@keyframes flash{0%{filter:brightness(1.35)}100%{filter:none}}
+.bar .grip{position:absolute; top:0; bottom:0; width:7px; cursor:ew-resize}
+.bar .grip.l{left:-2px} .bar .grip.r{right:-2px}
+.bar.pending{border-right-style:dashed; border-right-width:2px}
+.bar .cap{overflow:hidden; text-overflow:ellipsis; padding:0 6px}
+
+.pt{
+  position:absolute; top:4px; width:13px; height:13px; margin-left:-6.5px;
+  border-radius:50%; background:var(--dot); border:2px solid var(--surface);
+  cursor:ew-resize; z-index:4;
+}
+.pt.bad{background:var(--bad)}
+.pt .n{
+  position:absolute; left:50%; transform:translateX(-50%); top:-15px;
+  font-family:var(--f-mono); font-size:9.5px; color:var(--muted); font-weight:600;
+}
+.stem{position:absolute; top:14px; height:24px; width:1px; background:var(--dot); opacity:.35; z-index:3}
+
+/* ---------- notebook replay ---------- */
+.chain{display:flex; gap:0; overflow-x:auto; padding:2px 0 8px}
+.cell{
+  flex:0 0 auto; min-width:96px; border:1px solid var(--line); border-right:0;
+  background:var(--surface2); padding:7px 10px;
+}
+.cell:last-child{border-right:1px solid var(--line)}
+.cell:first-child{border-radius:var(--r) 0 0 var(--r)}
+.cell:last-child{border-radius:0 var(--r) var(--r) 0}
+.cell .op{font-family:var(--f-mono); font-size:11.5px; font-weight:500}
+.cell .st{font-family:var(--f-mono); font-size:10.5px; color:var(--muted); margin-top:2px}
+.cell.put .op{color:var(--write)} .cell.get .op{color:var(--read)} .cell.cas .op{color:var(--write)}
+.cell.bad{background:var(--bad-fill); border-color:var(--bad); border-right:1px solid var(--bad)}
+.cell.bad .op, .cell.bad .st{color:var(--bad)}
+.cell.dim{opacity:.32}
+.cell.now{outline:2px solid var(--ink); outline-offset:-2px}
+
+/* ---------- controls ---------- */
+.btn{
+  font-family:var(--f-body); font-size:13.5px; font-weight:500;
+  background:var(--surface2); color:var(--ink); border:1px solid var(--line2);
+  border-radius:4px; padding:7px 12px; cursor:pointer; line-height:1.2;
+}
+.btn:hover{background:var(--sunk)}
+.btn:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+.btn.primary{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.btn.primary:hover{filter:brightness(1.18)}
+.btn[disabled]{opacity:.42; cursor:not-allowed}
+.btn.sm{font-size:12.5px; padding:5px 9px}
+.row{display:flex; gap:7px; flex-wrap:wrap; align-items:center}
+.row.tight{gap:5px}
+select, input[type=number], input[type=text]{
+  font-family:var(--f-mono); font-size:12.5px; background:var(--surface2); color:var(--ink);
+  border:1px solid var(--line2); border-radius:4px; padding:6px 7px; width:100%;
+}
+label.fld{display:block; font-family:var(--f-mono); font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); margin:10px 0 3px}
+.switch{display:flex; align-items:flex-start; gap:9px; cursor:pointer; padding:9px 0 2px}
+.switch input{margin:3px 0 0; accent-color:var(--ink); flex:0 0 auto}
+.switch .t{font-size:13.5px; line-height:1.4}
+.switch .t small{display:block; color:var(--muted); font-size:12px; line-height:1.4}
+
+/* ---------- presets ---------- */
+.plist{display:flex; flex-direction:column; gap:0; margin:0 -18px}
+.pitem{
+  display:block; width:100%; text-align:left; background:none; border:0;
+  border-top:1px solid var(--line); padding:9px 18px; cursor:pointer; color:var(--ink);
+  font-family:var(--f-body); font-size:13.5px; line-height:1.35;
+}
+.pitem:first-child{border-top:0}
+.pitem:hover{background:var(--surface2)}
+.pitem.on{background:var(--sunk)}
+.pitem .k{font-family:var(--f-mono); font-size:10.5px; color:var(--muted); margin-right:7px}
+.pitem small{display:block; color:var(--muted); font-size:12px; margin-top:1px}
+.pitem:focus-visible{outline:2px solid var(--ink); outline-offset:-2px}
+
+/* ---------- predict ---------- */
+.predict{
+  border:1px dashed var(--line2); border-radius:var(--r); background:var(--surface2);
+  padding:13px 15px; margin:0 0 16px;
+}
+.predict .q{font-family:var(--f-disp); font-size:16px; font-weight:600; margin:0 0 9px}
+.predict .res{margin:10px 0 0; font-size:14px; color:var(--ink2)}
+.predict .res b.hit{color:var(--good)} .predict .res b.miss{color:var(--bad)}
+
+/* ---------- log ---------- */
+.log{
+  font-family:var(--f-mono); font-size:12px; line-height:1.55; color:var(--ink2);
+  background:var(--sunk); border:1px solid var(--line); border-radius:var(--r);
+  padding:11px 13px; max-height:190px; overflow-y:auto; margin:0;
+}
+.log div{padding:2px 0; border-bottom:1px solid var(--line); }
+.log div:last-child{border-bottom:0}
+.log .s{color:var(--ink); font-family:var(--f-body); font-size:13px}
+.log .n{color:var(--muted)}
+
+/* ---------- legend ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:12.5px; color:var(--ink2)}
+.legend i{display:inline-block; width:22px; height:11px; border-radius:2px; border:1.5px solid; vertical-align:-1px; margin-right:6px}
+.legend .w{background:var(--write-fill); border-color:var(--write-edge)}
+.legend .r{background:var(--read-fill); border-color:var(--read-edge)}
+.legend .b{background:var(--bad-fill); border-color:var(--bad)}
+.legend .d{width:11px; height:11px; border-radius:50%; background:var(--dot); border-color:var(--dot)}
+
+table.k{width:100%; border-collapse:collapse; font-size:13px}
+table.k td{padding:5px 0; border-bottom:1px solid var(--line); vertical-align:top}
+table.k td:first-child{font-family:var(--f-mono); font-size:12px; color:var(--muted); white-space:nowrap; padding-right:12px}
+table.k tr:last-child td{border-bottom:0}
+
+.note{font-size:13px; color:var(--muted); max-width:70ch}
+.kbd{font-family:var(--f-mono); font-size:11.5px; background:var(--sunk); border:1px solid var(--line2);
+  border-radius:3px; padding:1px 5px}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">A property you can check, not just claim</div>
+  <h1>The Single-Copy Illusion</h1>
+  <p class="lede">A storage system with many machines wants you to believe there is only <b>one</b> copy of your data, and that every request happens at one instant. Linearizability is the name for that promise being kept. This page is the machine that decides whether it was.</p>
+  <p class="sub">Each bar below is one request: it starts when a client asked and ends when the client was told an answer. Nothing here shows what happened inside the system — that is the point. Drag the bars, change the answers, and see when the illusion holds.</p>
+</header>
+
+<hr class="rule">
+
+<div id="predictBox"></div>
+
+<div id="verdict" class="verdict"><div class="tag">Verdict</div><div class="headline">—</div><p class="why"></p></div>
+
+<div style="height:18px"></div>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>The history</h2>
+      <p class="sub">Drag a bar sideways to change when the request happened; drag its ends to make it slower or faster. Click it to edit what it did. The verdict above updates on every change.</p>
+      <div class="scroller"><div class="tl" id="tl"></div></div>
+      <div style="height:10px"></div>
+      <div class="legend">
+        <span><i class="w"></i>write</span>
+        <span><i class="r"></i>read</span>
+        <span><i class="b"></i>part of the contradiction</span>
+        <span><i class="d"></i>the instant this request took effect</span>
+        <span style="color:var(--muted)">a dashed right edge = the client never got an answer</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The single notebook</h2>
+      <p class="sub">If the illusion holds, the requests can be laid end to end against <em>one</em> notebook and every answer still comes out right. Here is that replay, in the order the dots above are standing in.</p>
+      <div class="chain" id="chain"></div>
+      <div class="row">
+        <button class="btn sm" id="stepBack">◀ Back</button>
+        <button class="btn sm" id="stepFwd">Forward ▶</button>
+        <button class="btn sm" id="stepAll">Show all</button>
+        <span class="note" id="stepNote" style="margin-left:4px"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>What just happened</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card">
+      <h2>Show me</h2>
+      <p class="sub" style="margin-bottom:10px">Nine situations, each making one point. Start at the top.</p>
+      <div class="plist" id="presets"></div>
+    </div>
+
+    <div class="card">
+      <h3>Controls</h3>
+      <div class="row">
+        <button class="btn primary" id="solve">Find an order</button>
+        <button class="btn" id="clearPts">Clear dots</button>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="rtRule" checked>
+        <span class="t">Answers must respect real time
+          <small>On: an operation that finished before another started must come first. Off: each client only needs its own answers to make sense — the weaker rule called sequential consistency.</small>
+        </span>
+      </label>
+      <div class="row" style="margin-top:6px">
+        <button class="btn sm" id="addPut">+ write</button>
+        <button class="btn sm" id="addGet">+ read</button>
+        <button class="btn sm" id="undo">Undo</button>
+      </div>
+    </div>
+
+    <div class="card" id="editCard">
+      <h3>Selected request</h3>
+      <div id="editBody"><p class="note">Click a bar in the history to edit it.</p></div>
+    </div>
+
+    <div class="card">
+      <h3>Generate from a real design</h3>
+      <p class="sub" style="margin-bottom:8px">Stop hand-drawing. Run a real replication scheme and let it produce the history.</p>
+      <label class="fld">design</label>
+      <select id="design">
+        <option value="single">One machine, one copy</option>
+        <option value="leader">Three copies, all reads at the leader</option>
+        <option value="async">Three copies, read any of them</option>
+        <option value="naive">Quorum: write 2 of 3, read 2 of 3</option>
+        <option value="abd">Quorum, and the reader writes back what it read</option>
+        <option value="cached">Quorum + write-back, with a client cache</option>
+      </select>
+      <label class="fld">network hiccups</label>
+      <select id="jit">
+        <option value="0">calm — every message on time</option>
+        <option value="0.25" selected>occasional — 25% of messages stall</option>
+        <option value="0.45">bad day — 45% stall</option>
+      </select>
+      <div class="row" style="margin-top:11px">
+        <button class="btn primary" id="gen">Generate a history</button>
+        <button class="btn sm" id="gen20">Run 120 &amp; count</button>
+        <button class="btn sm" id="genBad">Find a broken run</button>
+      </div>
+      <p class="note" id="genNote" style="margin-top:10px"></p>
+    </div>
+
+    <div class="card">
+      <h3>Reading the screen</h3>
+      <table class="k">
+        <tr><td>bar</td><td>one request, from "asked" to "answered"</td></tr>
+        <tr><td>dot</td><td>the single instant that request took effect</td></tr>
+        <tr><td>overlap</td><td>two bars overlapping means nobody could tell which came first</td></tr>
+        <tr><td>gap</td><td>a bar that ends before another begins is settled history — no order can undo it</td></tr>
+        <tr><td>red</td><td>the smallest group of requests that cannot all be true at once</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<hr class="rule">
+<p class="note">This page models a single register — one key, holding one number. Real systems hold many, and the useful fact is that if every key is linearizable on its own, the whole store is linearizable together. That property is called locality, and it is why this is the guarantee real systems aim for.</p>
+
+</div>
+
+<script>
+"use strict";
+const TMAX = 100, PXW = 760;
+let uid = 1;
+
+/* ---------------------------------------------------------------- model */
+function op(client, kind, arg, arg2, ret, inv, res, pending){
+  return {id: uid++, client, kind, arg, arg2, ret, inv, res, pending: !!pending};
+}
+const put = (c,v,a,b) => op(c,'put',v,0,0,a,b,false);
+const get = (c,v,a,b) => op(c,'get',0,0,v,a,b,false);
+const cas = (c,a1,a2,ok,a,b) => op(c,'cas',a1,a2,ok?1:0,a,b,false);
+const putP = (c,v,a) => op(c,'put',v,0,0,a,TMAX,true);
+
+function label(o){
+  if(o.kind==='put') return 'put('+o.arg+')' + (o.pending?' — no reply':'');
+  if(o.kind==='get') return 'get() → '+o.ret;
+  return 'cas('+o.arg+'→'+o.arg2+') → '+(o.ret?'ok':'no');
+}
+function shortLabel(o){
+  if(o.kind==='put') return 'put('+o.arg+')'+(o.pending?'?':'');
+  if(o.kind==='get') return 'get→'+o.ret;
+  return 'cas'+(o.ret?'✓':'✗');
+}
+function applyOp(state, o){
+  if(o.kind==='put') return [o.arg, 0];
+  if(o.kind==='get') return [state, state];
+  return state===o.arg ? [o.arg2, 1] : [state, 0];
+}
+const respOf = o => o.pending ? Infinity : o.res;
+
+/* ---------------------------------------------------------------- checker */
+function check(ops, realTime){
+  const n = ops.length;
+  if(n === 0) return {ok:true, order:[], nodes:0};
+  if(n > 20) return {ok:true, order:[], nodes:0, skipped:true};
+  const full = (1<<n) - 1, seen = new Set(), stack = new Array(n);
+  let nodes = 0;
+
+  function candidates(rem){
+    const out = [];
+    if(realTime){
+      let minR = Infinity;
+      for(let i=0;i<n;i++) if(rem & (1<<i)) minR = Math.min(minR, respOf(ops[i]));
+      for(let i=0;i<n;i++) if((rem & (1<<i)) && ops[i].inv < minR) out.push(i);
+    } else {
+      const taken = new Set();
+      for(let i=0;i<n;i++){
+        if(!(rem & (1<<i))) continue;
+        if(!taken.has(ops[i].client)){ taken.add(ops[i].client); out.push(i); }
+      }
+    }
+    return out;
+  }
+  function search(rem, state, depth){
+    nodes++;
+    if(rem === 0) return stack.slice(0, depth);
+    let allPending = true;
+    for(let i=0;i<n;i++) if((rem & (1<<i)) && !ops[i].pending){ allPending = false; break; }
+    if(allPending) return stack.slice(0, depth);
+    const key = rem * 1000003 + state;
+    if(seen.has(key)) return null;
+    seen.add(key);
+    for(const i of candidates(rem)){
+      const [ns, ret] = applyOp(state, ops[i]);
+      if(!ops[i].pending && ret !== ops[i].ret) continue;
+      stack[depth] = i;
+      const r = search(rem & ~(1<<i), ns, depth+1);
+      if(r) return r;
+    }
+    return null;
+  }
+  const order = search(full, 0, 0);
+  return {ok: !!order, order: order || [], nodes};
+}
+
+/* keep only reads whose value was actually written by something still present */
+function selfContained(ops){
+  for(const o of ops){
+    if(o.kind==='get' && o.ret !== 0 && !ops.some(p => p.kind==='put' && p.arg === o.ret)) return false;
+    if(o.kind==='cas' && o.ret === 1 && o.arg !== 0 && !ops.some(p => p.kind==='put' && p.arg === o.arg)) return false;
+  }
+  return true;
+}
+function minimize(ops, realTime){
+  let keep = ops.slice(), changed = true;
+  while(changed){
+    changed = false;
+    for(let i=0;i<keep.length;i++){
+      const trial = keep.slice(0,i).concat(keep.slice(i+1));
+      if(trial.length && selfContained(trial) && !check(trial, realTime).ok){ keep = trial; changed = true; break; }
+    }
+  }
+  return keep;
+}
+
+/* place the dots: as early as each operation allows, in the given order */
+function assignPoints(ops, order){
+  const pts = {}; let prev = -1;
+  for(const i of order){
+    const o = ops[i];
+    const cap = (o.pending ? TMAX : o.res) - 0.6;
+    let t = Math.max(prev + 0.8, o.inv + 0.6);
+    if(t > cap) t = cap;
+    pts[o.id] = t; prev = t;
+  }
+  return pts;
+}
+function orderFromPoints(ops, pts){
+  return ops.map((o,i)=>i).filter(i => pts[ops[i].id] !== undefined)
+            .sort((a,b) => pts[ops[a].id] - pts[ops[b].id]);
+}
+function replay(ops, order){
+  let state = 0; const cells = [];
+  for(const i of order){
+    const o = ops[i], [ns, ret] = applyOp(state, o);
+    cells.push({i, before:state, after:ns, expected:ret, ok: o.pending || ret === o.ret});
+    state = ns;
+  }
+  return cells;
+}
+
+/* ---------------------------------------------------------------- presets */
+const PRESETS = [
+  { key:'A', name:'A write, then a read',
+    blurb:'The boring case. Everything else is measured against it.',
+    q:'Can these two requests be explained by a single notebook?', a:true,
+    build:()=>[ put(1,1,6,26), get(2,1,38,58) ] },
+
+  { key:'B', name:'The later reader sees the older value',
+    blurb:'Meera sees her exam result; her father, looking after her, does not.',
+    q:'Meera’s write finished at 26. Her father reads from 38 to 58 and is told the old value. Is that possible with one notebook?', a:false,
+    build:()=>[ put(1,1,6,26), get(2,0,38,58) ] },
+
+  { key:'C', name:'A slow write, read either side of it',
+    blurb:'Overlap is not a bug. While a write is in flight, both answers are honest.',
+    q:'One read says old, a later read says new, and the write overlaps both. Broken?', a:true,
+    build:()=>[ put(1,1,6,72), get(2,0,12,28), get(3,1,44,64) ] },
+
+  { key:'D', name:'Two readers disagree',
+    blurb:'The quorum read with no write-back. This is the real bug.',
+    q:'One reader already saw the new value. A different reader, starting later, sees the old one. Possible?', a:false,
+    build:()=>[ put(1,1,4,92), get(2,1,10,30), get(3,0,46,66) ] },
+
+  { key:'E', name:'The value appears, then vanishes',
+    blurb:'The same client, twice. Even the weak rule cannot save this one.',
+    q:'Turn the real-time rule OFF afterwards. Will this history become acceptable?', a:false,
+    build:()=>[ put(1,1,4,92), get(2,1,10,30), get(2,0,46,66) ] },
+
+  { key:'F', name:'A write that timed out — and happened',
+    blurb:'No answer came back. Later reads see the value. Perfectly explainable.',
+    q:'The client never learned whether its write succeeded. Two later reads see it. Is that a violation?', a:true,
+    build:()=>[ putP(1,1,4), get(2,1,26,42), get(3,1,58,74) ] },
+
+  { key:'G', name:'A write that timed out — and flickered',
+    blurb:'Same unanswered write, but now it shows up and then disappears.',
+    q:'Now the second reader sees the old value again. Still explainable?', a:false,
+    build:()=>[ putP(1,1,4), get(2,1,26,42), get(3,0,58,74) ] },
+
+  { key:'H', name:'Correct, and an update is lost',
+    blurb:'Two clients each read, then write. Nothing is violated. One update is gone.',
+    q:'Both clients read 0, then write their own value. Is the system misbehaving?', a:true,
+    build:()=>[ get(1,0,2,12), get(2,0,16,26), put(1,1,44,54), put(2,2,60,70), get(3,2,80,94) ] },
+
+  { key:'I', name:'The same race, with compare-and-set',
+    blurb:'One operation that reads and decides at once. The loser is told it lost.',
+    q:'Same timing, but the writes are compare-and-set. What changes?', a:true,
+    build:()=>[ get(1,0,2,12), get(2,0,16,26), cas(1,0,1,true,44,54), cas(2,0,2,false,60,70), get(3,1,80,94) ] }
+];
+
+/* ---------------------------------------------------------------- state */
+let S = {
+  ops: PRESETS[0].build(),
+  preset: 0,
+  manual: null,        // dots the user dragged
+  realTime: true,
+  sel: null,
+  step: -1,            // -1 = show all
+  predicted: null,
+  logs: []
+};
+let undoStack = [];
+
+function snapshot(){
+  undoStack.push(JSON.stringify({ops:S.ops, manual:S.manual}));
+  if(undoStack.length > 40) undoStack.shift();
+}
+function say(sentence, detail){
+  S.logs.unshift({s:sentence, n:detail || ''});
+  if(S.logs.length > 40) S.logs.pop();
+}
+
+/* ---------------------------------------------------------------- derive */
+function current(){
+  const res = check(S.ops, S.realTime);
+  let pts, order, cells, culprits = [], mode;
+  if(S.manual){
+    mode = 'manual';
+    pts = Object.assign({}, S.manual);
+    for(const o of S.ops) if(pts[o.id] === undefined) pts[o.id] = (o.inv + (o.pending?TMAX:o.res))/2;
+    order = orderFromPoints(S.ops, pts);
+    cells = replay(S.ops, order);
+  } else if(res.ok){
+    mode = 'solved';
+    pts = assignPoints(S.ops, res.order);
+    order = res.order;
+    cells = replay(S.ops, order);
+  } else {
+    mode = 'broken';
+    const small = minimize(S.ops, S.realTime);
+    culprits = small.map(o => o.id);
+    pts = null; order = []; cells = [];
+  }
+  return {res, pts, order, cells, culprits, mode, minimal: mode==='broken' ? minimize(S.ops, S.realTime) : null};
+}
+
+/* ---------------------------------------------------------------- render */
+const $ = id => document.getElementById(id);
+const x = t => (t / TMAX) * PXW;
+
+function render(){
+  const D = current();
+  renderTimeline(D);
+  renderVerdict(D);
+  renderChain(D);
+  renderLog();
+  renderPresets();
+  renderEdit();
+}
+
+function renderTimeline(D){
+  const tl = $('tl');
+  const clients = [...new Set(S.ops.map(o => o.client))].sort((a,b)=>a-b);
+  let h = '<div class="ruler" style="width:'+PXW+'px">';
+  for(let t=0;t<=TMAX;t+=10) h += '<div class="tick" style="left:'+x(t)+'px"><span>'+t+'</span></div>';
+  h += '</div>';
+  for(const c of clients){
+    h += '<div class="lane" style="width:'+PXW+'px"><span class="lbl">C'+c+'</span>';
+    for(let t=10;t<TMAX;t+=10) h += '<div class="gridline" style="left:'+x(t)+'px"></div>';
+    for(let i=0;i<S.ops.length;i++){
+      const o = S.ops[i];
+      if(o.client !== c) continue;
+      const end = o.pending ? TMAX : o.res;
+      const cls = ['bar', o.kind];
+      if(o.pending) cls.push('pending');
+      if(D.culprits.includes(o.id)) cls.push('culprit');
+      if(S.sel === o.id) cls.push('sel');
+      h += '<div class="'+cls.join(' ')+'" data-id="'+o.id+'" style="left:'+x(o.inv)+'px;width:'+Math.max(34,x(end)-x(o.inv))+'px">'
+         + '<span class="grip l" data-edge="l" data-id="'+o.id+'"></span>'
+         + '<span class="cap">'+shortLabel(o)+'</span>'
+         + '<span class="grip r" data-edge="r" data-id="'+o.id+'"></span></div>';
+      if(D.pts && D.pts[o.id] !== undefined){
+        const pos = D.order.indexOf(i);
+        const cell = D.cells[pos];
+        const bad = cell && !cell.ok;
+        h += '<div class="stem" style="left:'+x(D.pts[o.id])+'px"></div>'
+           + '<div class="pt'+(bad?' bad':'')+'" data-pt="'+o.id+'" style="left:'+x(D.pts[o.id])+'px">'
+           + '<span class="n">'+(pos+1)+'</span></div>';
+      }
+    }
+    h += '</div>';
+  }
+  tl.innerHTML = h;
+  tl.style.width = PXW + 'px';
+}
+
+function renderVerdict(D){
+  const v = $('verdict');
+  const rule = S.realTime ? 'linearizable' : 'sequentially consistent';
+  if(S.ops.length === 0){
+    v.className = 'verdict';
+    v.innerHTML = '<div class="tag">Verdict</div><div class="headline">Nothing to judge</div><p class="why">Add a request, or pick one of the nine situations on the right.</p>';
+    return;
+  }
+  if(D.res.ok){
+    v.className = 'verdict ok';
+    let why = 'Every answer these clients were given can be produced by one notebook, used one request at a time. The numbered dots show one order that works: request 1, then 2, then 3, and so on.';
+    if(!S.realTime) why += ' Note the real-time rule is switched off, so this only says each client’s own answers make sense — the system may still be showing one client a past that another client has already left behind.';
+    v.innerHTML = '<div class="tag">'+(S.realTime?'Linearizable':'Sequentially consistent')+'</div>'
+      + '<div class="headline">The single-copy illusion holds</div><p class="why">'+why+'</p>';
+  } else {
+    v.className = 'verdict no';
+    const alsoSeq = check(S.ops, false).ok;
+    const m = D.minimal || [];
+    const names = m.map(o => 'C'+o.client+' '+label(o)).join('; ');
+    let why = 'There is no order at all — not one — that produces these answers from a single notebook. '
+            + 'The smallest group that already cannot all be true is: <b>' + names + '</b>.';
+    let why2;
+    if(S.realTime && alsoSeq){
+      why2 = 'Read on its own, each client’s sequence of answers is perfectly sensible. What breaks is <em>time</em>: '
+           + 'one of these requests had already been answered before another was even sent, so it must come first — and once it does, the later answer becomes impossible. '
+           + 'Switch the real-time rule off and this history becomes acceptable; that is exactly the difference between linearizability and the weaker guarantee below it.';
+    } else if(S.realTime){
+      why2 = 'This one is broken even without the real-time rule: some client saw a value change and then change back, in its own sequence of requests. Switching the rule off will not rescue it.';
+    } else {
+      why2 = 'This fails even the weaker rule, where only each client’s own answers have to make sense.';
+    }
+    v.innerHTML = '<div class="tag">Not '+rule+'</div>'
+      + '<div class="headline">No single copy could have behaved this way</div>'
+      + '<p class="why">'+why+'</p><p class="why">'+why2+'</p>';
+  }
+}
+
+function renderChain(D){
+  const c = $('chain');
+  if(!D.cells.length){
+    c.innerHTML = '<p class="note" style="padding:6px 0">No order exists, so there is no replay to show. The bars marked in red above are the ones that cannot be reconciled — remove any one of them, or drag it so it overlaps its neighbour, and the illusion returns.</p>';
+    $('stepNote').textContent = '';
+    return;
+  }
+  const limit = S.step < 0 ? D.cells.length : S.step + 1;
+  let h = '<div class="cell" style="min-width:74px"><div class="op" style="color:var(--muted)">start</div><div class="st">notebook = 0</div></div>';
+  D.cells.forEach((cell, k) => {
+    const o = S.ops[cell.i];
+    const cls = ['cell', o.kind];
+    if(!cell.ok) cls.push('bad');
+    if(k >= limit) cls.push('dim');
+    if(S.step >= 0 && k === S.step) cls.push('now');
+    let st;
+    if(!cell.ok) st = 'notebook says '+cell.expected+', client was told '+o.ret;
+    else if(o.kind==='get') st = 'notebook = '+cell.after;
+    else st = 'notebook = '+cell.after;
+    h += '<div class="'+cls.join(' ')+'"><div class="op">'+(k+1)+'. C'+o.client+' '+shortLabel(o)+'</div><div class="st">'+st+'</div></div>';
+  });
+  c.innerHTML = h;
+  const firstBad = D.cells.findIndex(x => !x.ok);
+  $('stepNote').textContent = firstBad >= 0
+    ? 'Step ' + (firstBad+1) + ' is where this order dies — the notebook and the client disagree.'
+    : (S.step < 0 ? 'All ' + D.cells.length + ' requests replay cleanly.' : 'Step ' + (S.step+1) + ' of ' + D.cells.length + '.');
+}
+
+function renderLog(){
+  $('log').innerHTML = S.logs.length
+    ? S.logs.map(l => '<div><span class="s">'+l.s+'</span>'+(l.n?'<br><span class="n">'+l.n+'</span>':'')+'</div>').join('')
+    : '<div><span class="n">Pick a situation on the right, or drag a bar.</span></div>';
+}
+
+function renderPresets(){
+  $('presets').innerHTML = PRESETS.map((p,i) =>
+    '<button class="pitem'+(S.preset===i?' on':'')+'" data-preset="'+i+'">'
+    + '<span class="k">'+p.key+'</span>'+p.name+'<small>'+p.blurb+'</small></button>').join('');
+}
+
+function renderEdit(){
+  const b = $('editBody');
+  const o = S.ops.find(o => o.id === S.sel);
+  if(!o){ b.innerHTML = '<p class="note">Click a bar in the history to edit it.</p>'; return; }
+  let h = '<p class="note" style="margin:0 0 4px">C'+o.client+' &middot; '+label(o)+'</p>';
+  h += '<label class="fld">client</label><input type="number" min="1" max="6" id="fClient" value="'+o.client+'">';
+  if(o.kind === 'put'){
+    h += '<label class="fld">value written</label><input type="number" min="0" max="9" id="fArg" value="'+o.arg+'">';
+    h += '<label class="switch" style="margin-top:8px"><input type="checkbox" id="fPend"'+(o.pending?' checked':'')+'>'
+       + '<span class="t">No answer ever came back<small>The client timed out. The write may or may not have taken effect.</small></span></label>';
+  } else if(o.kind === 'get'){
+    h += '<label class="fld">value the client was told</label><input type="number" min="0" max="9" id="fRet" value="'+o.ret+'">';
+  } else {
+    h += '<label class="fld">expected &rarr; new</label><div class="row tight">'
+       + '<input type="number" style="width:46%" min="0" max="9" id="fArg" value="'+o.arg+'">'
+       + '<input type="number" style="width:46%" min="0" max="9" id="fArg2" value="'+o.arg2+'"></div>';
+    h += '<label class="fld">result the client was told</label><select id="fRet"><option value="1"'+(o.ret?' selected':'')+'>swapped</option><option value="0"'+(!o.ret?' selected':'')+'>refused</option></select>';
+  }
+  h += '<div class="row" style="margin-top:12px"><button class="btn sm" id="delOp">Delete</button></div>';
+  b.innerHTML = h;
+
+  const commit = () => {
+    snapshot();
+    const c = $('fClient'); if(c) o.client = Math.max(1, Math.min(6, +c.value || 1));
+    const a = $('fArg'); if(a) o.arg = Math.max(0, Math.min(9, +a.value || 0));
+    const a2 = $('fArg2'); if(a2) o.arg2 = Math.max(0, Math.min(9, +a2.value || 0));
+    const r = $('fRet'); if(r) o.ret = Math.max(0, Math.min(9, +r.value || 0));
+    const p = $('fPend'); if(p){ o.pending = p.checked; if(o.pending) o.res = TMAX; }
+    S.manual = null; S.step = -1;
+    say('Edited C'+o.client+'’s request.', label(o));
+    render();
+  };
+  ['fClient','fArg','fArg2','fRet','fPend'].forEach(id => { const el = $(id); if(el) el.onchange = commit; });
+  const d = $('delOp');
+  if(d) d.onclick = () => { snapshot(); S.ops = S.ops.filter(z => z.id !== o.id); S.sel = null; S.manual = null; say('Deleted a request.'); render(); };
+}
+
+/* ---------------------------------------------------------------- predict */
+function renderPredict(){
+  const box = $('predictBox');
+  const p = PRESETS[S.preset];
+  if(!p){ box.innerHTML = ''; return; }
+  if(S.predicted === null){
+    box.innerHTML = '<div class="predict"><p class="q">'+p.q+'</p>'
+      + '<div class="row"><button class="btn" data-pred="1">Yes — a single copy could do this</button>'
+      + '<button class="btn" data-pred="0">No — impossible</button>'
+      + '<button class="btn sm" data-pred="skip">Just show me</button></div></div>';
+  } else if(S.predicted === 'skip'){
+    box.innerHTML = '';
+  } else {
+    const hit = (S.predicted === 1) === p.a;
+    box.innerHTML = '<div class="predict"><p class="q">'+p.q+'</p>'
+      + '<p class="res">You said <b>'+(S.predicted?'yes':'no')+'</b>. '
+      + (hit ? '<b class="hit">That is right.</b>' : '<b class="miss">Not this time.</b>')
+      + ' The answer is <b>'+(p.a?'yes, a single copy could produce this':'no, no single copy could produce this')+'</b> — the verdict below says why.</p></div>';
+  }
+}
+
+function loadPreset(i){
+  S.preset = i; S.ops = PRESETS[i].build(); S.manual = null; S.sel = null; S.step = -1; S.predicted = null;
+  S.realTime = true; $('rtRule').checked = true;
+  undoStack = [];
+  say('Loaded: ' + PRESETS[i].name + '.', PRESETS[i].blurb);
+  renderPredict(); render();
+}
+
+/* ---------------------------------------------------------------- dragging */
+let drag = null;
+function timeAt(clientX, el){
+  const r = $('tl').getBoundingClientRect();
+  return Math.max(0, Math.min(TMAX, ((clientX - r.left) / PXW) * TMAX));
+}
+document.addEventListener('mousedown', e => {
+  const pt = e.target.closest('.pt');
+  if(pt){
+    const id = +pt.dataset.pt;
+    if(!S.manual){ const D = current(); S.manual = D.pts ? Object.assign({}, D.pts) : {}; }
+    drag = {type:'pt', id}; e.preventDefault(); return;
+  }
+  const grip = e.target.closest('.grip');
+  if(grip){
+    snapshot();
+    drag = {type:'edge', id:+grip.dataset.id, edge:grip.dataset.edge};
+    e.preventDefault(); return;
+  }
+  const bar = e.target.closest('.bar');
+  if(bar){
+    snapshot();
+    const o = S.ops.find(z => z.id === +bar.dataset.id);
+    S.sel = o.id;
+    drag = {type:'move', id:o.id, grab:timeAt(e.clientX) - o.inv, moved:false};
+    renderEdit(); renderTimeline(current());
+    e.preventDefault(); return;
+  }
+  const pi = e.target.closest('.pitem');
+  if(pi){ loadPreset(+pi.dataset.preset); return; }
+  const pr = e.target.closest('[data-pred]');
+  if(pr){
+    const v = pr.dataset.pred;
+    S.predicted = v === 'skip' ? 'skip' : +v;
+    renderPredict();
+    return;
+  }
+});
+document.addEventListener('mousemove', e => {
+  if(!drag) return;
+  const t = timeAt(e.clientX);
+  if(drag.type === 'pt'){
+    const o = S.ops.find(z => z.id === drag.id);
+    const lo = o.inv + 0.6, hi = (o.pending ? TMAX : o.res) - 0.6;
+    S.manual[o.id] = Math.max(lo, Math.min(hi, t));
+    S.step = -1; render();
+  } else if(drag.type === 'edge'){
+    const o = S.ops.find(z => z.id === drag.id);
+    if(drag.edge === 'l') o.inv = Math.max(0, Math.min((o.pending?TMAX:o.res) - 4, t));
+    else { o.res = Math.max(o.inv + 4, Math.min(TMAX, t)); o.pending = false; }
+    S.manual = null; S.step = -1; render();
+  } else {
+    const o = S.ops.find(z => z.id === drag.id);
+    const w = (o.pending ? TMAX : o.res) - o.inv;
+    let ni = Math.max(0, Math.min(TMAX - w, t - drag.grab));
+    if(Math.abs(ni - o.inv) > 0.4) drag.moved = true;
+    o.inv = ni; if(!o.pending) o.res = ni + w;
+    S.manual = null; S.step = -1; render();
+  }
+});
+document.addEventListener('mouseup', () => {
+  if(drag && drag.type === 'move' && drag.moved){
+    const o = S.ops.find(z => z.id === drag.id);
+    const D = current();
+    say('Moved C'+o.client+'’s '+shortLabel(o)+'.',
+        D.res.ok ? 'The history is still explainable by one copy.' : 'That move broke it — no single copy can explain these answers now.');
+    renderLog();
+  }
+  if(drag && drag.type === 'edge'){ const D = current();
+    say('Changed how long a request took.', D.res.ok ? 'Still fine — more overlap means fewer things the system can get wrong.' : 'Now broken — less overlap means the answers are pinned to a real order.');
+    renderLog();
+  }
+  drag = null;
+});
+/* touch: fall back to tapping to select */
+document.addEventListener('touchstart', e => {
+  const bar = e.target.closest('.bar');
+  if(bar){ S.sel = +bar.dataset.id; renderEdit(); renderTimeline(current()); }
+}, {passive:true});
+
+/* ---------------------------------------------------------------- buttons */
+$('solve').onclick = () => {
+  S.manual = null; S.step = -1;
+  const D = current();
+  say(D.res.ok ? 'Found an order that works.' : 'Searched every order. None of them works.',
+      D.res.ok ? 'Explored ' + D.res.nodes + ' partial orders before landing on one. The dots show it.'
+               : 'Explored ' + D.res.nodes + ' partial orders; every one hit a contradiction.');
+  render();
+  document.querySelectorAll('.bar').forEach(b => { b.classList.add('flash'); setTimeout(()=>b.classList.remove('flash'), 800); });
+};
+$('clearPts').onclick = () => { S.manual = null; S.step = -1; say('Cleared the dots.', 'Back to the order the checker found.'); render(); };
+$('rtRule').onchange = e => {
+  S.realTime = e.target.checked; S.manual = null; S.step = -1;
+  const D = current();
+  say(S.realTime ? 'Real-time rule ON — checking for linearizability.' : 'Real-time rule OFF — checking for sequential consistency only.',
+      'Verdict is now: ' + (D.res.ok ? 'acceptable' : 'impossible') + '.');
+  render();
+};
+$('addPut').onclick = () => { snapshot(); const v = Math.max(0,...S.ops.filter(o=>o.kind==='put').map(o=>o.arg)) + 1;
+  S.ops.push(put(1, v, 4, 24)); S.manual = null; say('Added a write of ' + v + '.', 'Drag it where you want it.'); render(); };
+$('addGet').onclick = () => { snapshot(); S.ops.push(get(2, 0, 40, 60)); S.manual = null;
+  say('Added a read that was told 0.', 'Click it to change the value the client saw.'); render(); };
+$('undo').onclick = () => {
+  if(!undoStack.length) return;
+  const s = JSON.parse(undoStack.pop());
+  S.ops = s.ops; S.manual = s.manual; S.step = -1; say('Undid the last change.'); render();
+};
+$('stepFwd').onclick = () => { const D = current(); if(!D.cells.length) return;
+  S.step = S.step < 0 ? 0 : Math.min(D.cells.length - 1, S.step + 1); render(); };
+$('stepBack').onclick = () => { const D = current(); if(!D.cells.length) return;
+  S.step = S.step < 0 ? D.cells.length - 1 : Math.max(0, S.step - 1); render(); };
+$('stepAll').onclick = () => { S.step = -1; render(); };
+
+/* ---------------------------------------------------------------- generator */
+function rnd(seedObj){ seedObj.s = (seedObj.s * 1103515245 + 12345) & 0x7fffffff; return seedObj.s / 0x7fffffff; }
+
+/**
+ * A small event-driven simulation of three replicas, mirroring the Java lab.
+ *
+ * Every message time is drawn first, because in all of these designs the timing
+ * never depends on the values. Then all replica arrivals are processed in time
+ * order, so a read can never miss a write that reached the replica before it.
+ * (Processing them in any other order is how you accidentally generate
+ * violations that the design never actually had.)
+ */
+function generateHistory(design, jitter, seed){
+  const R = {s: seed | 1}, N = 3, ALL = [0,1,2];
+  const hop = () => (2 + Math.floor(rnd(R)*4)) + (rnd(R) < jitter ? 16 : 0);
+
+  const mkPhase = (write, start, quorum, targets) => {
+    const applyT = [Infinity,Infinity,Infinity], arriveT = [Infinity,Infinity,Infinity];
+    for(const j of targets){ applyT[j] = start + hop(); arriveT[j] = applyT[j] + hop(); }
+    const finite = arriveT.filter(v => isFinite(v)).sort((a,b) => a-b);
+    const decideT = finite[quorum-1];
+    return { write, applyT, arriveT, decideT,
+             counted: arriveT.map(v => v <= decideT),
+             got: [null,null,null], wTs:-1, wId:-1, wVal:0 };
+  };
+
+  /* ---- pass 1: every operation's timing, and who talks to whom ---- */
+  // one client writes, three read — the arrangement this whole question was
+  // first posed about, and the one that exposes a missing write-back fastest
+  const tasks = [], now = [2,4,6,8], cacheUntil = {}, lastRealRead = {};
+  const SCRIPT = [[1,false],[3,true],[2,false],[4,true],[1,false],[3,true],[2,false],[4,true],[1,false],[3,true],[4,true]];
+  let value = 0;
+  for(let k=0;k<SCRIPT.length;k++){
+    const c = SCRIPT[k][0], isRead = SCRIPT[k][1];
+    const start = now[c-1] + Math.floor(rnd(R)*4);
+    if(start > TMAX - 8) continue;
+    const task = { client:c, isRead, start, phases:[] };
+
+    if(design === 'single' || design === 'leader'){
+      const p = mkPhase(!isRead, start, 1, [0]);
+      if(!isRead){ value++; task.val = value; p.wTs = p.applyT[0]; p.wId = c; p.wVal = value; }
+      task.phases.push(p);
+
+    } else if(design === 'async'){
+      if(isRead) task.phases.push(mkPhase(false, start, 1, [Math.floor(rnd(R)*N)]));
+      else {
+        value++; task.val = value;
+        const p = mkPhase(true, start, 1, [0]);
+        p.wTs = p.applyT[0]; p.wId = c; p.wVal = value;
+        // the leader answers now; the other two copies hear about it later
+        task.extra = [1,2].map(j => ({rep:j, t: p.applyT[0] + 11 + Math.floor(rnd(R)*9), ts:p.wTs, id:c, v:value}));
+        task.phases.push(p);
+      }
+
+    } else {
+      const writeBack = (design === 'abd' || design === 'cached');
+      if(isRead && design === 'cached' && cacheUntil[c] !== undefined && start < cacheUntil[c]){
+        task.cachedFrom = lastRealRead[c];
+        task.end = start + 2;
+        now[c-1] = task.end + 3;
+        tasks.push(task);
+        continue;
+      }
+      const p1 = mkPhase(false, start, 2, ALL);
+      task.phases.push(p1);
+      if(!isRead){ value++; task.val = value; task.phases.push(mkPhase(true, p1.decideT, 2, ALL)); }
+      else if(writeBack) task.phases.push(mkPhase(true, p1.decideT, 2, ALL));
+    }
+
+    task.end = task.phases[task.phases.length-1].decideT;
+    now[c-1] = task.end + 3;
+    if(design === 'cached' && isRead){ cacheUntil[c] = task.end + 34; lastRealRead[c] = tasks.length; }
+    tasks.push(task);
+  }
+
+  /* ---- pass 2: play every arrival out in time order ---- */
+  // (timestamp, writer) beats timestamp alone: two writers that query at the same
+  // moment pick the SAME next timestamp, and without a tiebreak both replicas can
+  // end up holding different values under one timestamp — the register splits in two.
+  const newer = (a, b) => a.ts > b.ts || (a.ts === b.ts && a.id > b.id);
+  const rep = [{ts:0,id:0,v:0},{ts:0,id:0,v:0},{ts:0,id:0,v:0}];
+  const cmp = (a,b) => (a.t - b.t) || (a.q - b.q);
+  let q = 0;
+  const queue = [];
+  tasks.forEach((task, ti) => {
+    if(task.cachedFrom !== undefined) return;
+    const p0 = task.phases[0];
+    for(const j of ALL) if(isFinite(p0.applyT[j])) queue.push({t:p0.applyT[j], q:q++, type:0, rep:j, ti, ph:0});
+    queue.push({t:p0.decideT, q:q++, type:1, ti, ph:0});
+    if(task.extra) for(const e of task.extra) queue.push({t:e.t, q:q++, type:2, rep:e.rep, ts:e.ts, v:e.v});
+  });
+  queue.sort(cmp);
+
+  while(queue.length){
+    const e = queue.shift();
+    if(e.type === 2){ if(newer(e, rep[e.rep])) rep[e.rep] = {ts:e.ts, id:e.id, v:e.v}; continue; }
+    const task = tasks[e.ti], p = task.phases[e.ph];
+    if(e.type === 0){
+      if(p.write){ if(newer({ts:p.wTs, id:p.wId}, rep[e.rep])) rep[e.rep] = {ts:p.wTs, id:p.wId, v:p.wVal}; }
+      else p.got[e.rep] = {ts: rep[e.rep].ts, id: rep[e.rep].id, v: rep[e.rep].v};
+    } else {
+      if(!p.write){
+        let best = {ts:-1, id:-1, v:0};
+        for(const j of ALL) if(p.counted[j] && p.got[j] && newer(p.got[j], best)) best = p.got[j];
+        task.queryBest = best;
+      }
+      const next = e.ph + 1;
+      if(next < task.phases.length){
+        const np = task.phases[next];
+        if(task.isRead){ np.wTs = task.queryBest.ts; np.wId = task.queryBest.id; np.wVal = task.queryBest.v; }
+        else { np.wTs = task.queryBest.ts + 1; np.wId = task.client; np.wVal = task.val; }
+        for(const j of ALL) if(isFinite(np.applyT[j])) queue.push({t:np.applyT[j], q:q++, type:0, rep:j, ti:e.ti, ph:next});
+        queue.push({t:np.decideT, q:q++, type:1, ti:e.ti, ph:next});
+        queue.sort(cmp);
+      }
+    }
+  }
+
+  /* ---- pass 3: report only what the clients could see ---- */
+  const ops = [];
+  /**
+   * An operation whose reply lands past the right edge is NOT shortened to fit:
+   * that would invent a real-time ordering the run never had. A write with no
+   * reply stays as an unanswered write; an unanswered read is not reported.
+   */
+  const emit = o => {
+    if(o.res > TMAX){ if(o.kind === 'get') return; o.pending = true; o.res = TMAX; }
+    if(o.res <= o.inv) o.res = o.inv + 3;
+    ops.push(o);
+  };
+  tasks.forEach((task, ti) => {
+    if(task.cachedFrom !== undefined){
+      const src = tasks[task.cachedFrom];
+      emit(get(task.client, src && src.queryBest ? src.queryBest.v : 0, task.start, task.end));
+    } else if(task.isRead) emit(get(task.client, task.queryBest ? task.queryBest.v : 0, task.start, task.end));
+    else emit(put(task.client, task.val, task.start, task.end));
+  });
+  return ops;
+}
+
+const DESIGN_NAMES = {
+  single:'one machine holding the only copy', leader:'three copies with every read served by the leader',
+  async:'three copies, reads served by whichever replica answers', naive:'a 2-of-3 quorum with no write-back',
+  abd:'a 2-of-3 quorum where the reader writes back what it read', cached:'that same quorum, behind a client-side cache'
+};
+let genSeed = 7;
+$('gen').onclick = () => {
+  const d = $('design').value, j = +$('jit').value;
+  for(let attempt=0; attempt<30; attempt++){
+    const ops = generateHistory(d, j, genSeed += 977);
+    if(ops.length < 5) continue;
+    uid = Math.max(uid, ...ops.map(o=>o.id)) + 1;
+    S.ops = ops; S.manual = null; S.sel = null; S.step = -1; S.preset = -1; S.predicted = 'skip';
+    const D = current();
+    say('Generated a real run of ' + DESIGN_NAMES[d] + '.',
+        D.res.ok ? 'The checker accepts this run — but one clean run is evidence, not proof. Try "Run 120 & count".'
+                 : 'The checker rejects this run. The red bars are the smallest contradiction in it.');
+    renderPredict(); render();
+    return;
+  }
+};
+$('gen20').onclick = () => {
+  const d = $('design').value, j = +$('jit').value;
+  let bad = 0, n = 0, seed = 13;
+  for(let i=0;i<120;i++){
+    const ops = generateHistory(d, j, seed += 4099);
+    if(ops.length < 5) continue;
+    n++; if(!check(ops, true).ok) bad++;
+  }
+  const pct = n ? Math.round(100*bad/n) : 0;
+  $('genNote').textContent = bad + ' of ' + n + ' runs (' + pct + '%) could not have come from a single copy.';
+  say('Ran ' + n + ' histories against ' + DESIGN_NAMES[d] + '.',
+      bad === 0 ? 'Not one violation. With hiccups turned up this is the sign of a design that really does hold the line.'
+                : bad + ' of ' + n + ' were impossible for a single copy — ' + pct + '%.');
+  renderLog();
+};
+
+$('genBad').onclick = () => {
+  const d = $('design').value, j = +$('jit').value;
+  let seed = genSeed, tried = 0;
+  for(let i=0;i<4000;i++){
+    seed += 977; const ops = generateHistory(d, j, seed);
+    if(ops.length < 5) continue;
+    tried++;
+    if(!check(ops, true).ok){
+      genSeed = seed;
+      uid = Math.max(uid, ...ops.map(o => o.id)) + 1;
+      S.ops = ops; S.manual = null; S.sel = null; S.step = -1; S.preset = -1; S.predicted = 'skip';
+      $('genNote').textContent = 'Found one after ' + tried + ' runs.';
+      say('Searched ' + tried + ' runs of ' + DESIGN_NAMES[d] + ' to find a broken one.',
+          tried > 30 ? 'That rarity is the danger, not the comfort: a design with no guarantee behaved perfectly ' + (tried-1) + ' times in a row before the ' + tried + 'th caught it out.'
+                     : 'The red bars are the smallest group that cannot all be true.');
+      renderPredict(); render();
+      return;
+    }
+  }
+  $('genNote').textContent = 'Searched ' + tried + ' runs and found none. That is what a design with a real guarantee looks like — but a clean search is evidence, never proof.';
+  say('Searched ' + tried + ' runs of ' + DESIGN_NAMES[d] + '. Not one violation.',
+      'Testing can only ever fail to find a counterexample. The reason to believe this design is the argument behind it, not the search.');
+  renderLog();
+};
+
+/* ---------------------------------------------------------------- go */
+renderPredict();
+render();
+say('Situation A is loaded: one write, then one read.', 'Answer the question above, then look at the verdict.');
+renderLog();
+</script>

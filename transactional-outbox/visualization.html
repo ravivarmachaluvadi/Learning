@@ -1,0 +1,848 @@
+<title>Outbox Crash Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Source+Sans+3:wght@400;600;700&family=Spline+Sans+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #F4F5F0;
+    --surface: #FDFDFA;
+    --surface-2: #ECEEE6;
+    --ink: #20302E;
+    --muted: #5C6B68;
+    --line: #D4D8CC;
+    --accent: #0E6D82;
+    --accent-ink: #FDFDFA;
+    --ok: #2F7D4F;
+    --ok-bg: #E4F0E7;
+    --bad: #B3372E;
+    --bad-bg: #F6E4E1;
+    --warn: #A8771C;
+    --warn-bg: #F5EDDA;
+    --envelope: #C9A227;
+    --shadow: 0 1px 3px rgba(32, 48, 46, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151C1B;
+      --surface: #1E2726;
+      --surface-2: #263130;
+      --ink: #E5EAE4;
+      --muted: #93A29D;
+      --line: #35423F;
+      --accent: #4FB3C9;
+      --accent-ink: #10181A;
+      --ok: #6FC08E;
+      --ok-bg: #1E332A;
+      --bad: #E08074;
+      --bad-bg: #3A2523;
+      --warn: #D8AE5C;
+      --warn-bg: #382F1D;
+      --envelope: #D8B94A;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151C1B;
+    --surface: #1E2726;
+    --surface-2: #263130;
+    --ink: #E5EAE4;
+    --muted: #93A29D;
+    --line: #35423F;
+    --accent: #4FB3C9;
+    --accent-ink: #10181A;
+    --ok: #6FC08E;
+    --ok-bg: #1E332A;
+    --bad: #E08074;
+    --bad-bg: #3A2523;
+    --warn: #D8AE5C;
+    --warn-bg: #382F1D;
+    --envelope: #D8B94A;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header h1 {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 650;
+    font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  .tagline { color: var(--muted); margin: 0 0 14px; max-width: 62ch; }
+  .story {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    max-width: 74ch;
+    margin: 0 0 22px;
+  }
+  .story p { margin: 6px 0; }
+
+  /* ---- controls ---- */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: stretch;
+    margin-bottom: 10px;
+  }
+  fieldset.ctl {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 8px 12px 10px;
+    margin: 0;
+    min-width: 210px;
+    flex: 1 1 210px;
+  }
+  fieldset.ctl legend {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 6px;
+  }
+  .ctl label { display: block; cursor: pointer; padding: 2px 0; }
+  .ctl select {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .ctl .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 20px; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 9px 16px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.tour { border-color: var(--envelope); }
+
+  /* ---- pipeline ---- */
+  .pipeline-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .pipeline {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(185px, 1fr));
+    gap: 26px;
+    min-width: 1030px;
+    align-items: stretch;
+  }
+  .station {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px 12px;
+    position: relative;
+    min-height: 210px;
+    transition: outline-color 0.2s;
+    outline: 2px solid transparent;
+  }
+  .station.active { outline-color: var(--accent); }
+  .station.dead { filter: grayscale(0.9); opacity: 0.75; }
+  .station.dead::after {
+    content: "💥 crashed";
+    position: absolute;
+    inset: auto 8px 8px 8px;
+    text-align: center;
+    background: var(--bad-bg);
+    color: var(--bad);
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .station h3 {
+    margin: 0 0 2px;
+    font-size: 0.95rem;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+  .station .role { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 8px; }
+  .arrow {
+    position: absolute;
+    top: 46%;
+    font-size: 1.1rem;
+    color: var(--muted);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .minitable { margin-top: 8px; }
+  .minitable .tname {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .rows {
+    font-family: "Spline Sans Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 26px;
+    overflow-x: auto;
+  }
+  .rows .empty { color: var(--muted); font-style: italic; font-family: "Source Sans 3", sans-serif; }
+  .rows div { white-space: nowrap; padding: 1px 0; }
+  .rows .dup { color: var(--bad); font-weight: 600; }
+  .rows .sent { color: var(--ok); }
+  .rows .pending { color: var(--warn); }
+  .stock {
+    font-family: "Spline Sans Mono", ui-monospace, monospace;
+    font-size: 1.7rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin: 4px 0 0;
+  }
+  .stock small { font-size: 0.72rem; color: var(--muted); font-family: "Source Sans 3", sans-serif; font-weight: 400; display: block; }
+
+  #envelope {
+    position: absolute;
+    z-index: 5;
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    transition: transform 0.55s cubic-bezier(.45,0,.35,1), opacity 0.3s;
+    opacity: 0;
+    left: 0; top: 0;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #envelope { transition: none; }
+  }
+
+  /* ---- verdict ---- */
+  .verdict {
+    margin-top: 20px;
+    border-radius: 10px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .verdict .v-state {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 650;
+    font-size: 1.25rem;
+    margin: 0 0 2px;
+  }
+  .verdict .v-why { margin: 0; color: var(--muted); max-width: 90ch; }
+  .verdict.ok    { background: var(--ok-bg);   border-color: var(--ok); }
+  .verdict.ok .v-state { color: var(--ok); }
+  .verdict.bad   { background: var(--bad-bg);  border-color: var(--bad); }
+  .verdict.bad .v-state { color: var(--bad); }
+  .verdict.warn  { background: var(--warn-bg); border-color: var(--warn); }
+  .verdict.warn .v-state { color: var(--warn); }
+
+  /* ---- log ---- */
+  .log-wrap { margin-top: 22px; }
+  .log-wrap h2 {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 650;
+    font-size: 1.15rem;
+    margin: 0 0 8px;
+  }
+  #log {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .entry { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .entry:last-child { border-bottom: none; }
+  .entry .plain { margin: 0; }
+  .entry .tech {
+    margin: 2px 0 0;
+    font-family: "Spline Sans Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .entry.act .plain {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 650;
+    color: var(--accent);
+  }
+  .entry.crash .plain { color: var(--bad); font-weight: 600; }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 80ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Outbox Crash Lab</h1>
+  <p class="tagline">A shop must do two things for every order: write it in its own ledger (the database) and tell the warehouse (send a message). This page lets you crash the shop at the worst possible instants and watch what each strategy loses.</p>
+</header>
+
+<div class="story">
+  <p><strong>The setup.</strong> Stock of red mugs starts at <strong>10</strong>. Every order is for <strong>2 mugs</strong>, so after one order the warehouse's count should say <strong>8</strong>. The middle three stations exist because the shop's database and the warehouse cannot share one transaction — something must carry the news between them.</p>
+  <p><strong>New here?</strong> Press <em>“Run the whole story for me”</em> — it plays four short acts with narration: the naive strategy losing an order, the outbox surviving the same crash, the outbox's one honest weakness (duplicates), and the fix.</p>
+</div>
+
+<div class="controls">
+  <fieldset class="ctl">
+    <legend>How does the shop tell the warehouse?</legend>
+    <label><input type="radio" name="strategy" value="dual" checked> Just do both writes (“dual write”)</label>
+    <label><input type="radio" name="strategy" value="outbox"> Outbox: save the letter with the order</label>
+    <div class="hint" id="strategyHint">Dual write = save to the database, then separately publish to the broker. Two systems, no shared transaction.</div>
+  </fieldset>
+  <fieldset class="ctl" id="orderCtl">
+    <legend>Which write happens first? (dual write only)</legend>
+    <label><input type="radio" name="worder" value="db" checked> Ledger first (database → broker)</label>
+    <label><input type="radio" name="worder" value="broker"> Letter first (broker → database)</label>
+    <div class="hint">Both orders have a losing crash — try each.</div>
+  </fieldset>
+  <fieldset class="ctl">
+    <legend>When should disaster strike?</legend>
+    <select id="crashSel"></select>
+    <div class="hint" id="crashHint"></div>
+  </fieldset>
+  <fieldset class="ctl">
+    <legend>Can the warehouse spot a letter it already read?</legend>
+    <label><input type="radio" name="cmode" value="naive" checked> No — apply every message (naive)</label>
+    <label><input type="radio" name="cmode" value="idem"> Yes — remember message ids (idempotent)</label>
+    <div class="hint">Idempotent = it keeps a “processed” list in its own database, in the same transaction as the stock change.</div>
+  </fieldset>
+</div>
+
+<div class="actions">
+  <button class="primary" id="btnOrder">📞 Place an order (2 × red-mug)</button>
+  <button id="btnRelay">📤 Run one relay poll</button>
+  <button id="btnDeliver">🚚 Deliver messages to warehouse</button>
+  <button id="btnRestart" disabled>🔁 Restart crashed component</button>
+  <button id="btnReset">🧹 Reset everything</button>
+  <button class="tour" id="btnStory">▶ Run the whole story for me</button>
+</div>
+
+<div class="pipeline-scroll">
+  <div class="pipeline" id="pipeline">
+    <div id="envelope">✉️</div>
+
+    <div class="station" id="st-svc">
+      <h3>🏪 Order Service</h3>
+      <span class="role">takes the phone call, writes the order</span>
+      <div class="minitable"><span class="tname">status</span>
+        <div class="rows" id="svcStatus"><div class="empty">idle</div></div></div>
+    </div>
+
+    <div class="station" id="st-db">
+      <span class="arrow" style="left:-14px">→</span>
+      <h3>📒 Its Database</h3>
+      <span class="role">one system — transactions are atomic here</span>
+      <div class="minitable"><span class="tname">orders</span>
+        <div class="rows" id="tblOrders"><div class="empty">no rows</div></div></div>
+      <div class="minitable"><span class="tname">outbox</span>
+        <div class="rows" id="tblOutbox"><div class="empty">no rows</div></div></div>
+    </div>
+
+    <div class="station" id="st-relay">
+      <span class="arrow" style="left:-14px">→</span>
+      <h3>📮 Message Relay</h3>
+      <span class="role">mail clerk: outbox rows → broker, then stamps them “sent”</span>
+      <div class="minitable"><span class="tname">status</span>
+        <div class="rows" id="relayStatus"><div class="empty">waiting for outbox rows</div></div></div>
+    </div>
+
+    <div class="station" id="st-broker">
+      <span class="arrow" style="left:-14px">→</span>
+      <h3>📨 Broker log</h3>
+      <span class="role">separate system (like a Kafka topic) — durable, append-only</span>
+      <div class="minitable"><span class="tname">messages</span>
+        <div class="rows" id="tblBroker"><div class="empty">no messages</div></div></div>
+    </div>
+
+    <div class="station" id="st-wh">
+      <span class="arrow" style="left:-14px">→</span>
+      <h3>🏭 Warehouse</h3>
+      <span class="role">consumer: its own database, its own transactions</span>
+      <p class="stock"><span id="stockVal">10</span> mugs<br><small>correct value: <span id="stockExpect">10</span></small></p>
+      <div class="minitable"><span class="tname">processed message ids</span>
+        <div class="rows" id="tblProcessed"><div class="empty">— (naive mode ignores this)</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict" id="verdict">
+  <p class="v-state" id="vState">Ready.</p>
+  <p class="v-why" id="vWhy">Place an order to begin — or run the guided story.</p>
+</div>
+
+<div class="log-wrap">
+  <h2>What just happened</h2>
+  <div id="log"></div>
+</div>
+
+<footer>Part of the <code>transactional-outbox</code> learning lab — see <code>README.md</code> for the full mechanism and <code>OutboxLab.java</code> to run these same four experiments against real H2 transactions.</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ state */
+const S = {
+  orders: [],        // {id, qty} committed rows
+  outbox: [],        // {msgId, orderId, qty, published}
+  broker: [],        // {msgId, orderId, qty, delivered}
+  stock: 10,
+  processed: [],     // msg ids the idempotent warehouse remembers
+  appliedCount: {},  // msgId -> times applied (for verdict)
+  phantom: 0,        // events whose order was never committed
+  silentLoss: 0,     // orders committed with no record of a message anywhere
+  svcDead: false,
+  relayDead: false,
+  seq: 0,
+  touring: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const strategy = () => document.querySelector('input[name="strategy"]:checked').value;
+const writeOrder = () => document.querySelector('input[name="worder"]:checked').value;
+const consumerMode = () => document.querySelector('input[name="cmode"]:checked').value;
+
+const CRASH_OPTIONS = {
+  dual: [
+    ["none", "No crash — everything goes right", "Even the naive strategy works when nothing fails. That is why it passes code review."],
+    ["between", "Crash between the two writes", "The process dies after write #1 succeeds and before write #2 starts — a deploy, an OOM-kill, a power cut."],
+  ],
+  outbox: [
+    ["none", "No crash — everything goes right", "Happy path: one transaction, then the relay, then delivery."],
+    ["after-commit", "Service crashes right after commit", "The exact crash that kills dual write: after the database commit, before anything was sent."],
+    ["relay-gap", "Relay crashes after publish, before stamping", "The one gap the outbox cannot close: the letter is mailed but not yet marked “sent”."],
+  ],
+};
+
+/* ------------------------------------------------------------------ log */
+function log(plain, tech, cls) {
+  const e = document.createElement("div");
+  e.className = "entry" + (cls ? " " + cls : "");
+  const p = document.createElement("p");
+  p.className = "plain";
+  p.textContent = plain;
+  e.appendChild(p);
+  if (tech) {
+    const t = document.createElement("p");
+    t.className = "tech";
+    t.textContent = tech;
+    e.appendChild(t);
+  }
+  const box = $("log");
+  box.appendChild(e);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ------------------------------------------------------------------ envelope animation */
+async function flyEnvelope(fromId, toId) {
+  const env = $("envelope");
+  const pipe = $("pipeline");
+  const a = $(fromId).getBoundingClientRect();
+  const b = $(toId).getBoundingClientRect();
+  const p = pipe.getBoundingClientRect();
+  const x1 = a.left - p.left + a.width / 2, y1 = a.top - p.top + 30;
+  const x2 = b.left - p.left + b.width / 2, y2 = b.top - p.top + 30;
+  env.style.transition = "none";
+  env.style.transform = `translate(${x1}px, ${y1}px)`;
+  env.style.opacity = "1";
+  env.getBoundingClientRect(); // flush
+  env.style.transition = "";
+  env.style.transform = `translate(${x2}px, ${y2}px)`;
+  await sleep(600);
+  env.style.opacity = "0";
+}
+
+function pulse(id) {
+  const el = $(id);
+  el.classList.add("active");
+  setTimeout(() => el.classList.remove("active"), 700);
+}
+
+/* ------------------------------------------------------------------ render */
+function fillRows(el, rows, emptyText) {
+  el.textContent = "";
+  if (!rows.length) {
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = emptyText;
+    el.appendChild(d);
+    return;
+  }
+  for (const r of rows) {
+    const d = document.createElement("div");
+    d.textContent = r.text;
+    if (r.cls) d.className = r.cls;
+    el.appendChild(d);
+  }
+}
+
+function render() {
+  fillRows($("tblOrders"),
+    S.orders.map((o) => ({ text: `${o.id}  red-mug  ×${o.qty}` })), "no rows");
+  fillRows($("tblOutbox"),
+    S.outbox.map((x) => ({
+      text: `${x.msgId} ${x.published ? "✓ sent" : "⧗ pending"}`,
+      cls: x.published ? "sent" : "pending",
+    })),
+    strategy() === "dual" ? "not used in dual write" : "no rows");
+  const counts = {};
+  for (const m of S.broker) counts[m.msgId] = (counts[m.msgId] || 0) + 1;
+  fillRows($("tblBroker"),
+    S.broker.map((m, i) => ({
+      text: `#${i + 1} ${m.msgId} (order ${m.orderId})${counts[m.msgId] > 1 ? "  ← duplicate id!" : ""}${m.delivered ? " ✓read" : ""}`,
+      cls: counts[m.msgId] > 1 ? "dup" : undefined,
+    })), "no messages");
+  fillRows($("tblProcessed"),
+    S.processed.map((id) => ({ text: id })),
+    consumerMode() === "naive" ? "— (naive mode ignores this)" : "none yet");
+  $("stockVal").textContent = S.stock;
+  $("stockExpect").textContent = 10 - 2 * S.orders.length;
+  $("st-svc").classList.toggle("dead", S.svcDead);
+  $("st-relay").classList.toggle("dead", S.relayDead);
+  $("svcStatus").innerHTML = S.svcDead
+    ? '<div class="dup">process is down</div>'
+    : '<div class="empty">idle — ready to take orders</div>';
+  $("relayStatus").innerHTML = S.relayDead
+    ? '<div class="dup">process is down</div>'
+    : (S.outbox.some((x) => !x.published)
+        ? '<div class="pending">unpublished rows waiting</div>'
+        : '<div class="empty">nothing pending</div>');
+  updateButtons();
+  updateVerdict();
+}
+
+function updateButtons() {
+  const t = S.touring;
+  $("btnOrder").disabled = t || S.svcDead;
+  $("btnRelay").disabled = t || S.relayDead || strategy() === "dual";
+  $("btnDeliver").disabled = t || !S.broker.some((m) => !m.delivered);
+  $("btnRestart").disabled = t || (!S.svcDead && !S.relayDead);
+  $("btnStory").disabled = t;
+  $("btnReset").disabled = t;
+}
+
+function setVerdict(cls, state, why) {
+  const v = $("verdict");
+  v.className = "verdict" + (cls ? " " + cls : "");
+  $("vState").textContent = state;
+  $("vWhy").textContent = why;
+}
+
+function updateVerdict() {
+  const expected = 10 - 2 * S.orders.length;
+  const dupApplied = Object.values(S.appliedCount).some((n) => n > 1);
+  const pendingOutbox = S.outbox.some((x) => !x.published);
+  const undelivered = S.broker.some((m) => !m.delivered);
+
+  if (S.silentLoss > 0) {
+    setVerdict("bad", "✗ Silent loss.",
+      `${S.silentLoss} order(s) are safely in the database, but no message exists anywhere — not in the broker, and there is no outbox row to retry from. The warehouse will simply never hear about them, and nothing in the system looks wrong.`);
+  } else if (S.phantom > 0) {
+    setVerdict("bad", "✗ Phantom message.",
+      "A message reached the broker for an order that was never committed. The warehouse will reserve stock for an order that does not exist. Reversing a shipped action is harder than resending a lost one.");
+  } else if (dupApplied) {
+    setVerdict("bad", "✗ Duplicate applied — stock is wrong.",
+      `The warehouse applied the same message twice, so stock reads ${S.stock} when the correct value is ${expected}. The delivery worked; the naive consumer turned a harmless duplicate into corrupted data.`);
+  } else if (pendingOutbox && !S.relayDead) {
+    setVerdict("warn", "⏳ Safe, but in transit.",
+      "The message is committed in the outbox table — it cannot be lost now, only delayed. Run a relay poll to move it to the broker.");
+  } else if (pendingOutbox && S.relayDead) {
+    setVerdict("warn", "⏳ Safe — waiting for the relay to come back.",
+      "The relay is down, but the outbox row is durable. A crash here converts data loss into mere latency. Restart the relay and poll again.");
+  } else if (undelivered) {
+    setVerdict("warn", "⏳ In the broker, not yet read.",
+      "Messages are sitting durably in the broker log. Deliver them to the warehouse to complete the journey.");
+  } else if (S.stock === expected && S.orders.length > 0) {
+    const skipped = S.processed.length > 0 && S.broker.length > S.processed.length;
+    setVerdict("ok", "✓ Consistent.",
+      `Every committed order was heard exactly once downstream: ${S.orders.length} order(s) × 2 mugs, stock ${S.stock} as expected.` +
+      (skipped ? " Duplicates arrived but the idempotent warehouse recognized their message ids and skipped them — at-least-once delivery, effectively-once outcome." : ""));
+  } else if (S.orders.length === 0 && S.broker.length === 0) {
+    setVerdict("", "Ready.", "Place an order to begin — or run the guided story.");
+  } else {
+    setVerdict("ok", "✓ Nothing inconsistent so far.", "Keep going.");
+  }
+}
+
+/* ------------------------------------------------------------------ actions */
+function newOrder() {
+  S.seq += 1;
+  return { orderId: "o" + S.seq, msgId: "m" + S.seq, qty: 2 };
+}
+
+async function placeOrder() {
+  if (S.svcDead) return;
+  const o = newOrder();
+  const crash = $("crashSel").value;
+  pulse("st-svc");
+  log("📞 A customer phones in an order for 2 red mugs.", `order_id=${o.orderId}`);
+  await sleep(350);
+
+  if (strategy() === "dual") {
+    const dbFirst = writeOrder() === "db";
+    if (dbFirst) {
+      await flyEnvelope("st-svc", "st-db");
+      S.orders.push({ id: o.orderId, qty: o.qty });
+      log("The service writes the order into its database. COMMIT — durable.",
+        `INSERT INTO orders VALUES ('${o.orderId}','red-mug',2); COMMIT`);
+      render();
+      if (crash === "between") {
+        S.svcDead = true;
+        S.silentLoss += 1;
+        log("💥 The process dies before it can publish the message. There is no record anywhere that a message was ever supposed to exist.",
+          "crash between write #1 (DB) and write #2 (broker)", "crash");
+        render();
+        return;
+      }
+      await flyEnvelope("st-svc", "st-broker");
+      S.broker.push({ msgId: o.msgId, orderId: o.orderId, qty: o.qty, delivered: false });
+      log("The service publishes the message straight to the broker. Both writes happened — but only because nothing crashed.",
+        `broker.publish(${o.msgId})`);
+    } else {
+      await flyEnvelope("st-svc", "st-broker");
+      S.broker.push({ msgId: o.msgId, orderId: o.orderId, qty: o.qty, delivered: false });
+      log("The service publishes the message to the broker first.",
+        `broker.publish(${o.msgId})`);
+      render();
+      if (crash === "between") {
+        S.svcDead = true;
+        S.phantom += 1;
+        log("💥 The process dies before the database write. The broker now announces an order that the database will never contain.",
+          "crash between write #1 (broker) and write #2 (DB)", "crash");
+        render();
+        return;
+      }
+      await flyEnvelope("st-svc", "st-db");
+      S.orders.push({ id: o.orderId, qty: o.qty });
+      log("Then it commits the order to the database.", "INSERT INTO orders ...; COMMIT");
+    }
+  } else {
+    await flyEnvelope("st-svc", "st-db");
+    S.orders.push({ id: o.orderId, qty: o.qty });
+    S.outbox.push({ msgId: o.msgId, orderId: o.orderId, qty: o.qty, published: false });
+    log("ONE database transaction writes the order AND the outgoing letter into the outbox table. Either both become durable or neither does.",
+      `BEGIN; INSERT INTO orders('${o.orderId}'); INSERT INTO outbox('${o.msgId}', published_at=NULL); COMMIT`);
+    render();
+    if (crash === "after-commit") {
+      S.svcDead = true;
+      log("💥 The process dies right after the commit — the same instant that destroyed dual write. But look at the outbox table: the letter is already durable.",
+        "crash after COMMIT, before any relay ran", "crash");
+    }
+  }
+  render();
+}
+
+async function relayPoll() {
+  if (S.relayDead || strategy() === "dual") return;
+  const crash = $("crashSel").value;
+  const pending = S.outbox.filter((x) => !x.published);
+  pulse("st-relay");
+  if (!pending.length) {
+    log("📮 The relay polls the outbox: nothing unpublished. Nothing to do — polling an empty outbox is always safe.",
+      "SELECT * FROM outbox WHERE published_at IS NULL → 0 rows");
+    render();
+    return;
+  }
+  log(`📮 The relay polls the outbox and finds ${pending.length} unpublished letter(s).`,
+    "SELECT * FROM outbox WHERE published_at IS NULL ORDER BY seq");
+  for (const row of pending) {
+    await flyEnvelope("st-relay", "st-broker");
+    S.broker.push({ msgId: row.msgId, orderId: row.orderId, qty: row.qty, delivered: false });
+    render();
+    if (crash === "relay-gap" && !S.relayDead) {
+      S.relayDead = true;
+      log(`💥 The relay dies after publishing ${row.msgId} but before stamping the row “sent”. The broker has the letter; the outbox still says it doesn't.`,
+        "crash between broker.publish() and UPDATE outbox SET published_at", "crash");
+      render();
+      return;
+    }
+    row.published = true;
+    log(`The relay publishes ${row.msgId} and stamps its outbox row “sent”.`,
+      `broker.publish(${row.msgId}); UPDATE outbox SET published_at WHERE msg='${row.msgId}'`);
+    render();
+  }
+}
+
+async function deliver() {
+  const pending = S.broker.filter((m) => !m.delivered);
+  if (!pending.length) return;
+  const idem = consumerMode() === "idem";
+  for (const m of pending) {
+    await flyEnvelope("st-broker", "st-wh");
+    pulse("st-wh");
+    m.delivered = true;
+    if (idem && S.processed.includes(m.msgId)) {
+      log(`🏭 The warehouse reads ${m.msgId} — and recognizes it: “I have processed this id before.” It skips the message. Stock untouched.`,
+        `SELECT 1 FROM processed_messages WHERE id='${m.msgId}' → found; skip`);
+    } else {
+      S.stock -= m.qty;
+      S.appliedCount[m.msgId] = (S.appliedCount[m.msgId] || 0) + 1;
+      if (idem) S.processed.push(m.msgId);
+      log(`🏭 The warehouse reads ${m.msgId} and reserves 2 mugs. Stock is now ${S.stock}.`,
+        idem
+          ? `BEGIN; INSERT processed('${m.msgId}'); UPDATE stock=-2; COMMIT (one transaction)`
+          : "UPDATE inventory SET stock = stock - 2 (no dedupe check)");
+    }
+    render();
+    await sleep(250);
+  }
+}
+
+function restart() {
+  if (S.svcDead) {
+    S.svcDead = false;
+    log("🔁 The order service restarts. Its database survived the crash untouched — that is what durable means.",
+      "new process, same database file");
+  }
+  if (S.relayDead) {
+    S.relayDead = false;
+    log("🔁 The relay restarts and will re-read the outbox from scratch. Any row not stamped “sent” will be published again — possibly for the second time.",
+      "restart → next poll re-reads WHERE published_at IS NULL");
+  }
+  render();
+}
+
+function reset(silent) {
+  Object.assign(S, {
+    orders: [], outbox: [], broker: [], stock: 10, processed: [],
+    appliedCount: {}, phantom: 0, silentLoss: 0,
+    svcDead: false, relayDead: false, seq: 0,
+  });
+  if (!silent) log("🧹 Everything reset. Stock back to 10.", "");
+  render();
+}
+
+/* ------------------------------------------------------------------ crash options + control sync */
+function setRadio(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) el.checked = true;
+}
+
+function rebuildCrashOptions(keep) {
+  const sel = $("crashSel");
+  const opts = CRASH_OPTIONS[strategy()];
+  sel.textContent = "";
+  for (const [val, label] of opts) {
+    const o = document.createElement("option");
+    o.value = val;
+    o.textContent = label;
+    sel.appendChild(o);
+  }
+  sel.value = keep && opts.some((x) => x[0] === keep) ? keep : "none";
+  syncHints();
+}
+
+function syncHints() {
+  const opts = CRASH_OPTIONS[strategy()];
+  const cur = opts.find((x) => x[0] === $("crashSel").value);
+  $("crashHint").textContent = cur ? cur[2] : "";
+  $("strategyHint").textContent = strategy() === "dual"
+    ? "Dual write = save to the database, then separately publish to the broker. Two systems, no shared transaction."
+    : "Outbox = the message is INSERTed into a table in the same database transaction as the order; a relay moves it to the broker afterwards.";
+  $("orderCtl").style.opacity = strategy() === "dual" ? "1" : "0.4";
+  document.querySelectorAll('#orderCtl input').forEach((i) => { i.disabled = strategy() !== "dual"; });
+}
+
+/* ------------------------------------------------------------------ guided story */
+async function runStory() {
+  if (S.touring) return;
+  S.touring = true;
+  updateButtons();
+  const N = 1100;
+  try {
+    reset(true);
+    log("— ACT 1 · The naive strategy loses an order —", "", "act");
+    setRadio("strategy", "dual"); setRadio("worder", "db");
+    rebuildCrashOptions(); $("crashSel").value = "between"; syncHints();
+    log("Strategy: dual write, ledger first. A crash is scheduled between the two writes.", "");
+    await sleep(N); await placeOrder(); await sleep(N);
+    log("Look at the verdict: the order exists, the message never will. No error, no queue, no retry — this is why dual write is an anti-pattern.", "");
+    await sleep(N * 2);
+
+    log("— ACT 2 · The outbox survives the exact same crash —", "", "act");
+    reset(true);
+    setRadio("strategy", "outbox");
+    rebuildCrashOptions(); $("crashSel").value = "after-commit"; syncHints();
+    log("Strategy: outbox. Same crash point: right after the database commit.", "");
+    await sleep(N); await placeOrder(); await sleep(N);
+    log("The service is down, but the letter is committed in the outbox table. Restart and let the relay do its job.", "");
+    await sleep(N); restart(); $("crashSel").value = "none"; syncHints();
+    await sleep(N); await relayPoll(); await sleep(600); await deliver(); await sleep(N);
+    log("Delivered. A crash now only delays a message — it can never erase one.", "");
+    await sleep(N * 2);
+
+    log("— ACT 3 · The price: the relay's unavoidable gap —", "", "act");
+    reset(true);
+    setRadio("strategy", "outbox"); setRadio("cmode", "naive");
+    rebuildCrashOptions(); $("crashSel").value = "relay-gap"; syncHints();
+    log("“Publish to broker” and “stamp the row sent” are two systems again — the relay can die between them. Watch.", "");
+    await sleep(N); await placeOrder(); await sleep(600); await relayPoll(); await sleep(N);
+    restart(); $("crashSel").value = "none"; syncHints();
+    await sleep(N); await relayPoll(); await sleep(N);
+    log("The broker now holds the same letter twice. That is at-least-once delivery: the honest price of never losing anything. Now a naive warehouse reads it…", "");
+    await sleep(N); await deliver(); await sleep(N);
+    log("Stock says 6; the truth is 8. The duplicate wasn't the bug — applying it blindly was.", "");
+    await sleep(N * 2);
+
+    log("— ACT 4 · The fix: an idempotent warehouse —", "", "act");
+    reset(true);
+    setRadio("strategy", "outbox"); setRadio("cmode", "idem");
+    rebuildCrashOptions(); $("crashSel").value = "relay-gap"; syncHints();
+    log("Same crash, but the warehouse now records every message id it processes — in the same transaction as the stock change.", "");
+    await sleep(N); await placeOrder(); await sleep(600); await relayPoll(); await sleep(N);
+    restart(); $("crashSel").value = "none"; syncHints();
+    await sleep(600); await relayPoll(); await sleep(N); await deliver(); await sleep(N);
+    log("Two copies arrived, one was applied, one was recognized and skipped. At-least-once delivery + idempotent processing = an effectively-once OUTCOME. That is the whole pattern.", "", "act");
+  } finally {
+    S.touring = false;
+    render();
+  }
+}
+
+/* ------------------------------------------------------------------ wiring */
+$("btnOrder").addEventListener("click", placeOrder);
+$("btnRelay").addEventListener("click", relayPoll);
+$("btnDeliver").addEventListener("click", deliver);
+$("btnRestart").addEventListener("click", restart);
+$("btnReset").addEventListener("click", () => reset(false));
+$("btnStory").addEventListener("click", runStory);
+$("crashSel").addEventListener("change", syncHints);
+document.querySelectorAll('input[name="strategy"]').forEach((i) =>
+  i.addEventListener("change", () => { rebuildCrashOptions(); render(); }));
+document.querySelectorAll('input[name="cmode"], input[name="worder"]').forEach((i) =>
+  i.addEventListener("change", render));
+
+rebuildCrashOptions();
+render();
+log("Welcome. Pick a strategy and a crash, place an order — or press “Run the whole story for me”.", "");
+</script>

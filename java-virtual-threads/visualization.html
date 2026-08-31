@@ -1,0 +1,532 @@
+<title>Carriers &amp; Continuations</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #eef0f4; --surface: #fbfbfd; --surface2: #f2f3f7;
+    --ink: #20242e; --muted: #6a7080; --line: #d8dbe4;
+    --running: #d97a1a; --running-soft: #f7e7d3;
+    --queued: #3d6fb8;  --queued-soft: #dde8f6;
+    --parked: #2f9e8c;  --parked-soft: #d9efeb;
+    --pinned: #ce4a4f;  --pinned-soft: #f7dddd;
+    --done: #9aa0ad;    --done-soft: #e8eaee;
+    --focus: #3d6fb8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161d; --surface: #1c1f29; --surface2: #232734;
+      --ink: #e6e8ef; --muted: #9aa1b2; --line: #2c303d;
+      --running: #f2953a; --running-soft: #3a2c1a;
+      --queued: #6d9fe8;  --queued-soft: #1d2a41;
+      --parked: #46bfa9;  --parked-soft: #16332e;
+      --pinned: #e4676c;  --pinned-soft: #3d1f21;
+      --done: #6b7180;    --done-soft: #262a35;
+      --focus: #6d9fe8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161d; --surface: #1c1f29; --surface2: #232734;
+    --ink: #e6e8ef; --muted: #9aa1b2; --line: #2c303d;
+    --running: #f2953a; --running-soft: #3a2c1a;
+    --queued: #6d9fe8;  --queued-soft: #1d2a41;
+    --parked: #46bfa9;  --parked-soft: #16332e;
+    --pinned: #e4676c;  --pinned-soft: #3d1f21;
+    --done: #6b7180;    --done-soft: #262a35;
+    --focus: #6d9fe8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+  header h1 { font-size: 26px; font-weight: 700; margin: 4px 0 2px; text-wrap: balance; }
+  header .sub { color: var(--muted); max-width: 72ch; margin: 0 0 6px; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  #verdict {
+    margin: 14px 0; padding: 12px 16px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 5px solid var(--queued); font-size: 15px;
+  }
+  #verdict.good { border-left-color: var(--parked); }
+  #verdict.bad  { border-left-color: var(--pinned); }
+  #verdict .tech { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .layout { display: grid; grid-template-columns: 285px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); }
+
+  .stories { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .stories button {
+    text-align: left; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--ink); font: 600 13px "Sora", sans-serif; cursor: pointer;
+  }
+  .stories button:hover { border-color: var(--queued); }
+  .stories button .hint { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+
+  .ctl { margin: 10px 0; }
+  .ctl label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+  .ctl .val { color: var(--queued); font-family: "JetBrains Mono", monospace; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--queued); }
+  .ctl .why { font-size: 11.5px; color: var(--muted); }
+  .worlds { display: flex; flex-direction: column; gap: 6px; }
+  .worlds label {
+    display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--line); cursor: pointer; font-weight: 400; font-size: 12.5px;
+  }
+  .worlds label:has(input:checked) { border-color: var(--queued); background: var(--queued-soft); }
+  .worlds b { display: block; font-size: 12.5px; }
+  .worlds input { accent-color: var(--queued); }
+
+  .transport { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .transport button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
+    background: var(--surface2); color: var(--ink); font: 600 13px "Sora", sans-serif;
+  }
+  .transport button.primary { background: var(--queued); border-color: var(--queued); color: #fff; }
+  :root[data-theme="dark"] .transport button.primary, .transport button.primary { color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .stage { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .stage { grid-template-columns: 1fr; } }
+  .zone { background: var(--surface2); border: 1px dashed var(--line); border-radius: 10px; padding: 10px; min-height: 180px; }
+  .zone h3 { margin: 0 0 2px; font-size: 13px; }
+  .zone .zsub { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+
+  .chip {
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px; font-weight: 600;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink);
+  }
+  .chip.queued { background: var(--queued-soft); border-color: var(--queued); }
+  .chip.parked { background: var(--parked-soft); border-color: var(--parked); }
+  .chip.done   { background: var(--done-soft);   border-color: var(--done); color: var(--muted); font-weight: 400; }
+
+  .carrier {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 10px; margin-bottom: 8px;
+  }
+  .carrier .cname { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); }
+  .carrier .occupant { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 26px; }
+  .carrier .who { font-family: "JetBrains Mono", monospace; font-size: 12.5px; font-weight: 600; }
+  .carrier .doing { font-size: 11.5px; color: var(--muted); }
+  .carrier.running { border-left: 5px solid var(--running); }
+  .carrier.pinned  { border-left: 5px solid var(--pinned); background: var(--pinned-soft); }
+  .carrier.holding { border-left: 5px solid var(--pinned); }
+  .carrier.idle    { border-left: 5px solid var(--line); }
+  .bar { height: 5px; border-radius: 3px; background: var(--done-soft); overflow: hidden; margin-top: 6px; }
+  .bar i { display: block; height: 100%; background: var(--running); }
+  .carrier.pinned .bar i, .carrier.holding .bar i { background: var(--pinned); }
+
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 0; }
+  .stat .n { font-family: "JetBrains Mono", monospace; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+  #log { margin-top: 14px; }
+  #loglines { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
+  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .ll .t { font-size: 13px; }
+  .ll .tech { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); }
+  .ll.park { border-left-color: var(--parked); }
+  .ll.mount { border-left-color: var(--running); }
+  .ll.pin { border-left-color: var(--pinned); }
+  .ll.queue { border-left-color: var(--queued); }
+  .ll.doneL { border-left-color: var(--done); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+
+  .keyrow { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+  .foot { margin-top: 16px; color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+  @media (prefers-reduced-motion: no-preference) {
+    .carrier, .chip { transition: background .15s, border-color .15s; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Java virtual threads · scheduler simulator</div>
+    <h1>Carriers &amp; Continuations</h1>
+    <p class="sub">A server has many <b>tasks</b> (requests) but very few <b>OS threads</b> ("carriers" — think waiters in
+    a restaurant). Each task alternates between <b>computing</b> (needs a carrier) and <b>waiting</b> for a database
+    (needs nothing — <i>if</i> it can step off its carrier). This page simulates how the three worlds Java has lived in
+    handle that. Start with a story button; every event is narrated below.</p>
+  </header>
+
+  <div id="verdict"><span id="vtext">Pick a story on the left, or press Run.</span><span class="tech" id="vtech"></span></div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Play a story for me</h2>
+      <div class="stories">
+        <button data-story="modern"><span>1 · Why blocking is free now</span><span class="hint">12 tasks, 2 carriers, JDK 24+ — watch everyone wait at once</span></button>
+        <button data-story="pool"><span>2 · The old world: OS threads</span><span class="hint">Same workload, but a waiting task keeps its thread</span></button>
+        <button data-story="legacy"><span>3 · The pinning bug (JDK 21)</span><span class="hint">Waiting inside synchronized couldn't step off</span></button>
+        <button data-story="hog"><span>4 · The CPU hog</span><span class="hint">One compute-heavy task starves a carrier — no preemption</span></button>
+      </div>
+
+      <h2>Or set it up yourself</h2>
+      <div class="worlds" role="radiogroup" aria-label="Which world">
+        <label><input type="radio" name="world" value="modern" checked><span><b>JDK 24+ virtual threads</b>A waiting task always steps off its carrier.</span></label>
+        <label><input type="radio" name="world" value="legacy"><span><b>JDK 21 — synchronized pins</b>Tasks waiting inside a synchronized block hold their carrier hostage.</span></label>
+        <label><input type="radio" name="world" value="pool"><span><b>Classic pool of OS threads</b>Every waiting task keeps its thread (pre-Loom Java).</span></label>
+      </div>
+      <div class="ctl"><label>OS threads (carriers): <span class="val" id="vCarriers">2</span></label>
+        <input type="range" id="carriers" min="1" max="8" value="2">
+        <div class="why">Real default: one per CPU core. Kept tiny here so you can see the sharing.</div></div>
+      <div class="ctl"><label>Tasks (requests): <span class="val" id="vTasks">12</span></label>
+        <input type="range" id="tasks" min="1" max="30" value="12"></div>
+      <div class="ctl"><label>Wait per task (the database call): <span class="val" id="vBlock">80</span> ms</label>
+        <input type="range" id="blockMs" min="0" max="200" step="10" value="80"></div>
+      <div class="ctl"><label>Compute per task: <span class="val" id="vCpu">20</span> ms</label>
+        <input type="range" id="cpuMs" min="0" max="200" step="10" value="20"></div>
+      <div class="ctl"><label>Simulation speed: <span class="val" id="vSpeed">1×</span></label>
+        <input type="range" id="speed" min="1" max="8" value="1"></div>
+      <div class="transport">
+        <button id="btnRun" class="primary">Run</button>
+        <button id="btnPause">Pause</button>
+        <button id="btnStep">Step 5 ms</button>
+        <button id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>The floor</h2>
+        <div class="stage">
+          <div class="zone"><h3>Run queue</h3><p class="zsub">Ready to run; waiting for a free carrier.</p><div class="chips" id="zQueue"></div></div>
+          <div class="zone"><h3>Carriers (OS threads)</h3><p class="zsub">The only place code actually executes.</p><div id="zCarriers"></div></div>
+          <div class="zone"><h3>Waiting room (parked)</h3><p class="zsub">Blocked tasks that stepped off — they occupy <b>no</b> OS thread; their stack is a small heap object ("continuation").</p><div class="chips" id="zParked"></div><div class="chips" id="zDone" style="margin-top:10px"></div></div>
+        </div>
+        <div class="keyrow">
+          <span><span class="dot" style="background:var(--running)"></span>computing on a carrier</span>
+          <span><span class="dot" style="background:var(--pinned)"></span>waiting but stuck ON a carrier (pinned / OS thread)</span>
+          <span><span class="dot" style="background:var(--queued)"></span>queued</span>
+          <span><span class="dot" style="background:var(--parked)"></span>parked off-carrier</span>
+          <span><span class="dot" style="background:var(--done)"></span>done</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="sTime">0</div><div class="l">sim ms</div></div>
+          <div class="stat"><div class="n" id="sDone">0 / 0</div><div class="l">tasks done</div></div>
+          <div class="stat"><div class="n" id="sUtil">–</div><div class="l">carrier time computing</div></div>
+          <div class="stat"><div class="n" id="sWasted">–</div><div class="l">carrier time wasted waiting</div></div>
+        </div>
+      </div>
+
+      <div class="panel" id="log">
+        <h2>What just happened</h2>
+        <div id="loglines"></div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h2>Finished runs — compare the worlds</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>World</th><th class="num">Carriers</th><th class="num">Tasks</th><th class="num">Total sim ms</th><th>Reading</th></tr></thead>
+          <tbody id="results"><tr><td colspan="5" style="color:var(--muted)">No finished runs yet.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <p class="foot"><b>Rules this page uses</b> (so nothing looks like magic): the task at the front of the queue mounts the
+      lowest-numbered free carrier — real JVMs use work-stealing queues, but the principle is identical. "Wait" stands for any
+      blocking call: a JDBC query, an HTTP call, <span class="mono">Thread.sleep</span>. Each task here computes, then waits,
+      then computes again (parse → database → respond). In the JDK 21 world every wait happens inside
+      <span class="mono">synchronized</span>, the worst case that JEP 491 later fixed. Change any slider — the point of this
+      page is that the outcome, not the diagram, is the lesson.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- engine (no DOM — testable in Node) ---------------- */
+function makeSim(cfg) {
+  // cfg: {world: 'modern'|'legacy'|'pool', carriers, tasks, blockMs, cpuMs}
+  const segs = [];
+  if (cfg.cpuMs > 0) segs.push({ kind: "cpu", ms: Math.ceil(cfg.cpuMs / 2) });
+  if (cfg.blockMs > 0) segs.push({ kind: "block", ms: cfg.blockMs });
+  if (cfg.cpuMs > 0) segs.push({ kind: "cpu", ms: Math.floor(cfg.cpuMs / 2) });
+  if (segs.length === 0) segs.push({ kind: "cpu", ms: 10 });
+
+  const sim = {
+    cfg, time: 0, events: [], doneCount: 0,
+    busyMs: 0, wastedMs: 0,      // carrier-time computing vs carrier-time spent waiting
+    tasks: [], queue: [], parked: [],
+    carriers: Array.from({ length: cfg.carriers }, (_, i) => ({ id: i + 1, task: null })),
+  };
+  for (let i = 1; i <= cfg.tasks; i++) {
+    const mySegs = (cfg.hog && i === 1)
+      ? [{ kind: "cpu", ms: 400 }]
+      : segs.map(s => ({ ...s }));
+    const t = { id: i, name: (cfg.hog && i === 1) ? "hog-1" : "req-" + i,
+      segs: mySegs, segIdx: 0, rem: mySegs[0].ms, state: "queued", finishedAt: null };
+    sim.tasks.push(t); sim.queue.push(t);
+  }
+
+  function ev(kind, text, tech) { sim.events.push({ time: sim.time, kind, text, tech }); }
+
+  function waitHoldsCarrier() { return cfg.world !== "modern"; }
+  function holdReason(task) {
+    return cfg.world === "legacy"
+      ? `${task.name} is waiting INSIDE a synchronized block — on JDK 21 it cannot step off, so its carrier sits idle (“pinned”).`
+      : `${task.name} is an OS thread, so it keeps its carrier for the whole wait. That is simply what platform threads do.`;
+  }
+
+  function advanceSeg(task, carrier) { // current segment finished; move on
+    task.segIdx++;
+    if (task.segIdx >= task.segs.length) {
+      task.state = "done"; task.finishedAt = sim.time; sim.doneCount++;
+      if (carrier) carrier.task = null;
+      ev("doneL", `${task.name} finished its request after ${sim.time} sim-ms.`, `VT#${task.id} terminated`);
+      return;
+    }
+    task.rem = task.segs[task.segIdx].ms;
+    const seg = task.segs[task.segIdx];
+    if (seg.kind === "block") {
+      if (waitHoldsCarrier()) {
+        task.state = "holding";           // waiting but still on the carrier
+        ev("pin", holdReason(task), cfg.world === "legacy"
+          ? `blocked in monitor; carrier ${carrier.id} pinned (pre-JEP-491)`
+          : `platform thread blocked on carrier ${carrier.id}`);
+      } else {
+        task.state = "parked"; carrier.task = null; sim.parked.push(task);
+        ev("park", `${task.name} is now waiting for its database reply — it stepped OFF carrier ${carrier.id}, which is immediately free for someone else.`,
+          `park(): continuation → heap; worker-${carrier.id} released`);
+      }
+    } else {
+      task.state = "running";
+      ev("mount", `${task.name} got its answer and is computing again.`, `resume on carrier ${carrier.id}`);
+    }
+  }
+
+  sim.tick = function (ms) {           // advance simulated time by ms (small, e.g. 5)
+    if (sim.doneCount === sim.tasks.length) return false;
+    // 1. mount: free carriers take the front of the queue
+    for (const c of sim.carriers) {
+      if (!c.task && sim.queue.length) {
+        const t = sim.queue.shift(); c.task = t;
+        const seg = t.segs[t.segIdx];
+        if (seg.kind === "block" && !waitHoldsCarrier()) {
+          // mounts, immediately parks — the "mount was pointless" case
+          t.state = "parked"; c.task = null; sim.parked.push(t);
+          ev("park", `${t.name} mounted carrier ${c.id}, immediately needed to wait, and stepped off again.`,
+            `mount → park(); worker-${c.id} released`);
+        } else if (seg.kind === "block") {
+          t.state = "holding"; ev("pin", holdReason(t), `blocked while mounted on carrier ${c.id}`);
+        } else {
+          t.state = "running";
+          ev("mount", `${t.name} got CPU time on carrier ${c.id}.`, `mount VT#${t.id} → worker-${c.id}`);
+        }
+      }
+    }
+    // 2. time passes
+    sim.time += ms;
+    for (const c of sim.carriers) {
+      const t = c.task;
+      if (!t) continue;
+      if (t.state === "running") sim.busyMs += ms; else sim.wastedMs += ms;
+      t.rem -= ms;
+      if (t.rem <= 0) advanceSeg(t, c);
+    }
+    for (const t of [...sim.parked]) {
+      t.rem -= ms;
+      if (t.rem <= 0) {
+        sim.parked.splice(sim.parked.indexOf(t), 1);
+        t.segIdx++;                                     // block done; next seg is cpu or end
+        if (t.segIdx >= t.segs.length) {
+          t.state = "done"; t.finishedAt = sim.time; sim.doneCount++;
+          ev("doneL", `${t.name} finished its request after ${sim.time} sim-ms.`, `VT#${t.id} terminated`);
+        } else {
+          t.rem = t.segs[t.segIdx].ms; t.state = "queued"; sim.queue.push(t);
+          ev("queue", `The database answered ${t.name} — it is back in line for a carrier.`, `unpark(VT#${t.id}) → run queue`);
+        }
+      }
+    }
+    return sim.doneCount < sim.tasks.length;
+  };
+
+  sim.runToEnd = function (limitMs) {
+    limitMs = limitMs || 60000;
+    while (sim.doneCount < sim.tasks.length && sim.time < limitMs) sim.tick(5);
+    return sim.time;
+  };
+  return sim;
+}
+
+/* Rough "what should you expect" predictor, used for the verdict sentence. */
+function predict(cfg) {
+  const per = cfg.cpuMs + cfg.blockMs;
+  if (cfg.world === "modern") {
+    return Math.max(cfg.blockMs + cfg.cpuMs, Math.ceil(cfg.tasks * cfg.cpuMs / cfg.carriers));
+  }
+  return Math.ceil(cfg.tasks / cfg.carriers) * per; // waits serialize per carrier
+}
+
+/* ---------------- Node self-test (run: node vis-engine-test) ---------------- */
+if (typeof document === "undefined") {
+  const base = { carriers: 2, tasks: 12, blockMs: 80, cpuMs: 20 };
+  const modern = makeSim({ ...base, world: "modern" }); modern.runToEnd();
+  const legacy = makeSim({ ...base, world: "legacy" }); legacy.runToEnd();
+  const pool   = makeSim({ ...base, world: "pool" });   pool.runToEnd();
+  const hog    = makeSim({ carriers: 2, tasks: 8, blockMs: 80, cpuMs: 20, world: "modern", hog: true }); hog.runToEnd();
+  console.log("modern:", modern.time, "ms; legacy:", legacy.time, "ms; pool:", pool.time, "ms; hog:", hog.time, "ms");
+  console.assert(modern.doneCount === 12 && legacy.doneCount === 12 && pool.doneCount === 12, "all tasks complete");
+  console.assert(modern.time < legacy.time / 2, "modern should be far faster than pinned legacy");
+  console.assert(Math.abs(legacy.time - pool.time) <= 20, "legacy pinning ~ platform pool");
+  console.assert(modern.wastedMs === 0, "modern never wastes carrier time waiting");
+  console.assert(pool.wastedMs > 0, "pool wastes carrier time waiting");
+  console.assert(hog.time >= 400, "hog run lasts at least the hog's CPU burst");
+  console.log("engine self-test done (see assertions above; silence = pass)");
+}
+
+/* ---------------- UI ---------------- */
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+  let sim = null, timer = null, lastCfg = null, narration = null;
+
+  function currentCfg() {
+    return {
+      world: document.querySelector('input[name=world]:checked').value,
+      carriers: +$("carriers").value, tasks: +$("tasks").value,
+      blockMs: +$("blockMs").value, cpuMs: +$("cpuMs").value, hog: false,
+    };
+  }
+  function setCfg(c) {
+    document.querySelector(`input[name=world][value=${c.world}]`).checked = true;
+    $("carriers").value = c.carriers; $("tasks").value = c.tasks;
+    $("blockMs").value = c.blockMs; $("cpuMs").value = c.cpuMs;
+    syncLabels();
+  }
+  function syncLabels() {
+    $("vCarriers").textContent = $("carriers").value;
+    $("vTasks").textContent = $("tasks").value;
+    $("vBlock").textContent = $("blockMs").value;
+    $("vCpu").textContent = $("cpuMs").value;
+    $("vSpeed").textContent = $("speed").value + "×";
+  }
+  ["carriers", "tasks", "blockMs", "cpuMs", "speed"].forEach(id => $(id).addEventListener("input", syncLabels));
+
+  const WORLD_LABEL = { modern: "JDK 24+ virtual threads", legacy: "JDK 21 (synchronized pins)", pool: "Classic OS-thread pool" };
+
+  function chip(task, cls) {
+    const el = document.createElement("span");
+    el.className = "chip " + cls; el.textContent = task.name;
+    if (cls === "parked") el.textContent += " · " + Math.max(0, task.rem) + "ms";
+    return el;
+  }
+
+  function render() {
+    if (!sim) return;
+    const zq = $("zQueue"), zp = $("zParked"), zd = $("zDone"), zc = $("zCarriers");
+    zq.replaceChildren(...sim.queue.map(t => chip(t, "queued")));
+    zp.replaceChildren(...sim.parked.map(t => chip(t, "parked")));
+    zd.replaceChildren(...sim.tasks.filter(t => t.state === "done").map(t => chip(t, "done")));
+    zc.replaceChildren(...sim.carriers.map(c => {
+      const d = document.createElement("div");
+      const t = c.task;
+      const mode = !t ? "idle" : (t.state === "running" ? "running" : (sim.cfg.world === "legacy" ? "pinned" : "holding"));
+      d.className = "carrier " + mode;
+      const total = t ? t.segs[t.segIdx].ms : 1;
+      const pct = t ? Math.min(100, 100 * (total - Math.max(0, t.rem)) / total) : 0;
+      d.innerHTML = `<div class="cname">worker-${c.id}</div>
+        <div class="occupant">${t
+          ? `<span class="who">${t.name}</span><span class="doing">${t.state === "running" ? "computing" : (sim.cfg.world === "legacy" ? "waiting — PINNED, carrier wasted" : "waiting — holding its OS thread")}</span>`
+          : `<span class="doing">idle — ready for the next task</span>`}</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>`;
+      return d;
+    }));
+    $("sTime").textContent = sim.time;
+    $("sDone").textContent = sim.doneCount + " / " + sim.tasks.length;
+    const tot = sim.busyMs + sim.wastedMs;
+    $("sUtil").textContent = tot ? Math.round(100 * sim.busyMs / tot) + "%" : "–";
+    $("sWasted").textContent = tot ? Math.round(100 * sim.wastedMs / tot) + "%" : "–";
+
+    const lines = sim.events.slice(-60).map(e => {
+      const d = document.createElement("div"); d.className = "ll " + e.kind;
+      d.innerHTML = `<div class="t">${e.text}</div><div class="tech">t=${e.time}ms · ${e.tech}</div>`;
+      return d;
+    });
+    $("loglines").replaceChildren(...lines.reverse());
+  }
+
+  function verdict(text, tech, cls) {
+    $("vtext").textContent = text; $("vtech").textContent = tech || "";
+    $("verdict").className = cls || "";
+  }
+
+  function finishRun() {
+    stop();
+    const c = sim.cfg;
+    const wasted = sim.busyMs + sim.wastedMs ? Math.round(100 * sim.wastedMs / (sim.busyMs + sim.wastedMs)) : 0;
+    const good = c.world === "modern" && !c.hog;
+    let reading;
+    if (c.hog) reading = "One CPU-hungry task kept a carrier to itself — no one preempts it.";
+    else if (good) reading = "Every wait happened off-carrier, so all tasks waited simultaneously.";
+    else if (c.world === "legacy") reading = "Waits inside synchronized pinned the carriers — they idled through every wait.";
+    else reading = "Waiting tasks kept their OS threads, so waits ran in series per thread.";
+    verdict(`All ${c.tasks} tasks finished in ${sim.time} sim-ms in the “${WORLD_LABEL[c.world]}” world. ` +
+      (good ? `Carriers spent 0% of their time waiting — that is the whole trick.`
+            : `Carriers wasted ${wasted}% of their time just waiting. ${reading}`),
+      `expected ≈ ${predict(c)} sim-ms for this setup`, good ? "good" : "bad");
+    const tb = $("results");
+    if (tb.firstChild && tb.firstChild.textContent.startsWith("No finished")) tb.replaceChildren();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${WORLD_LABEL[c.world]}${c.hog ? " + CPU hog" : ""}</td><td class="num">${c.carriers}</td>` +
+      `<td class="num">${c.tasks}</td><td class="num">${sim.time}</td><td>${reading}</td>`;
+    tb.prepend(tr);
+  }
+
+  function start() {
+    if (!sim || sim.doneCount === sim.tasks.length) reset();
+    stop();
+    timer = setInterval(() => {
+      const speed = +$("speed").value;
+      let alive = true;
+      for (let i = 0; i < speed; i++) alive = sim.tick(5);
+      render();
+      if (!alive) finishRun();
+    }, 90);
+  }
+  function stop() { if (timer) clearInterval(timer); timer = null; }
+  function reset() {
+    stop(); lastCfg = currentCfg(); sim = makeSim(lastCfg);
+    verdict(narration || `Ready: ${lastCfg.tasks} tasks on ${lastCfg.carriers} carrier(s) in the “${WORLD_LABEL[lastCfg.world]}” world. Press Run.`,
+      `each task: compute ${lastCfg.cpuMs}ms + wait ${lastCfg.blockMs}ms`, "");
+    narration = null; render();
+  }
+
+  $("btnRun").addEventListener("click", start);
+  $("btnPause").addEventListener("click", stop);
+  $("btnStep").addEventListener("click", () => { if (!sim) reset(); if (!sim.tick(5)) finishRun(); render(); });
+  $("btnReset").addEventListener("click", reset);
+  document.querySelectorAll("input[name=world], #carriers, #tasks, #blockMs, #cpuMs").forEach(el =>
+    el.addEventListener("change", reset));
+
+  const STORIES = {
+    modern: { cfg: { world: "modern", carriers: 2, tasks: 12, blockMs: 80, cpuMs: 20 },
+      say: "Story 1 — 12 requests, 2 carriers, modern virtual threads. Watch the waiting room fill up: every task that waits steps OFF its carrier, so all 12 waits overlap. Expect ~150 sim-ms." },
+    pool: { cfg: { world: "pool", carriers: 2, tasks: 12, blockMs: 80, cpuMs: 20 },
+      say: "Story 2 — the same 12 requests, but now threads are OS threads: whoever waits keeps their carrier. Only 2 tasks make progress at a time. Expect ~600 sim-ms — 4× worse." },
+    legacy: { cfg: { world: "legacy", carriers: 2, tasks: 12, blockMs: 80, cpuMs: 20 },
+      say: "Story 3 — virtual threads on JDK 21, where waiting inside a synchronized block PINS the carrier (red). Same slow outcome as the OS-thread world. JEP 491 (JDK 24) removed exactly this." },
+    hog: { cfg: { world: "modern", carriers: 2, tasks: 8, blockMs: 80, cpuMs: 20, hog: true },
+      say: "Story 4 — modern JDK, but task hog-1 computes for 400 ms straight. Nothing evicts a computing task, so one carrier is gone; everyone else squeezes onto the other. Virtual threads multiply WAITING, not COMPUTING." },
+  };
+  document.querySelectorAll(".stories button").forEach(b => b.addEventListener("click", () => {
+    const s = STORIES[b.dataset.story];
+    setCfg(s.cfg); narration = s.say;
+    stop(); lastCfg = { ...s.cfg }; sim = makeSim(lastCfg);
+    verdict(s.say, "", ""); render(); start();
+  }));
+
+  syncLabels(); reset();
+}
+</script>

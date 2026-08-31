@@ -1,0 +1,1442 @@
+<title>The Checkout Cascade</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#e6eaee; --card:#f8fafb; --card2:#eef2f5; --sunk:#e0e6ea;
+  --ink:#141d26; --muted:#5b6875; --line:#c8d2da; --line2:#dbe3e9;
+  --navy:#24405c; --navy-soft:#dde6ef;
+  --brass:#94640f; --brass-soft:#f2e8d5;
+  --moss:#2c6846; --moss-soft:#dbeade;
+  --amber:#ac7015; --amber-soft:#f6e9d3;
+  --ox:#8a2b30; --ox-soft:#f5dedf;
+  --violet:#57457f; --violet-soft:#e5e1ef;
+  --shadow:rgba(20,29,38,.09);
+  --focus:#24405c;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f161e; --card:#18212a; --card2:#202a34; --sunk:#131b23;
+    --ink:#dfe6ec; --muted:#8c9ba8; --line:#2b3742; --line2:#232e38;
+    --navy:#7fa9d1; --navy-soft:#16242f;
+    --brass:#d6a03e; --brass-soft:#2c2313;
+    --moss:#5db07e; --moss-soft:#12251b;
+    --amber:#e0a244; --amber-soft:#2d2211;
+    --ox:#e0777c; --ox-soft:#2e1618;
+    --violet:#a396cf; --violet-soft:#221d2f;
+    --shadow:rgba(0,0,0,.45);
+    --focus:#7fa9d1;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f161e; --card:#18212a; --card2:#202a34; --sunk:#131b23;
+  --ink:#dfe6ec; --muted:#8c9ba8; --line:#2b3742; --line2:#232e38;
+  --navy:#7fa9d1; --navy-soft:#16242f;
+  --brass:#d6a03e; --brass-soft:#2c2313;
+  --moss:#5db07e; --moss-soft:#12251b;
+  --amber:#e0a244; --amber-soft:#2d2211;
+  --ox:#e0777c; --ox-soft:#2e1618;
+  --violet:#a396cf; --violet-soft:#221d2f;
+  --shadow:rgba(0,0,0,.45);
+  --focus:#7fa9d1;
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); margin:0; padding:20px 18px 80px;
+  font:15px/1.55 "IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1280px; margin:0 auto;}
+h1{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif; font-weight:800;
+  font-size:clamp(30px,4.6vw,50px); line-height:1.02; margin:0; letter-spacing:-.015em;
+  text-wrap:balance;}
+h2{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif; font-weight:700;
+  font-size:22px; margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance;}
+h3{font-size:13px; text-transform:uppercase; letter-spacing:.11em; font-weight:600;
+  color:var(--muted); margin:0 0 10px;}
+p{margin:0 0 12px; max-width:72ch;}
+.lede{color:var(--muted); max-width:74ch; margin:10px 0 0; font-size:16px;}
+.lede b{color:var(--ink); font-weight:600;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; text-transform:uppercase;
+  letter-spacing:.16em; font-weight:500; color:var(--brass);}
+a{color:var(--navy);}
+:focus-visible{outline:2.5px solid var(--focus); outline-offset:2px; border-radius:3px;}
+
+/* header */
+header{border-bottom:2px solid var(--line); padding-bottom:20px;}
+.titlerow{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+
+/* tabs */
+.tabs{display:flex; gap:2px; flex-wrap:wrap; margin:20px 0 0; border-bottom:2px solid var(--line);}
+.tabs button{font:inherit; font-weight:600; font-size:14px; background:none; border:none;
+  border-bottom:3px solid transparent; margin-bottom:-2px; color:var(--muted);
+  padding:10px 14px 9px; cursor:pointer; display:flex; gap:8px; align-items:baseline;}
+.tabs button .n{font-family:"IBM Plex Mono",monospace; font-size:11px; opacity:.65;}
+.tabs button:hover{color:var(--ink); background:var(--card2);}
+.tabs button.on{color:var(--brass); border-bottom-color:var(--brass);}
+.panel{display:none; padding-top:24px;}
+.panel.on{display:block;}
+
+/* cards + layout */
+.card{background:var(--card); border:1px solid var(--line); border-radius:8px;
+  padding:16px 18px; box-shadow:0 1px 2px var(--shadow);}
+.grid2{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr); gap:16px; align-items:start;}
+.stack{display:flex; flex-direction:column; gap:16px;}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+@media(max-width:900px){ .grid2{grid-template-columns:1fr;} }
+
+/* verdict strip */
+.verdict{border-left:5px solid var(--navy); background:var(--card2); border-radius:6px;
+  padding:14px 16px; margin:0 0 16px;}
+.verdict.good{border-left-color:var(--moss); background:var(--moss-soft);}
+.verdict.warn{border-left-color:var(--amber); background:var(--amber-soft);}
+.verdict.bad{border-left-color:var(--ox); background:var(--ox-soft);}
+.verdict .vh{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:18px;
+  margin:0 0 5px; letter-spacing:-.01em;}
+.verdict .vb{margin:0; font-size:14.5px; max-width:88ch; color:var(--ink);}
+.verdict .vt{margin:7px 0 0; font-size:12.5px; color:var(--muted);
+  font-family:"IBM Plex Mono",monospace;}
+
+/* controls */
+.ctl{display:flex; flex-direction:column; gap:5px; margin-bottom:14px;}
+.ctl label{font-size:12.5px; font-weight:600; color:var(--muted);
+  display:flex; justify-content:space-between; gap:10px; align-items:baseline;}
+.ctl label .val{font-family:"IBM Plex Mono",monospace; color:var(--ink); font-weight:500;
+  font-variant-numeric:tabular-nums;}
+input[type=range]{width:100%; accent-color:var(--brass); cursor:pointer; margin:0;}
+.seg{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+.seg button{flex:1; font:inherit; font-size:12.5px; font-weight:600; padding:7px 4px;
+  background:var(--card2); border:none; border-right:1px solid var(--line); color:var(--muted);
+  cursor:pointer;}
+.seg button:last-child{border-right:none;}
+.seg button.on{background:var(--navy); color:var(--card);}
+.seg button:hover:not(.on){color:var(--ink);}
+.seg.health button.on[data-v="healthy"]{background:var(--moss);}
+.seg.health button.on[data-v="slow"]{background:var(--amber);}
+.seg.health button.on[data-v="down"]{background:var(--ox);}
+button.btn{font:inherit; font-size:13px; font-weight:600; padding:8px 13px; cursor:pointer;
+  background:var(--card2); color:var(--ink); border:1px solid var(--line); border-radius:6px;}
+button.btn:hover{background:var(--navy-soft); border-color:var(--navy);}
+button.btn.primary{background:var(--navy); color:var(--card); border-color:var(--navy);}
+button.btn.primary:hover{filter:brightness(1.15);}
+button.btn.brass{background:var(--brass); color:var(--card); border-color:var(--brass);}
+button.btn:disabled{opacity:.42; cursor:not-allowed;}
+.toggle{display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:500;
+  cursor:pointer; padding:5px 0;}
+.toggle input{width:16px; height:16px; accent-color:var(--brass); cursor:pointer; margin:0;}
+
+/* gauges */
+.gauge{margin-bottom:14px;}
+.gauge .gl{display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px;
+  font-weight:600; color:var(--muted); margin-bottom:5px;}
+.gauge .gl .gv{font-family:"IBM Plex Mono",monospace; color:var(--ink); font-variant-numeric:tabular-nums;}
+.bar{height:22px; background:var(--sunk); border-radius:4px; overflow:hidden; display:flex;
+  border:1px solid var(--line2);}
+.bar span{display:block; height:100%; transition:width .12s linear;}
+.reduced .bar span{transition:none;}
+.seg-pay{background:var(--ox);}
+.seg-loc{background:var(--navy);}
+.seg-free{background:transparent;}
+.bar.thin{height:12px;}
+.pct{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-weight:600;}
+
+/* dials */
+.dials{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.dial{background:var(--card2); border:1px solid var(--line2); border-radius:7px; padding:11px 13px;}
+.dial .dn{font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase;
+  letter-spacing:.06em; margin-bottom:3px;}
+.dial .dv{font-family:"IBM Plex Mono",monospace; font-size:27px; font-weight:600; line-height:1.1;
+  font-variant-numeric:tabular-nums;}
+.dial .dd{font-size:12px; color:var(--muted); margin-top:2px;}
+.dv.ok{color:var(--moss);} .dv.mid{color:var(--amber);} .dv.no{color:var(--ox);}
+
+/* chips */
+.chip{display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px; font-weight:500; padding:3px 9px; border-radius:20px;
+  background:var(--card2); border:1px solid var(--line); color:var(--muted);}
+.chip.ok{background:var(--moss-soft); border-color:var(--moss); color:var(--moss);}
+.chip.warn{background:var(--amber-soft); border-color:var(--amber); color:var(--amber);}
+.chip.bad{background:var(--ox-soft); border-color:var(--ox); color:var(--ox);}
+.chip.vio{background:var(--violet-soft); border-color:var(--violet); color:var(--violet);}
+.dot{width:8px; height:8px; border-radius:50%; background:currentColor; flex:none;}
+
+/* log */
+.log{background:var(--sunk); border:1px solid var(--line2); border-radius:7px; padding:10px 12px;
+  max-height:260px; overflow-y:auto; font-size:13px;}
+.log .e{padding:6px 0; border-bottom:1px solid var(--line2);}
+.log .e:last-child{border-bottom:none;}
+.log .e .t{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--brass); font-weight:500;}
+.log .e .m{margin:1px 0 0;}
+.log .e .s{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); margin-top:2px;}
+.log .e.hi{background:var(--amber-soft); margin:0 -12px; padding-left:12px; padding-right:12px;}
+
+/* legend */
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted);
+  padding:9px 12px; background:var(--card2); border:1px solid var(--line2); border-radius:6px;}
+.legend i{display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:5px;
+  vertical-align:-1px;}
+
+/* predict */
+.predict{border:2px dashed var(--brass); background:var(--brass-soft); border-radius:8px;
+  padding:14px 16px; margin-bottom:14px;}
+.predict .q{font-weight:600; margin:0 0 10px; font-size:14.5px;}
+.predict .opts{display:flex; gap:8px; flex-wrap:wrap;}
+.predict .opts button{font:inherit; font-size:13px; font-weight:500; text-align:left;
+  padding:8px 12px; background:var(--card); border:1px solid var(--brass); border-radius:6px;
+  cursor:pointer; color:var(--ink); max-width:100%;}
+.predict .opts button:hover{background:var(--card2);}
+.predict .res{margin:11px 0 0; font-size:14px; padding:10px 12px; border-radius:6px;
+  background:var(--card); border:1px solid var(--line);}
+.predict .res.right{border-color:var(--moss);}
+.predict .res.wrong{border-color:var(--ox);}
+.predict .res b{font-family:"Bricolage Grotesque",sans-serif;}
+
+/* svg map */
+svg{display:block; max-width:100%; height:auto;}
+.nlab{font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500;}
+.nsub{font-family:"IBM Plex Sans",sans-serif; font-size:9.5px;}
+
+/* tables */
+.tbl{width:100%; border-collapse:collapse; font-size:13px;}
+.tbl th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--muted); font-weight:600; padding:6px 8px; border-bottom:1.5px solid var(--line);}
+.tbl td{padding:6px 8px; border-bottom:1px solid var(--line2);
+  font-variant-numeric:tabular-nums;}
+.tbl td.n{font-family:"IBM Plex Mono",monospace;}
+.tbl tr.hl td{background:var(--brass-soft);}
+.scrollx{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+/* matrix */
+.mx td.cell{text-align:center; font-family:"IBM Plex Mono",monospace; font-weight:600; width:64px;}
+.mx td.cell.on{background:var(--ox-soft); color:var(--ox);}
+.mx td.cell.off{color:var(--line);}
+.mx td.cnt{font-family:"IBM Plex Mono",monospace; font-weight:600; text-align:center;}
+.mx td.cnt.g1{color:var(--moss);} .mx td.cnt.g2{color:var(--amber);} .mx td.cnt.g3{color:var(--ox);}
+
+/* dot grid for tail */
+.dots{display:flex; flex-wrap:wrap; gap:4px; margin-top:10px;}
+.dots i{width:13px; height:13px; border-radius:3px; background:var(--moss); display:block;}
+.dots i.slow{background:var(--ox);}
+
+.note{font-size:13px; color:var(--muted); border-left:3px solid var(--line); padding-left:11px;
+  margin:12px 0 0; max-width:74ch;}
+.big{font-family:"IBM Plex Mono",monospace; font-size:42px; font-weight:600; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+.kv{display:flex; justify-content:space-between; gap:12px; padding:5px 0;
+  border-bottom:1px solid var(--line2); font-size:13.5px;}
+.kv:last-child{border-bottom:none;}
+.kv b{font-family:"IBM Plex Mono",monospace; font-weight:600; font-variant-numeric:tabular-nums;}
+hr.sep{border:none; border-top:1px solid var(--line2); margin:14px 0;}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="titlerow">
+    <div>
+      <div class="eyebrow">Riverbend · order platform · operations console</div>
+      <h1>The Checkout Cascade</h1>
+    </div>
+    <button class="btn" id="themeBtn" title="Switch light / dark">◐ Theme</button>
+  </div>
+  <p class="lede">Riverbend used to be <b>one program</b>. It is now <b>seven</b>, talking
+  over a network. This console shows what that actually changed — the arithmetic that made
+  checkout <i>less</i> available, and the two seconds in which one slow dependency takes down
+  a service that never called it. <b>Nothing here is a metaphor:</b> every number comes from
+  <span class="mono">workers = arrival rate × call duration</span>.</p>
+</header>
+
+<div class="tabs" role="tablist">
+  <button class="on" data-tab="split" role="tab"><span class="n">01</span>The Split</button>
+  <button data-tab="arith" role="tab"><span class="n">02</span>The Arithmetic</button>
+  <button data-tab="cascade" role="tab"><span class="n">03</span>The Cascade</button>
+  <button data-tab="tail" role="tab"><span class="n">04</span>The Tail</button>
+  <button data-tab="bounds" role="tab"><span class="n">05</span>Boundaries</button>
+</div>
+
+<!-- ============ TAB 1 ============ -->
+<section class="panel on" id="p-split">
+  <h2>Splitting the code is not splitting the system</h2>
+  <p class="lede">Riverbend split one program into four. The question this tab answers:
+  <b>does that let a team change its own thing without breaking anyone?</b> The answer depends
+  entirely on one decision that has nothing to do with the code — <b>who is allowed to open the
+  storeroom.</b></p>
+
+  <div class="verdict" id="splitVerdict" style="margin-top:16px">
+    <p class="vh">Pick a storage arrangement below, then try to change something.</p>
+    <p class="vb">Both arrangements have four separately deployed services. They differ only in
+    whether each service has its own private database, or whether all four share one.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="stack">
+      <div class="card">
+        <h3>The system</h3>
+        <div id="splitMap"></div>
+        <div class="legend" style="margin-top:12px">
+          <span><i style="background:var(--navy)"></i>service, healthy</span>
+          <span><i style="background:var(--ox)"></i>service, broken by the change</span>
+          <span><i style="background:var(--brass)"></i>data store</span>
+          <span><i style="background:var(--moss)"></i>the service making the change</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>What happened</h3>
+        <div class="log" id="splitLog"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>Storage arrangement</h3>
+        <div class="seg" id="splitMode">
+          <button class="on" data-v="shared">One shared database</button>
+          <button data-v="private">A database each</button>
+        </div>
+        <hr class="sep">
+        <h3>Change something in <span class="mono">orders</span></h3>
+        <div class="stack" style="gap:8px">
+          <button class="btn" data-act="add">Add a column <span class="mono">discount_code</span></button>
+          <button class="btn" data-act="rename">Rename <span class="mono">status</span> → <span class="mono">state</span></button>
+          <button class="btn" data-act="drop">Drop the column <span class="mono">legacy_ref</span></button>
+          <button class="btn primary" data-act="deploy">Deploy <span class="mono">orders</span> on its own</button>
+          <button class="btn" data-act="who">Ask: who reads <span class="mono">orders.status</span>?</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Consumers of the <span class="mono">orders</span> data</h3>
+        <div id="splitConsumers"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2 ============ -->
+<section class="panel" id="p-arith">
+  <h2>Availability multiplies downward</h2>
+  <p class="lede">Every service on the path from the customer to the answer must be working.
+  If they are independent, the chance they <i>all</i> work is the product of their individual
+  chances. Everyone's gut says "they're all 99.9%, so we're about 99.9%". <b>Move the sliders
+  and watch what the gut is wrong by.</b></p>
+
+  <div class="verdict" id="arithVerdict" style="margin-top:16px"></div>
+
+  <div class="grid2">
+    <div class="stack">
+      <div class="card">
+        <h3>The chain</h3>
+        <div id="chainMap"></div>
+        <div class="legend" style="margin-top:12px">
+          <span><i style="background:var(--navy)"></i>on the critical path — must work</span>
+          <span><i style="background:var(--violet)"></i>moved off — asynchronous, may fail</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>The same arithmetic, at a glance</h3>
+        <div class="scrollx"><table class="tbl" id="arithTable"></table></div>
+        <p class="note">Downtime per year assumes a 8,760-hour year and independent failures.
+        Real failures are correlated (a shared network, a shared deploy tool, a shared bad
+        afternoon), which makes the true number <i>worse</i>, not better.</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>Configure</h3>
+        <div class="ctl">
+          <label>Services on the critical path <span class="val" id="nOut">5</span></label>
+          <input type="range" id="nIn" min="1" max="10" step="1" value="5">
+        </div>
+        <div class="ctl">
+          <label>Availability of each one <span class="val" id="aOut">99.900%</span></label>
+          <input type="range" id="aIn" min="0" max="24" step="1" value="9">
+        </div>
+        <div class="ctl">
+          <label>Services moved off the critical path <span class="val" id="kOut">0</span></label>
+          <input type="range" id="kIn" min="0" max="6" step="1" value="0">
+        </div>
+        <hr class="sep">
+        <div id="arithNums"></div>
+      </div>
+      <div class="card">
+        <h3>The question that matters</h3>
+        <div id="arithAsk"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3 ============ -->
+<section class="panel" id="p-cascade">
+  <h2>Two seconds from a slow dependency to a dead service</h2>
+  <p class="lede"><b>orders</b> handles 100 checkouts a second and 20 order-history lookups a
+  second. It has a fixed number of worker threads, and <b>a request holds one for its whole
+  duration — including the time it spends waiting for a reply.</b> That single fact is the
+  entire tab. If you only press one thing here, press <b>“Play the whole story”</b>.</p>
+
+  <div class="row" style="margin:16px 0 14px">
+    <button class="btn brass" id="storyBtn">▶ Play the whole story (narrated, ~90s)</button>
+    <span class="chip" id="storyChip" hidden><span class="dot"></span><span id="storyChipT"></span></span>
+  </div>
+
+  <div class="verdict" id="casVerdict"></div>
+
+  <div class="predict" id="casPredict" hidden>
+    <p class="q" id="predQ"></p>
+    <div class="opts" id="predOpts"></div>
+    <div class="res" id="predRes" hidden></div>
+  </div>
+
+  <div class="grid2">
+    <div class="stack">
+      <div class="card">
+        <h3>Inside <span class="mono">orders</span> — where the worker threads are</h3>
+        <div class="gauge">
+          <div class="gl"><span>Worker threads in use</span>
+            <span class="gv" id="thrTxt">2 / 200</span></div>
+          <div class="bar" id="thrBar">
+            <span class="seg-pay" id="thrPay" style="width:1%"></span>
+            <span class="seg-loc" id="thrLoc" style="width:0%"></span>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--ox)"></i>waiting inside a <span class="mono">payments</span> call</span>
+          <span><i style="background:var(--navy)"></i>doing local work (order history)</span>
+          <span><i style="background:var(--sunk);border:1px solid var(--line)"></i>free</span>
+        </div>
+        <hr class="sep">
+        <div class="dials">
+          <div class="dial">
+            <div class="dn">POST /checkout</div>
+            <div class="dv ok" id="dCheck">100%</div>
+            <div class="dd" id="dCheckD">succeeding · 24 ms</div>
+          </div>
+          <div class="dial">
+            <div class="dn">GET /orders/{id}</div>
+            <div class="dv ok" id="dHist">100%</div>
+            <div class="dd" id="dHistD">never calls payments</div>
+          </div>
+        </div>
+        <p class="note" style="margin-top:12px">A checkout that takes longer than <b>3 seconds</b> is
+        counted as a failure even when it eventually returns <span class="mono">200 OK</span> — the
+        customer has already gone. Real circuit breakers count it too: Resilience4j calls this the
+        <span class="mono">slow-call rate</span>.</p>
+        <hr class="sep">
+        <div class="gauge">
+          <div class="gl"><span>Requests per second arriving at <span class="mono">payments</span></span>
+            <span class="gv" id="payRateTxt">100 /s</span></div>
+          <div class="bar thin"><span class="seg-pay" id="payRateBar" style="width:25%"></span></div>
+        </div>
+        <div class="row" style="gap:8px">
+          <span class="chip" id="chipHealth"><span class="dot"></span><span>payments healthy</span></span>
+          <span class="chip" id="chipBreaker"><span class="dot"></span><span>breaker off</span></span>
+          <span class="chip" id="chipBulk"><span class="dot"></span><span>bulkhead off</span></span>
+          <span class="chip" id="chipAsync"><span class="dot"></span><span>payments synchronous</span></span>
+        </div>
+        <hr class="sep">
+        <h3>Little's Law, right now</h3>
+        <div class="mono" id="littleTxt" style="font-size:14px; line-height:1.7"></div>
+      </div>
+
+      <div class="card">
+        <h3>What just happened, and why it matters</h3>
+        <div class="log" id="casLog"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>Run</h3>
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn primary" id="playBtn">▶ Play</button>
+          <button class="btn" id="backBtn">◀ Step back</button>
+          <button class="btn" id="fwdBtn">Step ▶</button>
+          <button class="btn" id="resetBtn">↺ Reset</button>
+        </div>
+        <div class="kv"><span>Simulated time</span><b id="clock">0.0 s</b></div>
+        <hr class="sep">
+        <h3>Scenarios — each asks you to predict first</h3>
+        <div class="stack" style="gap:7px">
+          <button class="btn" data-sc="s1">S1 · <span class="mono">payments</span> goes DOWN</button>
+          <button class="btn" data-sc="s2">S2 · <span class="mono">payments</span> goes SLOW</button>
+          <button class="btn" data-sc="s3">S3 · Add a 1-second timeout</button>
+          <button class="btn" data-sc="s4">S4 · Add retries as well</button>
+          <button class="btn" data-sc="s5">S5 · Add a bulkhead</button>
+          <button class="btn" data-sc="s6">S6 · Add a circuit breaker</button>
+          <button class="btn" data-sc="s7">S7 · Take payments off the critical path</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>The dependency</h3>
+        <div class="seg health" id="healthSeg" style="margin-bottom:12px">
+          <button class="on" data-v="healthy">Healthy</button>
+          <button data-v="slow">Slow</button>
+          <button data-v="down">Down</button>
+        </div>
+        <div class="ctl">
+          <label>How slow, when slow <span class="val" id="latOut">5.0 s</span></label>
+          <input type="range" id="latIn" min="1" max="100" step="1" value="50">
+        </div>
+        <hr class="sep">
+        <h3>What <span class="mono">orders</span> does about it</h3>
+        <div class="ctl">
+          <label>Timeout on the payments call <span class="val" id="toOut">off</span></label>
+          <input type="range" id="toIn" min="0" max="50" step="1" value="0">
+        </div>
+        <div class="ctl">
+          <label>Attempts per checkout (1 = no retry) <span class="val" id="reOut">1</span></label>
+          <input type="range" id="reIn" min="1" max="4" step="1" value="1">
+        </div>
+        <div class="ctl">
+          <label>Bulkhead: max threads in payments <span class="val" id="bhOut">off</span></label>
+          <input type="range" id="bhIn" min="0" max="200" step="10" value="0">
+        </div>
+        <label class="toggle"><input type="checkbox" id="brIn"> Circuit breaker on the payments call</label>
+        <label class="toggle"><input type="checkbox" id="asIn"> Take payments off the critical path (async)</label>
+        <hr class="sep">
+        <h3>Things usually hardcoded — change them</h3>
+        <div class="ctl">
+          <label>Checkout traffic <span class="val" id="rateOut">100 /s</span></label>
+          <input type="range" id="rateIn" min="20" max="300" step="10" value="100">
+        </div>
+        <div class="ctl">
+          <label>Worker threads in <span class="mono">orders</span> <span class="val" id="poolOut">200</span></label>
+          <input type="range" id="poolIn" min="50" max="2000" step="50" value="200">
+        </div>
+        <p class="note">These two are normally buried in a config file nobody reads. They decide
+        everything: the pool fills in <span class="mono">pool ÷ rate</span> seconds.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 4 ============ -->
+<section class="panel" id="p-tail">
+  <h2>A p99 does not survive being fanned out</h2>
+  <p class="lede">A dependency that is slow for 1 request in 100 sounds harmless. But if answering
+  one customer request means waiting for <b>many</b> such dependencies, you wait for the slowest
+  of them — and "1 in 100" stops being rare very quickly.</p>
+
+  <div class="verdict" id="tailVerdict" style="margin-top:16px"></div>
+
+  <div class="grid2">
+    <div class="stack">
+      <div class="card">
+        <h3>100 checkouts, simulated</h3>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:4px">Each square is one
+        customer request. Red means at least one of its dependencies was slow, so the customer
+        waited.</p>
+        <div class="dots" id="tailDots"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="rollBtn">Roll 100 more requests</button>
+          <span class="mono" id="rollOut" style="font-size:13px;color:var(--muted)"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Reference points</h3>
+        <div class="scrollx"><table class="tbl" id="tailTable"></table></div>
+        <p class="note">The last row is Dean and Barroso's example from <i>The Tail at Scale</i>
+        (CACM, 2013): a server that is 1 ms on average but 1 s at p99, touched by a request that
+        fans out to 100 of them, makes <b>63% of requests take over a second</b>.</p>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h3>Configure</h3>
+        <div class="ctl">
+          <label>Dependencies per request (fan-out) <span class="val" id="fanOut">6</span></label>
+          <input type="range" id="fanIn" min="1" max="100" step="1" value="6">
+        </div>
+        <div class="ctl">
+          <label>Each is slow this often <span class="val" id="pOut">1 in 100</span></label>
+          <input type="range" id="pIn" min="1" max="50" step="1" value="10">
+        </div>
+        <hr class="sep">
+        <div style="text-align:center;padding:8px 0">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Customer requests that are slow</div>
+          <div class="big" id="tailBig">5.9%</div>
+        </div>
+        <hr class="sep">
+        <div id="tailNums"></div>
+      </div>
+      <div class="card">
+        <h3>What this means for your SLO</h3>
+        <div id="tailAsk"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 5 ============ -->
+<section class="panel" id="p-bounds">
+  <h2>Your boundaries are measurable</h2>
+  <p class="lede">There is one architectural number worth collecting and almost nobody collects
+  it: <b>for the last ten features you shipped, how many separately deployed pieces did each one
+  have to change?</b> If the median is more than one, the boundaries are wrong, and no amount of
+  tooling will rescue it. Same ten real features below, three different ways of cutting the same
+  system.</p>
+
+  <div class="verdict" id="bVerdict" style="margin-top:16px"></div>
+
+  <div class="row" style="margin-bottom:16px">
+    <div class="seg" id="cutSeg" style="max-width:640px">
+      <button data-v="layer">Cut by technical layer</button>
+      <button class="on" data-v="cap">Cut by business capability</button>
+      <button data-v="shared">By capability, one shared database</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Feature → services that must change</h3>
+      <div class="scrollx"><table class="tbl mx" id="bMatrix"></table></div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h3>The verdict on this cut</h3>
+        <div id="bNums"></div>
+      </div>
+      <div class="card">
+        <h3>Why</h3>
+        <div id="bWhy"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+var fmt=function(n,d){return n.toFixed(d===undefined?1:d);};
+if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+  document.body.classList.add("reduced");
+}
+
+/* ---------- theme ---------- */
+$("#themeBtn").addEventListener("click",function(){
+  var r=document.documentElement, cur=r.getAttribute("data-theme");
+  var sysDark=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var eff=cur||(sysDark?"dark":"light");
+  r.setAttribute("data-theme", eff==="dark"?"light":"dark");
+});
+
+/* ---------- tabs ---------- */
+$$(".tabs button").forEach(function(b){
+  b.addEventListener("click",function(){
+    $$(".tabs button").forEach(function(x){x.classList.remove("on");});
+    $$(".panel").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    $("#p-"+b.dataset.tab).classList.add("on");
+  });
+});
+
+/* =========================================================
+   TAB 1 — THE SPLIT
+   ========================================================= */
+(function(){
+  var mode="shared";
+  var broken=[];
+  var SVCS=[
+    {id:"orders",   label:"orders",   sub:"the one changing", store:"orders_db"},
+    {id:"shipping", label:"shipping", sub:"books couriers",   store:"shipping_db"},
+    {id:"search",   label:"search",   sub:"product search",   store:"search_idx"},
+    {id:"reporting",label:"reporting",sub:"nightly analytics",store:"analytics_db"}
+  ];
+  var logEl=$("#splitLog"), mapEl=$("#splitMap"), vEl=$("#splitVerdict"), consEl=$("#splitConsumers");
+
+  function log(m,s,hi){
+    var d=document.createElement("div");
+    d.className="e"+(hi?" hi":"");
+    d.innerHTML='<div class="m">'+m+'</div>'+(s?'<div class="s">'+s+'</div>':'');
+    logEl.insertBefore(d,logEl.firstChild);
+    while(logEl.children.length>14) logEl.removeChild(logEl.lastChild);
+  }
+  function verdict(cls,h,b,t){
+    vEl.className="verdict "+cls;
+    vEl.innerHTML='<p class="vh">'+h+'</p><p class="vb">'+b+'</p>'+(t?'<p class="vt">'+t+'</p>':'');
+  }
+  function draw(){
+    var w=560,h=260, bw=118, bh=52, gap=(w-4*bw)/5;
+    var s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Four services and their data stores">';
+    SVCS.forEach(function(sv,i){
+      var x=gap+i*(bw+gap), y=18;
+      var isBroken=broken.indexOf(sv.id)>=0;
+      var isActor=sv.id==="orders";
+      var col=isBroken?"var(--ox)":(isActor?"var(--moss)":"var(--navy)");
+      var fill=isBroken?"var(--ox-soft)":(isActor?"var(--moss-soft)":"var(--navy-soft)");
+      s+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="6" fill="'+fill+'" stroke="'+col+'" stroke-width="2"/>';
+      s+='<text class="nlab" x="'+(x+bw/2)+'" y="'+(y+22)+'" text-anchor="middle" fill="'+col+'">'+sv.label+'</text>';
+      s+='<text class="nsub" x="'+(x+bw/2)+'" y="'+(y+37)+'" text-anchor="middle" fill="var(--muted)">'+(isBroken?"BROKEN":sv.sub)+'</text>';
+    });
+    if(mode==="shared"){
+      var sx=w/2-90, sy=180;
+      s+='<rect x="'+sx+'" y="'+sy+'" width="180" height="50" rx="6" fill="var(--brass-soft)" stroke="var(--brass)" stroke-width="2"/>';
+      s+='<text class="nlab" x="'+(sx+90)+'" y="'+(sy+22)+'" text-anchor="middle" fill="var(--brass)">riverbend_db</text>';
+      s+='<text class="nsub" x="'+(sx+90)+'" y="'+(sy+38)+'" text-anchor="middle" fill="var(--muted)">340 tables · everyone may read every one</text>';
+      SVCS.forEach(function(sv,i){
+        var x=gap+i*(bw+gap)+bw/2;
+        s+='<path d="M'+x+' 70 L'+x+' 140 L'+(w/2)+' 160 L'+(w/2)+' '+sy+'" fill="none" stroke="var(--brass)" stroke-width="1.6" opacity=".75"/>';
+      });
+    } else {
+      SVCS.forEach(function(sv,i){
+        var x=gap+i*(bw+gap), sy=180;
+        s+='<rect x="'+x+'" y="'+sy+'" width="'+bw+'" height="48" rx="6" fill="var(--brass-soft)" stroke="var(--brass)" stroke-width="2"/>';
+        s+='<text class="nlab" x="'+(x+bw/2)+'" y="'+(sy+21)+'" text-anchor="middle" fill="var(--brass)">'+sv.store+'</text>';
+        s+='<text class="nsub" x="'+(x+bw/2)+'" y="'+(sy+36)+'" text-anchor="middle" fill="var(--muted)">private · locked</text>';
+        s+='<line x1="'+(x+bw/2)+'" y1="70" x2="'+(x+bw/2)+'" y2="'+sy+'" stroke="var(--brass)" stroke-width="1.6"/>';
+      });
+      s+='<text class="nsub" x="'+(w/2)+'" y="128" text-anchor="middle" fill="var(--muted)">services talk to each other over contracts, never through the data</text>';
+    }
+    s+='</svg>';
+    mapEl.innerHTML=s;
+  }
+  function consumers(){
+    if(mode==="shared"){
+      consEl.innerHTML='<div class="chip bad" style="margin-bottom:9px"><span class="dot"></span>unknown — not recorded anywhere</div>'+
+      '<p style="font-size:13.5px;margin:0">Any of the other services may be reading any of your tables. There is no import, no network call, no config entry and no test that records it. The only artefact that would tell you is a query log you are not keeping.</p>';
+    } else {
+      consEl.innerHTML='<div class="chip ok" style="margin-bottom:9px"><span class="dot"></span>2 known consumers</div>'+
+      '<div class="kv"><span><span class="mono">shipping</span></span><b>GET /orders/{id}</b></div>'+
+      '<div class="kv"><span><span class="mono">reporting</span></span><b>OrderPlaced events</b></div>'+
+      '<p style="font-size:13.5px;margin:9px 0 0">Both are visible in your access log and your broker consumer groups. Enumerable means migratable: you can tell them, wait for them, and verify.</p>';
+    }
+  }
+  function reset(){ broken=[]; draw(); consumers(); }
+
+  $$("#splitMode button").forEach(function(b){
+    b.addEventListener("click",function(){
+      $$("#splitMode button").forEach(function(x){x.classList.remove("on");});
+      b.classList.add("on"); mode=b.dataset.v; reset();
+      verdict("", mode==="shared"?"One shared database. Four deployables.":"A database each. Four deployables.",
+        mode==="shared"
+          ? "Every service can read every table. Nothing in the code says who reads what. Try the buttons on the right and watch what a change costs."
+          : "Only <span class='mono'>orders</span> may touch its tables; the others must call it or consume its events. Try the same changes and compare.",
+        "");
+      log(mode==="shared"?"Switched to one shared database.":"Switched to a database each.","", false);
+    });
+  });
+
+  $$("#p-split [data-act]").forEach(function(b){
+    b.addEventListener("click",function(){ act(b.dataset.act); });
+  });
+
+  function act(a){
+    broken=[];
+    if(a==="add"){
+      verdict("good","Nothing broke — and that is true in both arrangements.",
+        "Adding a column is an <b>additive</b> change, and additive changes are free everywhere, because no existing reader was looking for the new thing. This is the single most useful fact about evolving an interface, and it is the reason the safe way to change anything is <b>add the new form, migrate, then remove the old one</b> — three deploys, never one.",
+        "ALTER TABLE orders ADD COLUMN discount_code text NULL;  → 0 consumers affected");
+      log("Added <span class='mono'>discount_code</span>. Nobody broke.","Additive changes are free. Removals and renames never are.");
+    } else if(a==="rename"){
+      if(mode==="shared"){
+        broken=["shipping","search","reporting"];
+        verdict("bad","Three services broke, and none of them was in your repository.",
+          "<b>shipping</b>, <b>search</b> and <b>reporting</b> all read <span class='mono'>orders.status</span> directly. You did not know that, because nothing recorded it. Your change compiled, passed every test you own, and deployed cleanly. <b>reporting</b> will fail at 03:12 tomorrow in a nightly job nobody is watching. In the old single program, the compiler would have found all three callers in half a second — you deleted the compiler when you split, and kept every dependency.",
+          "ALTER TABLE orders RENAME COLUMN status TO state;  → 3 consumers broken, 0 warnings");
+        log("Renamed <span class='mono'>status</span> → <span class='mono'>state</span>. <b>shipping, search and reporting broke.</b>","A shared table is an interface with no version, no owner and no consumer list.",true);
+      } else {
+        verdict("good","Nothing broke. You just renamed a column on a Friday afternoon without telling anyone.",
+          "The column is private. Your contract still says <span class='mono'>status</span> — you kept the promise and changed the implementation, which is exactly the line a boundary draws. <b>This is the whole benefit of the split, in one action.</b> (Changing the <i>contract</i> is a different job: that needs expand/contract, three deploys, and it is possible only because you can list who your consumers are.)",
+          "ALTER TABLE orders RENAME COLUMN status TO state;  → 0 consumers affected · contract unchanged");
+        log("Renamed <span class='mono'>status</span> → <span class='mono'>state</span>. Nothing broke.","Private data means the rename is invisible outside the service.");
+      }
+    } else if(a==="drop"){
+      if(mode==="shared"){
+        broken=["reporting"];
+        verdict("bad","One service broke — the one you were least likely to think about.",
+          "<b>reporting</b> was the only reader of <span class='mono'>legacy_ref</span>, and it was given a <i>read-only</i> credential years ago on the grounds that read-only cannot break anything. Read-only cannot write, but it couples completely: the coupling is to the <b>shape</b> of your data, and shape is exactly what a drop changes.",
+          "ALTER TABLE orders DROP COLUMN legacy_ref;  → 1 consumer broken (read-only credential)");
+        log("Dropped <span class='mono'>legacy_ref</span>. <b>reporting broke.</b>","\"It's read-only, it can't break anything\" is about writes. Coupling is about shape.",true);
+      } else {
+        verdict("good","Nothing broke.",
+          "Nobody outside <span class='mono'>orders</span> could see that column existed, so removing it is a private matter. Note the asymmetry you have bought: <b>inside</b> the boundary, removals are as cheap as additions; <b>across</b> it, they are the expensive ones.",
+          "ALTER TABLE orders DROP COLUMN legacy_ref;  → 0 consumers affected");
+        log("Dropped <span class='mono'>legacy_ref</span>. Nothing broke.","Inside a boundary, removals are cheap. Across one, they never are.");
+      }
+    } else if(a==="deploy"){
+      if(mode==="shared"){
+        verdict("bad","Deploy blocked. You need a release window and three other teams.",
+          "Your migration changes tables that <b>shipping</b>, <b>search</b> and <b>reporting</b> read, so all four must go out together, in an order, with a rollback plan that covers all four. This is the Tuesday meeting you split the system to escape — it has simply moved into the deploy pipeline. <b>You have four deployables and one turn: a distributed monolith.</b>",
+          "release train required · 4 services · coordinated window · go/no-go meeting");
+        log("Deploy of <span class='mono'>orders</span> <b>blocked</b>: 3 other services must ship in the same window.","Four deployables, one turn. That is the definition of a distributed monolith.",true);
+      } else {
+        verdict("good","Deployed at 16:42 on a Friday. Nobody was asked.",
+          "This — and only this — is what the whole architecture is for. Not smaller programs, not scalability, not technology choice: <b>the ability to put your change live without coordinating with anyone.</b> Everything else in this console is the bill for it.",
+          "deploy orders v412 → production · 0 other services involved · 0 approvals");
+        log("Deployed <span class='mono'>orders</span> alone. No coordination.","Independent deployability: the one benefit unobtainable any other way.");
+      }
+    } else if(a==="who"){
+      if(mode==="shared"){
+        verdict("warn","Nobody can answer that question.",
+          "There is no list. Not in the code, not in the config, not in any dependency graph — subscribing to a table requires no one's permission and leaves no trace. You will find out who your consumers were at 03:12 tomorrow, one at a time, as they break. <b>An interface you cannot enumerate is an interface you can never change.</b>",
+          "SELECT consumers FROM ??? → no such thing");
+        log("Asked who reads <span class='mono'>orders.status</span>. <b>Unknown.</b>","Not recorded anywhere. This is why the rename was unsafe.",true);
+      } else {
+        verdict("good","Two, and here they are.",
+          "<b>shipping</b> calls <span class='mono'>GET /orders/{id}</span>; <b>reporting</b> consumes <span class='mono'>OrderPlaced</span> events. You know because both cross a boundary that logs them. Now a breaking change becomes a project with a checklist instead of an ambush: add the new form, tell these two, wait for confirmation, remove the old form.",
+          "access log + broker consumer groups → 2 consumers, both reachable");
+        log("Asked who reads <span class='mono'>orders.status</span>. <b>2 known consumers.</b>","Enumerable means migratable.");
+      }
+    }
+    draw(); consumers();
+  }
+
+  draw(); consumers();
+  verdict("","One shared database. Four deployables.",
+    "Every service can read every table. Nothing in the code says who reads what. Try the buttons on the right and watch what a change costs.","");
+  log("Riverbend has split its program into four services. Storage is still shared.","Start here, then switch the arrangement and repeat the same changes.");
+})();
+
+/* =========================================================
+   TAB 2 — THE ARITHMETIC
+   ========================================================= */
+(function(){
+  var AV=[90,95,97,98,99,99.2,99.4,99.5,99.6,99.7,99.8,99.9,99.92,99.94,99.95,99.96,99.97,99.98,99.99,99.992,99.995,99.997,99.998,99.999,99.9995];
+  var NAMES=["gateway","orders","catalog","inventory","payments","shipping","notifications","search","pricing","fraud"];
+  var nIn=$("#nIn"),aIn=$("#aIn"),kIn=$("#kIn");
+  var HOURS=8760;
+
+  function pctStr(p){ return p>=99.99? p.toFixed(4)+"%" : p.toFixed(3)+"%"; }
+  function hrs(a){ return (1-a)*HOURS; }
+  function dur(h){
+    if(h>=1) return h.toFixed(1)+" hours/year";
+    return (h*60).toFixed(0)+" minutes/year";
+  }
+  function render(){
+    var N=+nIn.value, a=AV[+aIn.value]/100, K=+kIn.value;
+    var A=Math.pow(a,N);
+    var down=hrs(A), mono=hrs(a);
+    $("#nOut").textContent=N;
+    $("#aOut").textContent=pctStr(AV[+aIn.value]);
+    $("#kOut").textContent=K;
+
+    /* chain map */
+    var total=N+K, w=760, bw=Math.min(96,(w-20-(total-1)*10)/total), h=110;
+    var s='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="the call chain">';
+    var startX=(w-(total*bw+(total-1)*10))/2;
+    for(var i=0;i<total;i++){
+      var x=startX+i*(bw+10), crit=i<N;
+      var col=crit?"var(--navy)":"var(--violet)", fill=crit?"var(--navy-soft)":"var(--violet-soft)";
+      s+='<rect x="'+x+'" y="26" width="'+bw+'" height="46" rx="5" fill="'+fill+'" stroke="'+col+'" stroke-width="2"'+(crit?'':' stroke-dasharray="5 3"')+'/>';
+      s+='<text class="nlab" x="'+(x+bw/2)+'" y="46" text-anchor="middle" fill="'+col+'" font-size="10">'+(NAMES[i]||("svc"+(i+1)))+'</text>';
+      s+='<text class="nsub" x="'+(x+bw/2)+'" y="61" text-anchor="middle" fill="var(--muted)">'+pctStr(AV[+aIn.value]).replace("%","")+'</text>';
+      if(i<total-1) s+='<line x1="'+(x+bw)+'" y1="49" x2="'+(x+bw+10)+'" y2="49" stroke="var(--line)" stroke-width="2"/>';
+    }
+    s+='<text class="nsub" x="'+(startX+ (N*bw+(N-1)*10)/2 )+'" y="90" text-anchor="middle" fill="var(--navy)">must ALL work — multiply</text>';
+    if(K>0) s+='<text class="nsub" x="'+(startX+N*(bw+10)+(K*bw+(K-1)*10)/2)+'" y="90" text-anchor="middle" fill="var(--violet)">may fail — retried later</text>';
+    s+='</svg>';
+    $("#chainMap").innerHTML=s;
+
+    /* verdict */
+    var ratio=down/mono;
+    var v=$("#arithVerdict");
+    var cls = N===1?"good":(ratio>=3?"bad":(ratio>=1.8?"warn":""));
+    v.className="verdict "+cls;
+    var body;
+    if(N===1){
+      body="One service on the path. This is the monolith you started from, and it is the number every later configuration is measured against.";
+    } else {
+      body="Each of the "+N+" services is up "+pctStr(AV[+aIn.value])+" of the time, and checkout needs <b>all</b> of them. So checkout is up <b>"+pctStr(A*100)+"</b> — <b>"+dur(down)+"</b> of downtime, against <b>"+dur(mono)+"</b> for a single service at the same quality. You made it <b>"+ratio.toFixed(1)+"× worse</b> and changed nothing else."+
+        (K>0? " The "+K+" service"+(K>1?"s":"")+" you moved off the critical path contribute nothing to this number — that is the point of moving them.":"");
+    }
+    v.innerHTML='<p class="vh">Checkout is available '+pctStr(A*100)+' — '+dur(down)+'</p><p class="vb">'+body+'</p>'+
+      '<p class="vt">'+(a).toFixed(5)+'^'+N+' = '+A.toFixed(6)+' → (1 − '+A.toFixed(6)+') × 8760 h = '+down.toFixed(1)+' h</p>';
+
+    /* numbers */
+    var need=Math.pow(0.999,1/N)*100;
+    $("#arithNums").innerHTML=
+      '<div class="kv"><span>Combined availability</span><b>'+pctStr(A*100)+'</b></div>'+
+      '<div class="kv"><span>Downtime per year</span><b>'+down.toFixed(1)+' h</b></div>'+
+      '<div class="kv"><span>Downtime per month</span><b>'+(down/12*60).toFixed(0)+' min</b></div>'+
+      '<div class="kv"><span>A single 99.9% service</span><b>8.8 h</b></div>'+
+      '<div class="kv"><span>You are worse by</span><b>'+(down/hrs(0.999)).toFixed(1)+'×</b></div>'+
+      '<div class="kv"><span>Each service would need</span><b>'+need.toFixed(4)+'%</b></div>';
+
+    /* table */
+    var rows='<tr><th>Services</th><th>Availability</th><th>Downtime/yr</th><th>vs one service</th></tr>';
+    for(var n=1;n<=8;n++){
+      var An=Math.pow(a,n), dn=hrs(An);
+      rows+='<tr'+(n===N?' class="hl"':'')+'><td class="n">'+n+'</td><td class="n">'+pctStr(An*100)+'</td><td class="n">'+dn.toFixed(1)+' h</td><td class="n">'+(dn/mono).toFixed(1)+'×</td></tr>';
+    }
+    $("#arithTable").innerHTML=rows;
+
+    /* ask */
+    $("#arithAsk").innerHTML=
+      '<p style="font-size:14px;margin:0 0 10px"><b>To make '+N+' services as available as one 99.9% monolith, each would have to reach '+need.toFixed(4)+'%</b> — that is '+dur(hrs(need/100))+' per service, <i>including deploys, dependency failures and bad code</i>.</p>'+
+      '<p style="font-size:14px;margin:0 0 10px">Redundancy helps with only one of the four causes of downtime. Three replicas remove most <b>machine</b> failure; they do nothing about a <b>bad deploy</b> (every replica runs the same bad code), nothing about a <b>failed dependency</b>, and nothing about <b>overload</b> if the bottleneck is shared.</p>'+
+      '<p style="font-size:14px;margin:0"><b>So the big lever is not making each service better. It is needing fewer of them.</b> Drag the third slider and watch the first one fall — that is stage 10g, and it is the only move that changes the exponent.</p>';
+  }
+  [nIn,aIn,kIn].forEach(function(el){el.addEventListener("input",render);});
+  render();
+})();
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+var DT=0.1, HIST_RATE=20, HIST_DUR=0.005, WIN=30, PATIENCE=3.0;
+
+var cfg={health:"healthy",latency:5.0,timeout:0,attempts:1,bulkhead:0,breaker:false,
+         async:false,rate:100,pool:200};
+
+function newState(){return{
+  step:0,cohorts:[],fastOcc:0,pending:0,
+  br:{state:"closed",ok:0,fail:0,openUntil:0},
+  win:[],
+  flags:{poolFull:false,histFail:false,br:"closed",health:"healthy",bulkSat:false,storm:false},
+  log:[]
+};}
+var st=newState(), frames=[], timer=null, storyIdx=-1, storyLeft=0, narr=null;
+
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function sum(a){var t=0;for(var i=0;i<a.length;i++)t+=a[i].n;return t;}
+
+function callProfile(open){
+  if(open) return {dur:0.00002,ok:false,why:"breaker"};
+  var base,ok;
+  if(cfg.health==="healthy"){base=0.02;ok=true;}
+  else if(cfg.health==="down"){base=0.001;ok=false;}
+  else {base=cfg.latency;ok=true;}
+  if(cfg.timeout>0 && base>cfg.timeout) return {dur:cfg.timeout,ok:false,why:"timeout"};
+  return {dur:base,ok:ok,why:ok?"ok":"refused"};
+}
+
+function step(prev){
+  var s=clone(prev); s.step++; var t=s.step*DT;
+  var br=s.br;
+  if(cfg.breaker){ if(br.state==="open" && t>=br.openUntil){br.state="half";br.ok=0;br.fail=0;} }
+  else { br.state="closed"; br.ok=0; br.fail=0; }
+
+  var prof=callProfile(br.state==="open");
+  var attempts=(prof.why==="breaker")?1:(prof.ok?1:cfg.attempts);
+  var totalDur=prof.dur*attempts;
+  /* a call that technically succeeds after PATIENCE seconds is still a lost customer,
+     and a real breaker counts it as a failure too (Resilience4j: slow-call rate). */
+  var custOk=prof.ok && totalDur<=PATIENCE;
+
+  var cok=0,cfail=0,rejected=0;
+  s.cohorts=s.cohorts.filter(function(c){
+    if(c.due<=s.step){ if(c.ok) cok+=c.n; else cfail+=c.n; return false; }
+    return true;
+  });
+  var inflight=sum(s.cohorts);
+
+  var arrivals=cfg.rate*DT, pcalls=0;
+  s.fastOcc=0;
+
+  if(cfg.async){
+    s.fastOcc=cfg.rate*0.010;
+    cok+=arrivals;
+    if(cfg.health!=="healthy") s.pending+=cfg.rate*DT;
+    else s.pending=Math.max(0,s.pending-250*DT);
+    pcalls=(cfg.health==="healthy"?cfg.rate*DT:0);
+  } else {
+    s.pending=Math.max(0,s.pending-250*DT);
+    var bulkCap=cfg.bulkhead>0?Math.min(cfg.bulkhead,cfg.pool):cfg.pool;
+    var room=Math.max(0,Math.min(bulkCap-inflight,cfg.pool-inflight));
+    /* half-open lets a trickle through, not the whole traffic */
+    var offered=arrivals*(br.state==="half"?0.02:1);
+    var nsteps=totalDur/DT, admitted=0;
+    if(nsteps<1){
+      var want=offered/DT*totalDur;
+      var occ=want>0?Math.min(want,room):0;
+      var frac=want>0?occ/want:1;
+      s.fastOcc=occ; admitted=offered*frac;
+      if(custOk) cok+=admitted; else cfail+=admitted;
+    } else {
+      admitted=Math.min(offered,room);
+      if(admitted>0) s.cohorts.push({n:admitted,due:s.step+Math.round(nsteps),ok:custOk});
+    }
+    rejected=arrivals-admitted;
+    pcalls=(prof.why==="breaker")?0:admitted*attempts;
+  }
+
+  if(cfg.breaker){
+    br.ok+=cok; br.fail+=cfail;   /* call outcomes only — fail-fast rejections are not dependency failures */
+    if(br.state==="closed"){
+      var tot=br.ok+br.fail;
+      if(tot>=20 && br.fail/tot>=0.5){br.state="open";br.openUntil=t+5;br.ok=0;br.fail=0;}
+    } else if(br.state==="half"){
+      if(cok>0){br.state="closed";br.ok=0;br.fail=0;}
+      else if(cfail>0){br.state="open";br.openUntil=t+5;br.ok=0;br.fail=0;}
+    }
+  }
+
+  var usedP=sum(s.cohorts)+s.fastOcc;
+  var free=cfg.pool-usedP;
+  var hArr=HIST_RATE*DT;
+  var hok=free>=1?hArr:0, hfail=hArr-hok;
+
+  s.win.push({cok:cok,cfail:cfail+rejected,hok:hok,hfail:hfail,pc:pcalls});
+  if(s.win.length>WIN) s.win.shift();
+
+  /* -------- event detection -------- */
+  var f=s.flags, add=function(m,tech,hi){s.log.push({t:t,m:m,s:tech,hi:!!hi}); if(s.log.length>60) s.log.shift();};
+  if(f.health!==cfg.health){
+    if(cfg.health==="slow") add("<b>payments has gone slow.</b> It is still returning 200 OK — its error rate is zero and every dashboard is green. Each call now takes "+cfg.latency.toFixed(1)+" seconds instead of 20 ms.","latency 0.020s → "+cfg.latency.toFixed(3)+"s · error rate 0.0%",true);
+    else if(cfg.health==="down") add("<b>payments is dead.</b> The connection is refused in about a millisecond, so a thread is released almost immediately. Dead is cheap.","connection refused · ~0.001s per call",true);
+    else add("payments has recovered. Calls are back to 20 ms.","latency → 0.020s");
+    f.health=cfg.health;
+  }
+  var full=usedP>=cfg.pool*0.995;
+  if(full && !f.poolFull){
+    add("<b>The thread pool is full.</b> All "+cfg.pool+" workers are sitting inside a payments call, waiting. Nothing else in <span class='mono'>orders</span> can run.","workers = "+cfg.rate+"/s × "+totalDur.toFixed(3)+"s = "+(cfg.rate*totalDur).toFixed(0)+" needed · "+cfg.pool+" available",true);
+    f.poolFull=true;
+  } else if(!full && f.poolFull){ add("Threads are free again.","occupancy "+usedP.toFixed(0)+" / "+cfg.pool); f.poolFull=false; }
+  var hf=hfail>0;
+  if(hf && !f.histFail){
+    add("<b>GET /orders/{id} has started failing — and it never calls payments.</b> It is failing because there is no free thread to run it on. This is the moment the incident stops being “checkout is broken” and becomes “orders is down”.","cascading failure · blast radius crossed into unrelated endpoints",true);
+    f.histFail=true;
+  } else if(!hf && f.histFail){ add("Order history is answering again. The blast radius is back to just checkout.",""); f.histFail=false; }
+  if(f.br!==br.state){
+    if(br.state==="open") add("<b>Circuit breaker OPEN.</b> <span class='mono'>orders</span> has stopped calling payments altogether — every call now fails in microseconds without touching the network. Its threads are free, and payments' load has collapsed to nothing, which is what gives it a chance to recover.","state closed → open · cooldown 5s",true);
+    else if(br.state==="half") add("Circuit breaker HALF-OPEN. A trickle of probe calls is being let through to test whether payments has recovered.","state open → half-open");
+    else add("Circuit breaker CLOSED. Probes succeeded, so normal traffic has resumed.","state half-open → closed");
+    f.br=br.state;
+  }
+  var bs=cfg.bulkhead>0 && usedP>=cfg.bulkhead*0.98;
+  if(bs && !f.bulkSat){
+    add("The bulkhead is full: "+cfg.bulkhead+" threads are inside payments and no more are allowed in. Further checkouts are rejected immediately — and the other "+(cfg.pool-cfg.bulkhead)+" threads are untouched, which is why order history is fine.","bulkhead "+cfg.bulkhead+"/"+cfg.pool+" · excess checkout rejected fast");
+    f.bulkSat=true;
+  } else if(!bs && f.bulkSat){ f.bulkSat=false; }
+  var storm=pcalls/DT>cfg.rate*1.4 && cfg.attempts>1;
+  if(storm && !f.storm){
+    add("<b>Retry storm.</b> payments is now receiving "+(pcalls/DT).toFixed(0)+" requests per second instead of "+cfg.rate+". You have multiplied the load on the service that is failing <i>because</i> it is overloaded — and every time it starts to recover, this backlog will knock it over again.","arrival rate ×"+attempts+" · caller occupancy ×"+attempts,true);
+    f.storm=true;
+  } else if(!storm && f.storm){ f.storm=false; }
+
+  return s;
+}
+
+/* -------- derived -------- */
+function derive(s){
+  var w=s.win, n=Math.max(1,w.length), cok=0,cf=0,hok=0,hf=0,pc=0;
+  w.forEach(function(x){cok+=x.cok;cf+=x.cfail;hok+=x.hok;hf+=x.hfail;pc+=x.pc;});
+  var usedP=sum(s.cohorts)+s.fastOcc;
+  var localOcc=(hok>0?HIST_RATE*HIST_DUR:0);
+  return {
+    t:s.step*DT, usedP:usedP, localOcc:localOcc, used:usedP+localOcc,
+    chk:(cok+cf)>0?100*cok/(cok+cf):null,
+    hist:(hok+hf)>0?100*hok/(hok+hf):100,
+    payRate:pc/(n*DT), br:s.br.state, pending:s.pending
+  };
+}
+
+/* -------- verdict -------- */
+function verdictFor(d){
+  var prof=callProfile(d.br==="open");
+  var attempts=(prof.why==="breaker")?1:(prof.ok?1:cfg.attempts);
+  var need=cfg.rate*prof.dur*attempts;
+  var tech="workers = "+cfg.rate+" /s × "+(prof.dur*attempts).toFixed(3)+" s = "+need.toFixed(0)+" needed · "+cfg.pool+" available";
+  if(cfg.async){
+    return {cls:"good",h:"Checkout is answering every customer — payments is "+cfg.health+", and it does not matter.",
+      b:"<span class='mono'>orders</span> no longer calls payments on the critical path. It writes the order and an outbox row in <b>one local transaction</b>, returns <span class='mono'>201 PENDING</span>, and the charge happens afterwards from the event. Checkout's availability is now the availability of <span class='mono'>orders</span> alone."+
+        (d.pending>2?" <b>"+d.pending.toFixed(0)+" orders are waiting to be charged</b> and will settle when payments recovers — which is a product decision (what the customer is told, and what happens if the card is declined later), not an engineering detail.":""),
+      t:"critical path = gateway + orders · payments moved to an event consumer"};
+  }
+  if(d.hist<99){
+    return {cls:"bad",h:"Cascading failure — "+Math.round(100-d.hist)+"% of order-history requests are failing, and order history never calls payments.",
+      b:"All "+cfg.pool+" of <span class='mono'>orders</span>' worker threads are sitting inside a payments call. A request holds a thread for its <i>whole</i> duration, including the wait, so one slow dependency has consumed the resource that every endpoint shares. <b>The failure crossed into work that had nothing to do with the broken dependency.</b> That is what makes it a cascade rather than an outage.",
+      t:tech+" → pool saturates in "+(cfg.pool/cfg.rate).toFixed(1)+" s"};
+  }
+  if(d.chk===null){
+    return {cls:"warn",h:"Every checkout is still waiting. None has succeeded, and none has failed.",
+      b:"<b>"+cfg.rate+" requests a second have arrived and not one has come back yet</b>, because each is sitting inside a "+cfg.latency.toFixed(1)+"-second call to payments. No error-rate alarm can fire, because there are no errors — payments is returning <span class='mono'>200 OK</span>. Meanwhile the thread gauge is filling at "+cfg.rate+" threads a second, and by the time the first error appears the pool will already be empty. <b>Saturation is the leading indicator; error rate is the lagging one.</b>",
+      t:tech+" · "+(cfg.pool/cfg.rate).toFixed(1)+" s until the pool is empty"};
+  }
+  if(d.payRate>cfg.rate*1.4){
+    return {cls:"bad",h:"Retry storm — payments is receiving "+d.payRate.toFixed(0)+" requests per second instead of "+cfg.rate+".",
+      b:"Each checkout now makes "+attempts+" attempts, so you have multiplied the load on a service that is failing. You have also multiplied your own occupancy: each request holds a thread for "+(prof.dur*attempts).toFixed(1)+" seconds instead of "+prof.dur.toFixed(1)+". <b>The obvious fix made both sides worse.</b> The answer is a total-operation timeout, backoff with jitter, and a retry budget capping retries at a fixed fraction of traffic.",
+      t:tech};
+  }
+  if(d.chk<5){
+    var head=(d.br==="open")?"Contained, and failing fast — the breaker is open.":"Contained: checkout is failing, everything else is fine.";
+    var body=(d.br==="open")
+      ? "Calls to payments are not being made at all: they return an error in microseconds without touching the network. <span class='mono'>orders</span>' threads are free ("+d.used.toFixed(0)+" of "+cfg.pool+" in use), order history is at 100%, and payments' inbound load has dropped to nothing — which is the condition it needs in order to recover."
+      : (cfg.timeout>0||cfg.bulkhead>0||cfg.breaker)
+        ? "Checkout is failing because payments really is broken, and that is the correct outcome. What matters is the second number: order history is at "+d.hist.toFixed(0)+"%. <b>Timeouts, bulkheads and breakers do not buy success. They buy containment</b> — the difference between “one feature is down” and “the service is down”."
+        : "Order history is at "+d.hist.toFixed(0)+"%, but <b>nothing is protecting you</b> — no timeout, no bulkhead, no breaker. You simply have more threads than the failure needs: "+Math.round(d.used)+" in use of "+cfg.pool+". That is not a limit, it is a bigger number. Drag the latency slider to 30 s and it needs "+(cfg.rate*30).toFixed(0)+"; your database connection pool will run out long before that. <b>A timeout caps duration; a thread count only postpones.</b>";
+    return {cls:"warn",h:head,b:body,t:tech};
+  }
+  if(d.chk<99){
+    return {cls:"warn",h:"Degraded — "+d.chk.toFixed(0)+"% of checkouts are succeeding.",
+      b:"Some requests are getting through and some are being rejected. Watch the thread gauge: the number that predicts what happens next is <b>saturation</b>, not the error rate. Error rate tells you it has already happened.",t:tech};
+  }
+  var util=100*d.used/cfg.pool;
+  if(util>30 && cfg.health!=="healthy"){
+    var left=Math.max(0,(cfg.pool-d.used)/cfg.rate);
+    return {cls:"warn",h:"Saturation is climbing — "+util.toFixed(0)+"% of the thread pool is in use, and the error rate is still zero.",
+      b:"The dials have not noticed anything yet, because the requests now in flight have not come back: they will not report success or failure for another "+(prof.dur*attempts).toFixed(1)+" seconds. <b>The gauge has already told you what the dials will say next.</b> At "+cfg.rate+" arrivals a second, the pool is empty in about "+left.toFixed(1)+" seconds — and the first error and the total outage will arrive in the same instant.",
+      t:tech};
+  }
+  return {cls:"good",h:"Everything is fine — and it looks like nothing could ever go wrong.",
+    b:"<span class='mono'>orders</span> is using <b>"+d.used.toFixed(0)+" of its "+cfg.pool+" threads</b> ("+util.toFixed(0)+"%). That reassuring number is exactly why nobody thinks the thread pool is a risk. It is "+cfg.rate+" requests a second each holding a thread for 20 ms — and it becomes "+(cfg.rate*5).toFixed(0)+" threads the moment that 20 ms becomes 5 seconds.",
+    t:tech};
+}
+
+/* -------- render -------- */
+function render(){
+  var d=derive(st);
+  var v=narr||verdictFor(d);
+  var ve=$("#casVerdict"); ve.className="verdict "+v.cls;
+  ve.innerHTML='<p class="vh">'+v.h+'</p><p class="vb">'+v.b+'</p>'+(v.t?'<p class="vt">'+v.t+'</p>':'');
+
+  var pw=100*Math.min(d.usedP,cfg.pool)/cfg.pool, lw=100*Math.min(d.localOcc,cfg.pool)/cfg.pool;
+  $("#thrPay").style.width=pw+"%"; $("#thrLoc").style.width=lw+"%";
+  $("#thrTxt").textContent=(d.used<10?d.used.toFixed(1):Math.round(d.used))+" / "+cfg.pool;
+
+  var ce=$("#dCheck"); ce.textContent=d.chk===null?"…":Math.round(d.chk)+"%";
+  ce.className="dv "+(d.chk===null?"mid":(d.chk>=99?"ok":(d.chk>=50?"mid":"no")));
+  var prof=callProfile(d.br==="open");
+  var att=(prof.why==="breaker")?1:(prof.ok?1:cfg.attempts);
+  $("#dCheckD").textContent=cfg.async?"answers immediately · order is PENDING":
+    (d.chk===null?"nothing has returned yet":
+    (d.chk>=99?"succeeding · "+Math.round((prof.dur*att+0.004)*1000)+" ms":"failing after "+Math.round(prof.dur*att*1000)+" ms"));
+  var he=$("#dHist"); he.textContent=Math.round(d.hist)+"%";
+  he.className="dv "+(d.hist>=99?"ok":(d.hist>=50?"mid":"no"));
+  $("#dHistD").textContent=d.hist>=99?"never calls payments":"starved of threads by payments";
+
+  $("#payRateTxt").textContent=Math.round(d.payRate)+" /s";
+  $("#payRateBar").style.width=Math.min(100,d.payRate/4)+"%";
+
+  var ch=$("#chipHealth");
+  ch.className="chip "+(cfg.health==="healthy"?"ok":(cfg.health==="slow"?"warn":"bad"));
+  ch.lastChild.textContent="payments "+(cfg.health==="slow"?("slow · "+cfg.latency.toFixed(1)+"s"):cfg.health);
+  var cb=$("#chipBreaker");
+  cb.className="chip "+(!cfg.breaker?"":(d.br==="open"?"bad":(d.br==="half"?"warn":"ok")));
+  cb.lastChild.textContent=cfg.breaker?("breaker "+d.br):"breaker off";
+  var bk=$("#chipBulk");
+  bk.className="chip "+(cfg.bulkhead>0?"ok":"");
+  bk.lastChild.textContent=cfg.bulkhead>0?("bulkhead "+cfg.bulkhead+" threads"):"bulkhead off";
+  var as=$("#chipAsync");
+  as.className="chip "+(cfg.async?"vio":"");
+  as.lastChild.textContent=cfg.async?("async · "+Math.round(d.pending)+" awaiting payment"):"payments synchronous";
+
+  $("#littleTxt").innerHTML=
+    "workers in use = "+cfg.rate+" /s &times; "+(prof.dur*att).toFixed(3)+" s"+(att>1?" ("+att+" attempts)":"")+" = <b>"+Math.round(cfg.rate*prof.dur*att)+"</b><br>"+
+    "threads available = <b>"+cfg.pool+"</b>"+(cfg.bulkhead>0?" (payments capped at "+cfg.bulkhead+")":"")+"<br>"+
+    "time to fill the pool = "+cfg.pool+" &divide; "+cfg.rate+" = <b>"+(cfg.pool/cfg.rate).toFixed(1)+" s</b>";
+
+  $("#clock").textContent=d.t.toFixed(1)+" s";
+  $("#backBtn").disabled=frames.length===0;
+
+  var le=$("#casLog"), h="";
+  for(var i=st.log.length-1;i>=0;i--){
+    var e=st.log[i];
+    h+='<div class="e'+(e.hi?" hi":"")+'"><div class="t">t = '+e.t.toFixed(1)+' s</div><div class="m">'+e.m+'</div>'+(e.s?'<div class="s">'+e.s+'</div>':'')+'</div>';
+  }
+  le.innerHTML=h||'<div class="e"><div class="m">Nothing has happened yet. Press <b>Play</b>, or pick a scenario.</div></div>';
+}
+
+/* -------- controls -------- */
+function tick(){ frames.push({st:clone(st),cfg:clone(cfg)}); if(frames.length>1200) frames.shift(); st=step(st); if(storyLeft>0){storyLeft--; if(storyLeft===0) nextStory();} render(); }
+function play(){ if(timer) return; timer=setInterval(tick,55); $("#playBtn").textContent="❚❚ Pause"; }
+function pause(){ if(timer){clearInterval(timer); timer=null;} $("#playBtn").textContent="▶ Play"; }
+$("#playBtn").addEventListener("click",function(){ timer?pause():play(); });
+$("#fwdBtn").addEventListener("click",function(){ pause(); tick(); });
+$("#backBtn").addEventListener("click",function(){ pause(); var f=frames.pop(); if(!f) return; st=f.st; cfg=f.cfg; syncUI(); render(); });
+$("#resetBtn").addEventListener("click",function(){ pause(); reset(true); });
+
+function reset(clearCfg,keepPredict){
+  st=newState(); frames=[]; narr=null; storyIdx=-1; storyLeft=0;
+  $("#storyChip").hidden=true; if(!keepPredict) $("#casPredict").hidden=true;
+  if(clearCfg){ cfg={health:"healthy",latency:5.0,timeout:0,attempts:1,bulkhead:0,breaker:false,async:false,rate:100,pool:200}; }
+  st.flags.health=cfg.health;
+  syncUI(); render();
+}
+
+function syncUI(){
+  $$("#healthSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.v===cfg.health);});
+  $("#latIn").value=Math.round(cfg.latency*10); $("#latOut").textContent=cfg.latency.toFixed(1)+" s";
+  $("#toIn").value=Math.round(cfg.timeout*10); $("#toOut").textContent=cfg.timeout>0?cfg.timeout.toFixed(1)+" s":"off";
+  $("#reIn").value=cfg.attempts; $("#reOut").textContent=cfg.attempts;
+  $("#bhIn").value=cfg.bulkhead; $("#bhOut").textContent=cfg.bulkhead>0?cfg.bulkhead+" threads":"off";
+  $("#brIn").checked=cfg.breaker; $("#asIn").checked=cfg.async;
+  $("#rateIn").value=cfg.rate; $("#rateOut").textContent=cfg.rate+" /s";
+  $("#poolIn").value=cfg.pool; $("#poolOut").textContent=cfg.pool;
+}
+$$("#healthSeg button").forEach(function(b){
+  b.addEventListener("click",function(){ cfg.health=b.dataset.v; syncUI(); render(); });
+});
+$("#latIn").addEventListener("input",function(){cfg.latency=+this.value/10; syncUI(); render();});
+$("#toIn").addEventListener("input",function(){cfg.timeout=+this.value/10; syncUI(); render();});
+$("#reIn").addEventListener("input",function(){cfg.attempts=+this.value; syncUI(); render();});
+$("#bhIn").addEventListener("input",function(){cfg.bulkhead=+this.value; syncUI(); render();});
+$("#brIn").addEventListener("change",function(){cfg.breaker=this.checked; syncUI(); render();});
+$("#asIn").addEventListener("change",function(){cfg.async=this.checked; syncUI(); render();});
+$("#rateIn").addEventListener("input",function(){cfg.rate=+this.value; syncUI(); render();});
+$("#poolIn").addEventListener("input",function(){cfg.pool=+this.value; syncUI(); render();});
+
+/* -------- scenarios with predict-then-run -------- */
+var SC={
+ s1:{q:"<b>payments has just died completely</b> — the connection is refused in about a millisecond. What happens to <span class='mono'>GET /orders/{id}</span>, which never calls payments?",
+     o:["It keeps working normally","It fails too","It gets slow but survives"],a:0,
+     right:"Correct. A dead dependency is a <b>fast</b> failure: the thread is released in a millisecond, so occupancy is 100/s × 0.001 s = 0.1 threads. Checkout fails, and nothing else is touched.",
+     wrong:"Not quite. A dead dependency is a <b>fast</b> failure: the connection is refused in a millisecond, so a thread is held for almost no time — occupancy is 100/s × 0.001 s = <b>0.1 threads</b>. Checkout fails and everything else is untouched. Dead is cheap. Now watch what happens when it is merely <i>sick</i>.",
+     cfg:{health:"down"},run:45},
+ s2:{q:"Now payments is <b>not dead — it is slow</b>. Calls take 5 seconds and still return <span class='mono'>200 OK</span>. <span class='mono'>orders</span> has 200 threads and takes 100 requests a second. What happens?",
+     o:["Checkout gets slower but still works","Checkout fails, order history is fine","The whole of orders stops — including order history"],a:2,
+     right:"Correct, and it takes two seconds. 100/s × 5 s = <b>500 threads needed</b>, 200 available. Threads fill at 100 a second, so the pool is empty at t = 2 s and every endpoint dies with it.",
+     wrong:"No — and this is the most important surprise in the lab. 100/s × 5 s = <b>500 threads needed</b> and only 200 exist, so the pool is empty two seconds in. From then on <i>every</i> endpoint fails, including ones that never touch payments. Watch the gauge and the log.",
+     cfg:{health:"slow",latency:5.0},run:60},
+ s3:{q:"We add a <b>1-second timeout</b> on the payments call. payments is still sick at 5 seconds. Does that fix it?",
+     o:["Yes — checkout succeeds again","Order history survives, but checkout still fails","No, nothing changes"],a:1,
+     right:"Correct. 100/s × 1 s = 100 threads, half the pool. Checkout fails (payments really is broken) but order history is at 100%. A timeout does not buy success — it buys <b>containment</b>.",
+     wrong:"Close, but look at the two dials separately. 100/s × 1 s = 100 threads of 200, so <span class='mono'>orders</span> survives and order history is at 100% — while checkout fails, correctly, because payments is genuinely broken. <b>A timeout converts an unbounded resource consumption into a bounded one.</b> It never makes a broken dependency work.",
+     cfg:{health:"slow",latency:5.0,timeout:1.0},run:45},
+ s4:{q:"Checkout is failing, so the client now makes <b>3 attempts</b> instead of 1, on top of the 1-second timeout. Better or worse?",
+     o:["Better — more chances to succeed","About the same","Worse, on both sides at once"],a:2,
+     right:"Correct. Your own occupancy becomes 100/s × 3 s = 300 threads — over the 200 you have, so the pool exhausts again — <i>and</i> payments now receives 300/s instead of 100/s.",
+     wrong:"Worse, and in two places at once. Each checkout now holds a thread for 3 × 1 s, so occupancy is 100/s × 3 s = <b>300 threads</b> against 200 available: you have re-created the original failure. And payments now receives <b>300 requests a second</b> instead of 100 — you tripled the load on the service that is failing because it is overloaded.",
+     cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3},run:60},
+ s5:{q:"We cap payments at <b>40 threads</b> — a bulkhead — while keeping the timeout and the retries. What is now true?",
+     o:["Checkout succeeds again","Order history is fine; checkout fails, slowly","Everything fails"],a:1,
+     right:"Correct. At most 40 threads can ever be inside payments, so 160 are always free for everything else. Checkout still burns its full timeout before failing — that is what the breaker fixes next.",
+     wrong:"Look at the gauge. The bulkhead caps payments at 40 threads, so <b>160 are always free</b> and order history is at 100% no matter what payments does. Checkout still fails, and still fails <i>slowly</i> — it burns the whole timeout each time. Fixing that is the breaker's job, not the bulkhead's.",
+     cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3,bulkhead:40},run:55},
+ s6:{q:"Now add a <b>circuit breaker</b> as well. What does it change that the bulkhead did not?",
+     o:["Checkout starts succeeding","Checkout fails in microseconds instead of a second, and payments' load collapses","Nothing — the bulkhead already did this"],a:1,
+     right:"Correct. Once open, the call is not made at all: occupancy drops to ~0 and payments' inbound load collapses to nothing, which is the condition it needs to recover.",
+     wrong:"The bulkhead bounds <i>how much</i> capacity a bad dependency may hold; the breaker bounds <i>how long you keep paying</i> for one you already know is broken. Once open, the call is never made: it fails in microseconds, occupancy drops to about zero, and payments' inbound load collapses — which is what lets it recover. You need both, because they cover different parts of the same incident.",
+     cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3,bulkhead:40,breaker:true},run:110},
+ s7:{q:"Finally, we take payments <b>off the critical path</b> — the order is written with an outbox row and answered immediately, and the charge happens from the event. payments is <b>dead</b>. What does the customer see?",
+     o:["Checkout fails","Checkout succeeds; the order is PENDING","Checkout hangs"],a:1,
+     right:"Correct. Checkout no longer requires payments at all, so its availability is the availability of orders alone. The cost has moved: the customer is told PENDING, and a decline is now an apology by email rather than a rejection on the page.",
+     wrong:"Checkout succeeds. It writes the order and an outbox row in one local transaction and answers <span class='mono'>201 PENDING</span> — it never calls payments, so payments being dead cannot affect it. The cost is real but it has <b>moved</b>: the customer is told the order is pending, and a decline twenty minutes later is an apology by email instead of a rejection on the page. That is a product decision, not an engineering one.",
+     cfg:{health:"down",async:true},run:45}
+};
+var pending=null;
+$$("#p-cascade [data-sc]").forEach(function(b){
+  b.addEventListener("click",function(){ askPredict(b.dataset.sc); });
+});
+function askPredict(key){
+  pause(); var sc=SC[key]; pending=key;
+  var p=$("#casPredict"); p.hidden=false;
+  $("#predQ").innerHTML="🔮 Predict first: "+sc.q;
+  $("#predRes").hidden=true;
+  var o=$("#predOpts"); o.innerHTML="";
+  sc.o.forEach(function(txt,i){
+    var btn=document.createElement("button");
+    btn.textContent=String.fromCharCode(97+i)+")  "+txt;
+    btn.addEventListener("click",function(){ answer(key,i); });
+    o.appendChild(btn);
+  });
+  p.scrollIntoView({behavior:document.body.classList.contains("reduced")?"auto":"smooth",block:"nearest"});
+}
+function answer(key,i){
+  var sc=SC[key], ok=i===sc.a;
+  var r=$("#predRes"); r.hidden=false;
+  r.className="res "+(ok?"right":"wrong");
+  r.innerHTML='<b>'+(ok?"You were right. ":"Not this time. ")+'</b>'+(ok?sc.right:sc.wrong)+'<br><br>Running it now — watch the thread gauge and the log.';
+  runScenario(key);
+}
+function runScenario(key){
+  var sc=SC[key];
+  reset(true,true);
+  Object.keys(sc.cfg).forEach(function(k){ cfg[k]=sc.cfg[k]; });
+  st.flags.health="healthy";
+  syncUI(); render();
+  play();
+  setTimeout(function(){ pause(); }, sc.run*55+200);
+}
+
+/* -------- narrated story -------- */
+var STORY=[
+ {cfg:{},d:35,h:"1 · A perfectly healthy afternoon.",b:"100 checkouts a second, each taking 20 ms in payments. <span class='mono'>orders</span> is using 2 of its 200 threads. Nobody looking at this system would say the thread pool is a risk — and that is exactly the problem.",t:"workers = 100/s × 0.020 s = 2"},
+ {cfg:{health:"down"},d:35,h:"2 · payments dies. This is the good outcome.",b:"The connection is refused in a millisecond, so threads are released instantly. Checkout fails — correctly, payments is gone — and every other endpoint is untouched. <b>Dead is cheap.</b>",t:"workers = 100/s × 0.001 s = 0.1"},
+ {cfg:{health:"slow",latency:5.0},d:65,h:"3 · payments is not dead. It is sick — and this is far worse.",b:"Calls take 5 seconds and still return 200 OK, so its error rate is zero and every dashboard is green. Watch the gauge: 100 requests a second each holding a thread for 5 seconds needs 500 threads, and there are 200.",t:"workers = 100/s × 5.000 s = 500 needed · 200 available · fills in 2.0 s"},
+ {cfg:{health:"slow",latency:5.0},d:45,h:"4 · The cascade. Order history is failing, and it never called payments.",b:"Every thread is inside a payments call. <span class='mono'>GET /orders/{id}</span> touches only its own database and it cannot run, because there is nothing left to run it on. The blast radius has crossed from one dependency into the whole service.",t:"pool 200/200 · blast radius: entire orders service"},
+ {cfg:{health:"slow",latency:5.0,timeout:1.0},d:45,h:"5 · One timeout, and the service comes back.",b:"Capping the call at 1 second makes occupancy 100 threads instead of 500. Checkout still fails — payments really is broken — but order history is at 100%. <b>A timeout does not buy success; it buys containment.</b>",t:"workers = 100/s × 1.000 s = 100 · 200 available"},
+ {cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3},d:55,h:"6 · The obvious next fix makes it worse — on both sides.",b:"Three attempts means each request holds a thread for 3 seconds, so occupancy is back to 300 against 200. And payments now receives 300 requests a second instead of 100: you have tripled the load on a service that is failing because it is overloaded.",t:"caller ×3 · callee ×3 · this is a retry storm"},
+ {cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3,bulkhead:40},d:45,h:"7 · A bulkhead: payments may hold at most 40 threads.",b:"160 threads are now permanently unavailable to payments, so order history is safe whatever happens. Checkout still fails slowly, burning its whole timeout on every attempt.",t:"bulkhead 40/200 · 160 reserved for everything else"},
+ {cfg:{health:"slow",latency:5.0,timeout:1.0,attempts:3,bulkhead:40,breaker:true},d:100,h:"8 · A circuit breaker: stop paying for a dependency you know is broken.",b:"After enough failures the breaker opens and the call is not made at all — it fails in microseconds. Occupancy drops to nothing and payments' inbound load collapses, which is the condition it needs in order to recover. Watch it probe with a trickle after the cooldown.",t:"closed → open → half-open · the caller is what is being protected"},
+ {cfg:{health:"down",async:true},d:50,h:"9 · The actual cure: take payments off the critical path.",b:"<span class='mono'>orders</span> writes the order and an outbox row in one local transaction and answers immediately. payments is <b>completely dead</b> here — and checkout is at 100%, because it no longer needs it. The cost moved rather than vanished: the customer is told PENDING, and a decline later is an apology instead of a rejection.",t:"critical path: gateway + orders · 99.8% instead of 99.5%"},
+ {cfg:{health:"healthy",async:true},d:30,h:"10 · And that is the whole argument.",b:"Splitting a system multiplies the things that must work, and a synchronous call hands one dependency the power to consume all of your capacity. Timeouts, bulkheads and breakers contain that. Only <b>removing services from the required set</b> changes the arithmetic. Now go back and break it yourself — every control on the right is yours.",t:"press Reset, then try your own combinations"}
+];
+function nextStory(){
+  storyIdx++;
+  if(storyIdx>=STORY.length){ pause(); narr=null; $("#storyChip").hidden=true; render(); return; }
+  var s=STORY[storyIdx];
+  Object.keys(s.cfg).forEach(function(k){ cfg[k]=s.cfg[k]; });
+  narr={cls:storyIdx===0?"good":(storyIdx>=8?"good":(storyIdx===3||storyIdx===5?"bad":"warn")),h:s.h,b:s.b,t:s.t};
+  storyLeft=s.d;
+  $("#storyChipT").textContent="story "+(storyIdx+1)+" of "+STORY.length;
+  syncUI(); render();
+}
+$("#storyBtn").addEventListener("click",function(){
+  pause(); reset(true); $("#casPredict").hidden=true;
+  $("#storyChip").hidden=false; storyIdx=-1; nextStory(); play();
+});
+
+reset(true);
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+
+/* =========================================================
+   TAB 4 — THE TAIL
+   ========================================================= */
+(function(){
+  var fanIn=$("#fanIn"), pIn=$("#pIn"), seed=20260830;
+  function rnd(){ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; }
+  function pOf(){ return +pIn.value/1000; }
+  function amp(n,p){ return 1-Math.pow(1-p,n); }
+  var lastRoll=null;
+
+  function roll(){
+    var n=+fanIn.value, p=pOf(), out=[], slow=0;
+    for(var i=0;i<100;i++){ var s=rnd()<amp(n,p); out.push(s); if(s) slow++; }
+    lastRoll={out:out,slow:slow};
+  }
+  function render(reroll){
+    var n=+fanIn.value, p=pOf(), a=amp(n,p);
+    $("#fanOut").textContent=n;
+    $("#pOut").textContent="1 in "+Math.round(1/p);
+    $("#tailBig").textContent=(a*100).toFixed(1)+"%";
+    $("#tailBig").style.color = a<0.05?"var(--moss)":(a<0.2?"var(--amber)":"var(--ox)");
+
+    if(reroll||!lastRoll) roll();
+    var h=""; for(var i=0;i<100;i++) h+='<i class="'+(lastRoll.out[i]?"slow":"")+'"></i>';
+    $("#tailDots").innerHTML=h;
+    $("#rollOut").textContent=lastRoll.slow+" of 100 waited · expected "+(a*100).toFixed(1);
+
+    var v=$("#tailVerdict");
+    var cls=a<0.05?"good":(a<0.2?"warn":"bad");
+    v.className="verdict "+cls;
+    var pctile=(100*(1-a)).toFixed(1);
+    v.innerHTML='<p class="vh">Each dependency is slow 1 request in '+Math.round(1/p)+'. With '+n+' of them, <b>'+(a*100).toFixed(1)+'% of customers wait.</b></p>'+
+      '<p class="vb">'+(n===1
+        ? "With a single dependency, the caller's slow rate is just the dependency's slow rate. Now raise the fan-out and watch what happens to a number that has not changed."
+        : "A dependency's <b>p99</b> is a promise about that one call. Fan out to "+n+" of them and the customer waits for the slowest, so what was the dependency's p99 has become roughly the caller's <b>p"+pctile+"</b>. Nothing got worse — you just needed more things to go right at once.")+'</p>'+
+      '<p class="vt">1 − (1 − '+p.toFixed(4)+')^'+n+' = '+a.toFixed(4)+'</p>';
+
+    $("#tailNums").innerHTML=
+      '<div class="kv"><span>Each dependency slow with p</span><b>'+(p*100).toFixed(2)+'%</b></div>'+
+      '<div class="kv"><span>All '+n+' fast</span><b>'+(Math.pow(1-p,n)*100).toFixed(1)+'%</b></div>'+
+      '<div class="kv"><span>At least one slow</span><b>'+(a*100).toFixed(1)+'%</b></div>'+
+      '<div class="kv"><span>Caller percentile hit</span><b>p'+pctile+'</b></div>';
+
+    var rows='<tr><th>Fan-out</th><th>Slow requests</th><th>Reads as</th></tr>';
+    [1,3,6,10,20,40,100].forEach(function(k){
+      var ak=amp(k,p);
+      rows+='<tr'+(k===n?' class="hl"':'')+'><td class="n">'+k+'</td><td class="n">'+(ak*100).toFixed(1)+'%</td><td>p'+(100*(1-ak)).toFixed(1)+' of the caller</td></tr>';
+    });
+    $("#tailTable").innerHTML=rows;
+
+    var need=1-Math.pow(0.99,1/n);
+    $("#tailAsk").innerHTML=
+      '<p style="font-size:14px;margin:0 0 10px">You promised customers that <b>99% of checkouts are fast</b>. With a fan-out of '+n+', each dependency may be slow at most <b>1 request in '+Math.round(1/need)+'</b> — that is its <b>p'+(100*(1-need)).toFixed(2)+'</b>, not its p99.</p>'+
+      '<p style="font-size:14px;margin:0 0 10px"><b>So a p99 is a property of a call, not of a system.</b> Every service that adds itself to a fan-out silently raises the percentile everyone below it must meet, and nobody is told.</p>'+
+      '<p style="font-size:14px;margin:0">The two real defences: <b>reduce the fan-out</b> (batch the calls, or keep a local copy of the data so the call disappears entirely), and <b>hedge</b> — send a duplicate request to a second replica once the first passes its p95, and take whichever answers first.</p>';
+  }
+  fanIn.addEventListener("input",function(){render(true);});
+  pIn.addEventListener("input",function(){render(true);});
+  $("#rollBtn").addEventListener("click",function(){render(true);});
+  render(true);
+})();
+
+/* =========================================================
+   TAB 5 — BOUNDARIES
+   ========================================================= */
+(function(){
+  var CAP=["orders","payments","inventory","shipping","catalog","notifications"];
+  var LAY=["web-ui","api-layer","business-logic","data-access","batch-jobs"];
+  var F=[
+    {n:"Add a gift-wrap option",            cap:[0],      lay:[0,1,2,3]},
+    {n:"Support Apple Pay",                 cap:[1],      lay:[0,1,2,3]},
+    {n:"Show a delivery estimate",          cap:[3,0],    lay:[0,1,2,3,4]},
+    {n:"Change the refund window to 60 days",cap:[1],     lay:[1,2,3,4]},
+    {n:"Add product reviews",               cap:[4],      lay:[0,1,2,3]},
+    {n:"Send SMS as well as email",         cap:[5],      lay:[2,3,4]},
+    {n:"Add a “buy again” button",          cap:[0],      lay:[0,1,2,3]},
+    {n:"Support partial refunds",           cap:[1],      lay:[0,1,2,3]},
+    {n:"Reserve stock for 30 min, not 15",  cap:[2],      lay:[2,3,4]},
+    {n:"Add gift receipts",                 cap:[0,5],    lay:[0,1,2,3,4]}
+  ];
+  var mode="cap";
+  function median(a){ var b=a.slice().sort(function(x,y){return x-y;}); var m=b.length>>1;
+    return b.length%2?b[m]:(b[m-1]+b[m])/2; }
+
+  function render(){
+    var svcs = mode==="lay"?LAY:CAP;
+    var counts=[], rows='<tr><th>Feature</th>';
+    svcs.forEach(function(s){ rows+='<th style="text-align:center">'+s+'</th>'; });
+    rows+='<th style="text-align:center">n</th></tr>';
+    F.forEach(function(f){
+      var set = mode==="lay"?f.lay:f.cap;
+      counts.push(set.length);
+      rows+='<tr><td>'+f.n+'</td>';
+      svcs.forEach(function(s,i){
+        var on=set.indexOf(i)>=0;
+        rows+='<td class="cell '+(on?"on":"off")+'">'+(on?"●":"·")+'</td>';
+      });
+      var g=set.length===1?"g1":(set.length===2?"g2":"g3");
+      rows+='<td class="cnt '+g+'">'+set.length+'</td></tr>';
+    });
+    $("#bMatrix").innerHTML=rows;
+
+    var med=median(counts), mean=counts.reduce(function(a,b){return a+b;},0)/counts.length;
+    var one=counts.filter(function(c){return c===1;}).length;
+    var coord = mode==="shared" ? 10 : counts.filter(function(c){return c>1;}).length;
+
+    $("#bNums").innerHTML=
+      '<div class="kv"><span>Median services per feature</span><b>'+med+'</b></div>'+
+      '<div class="kv"><span>Mean services per feature</span><b>'+mean.toFixed(1)+'</b></div>'+
+      '<div class="kv"><span>Features one team can ship alone</span><b>'+(mode==="shared"?0:one)+' / 10</b></div>'+
+      '<div class="kv"><span>Features needing a coordinated release</span><b>'+coord+' / 10</b></div>';
+
+    var v=$("#bVerdict"), h,b,t,cls;
+    if(mode==="lay"){
+      cls="bad";
+      h="Median "+med+" services per feature. This cut is wrong, and no tooling will rescue it.";
+      b="The system was split by <b>technical layer</b> — a UI service, an API service, a logic service, a data service. Every column in the matrix lights up for almost every feature, because that is what layers <i>are</i>: each one holds a slice of every capability. You now have five deployables, five pipelines, five on-call rotations and a network between them — and still exactly one turn. <b>This is a distributed monolith, and it is strictly worse than the monolith it replaced.</b>";
+      t="rule 5 violated: never cut along technical layers · rule 1 violated by construction";
+    } else if(mode==="cap"){
+      cls="good";
+      h="Median "+med+" service per feature. This is what a good cut looks like.";
+      b="The system was split by <b>business capability</b> — ordering, paying, reserving stock, shipping. Eight of the ten features are shipped by one team touching one service, and the two that span services (delivery estimates, gift receipts) do so for a real reason rather than an accidental one. Note that a good cut is not one where <i>every</i> feature touches one service; it is one where the <b>median</b> does. Some features genuinely cross a boundary, and that is fine.";
+      t="median = 1 · this is the single most useful architectural metric, and almost nobody collects it";
+    } else {
+      cls="warn";
+      h="The matrix says median "+med+". The matrix is lying to you.";
+      b="These are the same capability-shaped services as the middle option — but all six share one database. The <b>code</b> for each feature really does live in one service, so the matrix looks excellent. Meanwhile every schema change requires a coordinated release across six services, so in practice <b>10 of 10</b> features need a release window and a meeting. <b>The matrix measures where the code changes; the release log measures what actually has to move together.</b> Collect both, and trust the release log.";
+      t="rule 2 violated: exactly one service may read or write a given table";
+    }
+    v.className="verdict "+cls;
+    v.innerHTML='<p class="vh">'+h+'</p><p class="vb">'+b+'</p><p class="vt">'+t+'</p>';
+
+    var why;
+    if(mode==="lay"){
+      why='<p style="font-size:14px;margin:0 0 10px"><b>Look down the columns, not across the rows.</b> <span class="mono">business-logic</span> and <span class="mono">data-access</span> are touched by all ten features. Those two teams are a permanent bottleneck and a permanent source of merge conflicts, and neither can ever say no.</p>'+
+        '<p style="font-size:14px;margin:0">The test that catches this before you build it: <i>name a feature that would touch only one of these services.</i> If you cannot, the boundary is not a boundary — it is a layer with a network in it.</p>';
+    } else if(mode==="cap"){
+      why='<p style="font-size:14px;margin:0 0 10px">Each service owns a <b>reason to change</b>. “Support Apple Pay” is a payments question and nothing else has an opinion about it, so one team ships it on a Tuesday afternoon.</p>'+
+        '<p style="font-size:14px;margin:0 0 10px">The two-service features are worth reading closely. “Show a delivery estimate” needs shipping (to compute it) and orders (to display it on the checkout page). That is a real dependency, so it gets a real contract — and it stays cheap as long as it is the exception.</p>'+
+        '<p style="font-size:14px;margin:0"><b>Collect this number monthly.</b> If the median drifts to 2, your boundaries are eroding, and you will feel it as “everything takes longer now” months before anyone can say why.</p>';
+    } else {
+      why='<p style="font-size:14px;margin:0 0 10px">This is the most common failure in practice, because it passes every review. The service diagram is right, the team ownership is right, the code boundaries are right — and one shared database quietly undoes all of it.</p>'+
+        '<p style="font-size:14px;margin:0 0 10px">It is also the hardest to detect, because <b>nothing in any codebase records it</b>. The only artefact that reveals it is the release log: count how often two services were deployed in the same window.</p>'+
+        '<p style="font-size:14px;margin:0">The fix is structural, not procedural: separate schemas, separate credentials, and revoke the cross-service grants. A rule that lives only in a wiki is not a rule.</p>';
+    }
+    $("#bWhy").innerHTML=why;
+  }
+  $$("#cutSeg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      $$("#cutSeg button").forEach(function(x){x.classList.remove("on");});
+      b.classList.add("on"); mode=b.dataset.v; render();
+    });
+  });
+  render();
+})();
+})();
+</script>

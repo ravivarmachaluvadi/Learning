@@ -1,0 +1,781 @@
+<title>The Cache Bench</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --bg: #FAF7F2;
+    --surface: #FFFFFF;
+    --sunken: #F1ECE4;
+    --ink: #241E18;
+    --muted: #6E635A;
+    --line: #DED5C9;
+    --hot: #C4581B;        /* hits, hot keys — warm */
+    --hot-soft: #F7E3D2;
+    --cold: #3D6B8A;       /* database, misses — cool */
+    --cold-soft: #DCE7EF;
+    --evict: #A32F32;      /* eviction, staleness — alarm */
+    --evict-soft: #F6DEDE;
+    --ok: #2E6B45;
+    --accent-ink: #FFFFFF;
+    --shadow: 0 1px 2px rgba(36,30,24,.10), 0 4px 14px rgba(36,30,24,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191512;
+      --surface: #221D19;
+      --sunken: #2B2521;
+      --ink: #F0E9E1;
+      --muted: #A2968A;
+      --line: #3A322C;
+      --hot: #E8894B;
+      --hot-soft: #43291A;
+      --cold: #7FB0CE;
+      --cold-soft: #1E2E39;
+      --evict: #E07C7C;
+      --evict-soft: #3D2020;
+      --ok: #74C08F;
+      --accent-ink: #191512;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191512;
+    --surface: #221D19;
+    --sunken: #2B2521;
+    --ink: #F0E9E1;
+    --muted: #A2968A;
+    --line: #3A322C;
+    --hot: #E8894B;
+    --hot-soft: #43291A;
+    --cold: #7FB0CE;
+    --cold-soft: #1E2E39;
+    --evict: #E07C7C;
+    --evict-soft: #3D2020;
+    --ok: #74C08F;
+    --accent-ink: #191512;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", system-ui, -apple-system, sans-serif;
+    font-size: 16px; line-height: 1.55; margin: 0; padding: 0 20px 72px;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  h1 {
+    font-family: Fraunces, Georgia, serif; font-weight: 700;
+    font-size: clamp(2rem, 4.4vw, 3rem); margin: 42px 0 12px; letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+  h2 {
+    font-family: Fraunces, Georgia, serif; font-weight: 600;
+    font-size: 1.28rem; margin: 34px 0 8px;
+  }
+  .lede { max-width: 66ch; color: var(--muted); font-size: 1.05rem; margin: 0 0 8px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+
+  button {
+    font: inherit; font-family: "Source Sans 3", sans-serif; color: inherit; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 7px 13px;
+  }
+  button:hover:not(:disabled) { border-color: var(--hot); }
+  button:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--hot); color: var(--accent-ink); border-color: var(--hot); font-weight: 600; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  select {
+    font: inherit; font-family: "Source Sans 3", sans-serif; color: inherit;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px;
+  }
+  input[type=range] { accent-color: var(--hot); vertical-align: middle; }
+
+  /* ── the bench: requests → cache → database ── */
+  .bench {
+    display: grid; grid-template-columns: 150px minmax(0,1fr) 170px; gap: 18px; align-items: stretch;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; box-shadow: var(--shadow); margin-top: 14px;
+  }
+  @media (max-width: 860px) { .bench { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .colhead { display: flex; align-items: baseline; gap: 8px; }
+
+  .req {
+    background: var(--sunken); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 12px; text-align: center;
+  }
+  .req .key { font-family: "JetBrains Mono", monospace; font-size: 1.5rem; font-weight: 700; }
+  .req .verdictword { font-weight: 600; margin-top: 4px; font-size: .95rem; }
+  .req.hit { background: var(--hot-soft); border-color: var(--hot); }
+  .req.hit .verdictword { color: var(--hot); }
+  .req.miss { background: var(--cold-soft); border-color: var(--cold); }
+  .req.miss .verdictword { color: var(--cold); }
+
+  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 7px; }
+  .slot {
+    border: 1px solid var(--line); border-radius: 8px; background: var(--sunken);
+    padding: 7px 6px; text-align: center; cursor: pointer; position: relative;
+    transition: transform .12s ease;
+  }
+  .slot .k { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: .95rem; }
+  .slot .meta { font-size: .68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .slot.empty { border-style: dashed; opacity: .55; }
+  .slot.empty .k { color: var(--muted); font-weight: 400; }
+  .slot.just-hit { background: var(--hot-soft); border-color: var(--hot); }
+  .slot.just-filled { background: var(--cold-soft); border-color: var(--cold); }
+  .slot.victim { background: var(--evict-soft); border-color: var(--evict); }
+  .slot.stale { border-color: var(--evict); border-width: 2px; }
+  .slot.stale::after {
+    content: "stale"; position: absolute; top: -8px; right: -4px;
+    background: var(--evict); color: var(--accent-ink);
+    font-size: .58rem; padding: 1px 5px; border-radius: 4px; letter-spacing: .04em;
+  }
+  .slot.sel { box-shadow: 0 0 0 2px var(--ink); }
+  @media (prefers-reduced-motion: no-preference) { .slot.just-hit, .slot.victim { transform: scale(1.05); } }
+
+  .db {
+    background: var(--cold-soft); border: 1px solid var(--cold); border-radius: 10px;
+    padding: 14px 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  }
+  .db .n { font-family: "JetBrains Mono", monospace; font-size: 1.9rem; font-weight: 700; color: var(--cold); font-variant-numeric: tabular-nums; }
+  .db .cap { font-size: .8rem; color: var(--muted); }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
+    padding: 8px 14px; min-width: 108px;
+  }
+  .stat .v { font-family: "JetBrains Mono", monospace; font-size: 1.28rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .n { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+  .verdict {
+    margin-top: 12px; padding: 14px 16px; border-radius: 10px;
+    background: var(--sunken); border-left: 4px solid var(--hot);
+  }
+  .verdict .headline { font-family: Fraunces, Georgia, serif; font-size: 1.06rem; font-weight: 600; margin-bottom: 3px; }
+  .verdict .sub { color: var(--muted); font-size: .93rem; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+  .ctlgroup { display: flex; gap: 6px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; }
+  .ctlgroup .label { margin-right: 2px; }
+
+  .log { margin-top: 12px; max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .log .entry { padding: 9px 14px; border-bottom: 1px solid var(--line); font-size: .93rem; }
+  .log .entry:last-child { border-bottom: none; }
+  .log .entry.now { background: var(--sunken); }
+  .log .entry .tech { font-family: "JetBrains Mono", monospace; font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .log .entry .n { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 8px; }
+
+  .scen { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 12px; margin-top: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .card h3 { font-family: Fraunces, Georgia, serif; font-size: 1.05rem; margin: 0 0 5px; }
+  .card p { margin: 0 0 10px; font-size: .93rem; color: var(--muted); }
+  .card .q { color: var(--ink); font-weight: 600; }
+  .opts { display: flex; flex-direction: column; gap: 6px; }
+  .opt { text-align: left; font-size: .9rem; padding: 8px 11px; background: var(--sunken); }
+  .opt.right { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+  .opt.wrong { border-color: var(--evict); box-shadow: 0 0 0 1px var(--evict); }
+  .outcome { margin-top: 10px; font-size: .91rem; display: none; }
+  .outcome.on { display: block; }
+  .outcome .tick { font-weight: 700; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: .85rem; color: var(--muted); }
+  .legend .k { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 4px; border: 1px solid var(--line); display: inline-block; }
+
+  .inspect { margin-top: 10px; padding: 12px 14px; background: var(--sunken); border: 1px solid var(--line); border-radius: 9px; font-size: .92rem; }
+  footer { margin-top: 44px; color: var(--muted); font-size: .87rem; max-width: 70ch; }
+  a { color: var(--hot); }
+</style>
+
+<div class="wrap">
+  <h1>The Cache Bench</h1>
+  <p class="lede">A <strong>cache</strong> is a small, fast box that remembers answers so the slow database behind it doesn't have to keep re-answering. It works because a few keys are asked for constantly. It gets <em>hard</em> because the answers it remembers can quietly stop being true, and because the box is too small to keep everything — so something must be thrown out. Press <strong>Send 25 requests</strong> and watch both problems appear on their own.</p>
+
+  <div class="controls">
+    <button class="primary" id="run25">▶ Send 25 requests</button>
+    <button id="step">Step once</button>
+    <button id="back">↶ Step back</button>
+    <button id="reset">Reset</button>
+    <div class="ctlgroup">
+      <span class="label">Evict</span>
+      <select id="policy">
+        <option value="LRU">LRU — least recently used</option>
+        <option value="FIFO">FIFO — oldest arrival</option>
+        <option value="LFU">LFU — least often used</option>
+      </select>
+    </div>
+    <div class="ctlgroup">
+      <span class="label">Size</span>
+      <input type="range" id="cap" min="4" max="16" value="8">
+      <span class="mono" id="capv">8</span>
+    </div>
+    <div class="ctlgroup">
+      <span class="label">Popularity</span>
+      <select id="skew">
+        <option value="1.2">Very uneven — a few hot dishes</option>
+        <option value="0.7">Somewhat uneven</option>
+        <option value="0">Flat — every dish equally likely</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bench">
+    <div class="col">
+      <div class="colhead"><span class="label">Request</span></div>
+      <div class="req" id="req">
+        <div class="key mono" id="reqkey">—</div>
+        <div class="verdictword" id="reqverdict">waiting</div>
+      </div>
+      <div class="label" style="margin-top:4px">What a customer asked for</div>
+    </div>
+
+    <div class="col">
+      <div class="colhead">
+        <span class="label">The cache</span>
+        <span style="font-size:.82rem;color:var(--muted)" id="capline"></span>
+      </div>
+      <div class="slots" id="slots"></div>
+      <div class="legend">
+        <span class="k"><span class="sw" style="background:var(--hot-soft);border-color:var(--hot)"></span> just answered from cache (hit)</span>
+        <span class="k"><span class="sw" style="background:var(--cold-soft);border-color:var(--cold)"></span> just loaded from database (miss)</span>
+        <span class="k"><span class="sw" style="background:var(--evict-soft);border-color:var(--evict)"></span> just thrown out (evicted)</span>
+        <span class="k"><span class="sw" style="border-color:var(--evict);border-width:2px"></span> holds an out-of-date value</span>
+      </div>
+      <div class="inspect" id="inspect">Click any box above to inspect what it holds and why it is still here.</div>
+    </div>
+
+    <div class="col">
+      <div class="colhead"><span class="label">Database</span></div>
+      <div class="db">
+        <div class="n" id="dbcalls">0</div>
+        <div class="cap">reads it had to serve</div>
+      </div>
+      <div class="label" style="margin-top:4px">Slow and expensive — every read here is one the cache failed to prevent</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v" id="sHit">—</div><div class="n">hit ratio</div></div>
+    <div class="stat"><div class="v" id="sReq">0</div><div class="n">requests</div></div>
+    <div class="stat"><div class="v" id="sHits">0</div><div class="n">hits</div></div>
+    <div class="stat"><div class="v" id="sMiss">0</div><div class="n">misses</div></div>
+    <div class="stat"><div class="v" id="sEvict">0</div><div class="n">evictions</div></div>
+    <div class="stat"><div class="v" id="sLat">—</div><div class="n">avg latency</div></div>
+  </div>
+
+  <div class="verdict">
+    <div class="headline" id="vHead">Nothing has happened yet.</div>
+    <div class="sub" id="vSub">Send some requests. The cache starts empty, so the first request for every dish must go to the database — that is a cold cache.</div>
+  </div>
+
+  <h2>What just happened, and why</h2>
+  <div class="log" id="log"></div>
+
+  <h2>Three things that go wrong — predict, then watch</h2>
+  <p class="lede">Each button runs a scripted situation on the bench above. Commit to an answer first; the interesting part is being wrong.</p>
+  <div class="scen" id="scen"></div>
+
+  <footer>
+    Companion to the <span class="mono">caching</span> lab: <span class="mono">README.md</span> tells the story,
+    <span class="mono">CachingLab.java</span> measures it (this page's behaviour mirrors that code),
+    <span class="mono">EXERCISES.md</span> tests it. Colours carry meaning — warm is served from cache, cool came from the database, red was discarded or is out of date.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+// ────────── model: pure state + reducer, with history for step-back ──────────
+var KEYCOUNT = 24;
+var DB_MS = 5.0, CACHE_MS = 0.05;
+
+function dishName(k) { return "dish:" + k; }
+
+function initState(cap, policy, skew) {
+  return {
+    cap: cap, policy: policy, skew: skew,
+    entries: [],          // {key, value, insertedAt, lastUsedAt, freq, stale}
+    clock: 0,
+    requests: 0, hits: 0, misses: 0, evictions: 0, dbCalls: 0,
+    lastKey: null, lastResult: null, lastVictim: null, lastFilled: null,
+    dbValues: {},         // key -> current truth (only tracked when a write happens)
+    log: [],
+    verdict: { head: "Nothing has happened yet.",
+               sub: "Send some requests. The cache starts empty, so the first request for every dish must go to the database — that is a cold cache." }
+  };
+}
+
+function clone(s) {
+  return {
+    cap: s.cap, policy: s.policy, skew: s.skew,
+    entries: s.entries.map(function (e) { return { key: e.key, value: e.value, insertedAt: e.insertedAt, lastUsedAt: e.lastUsedAt, freq: e.freq, stale: e.stale }; }),
+    clock: s.clock,
+    requests: s.requests, hits: s.hits, misses: s.misses, evictions: s.evictions, dbCalls: s.dbCalls,
+    lastKey: s.lastKey, lastResult: s.lastResult, lastVictim: s.lastVictim, lastFilled: s.lastFilled,
+    dbValues: Object.assign({}, s.dbValues),
+    log: s.log.slice(),
+    verdict: { head: s.verdict.head, sub: s.verdict.sub }
+  };
+}
+
+function findEntry(s, key) {
+  for (var i = 0; i < s.entries.length; i++) if (s.entries[i].key === key) return s.entries[i];
+  return null;
+}
+
+function truthFor(s, key) {
+  return s.dbValues.hasOwnProperty(key) ? s.dbValues[key] : key * 10;
+}
+
+/** Choose the victim. This is the entire content of an eviction policy. */
+function pickVictim(s) {
+  var best = s.entries[0];
+  for (var i = 1; i < s.entries.length; i++) {
+    var e = s.entries[i];
+    if (s.policy === "FIFO") { if (e.insertedAt < best.insertedAt) best = e; }
+    else if (s.policy === "LRU") { if (e.lastUsedAt < best.lastUsedAt) best = e; }
+    else { // LFU, tie-broken by least-recently-used
+      if (e.freq < best.freq || (e.freq === best.freq && e.lastUsedAt < best.lastUsedAt)) best = e;
+    }
+  }
+  return best;
+}
+
+function policyReason(s, victim) {
+  if (s.policy === "FIFO") return "it has been in the cache longest (FIFO ignores how often it is used)";
+  if (s.policy === "LRU") return "nothing has asked for it for longer than anything else here (least recently used)";
+  return "it has been used fewest times (" + victim.freq + "×) of everything here (least frequently used)";
+}
+
+/** One request. Returns a NEW state — never mutates. */
+function readKey(s0, key, note) {
+  var s = clone(s0);
+  s.clock++;
+  s.requests++;
+  s.lastKey = key;
+  s.lastVictim = null;
+  s.lastFilled = null;
+
+  var e = findEntry(s, key);
+  if (e) {
+    s.hits++;
+    e.lastUsedAt = s.clock;
+    e.freq++;
+    s.lastResult = "hit";
+    var staleWarn = e.stale ? " But this copy is out of date — the database was changed after it was cached, and nobody told the cache." : "";
+    pushLog(s, (note ? note + " " : "") + "Asked for " + dishName(key) + ". The cache had it, so the database was never touched." + staleWarn,
+            "HIT  key=" + dishName(key) + "  value=" + e.value + (e.stale ? "  (truth=" + truthFor(s, key) + ")" : "") + "  freq=" + e.freq);
+    s.verdict = e.stale
+      ? { head: "Served a wrong answer, fast.",
+          sub: "That was a hit — no database call — but the value is stale: the database says " + truthFor(s, key) + " and the cache said " + e.value + ". A hit ratio dashboard would call this a success." }
+      : { head: "Served from cache — no database work at all.",
+          sub: "Hits are why the cache exists: " + CACHE_MS + " ms instead of " + DB_MS + " ms, and one less read the database had to do." };
+    return s;
+  }
+
+  // miss
+  s.misses++;
+  s.dbCalls++;
+  s.lastResult = "miss";
+  var value = truthFor(s, key);
+  var evictedNote = "";
+  var techExtra = "";
+  if (s.entries.length >= s.cap) {
+    var victim = pickVictim(s);
+    s.entries = s.entries.filter(function (x) { return x.key !== victim.key; });
+    s.evictions++;
+    s.lastVictim = victim.key;
+    evictedNote = " The cache was full, so " + dishName(victim.key) + " was thrown out to make room: " + policyReason(s, victim) + ".";
+    techExtra = "  evicted=" + dishName(victim.key) + " by " + s.policy;
+  }
+  s.entries.push({ key: key, value: value, insertedAt: s.clock, lastUsedAt: s.clock, freq: 1, stale: false });
+  s.lastFilled = key;
+  pushLog(s, (note ? note + " " : "") + "Asked for " + dishName(key) + ". The cache did not have it, so the database was read and the answer was stored." + evictedNote,
+          "MISS key=" + dishName(key) + "  loaded=" + value + techExtra);
+  s.verdict = { head: "Missed — the database had to answer.",
+                sub: "Every miss costs a database read (" + DB_MS + " ms). It also fills the cache, so the next request for " + dishName(key) + " will be a hit — unless it gets evicted first." };
+  return s;
+}
+
+/** A write: the database changes. The cache is NOT told — this is failure F2. */
+function writeKey(s0, key, newValue, invalidate) {
+  var s = clone(s0);
+  s.clock++;
+  s.dbValues[key] = newValue;
+  var e = findEntry(s, key);
+  if (invalidate) {
+    if (e) s.entries = s.entries.filter(function (x) { return x.key !== key; });
+    pushLog(s, "The kitchen changed " + dishName(key) + " to " + newValue + " in the database, and the code deleted the cached copy. The next reader will fetch the new value.",
+            "WRITE key=" + dishName(key) + " value=" + newValue + "  + DELETE from cache (invalidate-on-write)");
+    s.verdict = { head: "Write plus invalidation — the cache stays honest.",
+                  sub: "Deleting the key is better than updating it: deletes are order-tolerant, so two writes racing cannot leave the older value stuck in the cache." };
+  } else {
+    if (e) e.stale = true;
+    pushLog(s, "The kitchen changed " + dishName(key) + " to " + newValue + " in the database. Nothing told the cache, so the cache still holds the old value and will keep serving it.",
+            "WRITE key=" + dishName(key) + " value=" + newValue + "  (cache NOT invalidated)");
+    s.verdict = { head: "The cache is now wrong, and nothing looks broken.",
+                  sub: "The database says " + newValue + "; the cache still says " + (e ? e.value : "nothing") + ". No error was raised. This is staleness, and it lasts until something deletes the key or it expires." };
+  }
+  return s;
+}
+
+function pushLog(s, plain, tech) {
+  s.log.push({ n: s.log.length + 1, plain: plain, tech: tech });
+  if (s.log.length > 400) s.log.shift();
+}
+
+// skewed key picker (deterministic per call sequence via injected rng)
+function pickKey(skew, rnd) {
+  if (skew <= 0) return 1 + Math.floor(rnd() * KEYCOUNT);
+  var w = [], sum = 0;
+  for (var i = 1; i <= KEYCOUNT; i++) { var x = 1 / Math.pow(i, skew); w.push(x); sum += x; }
+  var u = rnd() * sum, acc = 0;
+  for (var j = 0; j < w.length; j++) { acc += w[j]; if (u <= acc) return j + 1; }
+  return KEYCOUNT;
+}
+
+function mulberry(seed) {
+  var a = seed;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ────────── app state ──────────
+var history = [];
+var state = initState(8, "LRU", 1.2);
+var rnd = mulberry(20260828);
+var selectedSlot = null;
+
+function commit(next) { history.push(state); if (history.length > 400) history.shift(); state = next; render(); }
+
+function el(id) { return document.getElementById(id); }
+
+// ────────── render ──────────
+function render() {
+  var s = state;
+
+  // request panel
+  el("reqkey").textContent = s.lastKey === null ? "—" : dishName(s.lastKey);
+  var req = el("req");
+  req.className = "req" + (s.lastResult ? " " + s.lastResult : "");
+  el("reqverdict").textContent = s.lastResult === "hit" ? "found in cache" : s.lastResult === "miss" ? "not in cache" : "waiting";
+
+  // slots
+  var slots = el("slots");
+  slots.textContent = "";
+  el("capline").textContent = s.entries.length + " of " + s.cap + " boxes used";
+  for (var i = 0; i < s.cap; i++) {
+    var e = s.entries[i];
+    var d = document.createElement("div");
+    if (!e) {
+      d.className = "slot empty";
+      var ke = document.createElement("div"); ke.className = "k"; ke.textContent = "empty";
+      d.appendChild(ke);
+    } else {
+      var cls = "slot";
+      if (e.key === s.lastKey && s.lastResult === "hit") cls += " just-hit";
+      if (e.key === s.lastFilled) cls += " just-filled";
+      if (e.stale) cls += " stale";
+      if (selectedSlot === e.key) cls += " sel";
+      d.className = cls;
+      var k = document.createElement("div"); k.className = "k"; k.textContent = dishName(e.key);
+      var m = document.createElement("div"); m.className = "meta";
+      m.textContent = s.policy === "LFU" ? "used " + e.freq + "×" : s.policy === "FIFO" ? "added @" + e.insertedAt : "last @" + e.lastUsedAt;
+      d.appendChild(k); d.appendChild(m);
+      (function (key) { d.addEventListener("click", function () { selectedSlot = key; render(); }); })(e.key);
+    }
+    slots.appendChild(d);
+  }
+  // show the victim as a ghost box if one was just evicted
+  if (s.lastVictim !== null) {
+    var g = document.createElement("div");
+    g.className = "slot victim";
+    var gk = document.createElement("div"); gk.className = "k"; gk.textContent = dishName(s.lastVictim);
+    var gm = document.createElement("div"); gm.className = "meta"; gm.textContent = "evicted";
+    g.appendChild(gk); g.appendChild(gm);
+    slots.appendChild(g);
+  }
+
+  // inspect panel
+  var ins = el("inspect");
+  if (selectedSlot !== null) {
+    var se = findEntry(s, selectedSlot);
+    if (!se) {
+      ins.textContent = dishName(selectedSlot) + " is no longer in the cache — it was evicted or invalidated. Click another box.";
+    } else {
+      var why = s.policy === "LRU"
+        ? "It survives because " + (s.entries.length < s.cap ? "the cache is not full yet" : "other entries were used longer ago than it was (last used at tick " + se.lastUsedAt + ")")
+        : s.policy === "LFU"
+          ? "It survives because it has been used " + se.freq + " times; entries with lower counts are evicted first"
+          : "It survives because other entries arrived earlier (this one arrived at tick " + se.insertedAt + "); FIFO ignores usage entirely";
+      ins.textContent = dishName(selectedSlot) + " holds the value " + se.value + ". Used " + se.freq + " time" + (se.freq === 1 ? "" : "s") +
+        ", added at tick " + se.insertedAt + ", last used at tick " + se.lastUsedAt + ". " + why + "." +
+        (se.stale ? " ⚠ This value is out of date: the database now says " + truthFor(s, selectedSlot) + "." : "");
+    }
+  }
+
+  // stats
+  el("dbcalls").textContent = s.dbCalls;
+  el("sReq").textContent = s.requests;
+  el("sHits").textContent = s.hits;
+  el("sMiss").textContent = s.misses;
+  el("sEvict").textContent = s.evictions;
+  var hr = s.requests ? s.hits / s.requests : 0;
+  el("sHit").textContent = s.requests ? (hr * 100).toFixed(1) + "%" : "—";
+  el("sLat").textContent = s.requests ? (hr * CACHE_MS + (1 - hr) * DB_MS).toFixed(2) + " ms" : "—";
+
+  // verdict
+  el("vHead").textContent = s.verdict.head;
+  el("vSub").textContent = s.verdict.sub;
+
+  // log (newest first)
+  var log = el("log");
+  log.textContent = "";
+  var shown = s.log.slice(-40).reverse();
+  for (var j = 0; j < shown.length; j++) {
+    var entry = shown[j];
+    var row = document.createElement("div");
+    row.className = "entry" + (j === 0 ? " now" : "");
+    var p = document.createElement("div");
+    var num = document.createElement("span"); num.className = "n mono"; num.textContent = entry.n;
+    p.appendChild(num);
+    p.appendChild(document.createTextNode(entry.plain));
+    var t = document.createElement("div"); t.className = "tech"; t.textContent = entry.tech;
+    row.appendChild(p); row.appendChild(t);
+    log.appendChild(row);
+  }
+
+  el("back").disabled = history.length === 0;
+}
+
+// ────────── controls ──────────
+el("step").addEventListener("click", function () { commit(readKey(state, pickKey(state.skew, rnd))); });
+el("run25").addEventListener("click", function () {
+  var s = state;
+  for (var i = 0; i < 25; i++) s = readKey(s, pickKey(s.skew, rnd));
+  commit(s);
+});
+el("back").addEventListener("click", function () {
+  if (history.length) { state = history.pop(); render(); }
+});
+el("reset").addEventListener("click", function () {
+  history = [];
+  rnd = mulberry(20260828);
+  selectedSlot = null;
+  state = initState(state.cap, state.policy, state.skew);
+  resetScenarios();
+  render();
+});
+el("policy").addEventListener("change", function () {
+  var next = clone(state); next.policy = this.value;
+  pushLog(next, "Eviction rule changed to " + this.value + ". From now on, when the cache is full, this rule decides which entry is sacrificed.",
+          "POLICY " + this.value);
+  next.verdict = { head: "Eviction rule is now " + this.value + ".",
+                   sub: "No policy wins everywhere — each one is a bet about how the future resembles the past. Run a scan below to see one of them lose." };
+  commit(next);
+});
+el("cap").addEventListener("input", function () {
+  el("capv").textContent = this.value;
+  var next = clone(state);
+  next.cap = parseInt(this.value, 10);
+  while (next.entries.length > next.cap) { var v = pickVictim(next); next.entries = next.entries.filter(function (x) { return x.key !== v.key; }); next.evictions++; }
+  pushLog(next, "Cache resized to " + next.cap + " boxes. A bigger cache holds more of the popular dishes, so it misses less often — up to a point.",
+          "CAPACITY " + next.cap);
+  commit(next);
+});
+el("skew").addEventListener("change", function () {
+  var next = clone(state); next.skew = parseFloat(this.value);
+  var msg = next.skew <= 0
+    ? "Popularity is now flat: every dish is equally likely. Watch the hit ratio collapse — with no popular keys there is nothing worth remembering."
+    : "Popularity changed. The more uneven the demand, the better a small cache performs.";
+  pushLog(next, msg, "SKEW " + next.skew);
+  next.verdict = { head: next.skew <= 0 ? "Flat popularity — the cache is about to look useless." : "Popularity changed.",
+                   sub: next.skew <= 0 ? "Caching converts skew into speed. With no skew there is nothing to convert: a cache holding a third of the dishes will hit about a third of the time, and you pay for it in memory and complexity anyway." : "Send more requests and compare the hit ratio." };
+  commit(next);
+});
+
+// ────────── scenarios: predict, then run ──────────
+var SCENARIOS = [
+  {
+    id: "scan",
+    title: "A report reads every dish once",
+    setup: "The cache is warm with the popular lunch dishes. Now a nightly report walks the whole menu, reading each dish exactly once.",
+    q: "What happens to the hit ratio for normal customers afterwards?",
+    opts: ["Nothing — the report just gets misses", "It drops: the report's one-time reads push the hot dishes out", "It improves: more dishes are now cached"],
+    correct: 1,
+    run: function (s) {
+      // warm the hot set first
+      var warm = mulberry(99);
+      for (var i = 0; i < 30; i++) s = readKey(s, pickKey(1.4, warm));
+      var before = s.requests ? s.hits / s.requests : 0;
+      s = clone(s);
+      pushLog(s, "The cache is now warm with the popular dishes. Watch which boxes are here before the report starts.", "— warm-up complete —");
+      // The scan walks the menu in order, so it FINISHES on the rarely-ordered
+      // dishes. That ordering matters: whatever the scan touched last is what
+      // the cache is left holding.
+      for (var k = 1; k <= KEYCOUNT; k++) s = readKey(s, k, "[report]");
+      // now normal customers again
+      var after0 = { hits: s.hits, requests: s.requests };
+      var cust = mulberry(7);
+      for (var j = 0; j < 20; j++) s = readKey(s, pickKey(1.4, cust), "[customer]");
+      var afterHits = s.hits - after0.hits, afterReq = s.requests - after0.requests;
+      var afterRatio = afterReq ? afterHits / afterReq : 0;
+      s = clone(s);
+      s.verdict = {
+        head: "Customer hit ratio after the report: " + (afterRatio * 100).toFixed(0) + "%",
+        sub: "The report read each dish once and never re-read anything, so it gained nothing from the cache — but under LRU every dish it touched became 'most recently used' and pushed the genuinely popular dishes out. This is scan pollution. Switch the rule to LFU and run it again: a dish used once cannot displace a dish used fifty times."
+      };
+      pushLog(s, "Report finished, then 20 normal customer requests ran. Customer hit ratio during those 20: " + (afterRatio * 100).toFixed(0) + "%.",
+              "scan pollution: policy=" + s.policy + "  customer hit ratio after scan=" + (afterRatio * 100).toFixed(1) + "%");
+      return s;
+    },
+    explain: function (s) {
+      return s.policy === "LFU"
+        ? "Under LFU the damage is small — that is scan resistance, and it is exactly why the policy exists."
+        : "Under " + s.policy + " the one-time reads evicted the hot dishes. Switch the eviction rule to LFU and run this again to see the difference.";
+    }
+  },
+  {
+    id: "stampede",
+    title: "One popular dish expires at lunchtime",
+    setup: "dish:1 is the most requested item. Its cached copy has just been removed (it expired). At this instant, 20 customers ask for it simultaneously.",
+    q: "How many database reads will those 20 requests cause?",
+    opts: ["1 — the first one loads it, the rest find it cached", "20 — every one of them misses at the same moment", "0 — the cache handles it"],
+    correct: 1,
+    run: function (s) {
+      s = clone(s);
+      s.entries = s.entries.filter(function (e) { return e.key !== 1; });
+      pushLog(s, "dish:1 expired and was removed from the cache. 20 customers are about to ask for it at the same instant.", "EXPIRE key=dish:1");
+      var before = s.dbCalls;
+      for (var i = 0; i < 20; i++) {
+        // simultaneous: none of them can see another's fill yet
+        var t = clone(s);
+        t.clock++; t.requests++; t.misses++; t.dbCalls++;
+        t.lastKey = 1; t.lastResult = "miss"; t.lastVictim = null; t.lastFilled = null;
+        t.log = s.log.slice();
+        pushLog(t, "Customer " + (i + 1) + " of 20 asked for dish:1 at the same instant as the others. The cache is empty for that key, so this request also went to the database.",
+                "MISS key=dish:1  (concurrent — no fill visible yet)  dbCalls=" + t.dbCalls);
+        s = t;
+      }
+      // after the herd, one fill lands
+      s = readKey(s, 1, "[after the herd]");
+      var caused = s.dbCalls - before;
+      s = clone(s);
+      s.verdict = {
+        head: caused + " database reads for one key, in one instant.",
+        sub: "Every request that arrives between the expiry and the first completed fill sees an empty cache and independently decides to ask the database. The cache's protection vanishes exactly when load is highest — this is a cache stampede. The fix is single-flight: the first misser loads, and the other 19 wait for that same load instead of starting their own. Measured in CachingLab.java: 200 concurrent readers cause 200 database calls without it, and 1 with it."
+      };
+      return s;
+    },
+    explain: function () { return "Note what makes this dangerous: nothing is broken, no error is raised, and it happens precisely at peak traffic."; }
+  },
+  {
+    id: "stale",
+    title: "The kitchen changes a price",
+    setup: "dish:2 is cached. The kitchen updates its price in the database — but nothing tells the cache.",
+    q: "What do the next customers see?",
+    opts: ["The new price — the cache reads through to the database", "The old price, served fast, with no error anywhere", "An error, because the cache and database disagree"],
+    correct: 1,
+    run: function (s) {
+      s = readKey(s, 2, "[warm-up]");
+      s = writeKey(s, 2, 999, false);
+      s = readKey(s, 2, "[customer]");
+      s = readKey(s, 2, "[customer]");
+      var e = findEntry(s, 2);
+      s = clone(s);
+      s.verdict = {
+        head: "Two customers were served " + (e ? e.value : "?") + " while the database said 999.",
+        sub: "Both requests were hits: fast, successful, and wrong. Nothing in the system noticed, because a cache has no way to know its copy has been overtaken. This is why every cached entry needs either an invalidation (delete the key when the row changes) or a TTL (expire it after N seconds) — usually both, because an invalidation message can be missed and a TTL bounds how long the damage lasts."
+      };
+      return s;
+    },
+    explain: function () { return "Press 'Fix it with invalidation' to run the same sequence with a delete-on-write, and watch the next read fetch fresh."; },
+    fix: {
+      label: "Fix it with invalidation",
+      run: function (s) {
+        s = readKey(s, 2, "[warm-up]");
+        s = writeKey(s, 2, 1250, true);
+        s = readKey(s, 2, "[customer]");
+        s = clone(s);
+        s.verdict = {
+          head: "The customer got the new value, at the cost of one database read.",
+          sub: "Deleting the cached key on write means the next reader misses and loads fresh truth. That miss is the price of correctness — and it is why write-heavy data is often not worth caching at all: if every write invalidates, the hit ratio collapses toward zero while you keep paying the cache's complexity."
+        };
+        return s;
+      }
+    }
+  }
+];
+
+var scenarioAnswers = {};
+
+function resetScenarios() { scenarioAnswers = {}; renderScenarios(); }
+
+function renderScenarios() {
+  var box = el("scen");
+  box.textContent = "";
+  SCENARIOS.forEach(function (sc) {
+    var card = document.createElement("div");
+    card.className = "card";
+    var h = document.createElement("h3"); h.textContent = sc.title;
+    var p = document.createElement("p"); p.textContent = sc.setup;
+    var q = document.createElement("p"); q.className = "q"; q.textContent = sc.q;
+    card.appendChild(h); card.appendChild(p); card.appendChild(q);
+
+    var opts = document.createElement("div"); opts.className = "opts";
+    var answered = scenarioAnswers.hasOwnProperty(sc.id);
+    sc.opts.forEach(function (label, idx) {
+      var b = document.createElement("button");
+      b.className = "opt";
+      b.textContent = label;
+      if (answered) {
+        b.disabled = true;
+        if (idx === sc.correct) b.className = "opt right";
+        else if (idx === scenarioAnswers[sc.id]) b.className = "opt wrong";
+      } else {
+        b.addEventListener("click", function () {
+          scenarioAnswers[sc.id] = idx;
+          commit(sc.run(state));
+          renderScenarios();
+          document.querySelector(".bench").scrollIntoView({ block: "nearest" });
+        });
+      }
+      opts.appendChild(b);
+    });
+    card.appendChild(opts);
+
+    if (answered) {
+      var out = document.createElement("div");
+      out.className = "outcome on";
+      var right = scenarioAnswers[sc.id] === sc.correct;
+      var tick = document.createElement("span");
+      tick.className = "tick";
+      tick.style.color = right ? "var(--ok)" : "var(--evict)";
+      tick.textContent = right ? "Your prediction held. " : "Your prediction broke — that is the useful part. ";
+      out.appendChild(tick);
+      out.appendChild(document.createTextNode(sc.explain(state)));
+      card.appendChild(out);
+
+      if (sc.fix) {
+        var fb = document.createElement("button");
+        fb.style.marginTop = "10px";
+        fb.textContent = sc.fix.label;
+        fb.addEventListener("click", function () {
+          commit(sc.fix.run(state));
+          document.querySelector(".bench").scrollIntoView({ block: "nearest" });
+        });
+        card.appendChild(fb);
+      }
+    }
+    box.appendChild(card);
+  });
+}
+
+renderScenarios();
+render();
+</script>

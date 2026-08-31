@@ -1,0 +1,1089 @@
+<title>The One Thread</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+
+<style>
+  /* ---- tokens: complete light palette on bare :root ---- */
+  :root {
+    --ground:      #F2F4F6;
+    --surface:     #FFFFFF;
+    --surface-2:   #E9ECF0;
+    --line:        #D3D9E0;
+    --line-soft:   #E3E7EC;
+    --ink:         #12171D;
+    --ink-2:       #414B57;
+    --ink-3:       #6E7A88;
+
+    --accent:      #0F7C88;   /* the thread, the live path */
+    --accent-soft: #D7EDEF;
+    --accent-ink:  #08525A;
+
+    --hot:         #B4342A;   /* blocked, lost, dead */
+    --hot-soft:    #F7DFDC;
+    --warn:        #9A6608;   /* expired, evicted */
+    --warn-soft:   #F7EBD3;
+    --good:        #24704A;   /* committed, durable */
+    --good-soft:   #D9EDE2;
+
+    --shadow: 0 1px 2px rgba(18,23,29,.06), 0 8px 24px rgba(18,23,29,.06);
+    --radius: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1216;
+      --surface:     #171C22;
+      --surface-2:   #212831;
+      --line:        #2E3742;
+      --line-soft:   #242C35;
+      --ink:         #E8ECF1;
+      --ink-2:       #B3BDC9;
+      --ink-3:       #7E8A98;
+
+      --accent:      #3FBAC6;
+      --accent-soft: #123239;
+      --accent-ink:  #8FD9E1;
+
+      --hot:         #F0736A;
+      --hot-soft:    #3A1B18;
+      --warn:        #E0AC4E;
+      --warn-soft:   #362A12;
+      --good:        #64C58F;
+      --good-soft:   #14301F;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0E1216;
+    --surface:     #171C22;
+    --surface-2:   #212831;
+    --line:        #2E3742;
+    --line-soft:   #242C35;
+    --ink:         #E8ECF1;
+    --ink-2:       #B3BDC9;
+    --ink-3:       #7E8A98;
+    --accent:      #3FBAC6;
+    --accent-soft: #123239;
+    --accent-ink:  #8FD9E1;
+    --hot:         #F0736A;
+    --hot-soft:    #3A1B18;
+    --warn:        #E0AC4E;
+    --warn-soft:   #362A12;
+    --good:        #64C58F;
+    --good-soft:   #14301F;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  h1 { font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; text-wrap: balance; font-weight: 700; }
+  h2 { font-size: 13px; margin: 0; font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+       text-transform: uppercase; letter-spacing: .11em; color: var(--ink-3); font-weight: 600; }
+  p  { margin: 0 0 10px; }
+  .lede { color: var(--ink-2); max-width: 68ch; margin-bottom: 20px; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  code  { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .92em;
+          background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+           box-shadow: var(--shadow); }
+  .panel-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+              padding: 9px 13px; border-bottom: 1px solid var(--line-soft); }
+  .panel-bd { padding: 13px; }
+
+  /* ---- verdict ---- */
+  .verdict { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center;
+             padding: 13px 16px; border: 1px solid var(--line); border-left: 4px solid var(--accent);
+             border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); margin-bottom: 18px; }
+  .verdict.is-hot  { border-left-color: var(--hot); }
+  .verdict.is-good { border-left-color: var(--good); }
+  .verdict.is-warn { border-left-color: var(--warn); }
+  .verdict-clock { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-3);
+                   text-align: center; min-width: 62px; }
+  .verdict-clock b { display: block; font-size: 21px; color: var(--ink); font-weight: 600; }
+  .verdict-txt { font-size: 15px; }
+  .verdict-txt em { font-style: normal; color: var(--ink-3); display: block; font-size: 13.5px; margin-top: 2px; }
+
+  /* ---- the pipeline ---- */
+  .pipe { display: grid; grid-template-columns: 168px 1fr 196px 1fr; gap: 12px; align-items: stretch; margin-bottom: 16px; }
+  @media (max-width: 1000px) { .pipe { grid-template-columns: 1fr; } }
+
+  .client { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center;
+            padding: 6px 8px; border: 1px solid var(--line-soft); border-radius: 3px; margin-bottom: 6px;
+            background: var(--surface); }
+  .client.waiting { border-color: var(--hot); background: var(--hot-soft); }
+  .client.running { border-color: var(--accent); background: var(--accent-soft); }
+  .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+         font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600; color: #fff; }
+  .client-meta { font-size: 11.5px; color: var(--ink-3); font-family: "IBM Plex Mono", monospace; }
+
+  .lane { position: relative; border: 1px dashed var(--line); border-radius: var(--radius);
+          padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 150px;
+          background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .lane-label { position: absolute; top: -9px; left: 10px; background: var(--ground); padding: 0 6px;
+                font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 10.5px;
+                text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+
+  .job { display: flex; align-items: center; gap: 7px; padding: 4px 7px; border-radius: 3px;
+         border: 1px solid var(--line); background: var(--surface);
+         font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .job .wait { margin-left: auto; color: var(--hot); font-size: 11px; }
+  .job.fresh { animation: pop .4s ease; }
+  @keyframes pop { from { transform: translateX(-8px); opacity: 0; } }
+
+  .gate { border: 2px solid var(--accent); border-radius: var(--radius); background: var(--surface);
+          padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .gate.idle { border-color: var(--line); }
+  .gate.blocked { border-color: var(--hot); }
+  .slot { border: 1px solid var(--line-soft); border-radius: 3px; padding: 7px; background: var(--surface-2);
+          font-family: "IBM Plex Mono", monospace; font-size: 12px; min-height: 56px; }
+  .slot.active { background: var(--accent-soft); border-color: var(--accent); }
+  .slot .phase { font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em;
+                 font-family: "IBM Plex Sans Condensed", sans-serif; }
+  .bar { height: 4px; background: var(--line-soft); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+  .bar i { display: block; height: 100%; background: var(--accent); transition: width .12s linear; }
+  .gate-note { font-size: 11.5px; color: var(--ink-3); text-align: center; }
+
+  /* ---- keyspace ---- */
+  table { width: 100%; border-collapse: collapse; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+  th { text-align: left; font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 600; font-size: 10.5px;
+       text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3); padding: 3px 6px;
+       border-bottom: 1px solid var(--line); }
+  td { padding: 4px 6px; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
+  tr.dead td { color: var(--warn); text-decoration: line-through; }
+  tr.flash td { background: var(--accent-soft); }
+  tr.keyrow { cursor: pointer; }
+  tr.keyrow:hover td { background: var(--surface-2); }
+  tr.sel td { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .scroll { overflow-x: auto; }
+
+  /* ---- controls ---- */
+  .grid3 { display: grid; grid-template-columns: 1.15fr .95fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1000px) { .grid3 { grid-template-columns: 1fr; } }
+
+  button { font-family: inherit; font-size: 13px; padding: 6px 11px; border-radius: 3px;
+           border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+           transition: background .12s, border-color .12s; }
+  button:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+  button.danger { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, var(--line)); }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; }
+  .seg button + button { border-left: 1px solid var(--line); }
+
+  label.field { display: grid; gap: 3px; font-size: 11.5px; color: var(--ink-3);
+                font-family: "IBM Plex Sans Condensed", sans-serif; text-transform: uppercase; letter-spacing: .08em; }
+  select, input[type=range] { font-family: inherit; font-size: 13px; padding: 4px 6px; border-radius: 3px;
+                              border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; }
+  input[type=range] { padding: 0; }
+
+  /* ---- log ---- */
+  .log { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 0; }
+  .entry { padding: 6px 9px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+  .entry:first-child { border-bottom: 0; }
+  .entry .t { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-3); margin-right: 7px; }
+  .entry .d { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-3); display: block;
+              margin-top: 1px; }
+  .entry.hot  { background: var(--hot-soft);  box-shadow: inset 3px 0 var(--hot); }
+  .entry.warn { background: var(--warn-soft); box-shadow: inset 3px 0 var(--warn); }
+  .entry.good { background: var(--good-soft); box-shadow: inset 3px 0 var(--good); }
+
+  /* ---- scenarios ---- */
+  .scn { border: 1px solid var(--line); border-radius: var(--radius); padding: 11px; background: var(--surface); }
+  .scn + .scn { margin-top: 9px; }
+  .scn h3 { margin: 0 0 4px; font-size: 14.5px; font-weight: 600; }
+  .scn p { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+  .answer { margin-top: 9px; padding: 9px 11px; border-radius: 3px; font-size: 13.5px; }
+  .answer.right { background: var(--good-soft); border: 1px solid var(--good); }
+  .answer.wrong { background: var(--hot-soft);  border: 1px solid var(--hot); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 11px; height: 11px; border-radius: 2px; border: 1px solid var(--line); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat { border: 1px solid var(--line-soft); border-radius: 3px; padding: 7px 9px; background: var(--surface); }
+  .stat b { display: block; font-size: 19px; font-family: "IBM Plex Mono", monospace; font-weight: 600;
+            font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
+               font-family: "IBM Plex Sans Condensed", sans-serif; }
+  .stat.bad b { color: var(--hot); }
+
+  .note { font-size: 12.5px; color: var(--ink-3); }
+  .sect { margin-top: 22px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <h1>The One Thread</h1>
+    <p class="lede">
+      Redis holds your data in memory and runs <strong>every command to completion on a single
+      thread, one at a time</strong>. That one sentence is the source of its best guarantee and
+      its worst failure. Below is that thread. Send it work and watch what it does — and what
+      everybody else does while it is busy.
+    </p>
+  </header>
+
+  <div class="verdict" id="verdict">
+    <div class="verdict-clock"><b id="vClock">0</b>ticks</div>
+    <div class="verdict-txt" id="vText">Idle. Nothing has been sent yet — press <strong>Run this for me</strong> below, or send a command from a client.</div>
+  </div>
+
+  <!-- ============ the pipeline ============ -->
+  <div class="pipe">
+    <div>
+      <div class="lane" style="border-style: solid; min-height: 0;">
+        <div class="lane-label">Clients</div>
+        <div id="clients" style="margin-top: 4px;"></div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-label">Waiting line</div>
+      <div id="queue"></div>
+      <div class="gate-note" id="queueNote" style="margin-top: auto;"></div>
+    </div>
+
+    <div class="gate idle" id="gate">
+      <div class="lane-label" style="position: static; background: none; padding: 0;">The thread</div>
+      <div id="slots"></div>
+      <div class="gate-note" id="gateNote">Idle</div>
+    </div>
+
+    <div class="lane" style="border-style: solid;">
+      <div class="lane-label">Keyspace (memory)</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>key</th><th>value</th><th>ttl</th></tr></thead>
+          <tbody id="keys"></tbody>
+        </table>
+      </div>
+      <div class="note" id="keyNote" style="margin-top: auto;"></div>
+    </div>
+  </div>
+
+  <div class="stats" style="margin-bottom: 16px;">
+    <div class="stat"><b id="sDone">0</b><span>commands done</span></div>
+    <div class="stat" id="sLostBox"><b id="sLost">0</b><span>updates lost</span></div>
+    <div class="stat"><b id="sWait">0</b><span>worst wait (ticks)</span></div>
+    <div class="stat"><b id="sRepl">0</b><span>behind on replica</span></div>
+  </div>
+
+  <!-- ============ controls ============ -->
+  <div class="grid3">
+
+    <div class="panel">
+      <div class="panel-hd"><h2>Drive it</h2>
+        <div class="seg">
+          <button id="bBack" title="Step backward">&larr;</button>
+          <button id="bStep" title="Step forward">&rarr;</button>
+        </div>
+      </div>
+      <div class="panel-bd" style="display: grid; gap: 12px;">
+        <div class="btnrow">
+          <button id="bPlay" class="primary">Play</button>
+          <button id="bReset">Reset</button>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 6px;">Send a command</h2>
+          <div class="btnrow" id="sendBtns"></div>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 6px;">How many threads run commands</h2>
+          <div class="seg" id="modeSeg">
+            <button data-mode="single" class="on">One (real Redis)</button>
+            <button data-mode="parallel">Four</button>
+          </div>
+          <div class="note" style="margin-top: 5px;" id="modeNote">
+            One command finishes before the next begins.
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <label class="field">Memory limit (keys)
+            <select id="selMax">
+              <option value="99">no limit</option>
+              <option value="6">6 keys</option>
+              <option value="4">4 keys</option>
+              <option value="3">3 keys</option>
+            </select>
+          </label>
+          <label class="field">When full, throw out
+            <select id="selPolicy">
+              <option value="lru">the least recently used</option>
+              <option value="random">a random key</option>
+              <option value="none">nothing (refuse writes)</option>
+            </select>
+          </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <label class="field">Replica is behind by
+            <input type="range" id="rngLag" min="0" max="30" step="2" value="4">
+            <span class="mono note" id="lagVal">4 ticks</span>
+          </label>
+          <label class="field">Flush to disk
+            <select id="selFsync">
+              <option value="everysec">once a second (default)</option>
+              <option value="always">every write</option>
+              <option value="no">whenever the OS feels like it</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="btnrow">
+          <button id="bKill" class="danger">Kill the server</button>
+          <button id="bPromote" disabled>Promote the replica</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; gap: 14px;">
+      <div class="panel">
+        <div class="panel-hd"><h2>What survives a crash</h2></div>
+        <div class="panel-bd" style="display: grid; gap: 10px;">
+          <div>
+            <div class="note">Write-ahead log on disk</div>
+            <div class="mono" style="font-size: 12.5px;" id="aofTxt">0 commands logged, 0 actually flushed to disk</div>
+            <div class="bar" style="height: 7px;"><i id="aofBar" style="width: 0%; background: var(--good);"></i></div>
+            <div class="note" id="aofNote" style="margin-top: 4px;"></div>
+          </div>
+          <div>
+            <div class="note">Second machine (replica)</div>
+            <div class="mono" style="font-size: 12.5px;" id="replTxt">in step with the master</div>
+            <div class="note" id="replNote" style="margin-top: 4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><h2>Inspect a key</h2></div>
+        <div class="panel-bd">
+          <div id="inspector" class="note">Click any row in the keyspace to see everything the server knows about it.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><h2>Legend</h2></div>
+        <div class="panel-bd">
+          <div class="legend">
+            <span><i class="sw" style="background: var(--accent-soft); border-color: var(--accent);"></i> being served now</span>
+            <span><i class="sw" style="background: var(--hot-soft); border-color: var(--hot);"></i> waiting / lost</span>
+            <span><i class="sw" style="background: var(--warn-soft); border-color: var(--warn);"></i> expired or thrown out</span>
+            <span><i class="sw" style="background: var(--good-soft); border-color: var(--good);"></i> safely stored</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>What just happened</h2>
+        <button id="bClear" style="font-size: 11px; padding: 3px 8px;">Clear</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- ============ scenarios ============ -->
+  <div class="sect">
+    <div class="panel">
+      <div class="panel-hd"><h2>Guess first, then watch — five things that surprise people</h2></div>
+      <div class="panel-bd" id="scenarios"></div>
+    </div>
+  </div>
+
+  <div class="sect note">
+    <p><strong>What this model simplifies.</strong> Ticks are not milliseconds — they are just
+    "one unit of the thread's attention", sized so you can watch. A real Redis executes most
+    commands in a few microseconds and the network round trip usually costs more than the command
+    does. Real Redis also does some work off the main thread (flushing to disk, freeing large
+    values, and since version 6, reading and writing sockets) — but the part modelled here, the
+    part that <em>touches your data</em>, really is one command at a time. Everything else on this
+    page — lazy and sampled expiry, sampled eviction, write-ahead logging, asynchronous
+    replication — mirrors how Redis actually behaves.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ============================================================ model
+  const COST = { GET: 3, SET: 3, INCR: 4, LPUSH: 3, KEYS: 26, EXPIRE: 3 };
+  const CLIENTS = [
+    { id: "A", color: "#2C6FBB" },
+    { id: "B", color: "#7A4FBF" },
+    { id: "C", color: "#B4342A" },
+    { id: "D", color: "#1F7A5C" }
+  ];
+
+  let seed = 12345;
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+
+  function initial() {
+    return {
+      t: 0,
+      mode: "single",
+      alive: true,
+      promoted: false,
+      nextJob: 1,
+      queue: [],
+      running: [],
+      keys: {
+        visits: { val: 5, type: "number", ttl: null, touched: 0 },
+        "cart:7": { val: "2 items", type: "text", ttl: null, touched: 0 }
+      },
+      order: ["visits", "cart:7"],
+      replica: { visits: 5, "cart:7": "2 items" },
+      replInflight: [],
+      aof: { logged: 0, flushed: 0, lastFlush: 0 },
+      cfg: { maxKeys: 99, policy: "lru", lag: 4, fsync: "everysec" },
+      stats: { done: 0, lost: 0, worstWait: 0, evicted: 0, expired: 0 },
+      log: [],
+      sel: null
+    };
+  }
+
+  function say(s, headline, detail, tone) {
+    s.log.push({ t: s.t, headline, detail: detail || "", tone: tone || "" });
+    if (s.log.length > 300) s.log.shift();
+  }
+
+  function enqueue(s, client, cmd, key, arg) {
+    if (!s.alive) { say(s, "The server is dead — nothing is listening.", "connection refused", "hot"); return; }
+    s.queue.push({
+      id: s.nextJob++, client, cmd, key, arg,
+      cost: COST[cmd], enqueuedAt: s.t, readValue: null, readAt: null, elapsed: 0
+    });
+    say(s, "Client " + client + " sent " + label(cmd, key, arg) + ".",
+        "it joins the waiting line; position " + s.queue.length);
+  }
+
+  function label(cmd, key, arg) {
+    if (cmd === "KEYS") return "KEYS * (list every key)";
+    if (cmd === "SET") return "SET " + key + " " + arg;
+    if (cmd === "EXPIRE") return "EXPIRE " + key + " " + arg;
+    if (cmd === "LPUSH") return "LPUSH " + key + " " + arg;
+    return cmd + " " + key;
+  }
+
+  // ---- one tick of the world -------------------------------------------
+  function step(prev) {
+    const s = structuredClone(prev);
+    if (!s.alive) { s.t++; return s; }
+    s.t++;
+
+    // 1. logical expiry: a key past its deadline stops being visible immediately,
+    //    but it is still sitting in memory until something reaps it.
+    for (const k of s.order) {
+      const v = s.keys[k];
+      if (v && v.ttl !== null && v.ttl <= s.t && !v.dead) {
+        v.dead = true;
+        say(s, "The deadline on " + k + " has passed, so it is no longer visible.",
+            "but it is still occupying memory — nothing has reaped it yet", "warn");
+      }
+    }
+
+    // 2. the sampling reaper: every 8 ticks, look at up to 3 keys with deadlines.
+    if (s.t % 8 === 0) {
+      const withTtl = s.order.filter(k => s.keys[k] && s.keys[k].ttl !== null);
+      let reaped = 0;
+      for (let i = 0; i < Math.min(3, withTtl.length); i++) {
+        const k = withTtl[Math.floor(rnd() * withTtl.length)];
+        if (s.keys[k] && s.keys[k].dead) { removeKey(s, k); reaped++; s.stats.expired++; }
+      }
+      if (reaped) say(s, "The background sweep found and freed " + reaped + " dead key" + (reaped > 1 ? "s" : "") + ".",
+                      "it samples a few keys with deadlines, ~10 times a second — it never scans them all", "warn");
+    }
+
+    // 3. advance whatever is running
+    const finished = [];
+    for (const j of s.running) {
+      j.elapsed++;
+      if (j.elapsed === 1 && (j.cmd === "INCR")) {
+        j.readValue = s.keys[j.key] && !s.keys[j.key].dead ? Number(s.keys[j.key].val) : 0;
+        say(s, "Client " + j.client + " reads " + j.key + " and sees " + j.readValue + ".",
+            "INCR is read-then-write; this is the read half");
+      }
+      if (j.elapsed >= j.cost) finished.push(j);
+    }
+    for (const j of finished) { apply(s, j); s.running = s.running.filter(x => x.id !== j.id); }
+
+    // 4. admit new work. THIS LINE IS THE WHOLE LESSON.
+    const capacity = s.mode === "single" ? 1 : 4;
+    while (s.running.length < capacity && s.queue.length > 0) {
+      const j = s.queue.shift();
+      j.elapsed = 0;
+      s.running.push(j);
+      const waited = s.t - j.enqueuedAt;
+      if (waited > s.stats.worstWait) s.stats.worstWait = waited;
+      if (waited > 6) say(s, "Client " + j.client + " finally gets served after waiting " + waited + " ticks.",
+                          "it was ready the whole time; the thread was busy", "hot");
+    }
+
+    // 5. replication catches up
+    const due = s.replInflight.filter(r => r.dueAt <= s.t);
+    s.replInflight = s.replInflight.filter(r => r.dueAt > s.t);
+    for (const r of due) {
+      if (r.deleted) delete s.replica[r.key]; else s.replica[r.key] = r.val;
+    }
+
+    // 6. the periodic flush to disk
+    if (s.cfg.fsync === "everysec" && s.t - s.aof.lastFlush >= 10) {
+      if (s.aof.flushed < s.aof.logged) {
+        s.aof.flushed = s.aof.logged;
+        say(s, "Everything written so far is now safely on disk.", "the once-a-second fsync fired", "good");
+      }
+      s.aof.lastFlush = s.t;
+    }
+    return s;
+  }
+
+  function removeKey(s, k) { delete s.keys[k]; s.order = s.order.filter(x => x !== k); }
+
+  function touch(s, k) { if (s.keys[k]) s.keys[k].touched = s.t; }
+
+  function apply(s, j) {
+    s.stats.done++;
+    const k = j.key;
+
+    if (j.cmd === "KEYS") {
+      say(s, "Client " + j.client + " got the list of all " + s.order.length + " keys.",
+          "it held the thread for " + j.cost + " ticks — every other client waited", "hot");
+      logWrite(s, j, false);
+      return;
+    }
+
+    if (j.cmd === "GET") {
+      const v = s.keys[k];
+      if (v && v.dead) {
+        removeKey(s, k);
+        say(s, "Client " + j.client + " read " + k + " and got nothing back.",
+            "reading it is what finally freed the memory — this is lazy expiry", "warn");
+      } else if (!v) {
+        say(s, "Client " + j.client + " read " + k + " and got nothing back.", "no such key");
+      } else {
+        touch(s, k);
+        say(s, "Client " + j.client + " read " + k + " = " + v.val + ".", "GET " + k + " -> " + v.val);
+      }
+      return;
+    }
+
+    if (j.cmd === "INCR") {
+      const current = s.keys[k] && !s.keys[k].dead ? Number(s.keys[k].val) : 0;
+      const written = j.readValue + 1;
+      // A LOST UPDATE, made visible: somebody else changed the key between this
+      // command's read and its write. On one thread this is impossible.
+      if (current !== j.readValue) {
+        s.stats.lost++;
+        say(s, "Client " + j.client + " wrote " + k + " = " + written + ", wiping out somebody else's increment.",
+            "it read " + j.readValue + " but by write time the value was " + current + " — one increment vanished", "hot");
+      } else {
+        say(s, "Client " + j.client + " set " + k + " to " + written + ".",
+            "read " + j.readValue + ", wrote " + written + ", with nothing in between");
+      }
+      setKey(s, k, written, "number");
+      logWrite(s, j, true);
+      return;
+    }
+
+    if (j.cmd === "SET") {
+      setKey(s, k, j.arg, "text");
+      say(s, "Client " + j.client + " stored " + k + " = " + j.arg + ".", "SET " + k + " " + j.arg);
+      logWrite(s, j, true);
+      return;
+    }
+
+    if (j.cmd === "LPUSH") {
+      const v = s.keys[k];
+      const nv = v && !v.dead ? String(v.val) + ", " + j.arg : j.arg;
+      setKey(s, k, nv, "list");
+      say(s, "Client " + j.client + " added " + j.arg + " to the " + k + " queue.", "LPUSH " + k + " " + j.arg);
+      logWrite(s, j, true);
+      return;
+    }
+
+    if (j.cmd === "EXPIRE") {
+      if (s.keys[k]) {
+        s.keys[k].ttl = s.t + Number(j.arg);
+        say(s, "Client " + j.client + " gave " + k + " " + j.arg + " ticks to live.",
+            "the server stores an absolute deadline, not a countdown");
+        logWrite(s, j, true);
+      }
+      return;
+    }
+  }
+
+  function setKey(s, k, val, type) {
+    if (!s.keys[k]) {
+      // capacity check happens on insert, exactly as maxmemory does
+      if (s.order.length >= s.cfg.maxKeys) {
+        if (s.cfg.policy === "none") {
+          say(s, "The write was REFUSED — memory is full and the server is set to refuse rather than throw anything out.",
+              "OOM command not allowed when used memory > 'maxmemory'", "hot");
+          return;
+        }
+        const victim = pickVictim(s);
+        if (victim) {
+          removeKey(s, victim);
+          s.stats.evicted++;
+          say(s, "Memory was full, so " + victim + " was thrown out to make room for " + k + ".",
+              s.cfg.policy === "lru"
+                ? "it sampled a few keys and dropped the one touched longest ago — not a true LRU scan"
+                : "it picked one at random", "warn");
+        }
+      }
+      s.keys[k] = { val, type, ttl: null, touched: s.t };
+      s.order.push(k);
+    } else {
+      s.keys[k].val = val;
+      s.keys[k].type = type;
+      s.keys[k].dead = false;
+      s.keys[k].touched = s.t;
+    }
+  }
+
+  /** Redis does not keep a true LRU order; it samples. So does this. */
+  function pickVictim(s) {
+    if (!s.order.length) return null;
+    if (s.cfg.policy === "random") return s.order[Math.floor(rnd() * s.order.length)];
+    let best = null, oldest = Infinity;
+    const n = Math.min(3, s.order.length);
+    for (let i = 0; i < n; i++) {
+      const k = s.order[Math.floor(rnd() * s.order.length)];
+      if (s.keys[k] && s.keys[k].touched < oldest) { oldest = s.keys[k].touched; best = k; }
+    }
+    return best || s.order[0];
+  }
+
+  function logWrite(s, j, changesData) {
+    if (!changesData) return;
+    s.aof.logged++;
+    if (s.cfg.fsync === "always") s.aof.flushed = s.aof.logged;
+    const v = s.keys[j.key];
+    s.replInflight.push({ key: j.key, val: v ? v.val : null, deleted: !v, dueAt: s.t + s.cfg.lag });
+  }
+
+  // ============================================================ history
+  let history = [initial()];
+  let idx = 0;
+  let timer = null;
+  const S = () => history[idx];
+
+  function commit(next) {
+    history = history.slice(0, idx + 1);
+    history.push(next);
+    if (history.length > 500) { history.shift(); } else { idx++; }
+    render();
+  }
+  function mutate(fn) {
+    const s = structuredClone(S());
+    fn(s);
+    commit(s);
+  }
+
+  // ============================================================ render
+  const $ = id => document.getElementById(id);
+
+  function render() {
+    const s = S();
+
+    // clients
+    $("clients").innerHTML = CLIENTS.map(c => {
+      const running = s.running.find(j => j.client === c.id);
+      const waiting = s.queue.find(j => j.client === c.id);
+      const cls = running ? "running" : waiting ? "waiting" : "";
+      const meta = running ? "being served" : waiting ? "waiting " + (s.t - waiting.enqueuedAt) + "t" : "idle";
+      return '<div class="client ' + cls + '"><div class="dot" style="background:' + c.color + '">' + c.id +
+             '</div><div><div style="font-size:12.5px">Client ' + c.id + '</div>' +
+             '<div class="client-meta">' + meta + '</div></div></div>';
+    }).join("");
+
+    // queue
+    $("queue").innerHTML = s.queue.length ? s.queue.map(j => {
+      const c = CLIENTS.find(x => x.id === j.client);
+      return '<div class="job fresh"><span class="dot" style="width:16px;height:16px;font-size:10px;background:' +
+             c.color + '">' + j.client + '</span>' + esc(label(j.cmd, j.key, j.arg)) +
+             '<span class="wait">' + (s.t - j.enqueuedAt) + 't</span></div>';
+    }).join("") : '<div class="note">Nobody is waiting.</div>';
+    $("queueNote").textContent = s.queue.length
+      ? s.queue.length + " client" + (s.queue.length > 1 ? "s are" : " is") + " blocked behind the thread"
+      : "";
+
+    // the gate
+    const gate = $("gate");
+    gate.className = "gate" + (s.running.length === 0 ? " idle" : s.queue.length > 1 ? " blocked" : "");
+    const cap = s.mode === "single" ? 1 : 4;
+    let slots = "";
+    for (let i = 0; i < cap; i++) {
+      const j = s.running[i];
+      if (!j) { slots += '<div class="slot"><div class="phase">free</div><div class="note">waiting for work</div></div>'; continue; }
+      const pct = Math.round(100 * j.elapsed / j.cost);
+      const phase = j.cmd === "INCR" ? (j.elapsed < 1 ? "starting" : j.elapsed < j.cost ? "read " + j.readValue + ", about to write" : "writing") : "running";
+      slots += '<div class="slot active"><div class="phase">client ' + j.client + ' &middot; ' + phase + '</div>' +
+               esc(label(j.cmd, j.key, j.arg)) +
+               '<div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+    }
+    $("slots").innerHTML = slots;
+    $("gateNote").textContent = s.mode === "single"
+      ? (s.running.length ? "Busy. Nothing else can start until this finishes." : "Idle, ready for the next command.")
+      : "Four commands may touch the data at once. Nothing stops them colliding.";
+
+    // keyspace
+    $("keys").innerHTML = s.order.length ? s.order.map(k => {
+      const v = s.keys[k];
+      const ttl = v.ttl === null ? "&mdash;" : (v.dead ? "expired" : (v.ttl - s.t) + "t");
+      return '<tr class="keyrow ' + (v.dead ? "dead " : "") + (s.sel === k ? "sel" : "") + '" data-k="' + esc(k) + '">' +
+             "<td>" + esc(k) + "</td><td>" + esc(String(v.val)) + "</td><td>" + ttl + "</td></tr>";
+    }).join("") : '<tr><td colspan="3" class="note">empty</td></tr>';
+    $("keyNote").textContent = s.cfg.maxKeys < 99
+      ? s.order.length + " of " + s.cfg.maxKeys + " key slots used"
+      : s.order.length + " keys, no limit set";
+
+    Array.from(document.querySelectorAll("tr.keyrow")).forEach(tr => {
+      tr.onclick = () => { mutate(x => { x.sel = x.sel === tr.dataset.k ? null : tr.dataset.k; }); };
+    });
+
+    // stats
+    $("sDone").textContent = s.stats.done;
+    $("sLost").textContent = s.stats.lost;
+    $("sLostBox").className = "stat" + (s.stats.lost ? " bad" : "");
+    $("sWait").textContent = s.stats.worstWait;
+    $("sRepl").textContent = s.replInflight.length;
+
+    // persistence panel
+    const unflushed = s.aof.logged - s.aof.flushed;
+    $("aofTxt").textContent = s.aof.logged + " changes written, " + s.aof.flushed + " actually on disk";
+    $("aofBar").style.width = (s.aof.logged ? 100 * s.aof.flushed / s.aof.logged : 0) + "%";
+    $("aofNote").textContent = unflushed === 0
+      ? "Everything acknowledged is safe from a power cut."
+      : unflushed + " acknowledged change" + (unflushed > 1 ? "s" : "") + " would be lost if the power went out right now.";
+    $("aofNote").style.color = unflushed ? "var(--hot)" : "var(--good)";
+
+    const behind = s.replInflight.length;
+    $("replTxt").textContent = behind ? behind + " change" + (behind > 1 ? "s" : "") + " still in flight" : "in step with the master";
+    $("replNote").textContent = behind
+      ? "If the master died now, those " + behind + " acknowledged writes would not survive the failover."
+      : "The second machine has everything the master has acknowledged.";
+    $("replNote").style.color = behind ? "var(--hot)" : "var(--good)";
+
+    // inspector
+    $("inspector").innerHTML = s.sel && s.keys[s.sel] ? (function () {
+      const v = s.keys[s.sel];
+      return '<table><tbody>' +
+        row("key", s.sel) + row("kind of value", v.type) + row("value", String(v.val)) +
+        row("deadline", v.ttl === null ? "none — lives until deleted or thrown out" :
+            (v.dead ? "passed; invisible but still in memory" : (v.ttl - s.t) + " ticks away")) +
+        row("last touched", "tick " + v.touched + " (" + (s.t - v.touched) + " ticks ago)") +
+        row("on the replica", s.replica[s.sel] !== undefined ? String(s.replica[s.sel]) : "not there") +
+        '</tbody></table>';
+    })() : '<span class="note">Click any row in the keyspace to see everything the server knows about it.</span>';
+
+    // log
+    $("log").innerHTML = s.log.slice(-60).map(e =>
+      '<div class="entry ' + e.tone + '"><span class="t">' + e.t + '</span>' + esc(e.headline) +
+      (e.detail ? '<span class="d">' + esc(e.detail) + "</span>" : "") + "</div>").join("");
+
+    // verdict
+    renderVerdict(s);
+
+    $("bBack").disabled = idx === 0;
+    $("bKill").disabled = !s.alive;
+    $("bPromote").disabled = s.alive || s.promoted;
+    $("vClock").textContent = s.t;
+  }
+
+  function row(k, v) { return "<tr><td>" + esc(k) + "</td><td>" + esc(v) + "</td></tr>"; }
+
+  function renderVerdict(s) {
+    const v = $("verdict"), txt = $("vText");
+    let cls = "verdict", msg;
+
+    if (!s.alive && !s.promoted) {
+      cls += " is-hot";
+      msg = "<strong>The server is dead.</strong> " + s.replInflight.length +
+            " acknowledged write" + (s.replInflight.length === 1 ? "" : "s") +
+            " never reached the replica." +
+            "<em>Promote the replica to see what the survivors actually have.</em>";
+    } else if (s.promoted) {
+      const lost = s.lostOnFailover || 0;
+      cls += lost ? " is-hot" : " is-good";
+      msg = "<strong>The replica is now the master.</strong> " + lost + " write" + (lost === 1 ? "" : "s") +
+            " that the old master had already acknowledged are gone for good." +
+            "<em>Nobody did anything wrong. Replication is asynchronous, so “Redis said OK” and “this will survive” are different promises.</em>";
+    } else if (s.stats.lost > 0) {
+      cls += " is-hot";
+      msg = "<strong>" + s.stats.lost + " increment" + (s.stats.lost === 1 ? " has" : "s have") +
+            " been silently destroyed.</strong> Two clients read the same number and both wrote back one more than it." +
+            "<em>Switch back to one thread and run it again — the same commands, and nothing is lost.</em>";
+    } else if (s.queue.length >= 2 && s.running[0]) {
+      cls += " is-warn";
+      const j = s.running[0];
+      msg = "<strong>" + s.queue.length + " clients are stuck waiting.</strong> The thread is " +
+            (j.cmd === "KEYS" ? "listing every key in the database" : "running " + label(j.cmd, j.key, j.arg)) +
+            ", and it will not start anything else until it finishes." +
+            "<em>None of them touched the same key. Sharing the thread is enough to share the delay.</em>";
+    } else if (s.running.length) {
+      msg = "<strong>Serving client " + s.running[0].client + ".</strong> " +
+            "Every other command waits its turn — which is exactly why no command can ever see a half-finished one." +
+            "<em>" + s.stats.done + " commands completed so far, none lost.</em>";
+    } else if (s.stats.done > 0) {
+      cls += " is-good";
+      msg = "<strong>All caught up.</strong> " + s.stats.done + " commands ran, " +
+            (s.stats.lost === 0 ? "not one update was lost" : s.stats.lost + " updates were lost") + "." +
+            "<em>Keyspace holds " + s.order.length + " keys. Send more work, or try a scenario below.</em>";
+    } else {
+      msg = "Idle. Press <strong>Play</strong> after sending a command, or pick a scenario below and let it drive.";
+    }
+    v.className = cls;
+    txt.innerHTML = msg;
+  }
+
+  function esc(x) { return String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  // ============================================================ controls
+  const SENDS = [
+    { c: "A", cmd: "INCR", key: "visits", txt: "A: add 1 to visits" },
+    { c: "B", cmd: "INCR", key: "visits", txt: "B: add 1 to visits" },
+    { c: "C", cmd: "KEYS", key: "*", txt: "C: list every key (slow)" },
+    { c: "D", cmd: "GET", key: "visits", txt: "D: read visits" },
+    { c: "D", cmd: "SET", key: "cart:7", arg: "3 items", txt: "D: store cart:7" },
+    { c: "A", cmd: "EXPIRE", key: "cart:7", arg: 12, txt: "A: expire cart:7 in 12t" },
+    { c: "B", cmd: "LPUSH", key: "jobs", arg: "email", txt: "B: add a job to the queue" }
+  ];
+
+  $("sendBtns").innerHTML = SENDS.map((x, i) =>
+    '<button data-send="' + i + '">' + esc(x.txt) + "</button>").join("");
+  Array.from(document.querySelectorAll("[data-send]")).forEach(b => {
+    b.onclick = () => { const x = SENDS[+b.dataset.send]; mutate(s => enqueue(s, x.c, x.cmd, x.key, x.arg)); };
+  });
+
+  $("bStep").onclick = () => commit(step(S()));
+  $("bBack").onclick = () => { if (idx > 0) { idx--; render(); } };
+  $("bReset").onclick = () => { stop(); history = [initial()]; idx = 0; clearScn(); render(); };
+  $("bClear").onclick = () => mutate(s => { s.log = []; });
+
+  function play() {
+    if (timer) return;
+    timer = setInterval(() => commit(step(S())), 220);
+    $("bPlay").textContent = "Pause";
+    $("bPlay").classList.add("on");
+  }
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    $("bPlay").textContent = "Play";
+    $("bPlay").classList.remove("on");
+  }
+  $("bPlay").onclick = () => (timer ? stop() : play());
+
+  Array.from(document.querySelectorAll("#modeSeg button")).forEach(b => {
+    b.onclick = () => {
+      Array.from(document.querySelectorAll("#modeSeg button")).forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+      const m = b.dataset.mode;
+      $("modeNote").textContent = m === "single"
+        ? "One command finishes before the next begins."
+        : "Four commands run at once over the same data, with no locks — watch the counter.";
+      mutate(s => {
+        s.mode = m;
+        say(s, m === "single" ? "Switched to one thread." : "Switched to four threads sharing the data.",
+            m === "single" ? "commands can no longer overlap" : "commands can now overlap — including their read and write halves",
+            m === "single" ? "good" : "hot");
+      });
+    };
+  });
+
+  $("selMax").onchange = e => mutate(s => {
+    s.cfg.maxKeys = +e.target.value;
+    say(s, s.cfg.maxKeys > 50 ? "Memory limit removed." : "Memory limit set to " + s.cfg.maxKeys + " keys.",
+        "when a new key does not fit, something must go");
+  });
+  $("selPolicy").onchange = e => mutate(s => {
+    s.cfg.policy = e.target.value;
+    say(s, "When memory is full the server will now " +
+      ({ lru: "throw out the least recently used key", random: "throw out a random key", none: "refuse the write" })[s.cfg.policy] + ".", "");
+  });
+  $("rngLag").oninput = e => {
+    $("lagVal").textContent = e.target.value + " ticks";
+    mutate(s => { s.cfg.lag = +e.target.value; });
+  };
+  $("selFsync").onchange = e => mutate(s => {
+    s.cfg.fsync = e.target.value;
+    say(s, "Disk flushing set to: " + ({ everysec: "once a second", always: "every single write", no: "whenever the OS decides" })[s.cfg.fsync] + ".",
+        s.cfg.fsync === "always" ? "no acknowledged write can be lost to a power cut — and every write now waits for the disk"
+                                 : "there is now a window where acknowledged writes are not yet on disk", "warn");
+  });
+
+  $("bKill").onclick = () => mutate(s => {
+    s.alive = false;
+    stop();
+    const lost = s.replInflight.length;
+    s.lostOnFailover = lost;
+    say(s, "The master machine is gone.", lost + " acknowledged writes were still in flight to the replica", "hot");
+  });
+  $("bPromote").onclick = () => mutate(s => {
+    s.promoted = true;
+    s.alive = true;
+    s.keys = {}; s.order = [];
+    for (const k in s.replica) { s.keys[k] = { val: s.replica[k], type: "text", ttl: null, touched: s.t }; s.order.push(k); }
+    s.replInflight = [];
+    say(s, "The replica has been promoted and is now serving.",
+        (s.lostOnFailover || 0) + " acknowledged writes it never received are gone permanently", "hot");
+  });
+
+  // ============================================================ scenarios
+  const SCN = [
+    {
+      id: "atomic",
+      title: "Two clients add 1 to the same counter at the same moment",
+      blurb: "visits is 5. Client A and client B both send “add 1” in the same instant. Neither takes a lock.",
+      q: "What will visits be when both have finished?",
+      opts: [
+        { t: "7 — both increments count", ok: true },
+        { t: "6 — one of them is silently lost", ok: false },
+        { t: "It depends on the timing", ok: false }
+      ],
+      why: "7. On one thread the two commands cannot overlap: A reads 5, writes 6, and only then does B start, reading 6 and writing 7. There is no gap for B to read a stale value, so no lock is needed — the command itself is the critical section. Now switch the thread control to <strong>Four</strong> and press this button again: identical commands, and one increment disappears.",
+      run: s => { s.mode = "single"; s.keys.visits.val = 5; enqueue(s, "A", "INCR", "visits"); enqueue(s, "B", "INCR", "visits"); },
+      ticks: 12
+    },
+    {
+      id: "block",
+      title: "One client asks for a list of every key",
+      blurb: "Three clients are doing tiny, fast reads. A fourth runs the command that walks the whole keyspace.",
+      q: "What happens to the three fast clients?",
+      opts: [
+        { t: "Nothing — they use different keys", ok: false },
+        { t: "They all stop until the slow command finishes", ok: true },
+        { t: "They get an error and retry", ok: false }
+      ],
+      why: "They stop. They were not competing for a key — they were competing for the thread, and there is only one. In the lab's experiment 2 this took a healthy server's p99 from 1,011 microseconds to 191,661: a 190× collapse caused by one client on another connection. This is why <code>KEYS *</code> is effectively a production outage button, and why <code>SCAN</code> exists.",
+      run: s => { s.mode = "single"; enqueue(s, "C", "KEYS", "*"); enqueue(s, "A", "GET", "visits"); enqueue(s, "B", "GET", "cart:7"); enqueue(s, "D", "GET", "visits"); },
+      ticks: 34
+    },
+    {
+      id: "expire",
+      title: "A key's deadline passes and nobody reads it",
+      blurb: "cart:7 is given 6 ticks to live. Then everyone ignores it.",
+      q: "The moment the deadline passes, what happens to the memory it was using?",
+      opts: [
+        { t: "Freed immediately — a timer fires", ok: false },
+        { t: "It stays occupied until something notices", ok: true },
+        { t: "Freed at the next write to any key", ok: false }
+      ],
+      why: "It stays. Redis keeps no timer per key — that would cost memory and CPU on every key you ever set. A dead key is found one of two ways: someone reads it (lazy), or a background sweep samples about 20 keys with deadlines ten times a second and repeats while more than a quarter of the sample is dead (active). Watch the row go struck-through but stay in the table, then wait for the sweep to collect it. This is why an instance can sit at its memory limit holding nothing but corpses.",
+      run: s => { s.mode = "single"; enqueue(s, "A", "EXPIRE", "cart:7", 6); },
+      ticks: 30
+    },
+    {
+      id: "evict",
+      title: "The memory limit is reached and a new key arrives",
+      blurb: "The server is capped at 3 keys and is already full. A client stores one more.",
+      q: "Which key gets thrown out?",
+      opts: [
+        { t: "Exactly the least recently used one", ok: false },
+        { t: "The oldest of a few randomly sampled keys", ok: true },
+        { t: "The one with the shortest time left", ok: false }
+      ],
+      why: "A sampled one, and this is a deliberate trade. Keeping a true least-recently-used order costs two pointers on every key forever — memory spent on bookkeeping instead of data. So Redis samples five keys and evicts the oldest of those. The lab measured the cost: exact LRU hit 75.7%, Redis's five-sample approximation 73.7%, and evicting at random 66.6%. Two points for free, and the policy is worth seven.",
+      run: s => {
+        s.mode = "single"; s.cfg.maxKeys = 3; s.cfg.policy = "lru";
+        enqueue(s, "A", "GET", "visits");
+        enqueue(s, "B", "LPUSH", "jobs", "email");
+        enqueue(s, "D", "SET", "session:9", "alice");
+        enqueue(s, "C", "SET", "session:10", "bob");
+      },
+      ticks: 22
+    },
+    {
+      id: "failover",
+      title: "The master acknowledges writes, then the machine dies",
+      blurb: "The replica is 20 ticks behind. Four writes are acknowledged to their clients, then the power goes out.",
+      q: "How many of those four acknowledged writes survive the failover?",
+      opts: [
+        { t: "All four — they were acknowledged", ok: false },
+        { t: "None of the ones still in flight", ok: true },
+        { t: "Whichever the replica managed to fsync", ok: false }
+      ],
+      why: "None of the in-flight ones. Redis replies to the client and streams to the replica as two separate acts, in that order — replication is asynchronous. So “Redis said OK” and “this write will survive a failover” are different statements, and the gap between them is whatever the replication lag happens to be, which you do not control. The lab's experiment 7 measured it: 500 writes acknowledged, 500 gone. This is the AP corner of CAP, and it is the product, not a misconfiguration.",
+      run: s => {
+        s.mode = "single"; s.cfg.lag = 24;
+        enqueue(s, "A", "SET", "order:1", "paid");
+        enqueue(s, "B", "SET", "order:2", "paid");
+        enqueue(s, "C", "SET", "order:3", "paid");
+        enqueue(s, "D", "SET", "order:4", "paid");
+      },
+      ticks: 16,
+      then: s => { s.alive = false; s.lostOnFailover = s.replInflight.length;
+                   say(s, "The master machine is gone.", s.replInflight.length + " acknowledged writes were still in flight", "hot"); }
+    }
+  ];
+
+  $("scenarios").innerHTML = SCN.map(sc =>
+    '<div class="scn" data-scn="' + sc.id + '"><h3>' + esc(sc.title) + "</h3>" +
+    "<p>" + esc(sc.blurb) + "</p>" +
+    '<div style="font-weight:500;font-size:13.5px;margin-bottom:6px">' + esc(sc.q) + "</div>" +
+    '<div class="btnrow">' + sc.opts.map((o, i) =>
+      '<button data-pick="' + sc.id + ":" + i + '">' + o.t + "</button>").join("") +
+    "</div><div data-ans=\"" + sc.id + "\"></div></div>").join("");
+
+  function clearScn() {
+    SCN.forEach(sc => { const el = document.querySelector('[data-ans="' + sc.id + '"]'); if (el) el.innerHTML = ""; });
+  }
+
+  Array.from(document.querySelectorAll("[data-pick]")).forEach(b => {
+    b.onclick = () => {
+      const [id, i] = b.dataset.pick.split(":");
+      const sc = SCN.find(x => x.id === id);
+      const chosen = sc.opts[+i];
+      const ans = document.querySelector('[data-ans="' + id + '"]');
+      ans.innerHTML = '<div class="answer ' + (chosen.ok ? "right" : "wrong") + '">' +
+        "<strong>" + (chosen.ok ? "Right." : "Not quite.") + "</strong> " + sc.why +
+        '<div style="margin-top:8px"><button class="primary" data-run="' + id + '">Run this for me</button></div></div>';
+      ans.querySelector("[data-run]").onclick = () => runScenario(sc);
+    };
+  });
+
+  function runScenario(sc) {
+    stop();
+    history = [initial()];
+    idx = 0;
+    mutate(s => {
+      sc.run(s);
+      say(s, "Scenario loaded: " + sc.title.toLowerCase() + ".", "watch the thread, the waiting line and the log");
+    });
+    let n = 0;
+    timer = setInterval(() => {
+      commit(step(S()));
+      if (++n >= sc.ticks) {
+        clearInterval(timer); timer = null;
+        $("bPlay").textContent = "Play"; $("bPlay").classList.remove("on");
+        if (sc.then) mutate(sc.then);
+      }
+    }, 200);
+    $("bPlay").textContent = "Pause"; $("bPlay").classList.add("on");
+    document.querySelector('[data-scn="' + sc.id + '"]').scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 400);
+  }
+
+  render();
+})();
+</script>

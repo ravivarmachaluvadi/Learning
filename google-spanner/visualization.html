@@ -1,0 +1,1290 @@
+<title>The Honest Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+:root{
+  --ground:#f2f3f0; --surface:#ffffff; --surface-2:#eceeea; --sunk:#e4e7e2;
+  --ink:#16211f; --ink-2:#3d4b47; --muted:#63706c; --line:#d2d8d2; --line-2:#bcc4bd;
+  --true:#0f6e5c; --true-soft:#d3e8e1; --on-accent:#ffffff;
+  --brass:#a5711d; --brass-soft:#f2e3c6;
+  --danger:#ab2f28; --danger-soft:#f6dcd9;
+  --ok:#2c7247; --ok-soft:#d8ead9;
+  --violet:#5a4a86; --violet-soft:#e3ddf0;
+  --shadow:0 1px 2px rgba(22,33,31,.07), 0 8px 24px -14px rgba(22,33,31,.35);
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1412; --surface:#161e1b; --surface-2:#1d2723; --sunk:#111917;
+    --ink:#e7edea; --ink-2:#c2cfc9; --muted:#8b9c96; --line:#293632; --line-2:#3a4b45;
+    --true:#4ec5a2; --true-soft:#12332c; --on-accent:#08201b;
+    --brass:#dfa946; --brass-soft:#3a2d13;
+    --danger:#f07168; --danger-soft:#3d1a17;
+    --ok:#5ecf88; --ok-soft:#12301e;
+    --violet:#a695d8; --violet-soft:#241d38;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 28px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1412; --surface:#161e1b; --surface-2:#1d2723; --sunk:#111917;
+  --ink:#e7edea; --ink-2:#c2cfc9; --muted:#8b9c96; --line:#293632; --line-2:#3a4b45;
+  --true:#4ec5a2; --true-soft:#12332c; --on-accent:#08201b;
+  --brass:#dfa946; --brass-soft:#3a2d13;
+  --danger:#f07168; --danger-soft:#3d1a17;
+  --ok:#5ecf88; --ok-soft:#12301e;
+  --violet:#a695d8; --violet-soft:#241d38;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 28px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 22px 90px}
+h1,h2,h3{text-wrap:balance; margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header.top{padding:54px 0 26px; border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:14px;
+}
+h1{
+  font-family:"Instrument Serif",Georgia,serif; font-weight:400;
+  font-size:clamp(40px,7vw,68px); line-height:1.02; letter-spacing:-.01em;
+}
+h1 em{font-style:italic; color:var(--true)}
+.dek{max-width:66ch; margin-top:16px; color:var(--ink-2); font-size:16.5px}
+.dek strong{color:var(--ink); font-weight:600}
+
+/* ---------- verdict ---------- */
+.verdict{
+  margin:22px 0 0; border:1px solid var(--line); border-left:5px solid var(--muted);
+  background:var(--surface); border-radius:var(--r); padding:16px 20px; box-shadow:var(--shadow);
+}
+.verdict.hold{border-left-color:var(--ok); background:var(--ok-soft)}
+.verdict.bad{border-left-color:var(--danger); background:var(--danger-soft)}
+.verdict .vtitle{font-weight:600; font-size:15px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.vtag{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; padding:2px 8px; border-radius:99px; border:1px solid currentColor;
+}
+.verdict.hold .vtag{color:var(--ok)} .verdict.bad .vtag{color:var(--danger)}
+.verdict p{margin:8px 0 0; color:var(--ink-2); font-size:14.5px; max-width:78ch}
+.verdict p.note{margin-top:6px; font-size:13.5px; color:var(--muted)}
+
+/* ---------- stage ---------- */
+section.stage{
+  margin-top:22px; background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden;
+}
+.stage-head{
+  display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:14px 20px; border-bottom:1px solid var(--line); background:var(--surface-2);
+}
+.stage-head h2{font-size:14px; font-weight:600; letter-spacing:.01em}
+.clockread{font-size:12.5px; color:var(--muted)}
+.clockread b{color:var(--true); font-weight:600}
+.scroller{overflow-x:auto; padding:6px 0 2px}
+svg#tl{display:block; width:1060px; max-width:none; height:auto; margin:0 auto}
+
+/* ---------- legend ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:6px 20px; padding:12px 20px 16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted)}
+.lg{display:flex; align-items:center; gap:7px}
+.sw{width:22px; height:10px; border-radius:3px; flex:none}
+.sw.net{background:var(--line-2)} .sw.px{background:var(--true)}
+.sw.cw{background:repeating-linear-gradient(45deg,var(--brass),var(--brass) 3px,transparent 3px,transparent 6px); border:1px solid var(--brass)}
+.sw.wait{background:repeating-linear-gradient(45deg,var(--violet),var(--violet) 3px,transparent 3px,transparent 6px); border:1px solid var(--violet)}
+.dia{width:11px;height:11px;background:var(--true);transform:rotate(45deg);flex:none;border-radius:2px}
+.dia.bad{background:var(--danger)}
+
+/* ---------- transport ---------- */
+.transport{
+  position:sticky; top:0; z-index:20; margin-top:14px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:12px 14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; box-shadow:var(--shadow);
+}
+button{
+  font:inherit; font-size:13.5px; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line-2); border-radius:7px; padding:7px 12px; cursor:pointer;
+  transition:background .12s ease, border-color .12s ease, transform .06s ease;
+}
+button:hover{background:var(--sunk); border-color:var(--muted)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--true); outline-offset:2px}
+button:disabled{opacity:.4; cursor:not-allowed}
+button.primary{background:var(--true); border-color:var(--true); color:var(--on-accent); font-weight:600}
+button.primary:hover{filter:brightness(1.08); background:var(--true)}
+button.on{background:var(--true-soft); border-color:var(--true); color:var(--true); font-weight:600}
+.tsep{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.tlabel{font-size:12px; color:var(--muted); font-family:"IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase}
+
+/* ---------- grid ---------- */
+.grid{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:18px; margin-top:18px; align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden}
+.card > h3{
+  font-size:12px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--muted);
+  padding:13px 18px; border-bottom:1px solid var(--line); background:var(--surface-2);
+  font-family:"IBM Plex Mono",monospace;
+}
+.card .body{padding:16px 18px}
+.stack{display:flex; flex-direction:column; gap:18px}
+
+/* ---------- knobs ---------- */
+.knob{display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; padding:9px 0; border-bottom:1px dashed var(--line)}
+.knob:last-child{border-bottom:0}
+.knob .kname{font-size:13.5px}
+.knob .khint{grid-column:1/-1; font-size:12px; color:var(--muted); margin-top:-2px}
+.knob input[type=range]{width:150px; accent-color:var(--true)}
+.kval{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--true); font-weight:600; min-width:56px; text-align:right}
+.kval.warn{color:var(--danger)}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+select{font:inherit; font-size:13px; padding:5px 8px; border-radius:6px; border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink)}
+
+/* ---------- scenarios ---------- */
+.scn{border-bottom:1px solid var(--line); padding:15px 18px}
+.scn:last-child{border-bottom:0}
+.scn h4{margin:0 0 2px; font-size:14.5px; font-weight:600}
+.scn .num{font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:12px; margin-right:8px}
+.scn p{margin:6px 0 0; font-size:13.5px; color:var(--ink-2)}
+.scn .q{font-weight:500; color:var(--ink)}
+.opts{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.opt{
+  text-align:left; padding:8px 11px; font-size:13px; line-height:1.45;
+  border:1px solid var(--line-2); background:var(--surface); border-radius:7px; cursor:pointer;
+}
+.opt:hover{background:var(--surface-2)}
+.opt.right{border-color:var(--ok); background:var(--ok-soft)}
+.opt.wrong{border-color:var(--danger); background:var(--danger-soft)}
+.why{margin-top:9px; font-size:13px; padding:10px 12px; border-radius:7px; background:var(--sunk); border-left:3px solid var(--true); color:var(--ink-2)}
+.why.wrong{border-left-color:var(--danger)}
+
+/* ---------- log ---------- */
+.log{max-height:430px; overflow-y:auto}
+.ev{padding:10px 18px; border-bottom:1px solid var(--line); font-size:13.5px}
+.ev:last-child{border-bottom:0}
+.ev .t{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); letter-spacing:.02em}
+.ev .say{margin:2px 0 0; color:var(--ink)}
+.ev .tech{margin:3px 0 0; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted)}
+.ev.bad{background:var(--danger-soft)} .ev.bad .say{color:var(--danger); font-weight:500}
+.ev.good{background:var(--ok-soft)}
+.ev.mark{background:var(--brass-soft)}
+.ev.fresh{animation:pop .5s ease}
+@keyframes pop{from{background:var(--true-soft)}}
+@media (prefers-reduced-motion:reduce){.ev.fresh{animation:none}}
+
+/* ---------- inspector ---------- */
+.tabs{display:flex; flex-wrap:wrap; gap:5px; padding:12px 18px 0}
+.tab{font-size:12.5px; padding:5px 10px; border-radius:6px; border:1px solid var(--line-2); background:var(--surface); cursor:pointer}
+.tab.sel{background:var(--true); border-color:var(--true); color:var(--on-accent); font-weight:600}
+table.kv{width:100%; border-collapse:collapse; font-size:13px}
+table.kv td{padding:6px 0; border-bottom:1px dashed var(--line); vertical-align:top}
+table.kv td:first-child{color:var(--muted); white-space:nowrap; padding-right:14px; width:44%}
+table.kv td:last-child{font-family:"IBM Plex Mono",monospace; text-align:right}
+.pill{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:2px 7px; border-radius:99px}
+.pill.ok{background:var(--ok-soft); color:var(--ok)} .pill.bad{background:var(--danger-soft); color:var(--danger)}
+.pill.idle{background:var(--sunk); color:var(--muted)}
+
+/* ---------- prose ---------- */
+.prose{margin-top:24px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:24px 26px; box-shadow:var(--shadow)}
+.prose h3{font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:26px; margin-bottom:6px}
+.prose p, .prose li{max-width:74ch; color:var(--ink-2); font-size:14.5px}
+.prose ol{padding-left:20px} .prose li{margin:7px 0}
+.prose code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--sunk); padding:1px 5px; border-radius:4px; color:var(--ink)}
+.prose strong{color:var(--ink)}
+footer{margin-top:26px; color:var(--muted); font-size:12.5px; text-align:center}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Google Spanner · TrueTime &amp; commit wait</div>
+  <h1>The <em>Honest</em> Clock</h1>
+  <p class="dek">
+    A land registry has two offices. A deed is filed in the first, the clerk hands over
+    a receipt, and only <em>then</em> — after a telephone call — is a mortgage filed in the
+    second. Any human would say the deed came first. The two office clocks disagree, so
+    the register says otherwise, and someone owns a house they sold.
+    <strong>Below is that story running as a database.</strong> The horizontal axis is real,
+    physical time — the thing no machine in a distributed system can actually see, and which
+    you can see because you are outside it.
+  </p>
+  <p class="dek">
+    Every transaction is drawn <strong>twice</strong>: a <strong>bar</strong> showing when it really
+    happened, and a <strong>diamond</strong> showing the timestamp the system gave it. When two
+    diamonds are in a different order from their bars, the database has recorded a history
+    that did not happen.
+  </p>
+</header>
+
+<div class="verdict" id="verdict">
+  <div class="vtitle"><span class="vtag">idle</span><span id="vtext">Press “Run this for me” on scenario 1 below.</span></div>
+  <p id="vwhy">Nothing has run yet.</p>
+  <p class="note" id="vnote"></p>
+</div>
+
+<section class="stage">
+  <div class="stage-head">
+    <h2>The true-time axis</h2>
+    <div class="clockread">
+      real time now: <b class="mono" id="nowread">—</b>
+      &nbsp;·&nbsp; click any row to inspect it
+    </div>
+  </div>
+  <div class="scroller"><svg id="tl" role="img" aria-label="Timeline of transactions against real time"></svg></div>
+  <div class="legend">
+    <span class="lg"><span class="sw net"></span> network / client</span>
+    <span class="lg"><span class="sw px"></span> replicating through Paxos</span>
+    <span class="lg"><span class="sw cw"></span> commit wait — deliberately doing nothing</span>
+    <span class="lg"><span class="sw wait"></span> read blocked: replica not safe yet</span>
+    <span class="lg"><span class="dia"></span> the timestamp it was given</span>
+    <span class="lg"><span class="dia bad"></span> timestamp out of order</span>
+  </div>
+</section>
+
+<div class="transport">
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnBack" title="one step back">◀ Step</button>
+  <button id="btnStep" title="one step forward">Step ▶</button>
+  <button id="btnEnd">Run to end ⏭</button>
+  <button id="btnReset">↺ Reset</button>
+  <span class="tsep"></span>
+  <span class="tlabel">commit wait</span>
+  <button id="btnCW" class="on">ON</button>
+  <span class="tsep"></span>
+  <span class="tlabel">speed</span>
+  <select id="selSpeed">
+    <option value="8">slow</option>
+    <option value="3" selected>normal</option>
+    <option value="1">fast</option>
+  </select>
+</div>
+
+<div class="grid">
+
+  <div class="stack">
+    <div class="card">
+      <h3>Scenarios — predict, then run</h3>
+      <div id="scenarios"></div>
+    </div>
+
+    <div class="card">
+      <h3>Knobs — everything here is a choice, not a fact</h3>
+      <div class="body" id="knobs"></div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <h3>What just happened</h3>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="card">
+      <h3>Inspector</h3>
+      <div class="tabs" id="tabs"></div>
+      <div class="body" id="inspect"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="prose">
+  <h3>The rules this simulator follows</h3>
+  <p>
+    So that you can check that the numbers mean what the page claims they mean. Times are in
+    milliseconds from an arbitrary origin. Two Paxos groups, <code>G1</code> (leader in
+    Northgate) and <code>G2</code> (leader in Southgate), plus a Singapore replica of each.
+  </p>
+  <ol>
+    <li><strong>The clock.</strong> For a region with true offset <code>o</code> and error bound
+      <code>ε</code>, <code>TT.now()</code> at real time <code>t</code> returns
+      <code>[t+o−ε, t+o+ε]</code>. The clock is <em>honest</em> when <code>|o| ≤ ε</code>, which
+      is the only thing TrueTime actually promises. Scenario 4 breaks that promise on purpose.</li>
+    <li><strong>Choosing the timestamp.</strong> A leader sets
+      <code>s = max(TT.now().latest, s_max + 0.001)</code> and advances <code>s_max</code> to
+      <code>s</code>. The <code>s_max</code> term is the monotonicity invariant; it is per group,
+      and groups never consult each other.</li>
+    <li><strong>Commit wait.</strong> With it on, the leader acknowledges only once
+      <code>TT.after(s)</code> — i.e. once <code>t + o − ε &gt; s</code>. With it off it
+      acknowledges as soon as Paxos is done. Paxos replication is a fixed 2 ms here; a real
+      one is 5–10 ms locally and far more across continents.</li>
+    <li><strong>Reads.</strong> A read-only transaction gets
+      <code>s_read = TT.now().latest</code> (or <code>LastTS()</code> — the group's last commit
+      timestamp — in single-group mode), then goes to the chosen replica. That replica answers
+      only when <code>s_read ≤ t_safe</code>, where
+      <code>t_safe = min(t_safe_paxos, t_safe_TM)</code>: the highest write it has applied, and
+      one tick below the lowest prepare timestamp of any undecided two-phase commit.</li>
+    <li><strong>Replication lag.</strong> A write committed at real time <code>t</code> reaches a
+      replica at <code>t + lag</code>. The Singapore lag is a knob.</li>
+    <li><strong>The verdict.</strong> After every step the page re-checks, over all pairs of
+      committed transactions: if T₁ was acknowledged before T₂ started, is
+      <code>s₁ &lt; s₂</code>? It also checks every completed read against every transaction
+      acknowledged before that read began. Either check failing turns the banner red.</li>
+    <li><strong>What is compressed.</strong> Leader leases are 10 seconds in production and
+      <code>40 ms</code> here; the <code>MinNextTS</code> cadence that lets idle groups serve
+      reads is 8 seconds in production and <code>60 ms</code> here. Both are labelled where they
+      appear. Nothing else is scaled.</li>
+    <li><strong>What is left out.</strong> Wound-wait aborts, the lock table, fine-grained safe
+      time, real Paxos, persistence, schema changes, and every optimisation in the 2017 SQL
+      paper. This page is about one thing: where a timestamp comes from and what it costs.</li>
+  </ol>
+</div>
+
+<footer>Companion to the <strong>google-spanner</strong> lab · numbers reproduce the traces in §10 of its README</footer>
+
+</div>
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   0. Constants and small helpers
+   ============================================================ */
+const TICK = 0.5;          // ms of real time per simulation step
+const Q    = 0.001;        // smallest timestamp increment (monotonicity bump)
+const INF  = 1e9;
+
+const r3 = v => Math.round(v*1000)/1000;
+const fmt = v => (v>=INF/2) ? "∞" : v.toFixed(3);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+const REGIONS = [
+  {id:"NG", name:"Northgate",  note:"leader of G1"},
+  {id:"SG", name:"Southgate",  note:"leader of G2"},
+  {id:"SP", name:"Singapore",  note:"replica of both"}
+];
+const GROUPS = [
+  {id:"G1", name:"G1 · the deeds register",     home:"NG"},
+  {id:"G2", name:"G2 · the mortgage register",  home:"SG"}
+];
+const regionName = id => (REGIONS.find(r=>r.id===id)||{name:id}).name;
+
+function baseCfg(){
+  return {
+    commitWait:true,
+    eps:{NG:7, SG:1, SP:4},
+    off:{NG:0, SG:0, SP:0},
+    paxosMs:2, netMs:1, spLag:4,
+    snapTs:106,
+    readReplica:"SP",
+    onDemandMinNext:true, minNextMs:60, leaseMs:40
+  };
+}
+
+/* TrueTime: the only promise is that the true instant lies inside the interval. */
+function TT(cfg, region, t){
+  const o = cfg.off[region]||0, e = cfg.eps[region]||1;
+  return {earliest:r3(t+o-e), latest:r3(t+o+e), reading:r3(t+o), eps:e, off:o,
+          honest: Math.abs(o) <= e};
+}
+const lagOf = (cfg, region) => region==="SP" ? cfg.spLag : 0;
+
+/* ============================================================
+   1. Scenarios
+   ============================================================ */
+const SCENARIOS = [
+{
+  id:1, title:"The receipt and the phone call",
+  blurb:"The registry story, exactly as written: a deed filed in Northgate, a receipt handed over, a telephone call, then a mortgage filed in Southgate. Commit wait is switched OFF.",
+  question:"The mortgage does not even begin until after the deed's receipt is in Priya's hand. Which document ends up with the larger timestamp?",
+  options:[
+    {label:"The mortgage — it happened later, so it gets the later number.", ok:false},
+    {label:"The deed — even though it happened first.", ok:true},
+    {label:"They will be identical; both clerks read the same time.", ok:false}
+  ],
+  why:"The deed gets 107.000 and the mortgage gets 105.000. Northgate had not polled a time master for a while, so it admits to being wrong by up to 7 ms and stamps with the pessimistic end of its band. Southgate polled recently and admits only 1 ms. Neither clock is inaccurate — the offsets are exactly zero. The 6 ms gap between the two <em>admissions</em> is where the ordering inverts. Now drag the “analytics read as of” slider between 105 and 107 and watch the register report a mortgage on a property that has not been sold.",
+  cfg:{commitWait:false, eps:{NG:7,SG:1,SP:4}, off:{NG:0,SG:0,SP:0}, snapTs:106},
+  t0:95, span:38,
+  script:[
+    {id:"T1", kind:"rw", at:99,  groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya, in Northgate"},
+    {id:"T2", kind:"rw", after:"T1", delay:1, groups:["G2"], label:"Mortgage registered against 14 Mill Lane", actor:"the solicitor, in Southgate"},
+    {id:"A1", kind:"snap", after:"T2", delay:2, groups:["G1","G2"], label:"Analytics: the register as of a chosen moment"}
+  ]
+},
+{
+  id:2, title:"Pay for the honesty",
+  blurb:"The identical run with commit wait ON. The clerk stamps the deed, then refuses to hand over the receipt until the early edge of its own clock band has passed the stamp.",
+  question:"Commit wait fixes the ordering. What does it cost?",
+  options:[
+    {label:"Nothing — the wait overlaps with work that was happening anyway.", ok:false},
+    {label:"About 2ε on every write's acknowledgement, with the locks still held.", ok:true},
+    {label:"One extra network round trip to the other region.", ok:false}
+  ],
+  why:"The deed's acknowledgement moves from 102.000 to 114.000 — twelve milliseconds of a machine deliberately doing nothing, which is 2ε minus the two milliseconds that overlapped the Paxos round trip. Locks are held throughout, so readers of those rows wait too. In Google's own microbenchmarks the same effect measured about 5 ms: a write took 9.4 ms with commit wait disabled and 14.4 ms with it enabled.",
+  cfg:{commitWait:true, eps:{NG:7,SG:1,SP:4}, off:{NG:0,SG:0,SP:0}, snapTs:112},
+  t0:95, span:38,
+  script:[
+    {id:"T1", kind:"rw", at:99,  groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya, in Northgate"},
+    {id:"T2", kind:"rw", after:"T1", delay:1, groups:["G2"], label:"Mortgage registered against 14 Mill Lane", actor:"the solicitor, in Southgate"},
+    {id:"A1", kind:"snap", after:"T2", delay:2, groups:["G1","G2"], label:"Analytics: the register as of a chosen moment"}
+  ]
+},
+{
+  id:3, title:"Buy a better clock",
+  blurb:"The same run again, commit wait still ON, but Northgate now admits to only 1 ms of error instead of 7 — the difference between a machine that last checked the time a while ago and one sitting next to a GPS receiver.",
+  question:"With ε at 1 ms instead of 7, what changes?",
+  options:[
+    {label:"The guarantee weakens — less waiting means less safety.", ok:false},
+    {label:"The wait shrinks to nothing and the guarantee is unchanged.", ok:true},
+    {label:"Writes get faster but reads get staler.", ok:false}
+  ],
+  why:"This is the whole reason Google put GPS receivers and atomic clocks in every datacenter. The correctness argument does not mention ε at all — it only requires that the interval contains the true instant. ε decides the <em>price</em>. At 7 ms the wait costs 12 ms on top of replication; at 1 ms the wait finishes before the Paxos round trip does, so it is completely free. The hardware was never bought to make time correct. It was bought to make this block short.",
+  cfg:{commitWait:true, eps:{NG:1,SG:1,SP:4}, off:{NG:0,SG:0,SP:0}, snapTs:104},
+  t0:95, span:38,
+  script:[
+    {id:"T1", kind:"rw", at:99,  groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya, in Northgate"},
+    {id:"T2", kind:"rw", after:"T1", delay:1, groups:["G2"], label:"Mortgage registered against 14 Mill Lane", actor:"the solicitor, in Southgate"},
+    {id:"A1", kind:"snap", after:"T2", delay:2, groups:["G1","G2"], label:"Analytics: the register as of a chosen moment"}
+  ]
+},
+{
+  id:4, title:"The lying clock",
+  blurb:"Commit wait is ON and ε is a tight 1 ms — but Northgate's clock is actually running 6 ms fast, which is outside the error it admits to. Its interval no longer contains the true instant.",
+  question:"Commit wait is on and the error bound is small. Is the register safe?",
+  options:[
+    {label:"Yes — commit wait is what makes it safe, and it is on.", ok:false},
+    {label:"No, and nothing will report an error.", ok:true},
+    {label:"No, but Spanner will detect it and abort the transaction.", ok:false}
+  ],
+  why:"Every argument in this lab rests on one assumption: that the true instant is inside <code>[earliest, latest]</code>. Break it and commit wait waits for the wrong number — it finishes early, the receipt goes out while the stamp is still in the future for other machines, and the ordering inverts again. There is no error, no log line and no exception; only a reader who occasionally sees an impossible state. Google's answer is not a proof, it is defence in depth: masters cross-check and evict themselves, daemons poll several masters and use Marzullo's algorithm to discard liars, and any machine drifting faster than 200 µs/s removes itself from the fleet. The paper's justification is empirical — bad CPUs are six times more likely than bad clocks.",
+  cfg:{commitWait:true, eps:{NG:1,SG:1,SP:4}, off:{NG:6,SG:0,SP:0}, snapTs:106},
+  t0:95, span:38,
+  script:[
+    {id:"T1", kind:"rw", at:99,  groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya, in Northgate"},
+    {id:"T2", kind:"rw", after:"T1", delay:1, groups:["G2"], label:"Mortgage registered against 14 Mill Lane", actor:"the solicitor, in Southgate"},
+    {id:"A1", kind:"snap", after:"T2", delay:2, groups:["G1","G2"], label:"Analytics: the register as of a chosen moment"}
+  ]
+},
+{
+  id:5, title:"The blocked reader",
+  blurb:"A transaction spanning both registers gets as far as prepare and then stalls — the coordinator is slow to decide. Meanwhile someone reads a completely unrelated row in G1.",
+  question:"Does a read of a key the stalled transaction never touches have to wait?",
+  options:[
+    {label:"No — different key, different rows, no conflict.", ok:false},
+    {label:"Yes, until the stalled transaction is decided.", ok:true},
+    {label:"Only if the read goes to the same replica as the writer.", ok:false}
+  ],
+  why:"Safe time has two halves and the second one is group-wide. <code>t_safe_TM</code> is one tick below the lowest prepare timestamp of any undecided two-phase commit in the group, because until the decision is made the affected state is <em>indeterminate</em> — the commit timestamp could still land anywhere at or above that prepare timestamp. As defined, that single number freezes the whole group's readable horizon, so unrelated readers stall too. Spanner calls these false conflicts and fixes them by keeping prepared timestamps per key range in the lock table, checking each read only against the ranges it touches. It looks like an optimisation; it is really a survivability requirement.",
+  cfg:{commitWait:true, eps:{NG:4,SG:4,SP:4}, off:{NG:0,SG:0,SP:0}, snapTs:106, readReplica:"SG"},
+  t0:95, span:60,
+  script:[
+    {id:"T3", kind:"rw", at:99, groups:["G1","G2"], stall:26, label:"Cross-register transfer (two-phase commit)", actor:"a conveyancer"},
+    {id:"R1", kind:"ro", at:108, groups:["G2"], label:"Strong read of a row in G2 the transfer never touches", actor:"a search page"}
+  ]
+},
+{
+  id:6, title:"The leader's zone goes dark",
+  blurb:"Northgate loses power with no warning. G1's leader is gone, and its lease has not expired. A write arrives anyway. (The lease is 10 seconds in production; it is compressed to 40 ms here so you can watch it.)",
+  question:"How long until G1 accepts writes again?",
+  options:[
+    {label:"Immediately — another replica takes over as soon as it notices.", ok:false},
+    {label:"Only after the dead leader's lease expires.", ok:true},
+    {label:"Never, without an operator forcing an election.", ok:false}
+  ],
+  why:"Disjointness forbids two leaders of a group from holding overlapping lease intervals, and a leader may only assign timestamps inside its own lease. So a new leader cannot legally start — and therefore cannot legally stamp anything — until the old lease has run out, even though everyone can see the old leader is dead. That is the cost of the invariant that keeps timestamps monotonic across leader changes. In the paper's experiment, killing the leader zone without warning dropped completion rate almost to zero and it recovered over about 10 seconds as leases expired; killing it after a graceful leadership handoff cost 3–4% and was invisible on the graph.",
+  cfg:{commitWait:true, eps:{NG:4,SG:4,SP:4}, off:{NG:0,SG:0,SP:0}, snapTs:106},
+  t0:95, span:75,
+  script:[
+    {id:"T1", kind:"rw", at:99, groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya"},
+    {id:"K",  kind:"kill", at:111, group:"G1"},
+    {id:"T5", kind:"rw", at:114, groups:["G1"], label:"Deed: 8 Bell Row sold to Ana", actor:"another client"}
+  ]
+},
+{
+  id:7, title:"The replica that fell behind",
+  blurb:"The Singapore replica is 45 ms behind. A read arrives there asking for the state as of now — not as of some agreed past moment, but now.",
+  question:"The Singapore replica holds a complete, consistent copy of the register as of 45 ms ago. A strong read arrives. What does it do?",
+  options:[
+    {label:"Returns what it has — it is consistent, just slightly old.", ok:false},
+    {label:"Refuses to answer until it is safe to, then answers.", ok:true},
+    {label:"Forwards the read to the leader.", ok:false}
+  ],
+  why:"A replica may serve a read at timestamp <code>t</code> only when <code>t ≤ t_safe</code>, and <code>t_safe_paxos</code> is the highest write it has actually applied. Returning the old-but-consistent answer is exactly the bug this whole design exists to prevent: an acknowledged write that is present in the system and invisible to a reader. So it waits, converting staleness into latency. If you would rather have the staleness than the latency, that is precisely what bounded-stale reads are for — you name a window, and Spanner picks the newest timestamp inside it that the nearest replica can serve without blocking. Google's guidance is that a window under about 10 seconds is not worth asking for.",
+  cfg:{commitWait:true, eps:{NG:4,SG:4,SP:4}, off:{NG:0,SG:0,SP:0}, spLag:45, snapTs:106, readReplica:"SP"},
+  t0:95, span:75,
+  script:[
+    {id:"T1", kind:"rw", at:99,  groups:["G1"], label:"Deed: 14 Mill Lane sold to Omar", actor:"Priya"},
+    {id:"R1", kind:"ro", at:110, groups:["G1"], label:"Strong read in Singapore", actor:"a customer's phone"}
+  ]
+}
+];
+
+/* ============================================================
+   2. The engine — pure state + reducer, so stepping back is free
+   ============================================================ */
+function initState(scn, cfgOverride){
+  const cfg = Object.assign(baseCfg(), clone(scn.cfg||{}), clone(cfgOverride||{}));
+  const groups = {};
+  GROUPS.forEach(g=>{
+    groups[g.id] = {
+      id:g.id, leader:g.home, pendingLeader:null, alive:true, leaseEnd:0,
+      sMax:0, lastTS:0, prepared:[], applied:[], deadAt:INF
+    };
+  });
+  return {
+    scn:scn.id, t:scn.t0, t0:scn.t0, span:scn.span, hardCap:420,
+    cfg, groups, txns:[], pending:clone(scn.script), log:[], viol:[], ended:false
+  };
+}
+
+function say(st, text, tech, tone){
+  st.log.push({t:st.t, text, tech:tech||"", tone:tone||""});
+}
+
+function findTxn(st, id){ return st.txns.find(x=>x.id===id); }
+
+function finishTime(x){
+  if(!x) return null;
+  if(x.kind==="rw")   return x.state==="acked" ? x.tAck : null;
+  if(x.kind==="ro" || x.kind==="snap") return x.tAnswer!=null ? x.tAnswer : null;
+  return null;
+}
+
+function issueTimeFor(st, spec){
+  if(spec.at != null) return spec.at;
+  if(spec.after){
+    const f = finishTime(findTxn(st, spec.after));
+    return f==null ? null : r3(f + (spec.delay||0));
+  }
+  return null;
+}
+
+/* --- derived quantities a replica needs ------------------------------- */
+/* MinNextTS: the leader's promise about the lowest timestamp its next write may
+   take. Sound because it is derived from the leader's own interval EARLIEST
+   endpoint, which is at or below true time and therefore below every future
+   TT.now().latest. It reaches a replica through the same Paxos log as the writes,
+   so a replica only knows the promise as of (now - its replication lag). */
+function minNextFloorAt(st, g, tAt){
+  if(!g.alive) tAt = Math.min(tAt, g.deadAt);
+  if(tAt < st.t0) return 0;
+  if(st.cfg.onDemandMinNext) return TT(st.cfg, g.leader, r3(tAt)).earliest;
+  const k = Math.floor((tAt - st.t0) / st.cfg.minNextMs);
+  if(k < 0) return 0;
+  return TT(st.cfg, g.leader, r3(st.t0 + k*st.cfg.minNextMs)).earliest;
+}
+function tSafePaxos(st, gid, replicaRegion){
+  const g = st.groups[gid], lag = lagOf(st.cfg, replicaRegion);
+  let best = 0;
+  g.applied.forEach(a=>{ if(a.at + lag <= st.t && a.ts > best) best = a.ts; });
+  const floor = minNextFloorAt(st, g, r3(st.t - lag));
+  if(floor > best) best = floor;
+  return r3(best);
+}
+function tSafeTM(st, gid){
+  const g = st.groups[gid];
+  if(!g.prepared.length) return INF;
+  return r3(Math.min.apply(null, g.prepared.map(p=>p.ts)) - Q);
+}
+function tSafe(st, gid, replicaRegion){
+  return Math.min(tSafePaxos(st, gid, replicaRegion), tSafeTM(st, gid));
+}
+
+/* --- one step of real time -------------------------------------------- */
+function step(st){
+  st.t = r3(st.t + TICK);
+  const cfg = st.cfg;
+
+  /* leader leases and the MinNextTS promise */
+  GROUPS.forEach(gd=>{
+    const g = st.groups[gd.id];
+    if(!g.alive && st.t >= g.leaseEnd){
+      g.alive = true;
+      g.deadAt = INF;
+      g.leader = g.pendingLeader || g.leader;
+      g.pendingLeader = null;
+      say(st, "The dead leader's lease has finally expired, so a replica in "+regionName(g.leader)+
+              " could take over "+g.id+". It is now accepting writes again.",
+          g.id+": new leader in "+g.leader+", lease begins after the old one ended (disjointness)", "good");
+    }
+    if(g.alive && !cfg.onDemandMinNext && st.t > st.t0 &&
+       Math.abs((st.t - st.t0) % cfg.minNextMs) < TICK/2){
+      const tt = TT(cfg, g.leader, st.t);
+      say(st, "The leader of "+g.id+" refreshed its promise about the lowest timestamp its next write may use, so replicas of this group can now answer questions about slightly more recent moments.",
+          g.id+": MinNextTS advanced → t_safe_paxos floor = "+fmt(tt.earliest)+" (8 s in production, compressed to "+cfg.minNextMs+" ms here)", "");
+    }
+  });
+
+  /* instantiate anything whose turn has come */
+  for(let i=st.pending.length-1;i>=0;i--){
+    const spec = st.pending[i];
+    const at = issueTimeFor(st, spec);
+    if(at==null || at > st.t) continue;
+    st.pending.splice(i,1);
+    if(spec.kind==="kill"){
+      const g = st.groups[spec.group];
+      g.alive = false;
+      g.deadAt = st.t;
+      g.leaseEnd = r3(st.t + cfg.leaseMs);
+      g.pendingLeader = g.leader==="NG" ? "SG" : "NG";
+      say(st, "The "+regionName(g.leader)+" zone has just gone dark. "+g.id+" has no leader, and no replica may take over until the dead leader's lease runs out — otherwise two leaders could stamp overlapping ranges of time.",
+          g.id+": leader lost; lease expires at "+fmt(g.leaseEnd)+" ("+cfg.leaseMs+" ms here, 10 s in production)", "bad");
+      continue;
+    }
+    const tx = {
+      id:spec.id, kind:spec.kind, label:spec.label, actor:spec.actor||"",
+      groups:spec.groups.slice(), coord:spec.groups[0], stall:spec.stall||0,
+      tIssue:at, tArrive:r3(at + cfg.netMs), state:"issued",
+      s:null, tPrepared:null, tDecide:null, tPaxosDone:null, tWaitUntil:null, tAck:null,
+      sRead:null, replica:null, tAnswer:null, saw:[], prepares:{}
+    };
+    st.txns.push(tx);
+    if(tx.kind==="rw"){
+      say(st, (tx.actor? tx.actor+" starts: " : "")+tx.label+".",
+          tx.id+" issued at real time "+fmt(at)+" → "+tx.groups.join("+"), "");
+    } else {
+      say(st, tx.label+" begins.", tx.id+" issued at real time "+fmt(at), "");
+    }
+  }
+
+  /* advance every live transaction */
+  st.txns.forEach(tx=>{
+    if(tx.kind==="rw")   stepRW(st, tx);
+    else                 stepRead(st, tx);
+  });
+
+  st.viol = checkViolations(st);
+
+  /* grow the drawing window so nothing the run has already scheduled falls off the
+     right-hand edge — turning ε up makes the whole story longer. */
+  let need = st.t;
+  st.txns.forEach(x=>{
+    [x.tAck, x.tAnswer, x.tDecide, x.tWaitUntil, x.tPaxosDone, x.s, x.sRead].forEach(v=>{
+      if(v!=null && v > need) need = v;
+    });
+  });
+  st.pending.forEach(sp=>{ if(sp.at!=null && sp.at > need) need = sp.at; });
+  GROUPS.forEach(gd=>{ const g = st.groups[gd.id]; if(!g.alive && g.leaseEnd > need) need = g.leaseEnd; });
+  if(need + 5 > st.t0 + st.span) st.span = r3(need + 5 - st.t0);
+
+  const anythingLeft = st.pending.length>0 ||
+    st.txns.some(x => (x.kind==="rw" && x.state!=="acked") || (x.kind!=="rw" && x.tAnswer==null));
+  if(!anythingLeft && st.t > st.t0 + 4) st.ended = true;
+  if(st.t >= st.t0 + st.hardCap) st.ended = true;
+}
+
+function pickTimestamp(st, tx){
+  const cfg = st.cfg, g = st.groups[tx.coord];
+  const tt = TT(cfg, g.leader, st.t);
+  let s = tt.latest;
+  Object.keys(tx.prepares).forEach(k=>{ if(tx.prepares[k] > s) s = tx.prepares[k]; });
+  if(g.sMax + Q > s) s = r3(g.sMax + Q);
+  s = r3(s);
+  g.sMax = s;
+  return {s, tt};
+}
+
+function stepRW(st, tx){
+  const cfg = st.cfg;
+
+  if(tx.state==="issued" && st.t >= tx.tArrive){
+    const dead = tx.groups.some(gid => !st.groups[gid].alive);
+    if(dead){
+      tx.state = "stranded";
+      say(st, tx.id+" has arrived, but the group it needs has no leader, so it simply waits. Nothing is lost — nothing can happen either.",
+          tx.id+": blocked, no leader for "+tx.groups.filter(g=>!st.groups[g].alive).join(","), "bad");
+      return;
+    }
+    beginCommit(st, tx);
+    return;
+  }
+
+  if(tx.state==="stranded"){
+    const dead = tx.groups.some(gid => !st.groups[gid].alive);
+    if(!dead){
+      say(st, tx.id+" can finally proceed: its group has a leader again.", tx.id+": resumed", "good");
+      beginCommit(st, tx);
+    }
+    return;
+  }
+
+  if(tx.state==="prepared" && st.t >= tx.tDecide){
+    const {s, tt} = pickTimestamp(st, tx);
+    tx.s = s;
+    tx.tPaxosDone = r3(st.t + cfg.paxosMs);
+    tx.tWaitUntil = cfg.commitWait ? r3(s - (cfg.off[st.groups[tx.coord].leader]||0) + (cfg.eps[st.groups[tx.coord].leader]||0)) : st.t;
+    tx.tAck = r3(Math.max(tx.tPaxosDone, tx.tWaitUntil));
+    tx.state = "committing";
+    say(st, "The coordinator has heard from every participant and chosen the moment the whole transaction happened. It must be at or above every prepare timestamp, and at or above the latest end of its own clock band.",
+        tx.id+": s = "+fmt(s)+" = max(prepares "+Object.values(tx.prepares).map(fmt).join(", ")+", TT.now().latest "+fmt(tt.latest)+")", "mark");
+    return;
+  }
+
+  if(tx.state==="committing" && st.t >= tx.tAck){
+    tx.state = "acked";
+    tx.groups.forEach(gid=>{
+      const g = st.groups[gid];
+      g.applied.push({ts:tx.s, at:st.t, txn:tx.id, label:tx.label});
+      g.lastTS = tx.s;
+      g.prepared = g.prepared.filter(p=>p.txn!==tx.id);
+    });
+    const waited = r3(tx.tAck - tx.tPaxosDone);
+    if(st.cfg.commitWait && waited > 0){
+      say(st, "Only now is "+(tx.actor||"the client")+" told that "+tx.id+" is done. Replication finished "+fmt(waited)+" ms ago; the rest was commit wait — the leader deliberately doing nothing until its own clock could prove the stamp was in the past.",
+          tx.id+": acked at "+fmt(tx.tAck)+"; TT.after("+fmt(tx.s)+") first true here; commit wait cost "+fmt(waited)+" ms", "good");
+    } else {
+      say(st, (tx.actor||"The client")+" is told that "+tx.id+" is done, as soon as replication finished. The stamp it carries may still be in the future for other machines.",
+          tx.id+": acked at "+fmt(tx.tAck)+" with s = "+fmt(tx.s)+" (no commit wait)", "");
+    }
+  }
+}
+
+function beginCommit(st, tx){
+  const cfg = st.cfg;
+  if(tx.groups.length > 1){
+    /* two-phase commit: every non-coordinator participant prepares first */
+    tx.groups.slice(1).forEach(gid=>{
+      const g = st.groups[gid];
+      const tt = TT(cfg, g.leader, st.t);
+      let p = tt.latest;
+      if(g.sMax + Q > p) p = r3(g.sMax + Q);
+      g.sMax = p;
+      g.prepared.push({txn:tx.id, ts:p});
+      tx.prepares[gid] = p;
+    });
+    tx.tPrepared = st.t;
+    tx.tDecide = r3(st.t + tx.stall);
+    tx.state = "prepared";
+    say(st, "Every participant has locked its rows and written a prepare record, promising it can commit. Until the coordinator decides, the rows they touched are in an undecided state — and so is the newest moment those groups can answer questions about.",
+        tx.id+": prepared at "+Object.keys(tx.prepares).map(k=>k+"="+fmt(tx.prepares[k])).join(", ")+
+        "; t_safe_TM for those groups is now one tick below the lowest of them", "mark");
+    return;
+  }
+  const {s, tt} = pickTimestamp(st, tx);
+  tx.s = s;
+  tx.tPaxosDone = r3(st.t + cfg.paxosMs);
+  const lead = st.groups[tx.coord].leader;
+  tx.tWaitUntil = cfg.commitWait ? r3(s - (cfg.off[lead]||0) + (cfg.eps[lead]||0)) : st.t;
+  tx.tAck = r3(Math.max(tx.tPaxosDone, tx.tWaitUntil));
+  tx.state = "committing";
+  say(st, "The clerk in "+regionName(lead)+" asks its clock what time it is. The clock answers with a band, not a moment, and the clerk stamps with the late edge of that band — the only end guaranteed not to be in the past.",
+      tx.id+": TT.now() = ["+fmt(tt.earliest)+", "+fmt(tt.latest)+"], ε="+tt.eps+" → s = "+fmt(s), "mark");
+}
+
+function stepRead(st, tx){
+  const cfg = st.cfg;
+  if(tx.state==="issued" && st.t >= tx.tArrive){
+    tx.replica = cfg.readReplica;
+    if(tx.kind==="snap"){
+      tx.sRead = r3(cfg.snapTs);
+      say(st, "An analytics job asks the register a very ordinary question: what did it say as of "+fmt(tx.sRead)+"? It takes no locks and blocks nobody.",
+          tx.id+": snapshot read at client-chosen timestamp "+fmt(tx.sRead)+", served by the "+regionName(tx.replica)+" replica", "");
+    } else {
+      const g = st.groups[tx.groups[0]];
+      const tt = TT(cfg, g.leader, st.t);
+      tx.sRead = tt.latest;
+      say(st, "A strong read asks for the state as of <em>now</em>. Because “now” is a band rather than a moment, it is given the late edge of that band and must then find a replica that can honestly answer for it.",
+          tx.id+": s_read = TT.now().latest = "+fmt(tx.sRead)+", served by the "+regionName(tx.replica)+" replica", "");
+    }
+    tx.state = "reading";
+    return;
+  }
+  if(tx.state==="reading"){
+    const safeAll = tx.groups.every(gid => tSafe(st, gid, tx.replica) >= tx.sRead);
+    if(!safeAll){
+      if(!tx.blockedNoted){
+        tx.blockedNoted = true;
+        const worst = tx.groups.map(gid=>({gid, p:tSafePaxos(st,gid,tx.replica), m:tSafeTM(st,gid)}))
+                               .sort((a,b)=>Math.min(a.p,a.m)-Math.min(b.p,b.m))[0];
+        const reason = worst.m < worst.p
+          ? "an undecided two-phase commit is holding that group's horizon down"
+          : "it has not yet received everything up to that moment";
+        say(st, "The replica refuses to answer yet, because "+reason+". It would rather be late than wrong — returning what it has would mean hiding a write that has already been acknowledged.",
+            tx.id+": waiting; "+worst.gid+" t_safe_paxos="+fmt(worst.p)+", t_safe_TM="+fmt(worst.m)+" < s_read="+fmt(tx.sRead), "mark");
+      }
+      return;
+    }
+    tx.tAnswer = st.t;
+    tx.state = "answered";
+    tx.saw = [];
+    tx.groups.forEach(gid=>{
+      const g = st.groups[gid], lag = lagOf(cfg, tx.replica);
+      let best = null;
+      g.applied.forEach(a=>{ if(a.at + lag <= st.t && a.ts <= tx.sRead && (!best || a.ts > best.ts)) best = a; });
+      if(best) tx.saw.push({gid, txn:best.txn, ts:best.ts, label:best.label});
+    });
+    const waited = r3(tx.tAnswer - tx.tArrive);
+    const seen = tx.saw.length ? tx.saw.map(s=>s.txn+" ("+fmt(s.ts)+")").join(" and ") : "nothing at all";
+    say(st, "The replica answers"+(waited>0 ? " after waiting "+fmt(waited)+" ms" : " immediately")+
+            ". As of "+fmt(tx.sRead)+" the register contains: "+seen+".",
+        tx.id+": answered at "+fmt(tx.tAnswer)+"; visible versions ≤ "+fmt(tx.sRead), waited>0?"":"good");
+  }
+}
+
+/* --- the verdict ------------------------------------------------------ */
+function checkViolations(st){
+  const out = [];
+  const acked = st.txns.filter(x=>x.kind==="rw" && x.state==="acked");
+  acked.forEach(a=>acked.forEach(b=>{
+    if(a===b) return;
+    if(a.tAck < b.tIssue && !(a.s < b.s)){
+      out.push({kind:"order", a:a.id, b:b.id,
+        text:b.id+" did not even begin until "+r3(b.tIssue-a.tAck)+" ms after "+a.id+
+             " had been acknowledged, and yet "+b.id+" carries the smaller timestamp ("+
+             fmt(b.s)+" against "+fmt(a.s)+"). The register now records a history that did not happen."});
+    }
+  }));
+  st.txns.filter(x=>x.state==="answered").forEach(r=>{
+    acked.forEach(a=>{
+      if(a.tAck >= r.tIssue) return;
+      if(!a.groups.some(g=>r.groups.indexOf(g)>=0)) return;
+      const sawIt = r.saw.some(s=>s.txn===a.id);
+      const sawLater = r.saw.some(s=>{
+        const t = findTxn(st, s.txn);
+        return t && t!==a && t.tIssue > a.tAck;
+      });
+      if(!sawIt && sawLater){
+        out.push({kind:"read", a:a.id, r:r.id,
+          text:r.id+" read the register as of "+fmt(r.sRead)+" and saw "+
+               r.saw.map(s=>s.txn).join(", ")+" — but not "+a.id+", which had been acknowledged before "+
+               r.id+" even started. An acknowledged write is sitting in the database, invisible."});
+      }
+    });
+  });
+  return out;
+}
+
+/* ============================================================
+   3. Drawing
+   ============================================================ */
+const VW = 1060, PAD_L = 158, PAD_R = 34;
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+function makeX(st){
+  const w = VW - PAD_L - PAD_R;
+  return t => PAD_L + ((t - st.t0) / st.span) * w;
+}
+
+function render(st){
+  const X = makeX(st);
+  const reads = st.txns.filter(x=>x.kind!=="rw");
+  const writes = st.txns.filter(x=>x.kind==="rw");
+
+  const AX_Y = 34;
+  const REG_TOP = 56, REG_H = 26;
+  const TX_TOP = REG_TOP + REGIONS.length*REG_H + 20;
+  const TX_H = 40;
+  const H = TX_TOP + (writes.length + reads.length)*TX_H + 26;
+
+  let s = '<svg id="tl" viewBox="0 0 '+VW+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="height:'+H+'px">';
+  s += '<defs>'
+    + '<pattern id="pCW" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+    + '<rect width="7" height="7" style="fill:var(--brass-soft)"/><line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--brass);stroke-width:3"/></pattern>'
+    + '<pattern id="pBlock" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+    + '<rect width="7" height="7" style="fill:var(--violet-soft)"/><line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--violet);stroke-width:3"/></pattern>'
+    + '</defs>';
+
+  /* ---- axis ---- */
+  s += '<line x1="'+PAD_L+'" y1="'+AX_Y+'" x2="'+(VW-PAD_R)+'" y2="'+AX_Y+'" style="stroke:var(--line-2);stroke-width:1"/>';
+  s += '<text x="10" y="'+(AX_Y+4)+'" style="fill:var(--ink);font:600 12px \'IBM Plex Sans\',sans-serif">Real time →</text>';
+  s += '<text x="10" y="'+(AX_Y+19)+'" style="fill:var(--muted);font:400 10.5px \'IBM Plex Mono\',monospace">what actually happened</text>';
+  const start = Math.ceil(st.t0), end = st.t0 + st.span;
+  const minor = st.span > 160 ? 20 : (st.span > 80 ? 10 : 5);
+  for(let t=start; t<=end; t++){
+    if(t % minor) continue;
+    const x = X(t), big = (t % (minor*2) === 0);
+    s += '<line x1="'+x+'" y1="'+(AX_Y-(big?7:4))+'" x2="'+x+'" y2="'+AX_Y+'" style="stroke:var(--line-2);stroke-width:1"/>';
+    if(big) s += '<text x="'+x+'" y="'+(AX_Y-11)+'" text-anchor="middle" style="fill:var(--muted);font:400 10px \'IBM Plex Mono\',monospace">'+t+'</text>';
+  }
+  /* the cursor: real time now */
+  const cx = X(st.t);
+  s += '<line x1="'+cx+'" y1="'+(AX_Y-2)+'" x2="'+cx+'" y2="'+(H-8)+'" style="stroke:var(--true);stroke-width:1.5;stroke-dasharray:1 3"/>';
+  s += '<polygon points="'+(cx-5)+','+(AX_Y-2)+' '+(cx+5)+','+(AX_Y-2)+' '+cx+','+(AX_Y+6)+'" style="fill:var(--true)"/>';
+
+  /* ---- region clock bands ---- */
+  REGIONS.forEach((rg,i)=>{
+    const y = REG_TOP + i*REG_H, mid = y + REG_H/2;
+    const tt = TT(st.cfg, rg.id, st.t);
+    s += '<rect class="hit" data-inspect="region:'+rg.id+'" x="0" y="'+y+'" width="'+VW+'" height="'+REG_H+'" style="fill:transparent;cursor:pointer"/>';
+    s += '<text x="10" y="'+(mid+4)+'" style="fill:var(--ink);font:500 12px \'IBM Plex Sans\',sans-serif">'+esc(rg.name)+'</text>';
+    s += '<text x="'+(PAD_L-12)+'" y="'+(mid+4)+'" text-anchor="end" style="fill:'+(tt.honest?'var(--muted)':'var(--danger)')+';font:400 10.5px \'IBM Plex Mono\',monospace">ε='+tt.eps+' off='+(tt.off>0?'+':'')+tt.off+'</text>';
+    const x1 = X(tt.earliest), x2 = X(tt.latest), xr = X(tt.reading);
+    const col = tt.honest ? 'var(--brass)' : 'var(--danger)';
+    const fill= tt.honest ? 'var(--brass-soft)' : 'var(--danger-soft)';
+    s += '<rect x="'+x1+'" y="'+(mid-7)+'" width="'+Math.max(2,x2-x1)+'" height="14" rx="7" style="fill:'+fill+';stroke:'+col+';stroke-width:1"/>';
+    s += '<line x1="'+xr+'" y1="'+(mid-7)+'" x2="'+xr+'" y2="'+(mid+7)+'" style="stroke:'+col+';stroke-width:2"/>';
+    if(!tt.honest){
+      s += '<text x="'+(x2+8)+'" y="'+(mid+4)+'" style="fill:var(--danger);font:600 10.5px \'IBM Plex Mono\',monospace">✕ true time is OUTSIDE this band</text>';
+    }
+  });
+  s += '<text x="10" y="'+(REG_TOP-6)+'" style="fill:var(--muted);font:400 10.5px \'IBM Plex Mono\',monospace">WHAT EACH CLOCK CLAIMS, RIGHT NOW</text>';
+
+  /* ---- transactions ---- */
+  const badIds = {};
+  st.viol.forEach(v=>{ badIds[v.a]=1; if(v.b) badIds[v.b]=1; if(v.r) badIds[v.r]=1; });
+  const rowY = {};
+  let row = 0;
+  writes.forEach(tx=>{
+    const y = TX_TOP + row*TX_H, mid = y + TX_H/2 - 4; row++;
+    rowY[tx.id] = mid;
+    s += '<rect class="hit" data-inspect="txn:'+tx.id+'" x="0" y="'+y+'" width="'+VW+'" height="'+TX_H+'" style="fill:transparent;cursor:pointer"/>';
+    s += '<text x="10" y="'+(mid-1)+'" style="fill:var(--ink);font:600 11.5px \'IBM Plex Mono\',monospace">'+esc(tx.id)+'</text>';
+    s += '<text x="34" y="'+(mid-1)+'" style="fill:var(--ink-2);font:400 11.5px \'IBM Plex Sans\',sans-serif">'+esc(tx.label.length>26?tx.label.slice(0,25)+'…':tx.label)+'</text>';
+    s += '<text x="10" y="'+(mid+12)+'" style="fill:var(--muted);font:400 10px \'IBM Plex Mono\',monospace">'+tx.groups.join('+')+(tx.groups.length>1?' · 2PC':'')+'</text>';
+
+    const endT = tx.tAck!=null ? Math.min(tx.tAck, st.t) : st.t;
+    const bx = X(tx.tIssue), by = mid - 7;
+    /* client → leader */
+    const ax = X(Math.min(tx.tArrive, endT));
+    if(ax > bx) s += '<rect x="'+bx+'" y="'+by+'" width="'+(ax-bx)+'" height="14" rx="3" style="fill:var(--line-2)"/>';
+    /* prepared window (2PC) */
+    if(tx.tPrepared!=null){
+      const px = X(Math.min(tx.tDecide, endT));
+      if(px > ax) s += '<rect x="'+ax+'" y="'+by+'" width="'+(px-ax)+'" height="14" rx="3" style="fill:var(--violet-soft);stroke:var(--violet);stroke-width:1"/>'
+                     + '<text x="'+((ax+px)/2)+'" y="'+(mid+4)+'" text-anchor="middle" style="fill:var(--violet);font:600 9.5px \'IBM Plex Mono\',monospace">PREPARED</text>';
+    }
+    /* paxos */
+    if(tx.tPaxosDone!=null){
+      const p0 = X(tx.tPrepared!=null ? tx.tDecide : tx.tArrive);
+      const p1 = X(Math.min(tx.tPaxosDone, endT));
+      if(p1 > p0) s += '<rect x="'+p0+'" y="'+by+'" width="'+(p1-p0)+'" height="14" rx="3" style="fill:var(--true)"/>';
+      /* commit wait */
+      if(tx.tAck > tx.tPaxosDone){
+        const w1 = X(Math.min(tx.tAck, endT));
+        if(w1 > p1){
+          s += '<rect x="'+p1+'" y="'+by+'" width="'+(w1-p1)+'" height="14" rx="3" style="fill:url(#pCW);stroke:var(--brass);stroke-width:1"/>';
+          if(w1-p1 > 46) s += '<text x="'+((p1+w1)/2)+'" y="'+(mid+4)+'" text-anchor="middle" style="fill:var(--brass);font:600 9.5px \'IBM Plex Mono\',monospace">COMMIT WAIT</text>';
+        }
+      }
+    }
+    /* the stamp */
+    if(tx.s!=null){
+      const sx = X(tx.s), bad = !!badIds[tx.id];
+      const c = bad ? 'var(--danger)' : 'var(--true)';
+      if(tx.tAck!=null && st.t >= tx.tAck){
+        const ex = X(tx.tAck);
+        s += '<line x1="'+ex+'" y1="'+mid+'" x2="'+sx+'" y2="'+mid+'" style="stroke:'+c+';stroke-width:1;stroke-dasharray:2 3;opacity:.75"/>';
+      }
+      s += '<rect x="'+(sx-6)+'" y="'+(mid-6)+'" width="12" height="12" rx="2" transform="rotate(45 '+sx+' '+mid+')" style="fill:'+c+'"/>';
+      s += '<text x="'+sx+'" y="'+(mid+21)+'" text-anchor="middle" style="fill:'+c+';font:600 10px \'IBM Plex Mono\',monospace">s='+fmt(tx.s)+'</text>';
+    }
+    if(tx.state==="stranded"){
+      s += '<text x="'+(X(tx.tArrive)+8)+'" y="'+(mid+4)+'" style="fill:var(--danger);font:600 10.5px \'IBM Plex Mono\',monospace">waiting — no leader</text>';
+    }
+  });
+
+  reads.forEach(tx=>{
+    const y = TX_TOP + row*TX_H, mid = y + TX_H/2 - 4; row++;
+    rowY[tx.id] = mid;
+    s += '<rect class="hit" data-inspect="txn:'+tx.id+'" x="0" y="'+y+'" width="'+VW+'" height="'+TX_H+'" style="fill:transparent;cursor:pointer"/>';
+    s += '<text x="10" y="'+(mid-1)+'" style="fill:var(--ink);font:600 11.5px \'IBM Plex Mono\',monospace">'+esc(tx.id)+'</text>';
+    s += '<text x="34" y="'+(mid-1)+'" style="fill:var(--ink-2);font:400 11.5px \'IBM Plex Sans\',sans-serif">'+esc(tx.kind==="snap"?"read as of a chosen moment":"strong read (as of now)")+'</text>';
+    s += '<text x="10" y="'+(mid+12)+'" style="fill:var(--muted);font:400 10px \'IBM Plex Mono\',monospace">'+tx.groups.join('+')+' @ '+(tx.replica?regionName(tx.replica):'—')+'</text>';
+    if(tx.sRead!=null){
+      const sx = X(tx.sRead);
+      const bad = !!badIds[tx.id];
+      const c = bad ? 'var(--danger)' : 'var(--violet)';
+      const stop = tx.tAnswer!=null ? Math.min(tx.tAnswer, st.t) : st.t;
+      const a0 = X(tx.tArrive), a1 = X(stop);
+      if(a1 > a0) s += '<rect x="'+a0+'" y="'+(mid-7)+'" width="'+(a1-a0)+'" height="14" rx="3" style="fill:url(#pBlock);stroke:var(--violet);stroke-width:1"/>';
+      s += '<line x1="'+sx+'" y1="'+(mid-13)+'" x2="'+sx+'" y2="'+(mid+13)+'" style="stroke:'+c+';stroke-width:2"/>';
+      s += '<circle cx="'+sx+'" cy="'+(mid-13)+'" r="3.5" style="fill:'+c+'"/>';
+      s += '<text x="'+sx+'" y="'+(mid+24)+'" text-anchor="middle" style="fill:'+c+';font:600 10px \'IBM Plex Mono\',monospace">as of '+fmt(tx.sRead)+'</text>';
+      if(tx.tAnswer!=null){
+        const seen = tx.saw.length ? tx.saw.map(v=>v.txn).join(",") : "nothing";
+        s += '<text x="'+(a1+8)+'" y="'+(mid+4)+'" style="fill:'+(bad?'var(--danger)':'var(--ok)')+';font:600 10.5px \'IBM Plex Mono\',monospace">'+(bad?'✕':'✓')+' saw '+esc(seen)+'</text>';
+      }
+    }
+  });
+
+  /* ---- violation arcs ---- */
+  st.viol.filter(v=>v.kind==="order").forEach(v=>{
+    const A = findTxn(st, v.a), B = findTxn(st, v.b);
+    if(!A||!B||A.s==null||B.s==null) return;
+    const x1 = X(A.s), y1 = rowY[A.id], x2 = X(B.s), y2 = rowY[B.id];
+    const my = Math.min(y1,y2) - 16;
+    s += '<path d="M '+x1+' '+y1+' C '+x1+' '+my+', '+x2+' '+my+', '+x2+' '+y2+'" fill="none" style="stroke:var(--danger);stroke-width:1.5;stroke-dasharray:4 3"/>';
+    s += '<text x="'+((x1+x2)/2)+'" y="'+(my-3)+'" text-anchor="middle" style="fill:var(--danger);font:600 10px \'IBM Plex Mono\',monospace">later transaction, smaller stamp</text>';
+  });
+
+  s += '</svg>';
+  return s;
+}
+
+/* ============================================================
+   4. UI
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let cur = SCENARIOS[0];
+let over = {};                 // knob overrides on top of the scenario config
+let st = initState(cur, over);
+let hist = [];
+let timer = null;
+let inspectSel = "region:NG";
+let answered = {};
+
+function paintVerdict(){
+  const el = $("verdict"), tag = el.querySelector(".vtag");
+  const done = st.txns.filter(x=>x.kind==="rw" && x.state==="acked").length;
+  if(st.viol.length){
+    el.className = "verdict bad"; tag.textContent = "violated";
+    $("vtext").textContent = "External consistency is broken.";
+    $("vwhy").innerHTML = esc(st.viol[0].text);
+    $("vnote").innerHTML = st.viol.length>1 ? esc(st.viol.length-1)+" further problem(s) of the same kind." :
+      "Nothing crashed, no message was lost, and every rule was followed. That is what makes this failure mode so expensive.";
+  } else if(done === 0){
+    el.className = "verdict"; tag.textContent = "waiting";
+    $("vtext").textContent = "Nothing has committed yet.";
+    $("vwhy").textContent = "Step or play to run the scenario. The dashed green line is real time.";
+    $("vnote").textContent = "";
+  } else {
+    el.className = "verdict hold"; tag.textContent = "holding";
+    $("vtext").textContent = "External consistency is holding.";
+    $("vwhy").textContent = "Every transaction that was acknowledged before another one started carries a smaller timestamp than it, and every completed read included every write acknowledged before that read began.";
+    const cw = st.txns.filter(x=>x.kind==="rw" && x.tAck!=null && x.tPaxosDone!=null)
+                      .map(x=>r3(x.tAck - x.tPaxosDone)).filter(v=>v>0);
+    $("vnote").textContent = cw.length
+      ? "Paid for with " + cw.map(v=>v.toFixed(1)+" ms").join(" and ") + " of commit wait — time in which the machine did nothing at all."
+      : (st.cfg.commitWait ? "Commit wait cost nothing here: it finished before the replication round trip did." : "Commit wait is off — this run happened to get away with it.");
+  }
+}
+
+function paintLog(){
+  const el = $("log");
+  const n = st.log.length;
+  el.innerHTML = st.log.slice(-40).map((e,i)=>
+    '<div class="ev '+e.tone+(i===Math.min(n,40)-1?' fresh':'')+'">'
+    + '<div class="t">'+fmt(e.t)+' ms</div>'
+    + '<div class="say">'+e.text+'</div>'
+    + (e.tech ? '<div class="tech">'+esc(e.tech)+'</div>' : '')
+    + '</div>').join("") || '<div class="ev"><div class="say">Nothing yet.</div></div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function paintTabs(){
+  const items = REGIONS.map(r=>({k:"region:"+r.id, n:r.name}))
+    .concat(GROUPS.map(g=>({k:"group:"+g.id, n:g.id})));
+  $("tabs").innerHTML = items.map(i=>
+    '<button class="tab'+(inspectSel===i.k?' sel':'')+'" data-tab="'+i.k+'">'+esc(i.n)+'</button>').join("");
+}
+
+function paintInspect(){
+  const [kind, id] = inspectSel.split(":");
+  let rows = [];
+  if(kind==="region"){
+    const tt = TT(st.cfg, id, st.t);
+    const rg = REGIONS.find(r=>r.id===id);
+    rows = [
+      ["role", rg.note],
+      ["TT.now().earliest", fmt(tt.earliest)],
+      ["TT.now().latest", fmt(tt.latest)],
+      ["ε (half the band)", tt.eps+" ms"],
+      ["true offset of this clock", (tt.off>0?"+":"")+tt.off+" ms"],
+      ["contains the true instant?", tt.honest
+        ? '<span class="pill ok">honest</span>'
+        : '<span class="pill bad">bound violated</span>'],
+      ["replication lag to here", lagOf(st.cfg,id)+" ms"]
+    ];
+  } else if(kind==="group"){
+    const g = st.groups[id];
+    rows = [
+      ["leader", regionName(g.leader) + (g.alive ? "" : " — DEAD")],
+      ["status", g.alive ? '<span class="pill ok">serving</span>' : '<span class="pill bad">no leader until '+fmt(g.leaseEnd)+'</span>'],
+      ["s_max (highest stamp issued)", fmt(g.sMax)],
+      ["LastTS() (last commit)", fmt(g.lastTS)],
+      ["prepared, undecided", g.prepared.length ? g.prepared.map(p=>p.txn+"@"+fmt(p.ts)).join(", ") : "none"],
+      ["t_safe_TM", fmt(tSafeTM(st, id))],
+      ["MinNextTS floor (at the leader)", fmt(minNextFloorAt(st, g, st.t))]
+    ];
+    REGIONS.forEach(r=>{
+      rows.push(["t_safe at the "+r.name+" replica", fmt(tSafe(st, id, r.id))]);
+    });
+    rows.push(["versions stored", g.applied.length ? g.applied.map(a=>a.txn+"@"+fmt(a.ts)).join(", ") : "none"]);
+  } else {
+    const tx = findTxn(st, id);
+    if(tx){
+      rows = [["what it is", tx.label], ["state", tx.state],
+              ["issued at (real time)", fmt(tx.tIssue)]];
+      if(tx.kind==="rw"){
+        rows.push(["timestamp given", tx.s==null?"—":fmt(tx.s)]);
+        rows.push(["replication done at", tx.tPaxosDone==null?"—":fmt(tx.tPaxosDone)]);
+        rows.push(["acknowledged at", tx.tAck==null?"—":fmt(tx.tAck)]);
+        if(tx.tAck!=null && tx.tPaxosDone!=null)
+          rows.push(["of which commit wait", fmt(Math.max(0, r3(tx.tAck-tx.tPaxosDone)))+" ms"]);
+        if(Object.keys(tx.prepares).length)
+          rows.push(["prepare timestamps", Object.keys(tx.prepares).map(k=>k+"="+fmt(tx.prepares[k])).join(", ")]);
+      } else {
+        rows.push(["read timestamp", tx.sRead==null?"—":fmt(tx.sRead)]);
+        rows.push(["served by", tx.replica?regionName(tx.replica):"—"]);
+        rows.push(["answered at", tx.tAnswer==null?"still waiting":fmt(tx.tAnswer)]);
+        rows.push(["saw", tx.saw.length?tx.saw.map(v=>v.txn+" @ "+fmt(v.ts)).join(", "):"—"]);
+      }
+    }
+  }
+  $("inspect").innerHTML = '<table class="kv">'+rows.map(r=>
+    '<tr><td>'+esc(r[0])+'</td><td>'+r[1]+'</td></tr>').join("")+'</table>';
+}
+
+function paint(){
+  $("tl").outerHTML = render(st);
+  $("nowread").textContent = fmt(st.t)+" ms";
+  paintVerdict(); paintLog(); paintTabs(); paintInspect();
+  $("btnBack").disabled = hist.length===0;
+  $("btnCW").textContent = st.cfg.commitWait ? "ON" : "OFF";
+  $("btnCW").className = st.cfg.commitWait ? "on" : "";
+}
+
+/* ---- transport ---- */
+function doStep(){
+  if(st.ended) return false;
+  hist.push(clone(st));
+  if(hist.length > 400) hist.shift();
+  step(st);
+  return true;
+}
+function stop(){ if(timer){clearInterval(timer); timer=null;} $("btnPlay").textContent = "▶ Play"; }
+function play(){
+  if(timer){ stop(); return; }
+  $("btnPlay").textContent = "⏸ Pause";
+  const ms = parseInt($("selSpeed").value,10)*10;
+  timer = setInterval(()=>{ if(!doStep()){ stop(); } paint(); }, ms);
+}
+function runToEnd(){ stop(); let n=0; while(doStep() && n++ < 2000){} paint(); }
+function reset(){
+  stop(); hist = []; st = initState(cur, over); paint();
+}
+
+/* ---- scenarios ---- */
+function paintScenarios(){
+  $("scenarios").innerHTML = SCENARIOS.map(s=>{
+    const a = answered[s.id];
+    return '<div class="scn'+(cur.id===s.id?' current':'')+'">'
+      + '<h4><span class="num">'+s.id+'</span>'+esc(s.title)+(cur.id===s.id?' <span class="pill ok">loaded</span>':'')+'</h4>'
+      + '<p>'+esc(s.blurb)+'</p>'
+      + '<p class="q">'+esc(s.question)+'</p>'
+      + '<div class="opts">'
+      + s.options.map((o,i)=>'<button class="opt'+(a!=null ? (o.ok?' right':(a===i?' wrong':'')) : '')
+          +'" data-scn="'+s.id+'" data-opt="'+i+'">'+esc(o.label)+(a!=null&&o.ok?'  ✓':'')+'</button>').join("")
+      + '</div>'
+      + (a!=null ? '<div class="why'+(s.options[a].ok?'':' wrong')+'">'+s.why+'</div>' : "")
+      + '<div class="row" style="margin-top:10px">'
+      + '<button data-run="'+s.id+'" class="'+(cur.id===s.id?'':'primary')+'">Run this for me ▸</button>'
+      + (a!=null?'<button data-clear="'+s.id+'">hide the answer</button>':'')
+      + '</div></div>';
+  }).join("");
+}
+
+function loadScenario(id, autoplay){
+  cur = SCENARIOS.find(s=>s.id===id);
+  over = {};
+  reset();
+  buildKnobs();
+  paintScenarios();
+  if(autoplay){ setTimeout(()=>{ if(!timer) play(); }, 120); }
+}
+
+/* ---- knobs ---- */
+const KNOBS = [
+  {k:"eps.NG", label:"Northgate's admitted error (ε)", min:1, max:20, step:1, unit:" ms",
+   hint:"Half the width of its clock band. This number <em>is</em> the length of its commit wait."},
+  {k:"eps.SG", label:"Southgate's admitted error (ε)", min:1, max:20, step:1, unit:" ms",
+   hint:"Ordering inverts in the gap between two regions' admissions, not between their errors."},
+  {k:"off.NG", label:"Northgate's real clock offset", min:-15, max:15, step:1, unit:" ms",
+   hint:"How wrong it actually is. Push it outside ε and TrueTime's only promise is broken.", warnIfDishonest:"NG"},
+  {k:"snapTs", label:"Analytics read: as of…", min:95, max:140, step:1, unit:" ms",
+   hint:"The moment the read asks about. Drag it between the two commit timestamps to see the tear."},
+  {k:"spLag", label:"Replication lag to Singapore", min:0, max:60, step:1, unit:" ms",
+   hint:"How far behind the Singapore replica runs. It decides how long a strong read there must wait."},
+  {k:"paxosMs", label:"Paxos round trip", min:1, max:15, step:1, unit:" ms",
+   hint:"Commit wait is only visible as extra latency when it outlasts replication."}
+];
+const CHOICES = [
+  {k:"readReplica", label:"Reads are served by", opts:[["SP","the Singapore replica"],["NG","the Northgate leader"],["SG","the Southgate leader"]],
+   hint:"Not a fact about the system — a routing choice, and it changes what a read has to wait for."},
+  {k:"onDemandMinNext", label:"Idle groups advance their safe time", opts:[[true,"on demand (instantly)"],[false,"on a fixed cadence"]],
+   hint:"Real leaders do both. On the fixed cadence — 8 s in production, 60 ms here — an idle group's replicas can only answer about moments up to a cadence old."}
+];
+function getPath(o,p){ return p.split(".").reduce((a,k)=>a[k], o); }
+function setPath(o,p,v){ const ks=p.split("."); const last=ks.pop(); let t=o; ks.forEach(k=>{ t[k] = t[k]||{}; t=t[k]; }); t[last]=v; }
+
+function buildKnobs(){
+  $("knobs").innerHTML = KNOBS.map(kn=>{
+    const v = getPath(st.cfg, kn.k);
+    return '<div class="knob"><span class="kname">'+esc(kn.label)+'</span>'
+      + '<span><input type="range" data-knob="'+kn.k+'" min="'+kn.min+'" max="'+kn.max+'" step="'+kn.step+'" value="'+v+'">'
+      + '<span class="kval" data-kval="'+kn.k+'">'+v+kn.unit+'</span></span>'
+      + '<span class="khint">'+kn.hint+'</span></div>';
+  }).join("") + CHOICES.map(ch=>{
+    const v = st.cfg[ch.k];
+    return '<div class="knob"><span class="kname">'+esc(ch.label)+'</span>'
+      + '<span><select data-choice="'+ch.k+'">'+ch.opts.map(o=>
+          '<option value="'+o[0]+'"'+(String(v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>').join("")+'</select></span>'
+      + '<span class="khint">'+ch.hint+'</span></div>';
+  }).join("");
+  syncKnobLabels();
+}
+function syncKnobLabels(){
+  KNOBS.forEach(kn=>{
+    const el = document.querySelector('[data-kval="'+kn.k+'"]');
+    if(!el) return;
+    const v = getPath(st.cfg, kn.k);
+    el.textContent = (v>0 && kn.k.indexOf("off")===0 ? "+" : "") + v + kn.unit;
+    if(kn.warnIfDishonest){
+      const bad = Math.abs(st.cfg.off[kn.warnIfDishonest]) > st.cfg.eps[kn.warnIfDishonest];
+      el.className = "kval" + (bad ? " warn" : "");
+    }
+  });
+}
+
+/* ---- events ---- */
+function reRun(){
+  const target = st.t;
+  reset();
+  let n = 0;
+  while(st.t < target && doStep() && n++ < 2000){}
+  paint();
+}
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest ? e.target.closest("[data-run],[data-opt],[data-clear],[data-tab],[data-inspect]") : null;
+  if(!t) return;
+  if(t.dataset.run){ loadScenario(parseInt(t.dataset.run,10), true); return; }
+  if(t.dataset.opt!=null){
+    const sid = parseInt(t.dataset.scn,10);
+    answered[sid] = parseInt(t.dataset.opt,10);
+    if(cur.id!==sid) loadScenario(sid, true); else { paintScenarios(); if(!timer && !st.ended) play(); }
+    paintScenarios();
+    return;
+  }
+  if(t.dataset.clear){ delete answered[parseInt(t.dataset.clear,10)]; paintScenarios(); return; }
+  if(t.dataset.tab){ inspectSel = t.dataset.tab; paintTabs(); paintInspect(); return; }
+  if(t.dataset.inspect){ inspectSel = t.dataset.inspect; paintTabs(); paintInspect(); return; }
+});
+
+document.addEventListener("input", e=>{
+  if(e.target.dataset && e.target.dataset.knob){
+    const k = e.target.dataset.knob, v = parseFloat(e.target.value);
+    setPath(over, k, v); setPath(st.cfg, k, v);
+    syncKnobLabels(); reRun();
+  }
+});
+document.addEventListener("change", e=>{
+  if(e.target.dataset && e.target.dataset.choice){
+    const k = e.target.dataset.choice;
+    let v = e.target.value;
+    if(v==="true") v = true; else if(v==="false") v = false;
+    over[k] = v; st.cfg[k] = v; reRun();
+  }
+});
+
+$("btnPlay").addEventListener("click", play);
+$("btnStep").addEventListener("click", ()=>{ stop(); doStep(); paint(); });
+$("btnBack").addEventListener("click", ()=>{ stop(); if(hist.length){ st = hist.pop(); paint(); } });
+$("btnEnd").addEventListener("click", runToEnd);
+$("btnReset").addEventListener("click", ()=>{ reset(); });
+$("btnCW").addEventListener("click", ()=>{ over.commitWait = !st.cfg.commitWait; st.cfg.commitWait = over.commitWait; reRun(); });
+$("selSpeed").addEventListener("change", ()=>{ if(timer){ stop(); play(); } });
+
+buildKnobs();
+paintScenarios();
+paint();
+
+})();
+</script>

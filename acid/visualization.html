@@ -1,0 +1,876 @@
+<title>Vikram's Morning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#eceff3; --card:#ffffff; --sunk:#f4f6f9;
+  --ink:#16202b; --muted:#5b6b7b; --line:#d3dae1; --line2:#e6ebf0;
+  --accent:#3a4da6; --accent-soft:#e6e9f7;
+  --vol:#9a6207; --vol-soft:#f8efdc; --vol-line:#e0c68e;
+  --cache:#67608f; --cache-soft:#eeecf6; --cache-line:#c6c0e0;
+  --dur:#0c6f61; --dur-soft:#dff0ec; --dur-line:#9ad0c6;
+  --bad:#b0303c; --bad-soft:#fae4e6; --bad-line:#e3aeb4;
+  --redo:#2660a8; --redo-soft:#e2edf9;
+  --undo:#7f4293; --undo-soft:#f2e6f6;
+  --onaccent:#ffffff;
+  --shadow:0 1px 2px rgba(20,32,44,.06),0 6px 18px rgba(20,32,44,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141b; --card:#18212c; --sunk:#131b24;
+    --ink:#e3eaf1; --muted:#93a3b2; --line:#2b3743; --line2:#222d38;
+    --accent:#7f8fe6; --accent-soft:#1d2340;
+    --vol:#d79b34; --vol-soft:#30260f; --vol-line:#5c4a1c;
+    --cache:#a49bd6; --cache-soft:#24213a; --cache-line:#413a63;
+    --dur:#4dbfab; --dur-soft:#0f2e2a; --dur-line:#1e5750;
+    --bad:#e8737f; --bad-soft:#341a1e; --bad-line:#5f2d33;
+    --redo:#6ba6e8; --redo-soft:#152537; --undo:#c187d6; --undo-soft:#2a1b31;
+    --onaccent:#0e141b;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141b; --card:#18212c; --sunk:#131b24;
+  --ink:#e3eaf1; --muted:#93a3b2; --line:#2b3743; --line2:#222d38;
+  --accent:#7f8fe6; --accent-soft:#1d2340;
+  --vol:#d79b34; --vol-soft:#30260f; --vol-line:#5c4a1c;
+  --cache:#a49bd6; --cache-soft:#24213a; --cache-line:#413a63;
+  --dur:#4dbfab; --dur-soft:#0f2e2a; --dur-line:#1e5750;
+  --bad:#e8737f; --bad-soft:#341a1e; --bad-line:#5f2d33;
+  --redo:#6ba6e8; --redo-soft:#152537; --undo:#c187d6; --undo-soft:#2a1b31;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;padding:20px 18px 70px;
+  font:15px/1.55 "Source Sans 3",system-ui,-apple-system,sans-serif;}
+.wrap{max-width:1280px;margin:0 auto;}
+h1{font-family:"Zilla Slab",Georgia,serif;font-weight:700;font-size:32px;margin:0 0 2px;letter-spacing:-.01em;text-wrap:balance;}
+h2{font-family:"Zilla Slab",Georgia,serif;font-weight:600;font-size:18px;margin:0 0 6px;}
+.lede{color:var(--muted);max-width:70ch;margin:0 0 16px;}
+.lede b{color:var(--ink);font-weight:600;}
+.m{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;font-variant-numeric:tabular-nums;}
+.cols{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+.stage{flex:1 1 660px;min-width:520px;display:flex;flex-direction:column;gap:12px;}
+.rail{flex:1 1 320px;min-width:300px;display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);}
+.card>h3{margin:0 0 10px;font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.card>h3 .hint{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;}
+.band{border-radius:12px;border:1px solid var(--line);padding:12px 13px;position:relative;}
+.band.ram{background:var(--vol-soft);border-color:var(--vol-line);}
+.band.osc{background:var(--cache-soft);border-color:var(--cache-line);}
+.band.disk{background:var(--dur-soft);border-color:var(--dur-line);}
+.bandhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+.bandhead .nm{font-family:"Zilla Slab",Georgia,serif;font-weight:600;font-size:16px;}
+.band.ram .nm{color:var(--vol);} .band.osc .nm{color:var(--cache);} .band.disk .nm{color:var(--dur);}
+.bandhead .why{font-size:12.5px;color:var(--muted);}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;}
+.sub{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;min-height:74px;}
+.sub .st{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:7px;}
+.pages{display:flex;gap:8px;flex-wrap:wrap;}
+.pg{border:1px solid var(--line);border-radius:8px;padding:6px 9px;min-width:118px;background:var(--sunk);cursor:pointer;text-align:left;}
+.pg:hover{border-color:var(--accent);}
+.pg .who{font-size:12px;color:var(--muted);}
+.pg .val{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25;}
+.pg .lsn{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10.5px;color:var(--muted);}
+.pg.dirty{border-color:var(--vol-line);background:var(--vol-soft);}
+.pg.dirty .val{color:var(--vol);}
+.pg.torn{border-color:var(--bad-line);background:var(--bad-soft);}
+.pg.torn .val{color:var(--bad);}
+.pg.half{border-style:dashed;}
+.pg.flash{box-shadow:0 0 0 3px var(--accent-soft),0 0 0 4px var(--accent);}
+.recs{display:flex;flex-direction:column;gap:3px;max-height:190px;overflow-y:auto;}
+.rec{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;padding:2px 6px;border-radius:5px;
+  background:var(--sunk);border:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;text-align:left;width:100%;}
+.rec:hover{border-color:var(--accent);}
+.rec.commit{color:var(--dur);font-weight:700;}
+.rec.clr{color:var(--undo);}
+.rec.ckpt{color:var(--accent);}
+.rec.flash{box-shadow:0 0 0 2px var(--accent);}
+.empty{color:var(--muted);font-size:12.5px;font-style:italic;}
+.counter{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;}
+.txbox{border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:var(--sunk);}
+.txbox .tn{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;}
+.txbox .td{color:var(--muted);font-size:12.5px;margin:2px 0 7px;}
+.btns{display:flex;gap:6px;flex-wrap:wrap;}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;}
+button:hover:not(:disabled){border-color:var(--accent);}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+button:disabled{opacity:.4;cursor:default;}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--onaccent);font-weight:600;}
+button.danger{border-color:var(--bad-line);color:var(--bad);background:var(--bad-soft);font-weight:600;}
+button.sm{padding:3px 8px;font-size:13px;}
+.pill{font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-weight:600;}
+.pill.run{background:var(--vol-soft);border-color:var(--vol-line);color:var(--vol);}
+.pill.ok{background:var(--dur-soft);border-color:var(--dur-line);color:var(--dur);}
+.pill.gone{background:var(--bad-soft);border-color:var(--bad-line);color:var(--bad);}
+.transport{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.tick{font-family:"JetBrains Mono",ui-monospace,monospace;background:var(--card);border:1px solid var(--line);
+  border-radius:7px;padding:4px 10px;font-size:13px;color:var(--muted);}
+.verdict{border-left:5px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:11px 13px;}
+.verdict.ok{border-left-color:var(--dur);background:var(--dur-soft);}
+.verdict.bad{border-left-color:var(--bad);background:var(--bad-soft);}
+.verdict.warn{border-left-color:var(--vol);background:var(--vol-soft);}
+.verdict .big{font-family:"Zilla Slab",Georgia,serif;font-size:18px;font-weight:600;margin-bottom:3px;}
+.verdict .why{font-size:13.5px;}
+.tally{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+.tally .t{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px;}
+.tally .t b{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+.pol{display:flex;flex-direction:column;gap:7px;}
+.sw{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:5px 7px;border-radius:7px;border:1px solid transparent;}
+.sw:hover{background:var(--sunk);}
+.sw input{margin-top:3px;accent-color:var(--accent);flex:none;}
+.sw .sn{font-size:13.5px;font-weight:600;}
+.sw .sd{font-size:12px;color:var(--muted);}
+.log{display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto;}
+.ev{border-left:3px solid var(--line);padding-left:9px;}
+.ev .s{font-size:13.5px;}
+.ev .t{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--muted);margin-top:1px;}
+.ev.k-dur{border-left-color:var(--dur);} .ev.k-vol{border-left-color:var(--vol);}
+.ev.k-bad{border-left-color:var(--bad);} .ev.k-redo{border-left-color:var(--redo);}
+.ev.k-undo{border-left-color:var(--undo);} .ev.k-acc{border-left-color:var(--accent);}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px;}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--line);}
+.scengrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;margin-top:12px;}
+.scen .q{font-weight:600;margin:2px 0 8px;}
+.scen .opts{display:flex;flex-direction:column;gap:6px;}
+.scen .opts button{text-align:left;}
+.scen .res{margin-top:9px;border-radius:7px;padding:9px 11px;font-size:13.5px;display:none;}
+.scen .res.show{display:block;}
+.scen .res.right{background:var(--dur-soft);border:1px solid var(--dur-line);}
+.scen .res.wrong{background:var(--bad-soft);border:1px solid var(--bad-line);}
+.scen .res .hd{font-weight:700;margin-bottom:3px;}
+.inspect{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;white-space:pre-wrap;color:var(--muted);}
+.note{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:9px;margin-top:11px;}
+.gravity{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.14em;margin:-4px 0;text-transform:uppercase;}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.pg,.rec{transition:box-shadow .18s ease,background .18s ease,border-color .18s ease;}
+</style>
+
+<div class="wrap">
+<h1>Vikram's Morning</h1>
+<p class="lede">A branch office keeps one bound <b>ledger</b> — Ravi's balance on page 5, Meera's on page 9, ₹1000 between them. Asha the cashier moves money by changing two numbers. At any instant the <b>fire alarm</b> can empty the building, and next morning a different cashier, <b>Vikram</b>, must put the books right knowing only what survived the night. Everything here is a database: Asha's desk is memory, the safe is the disk, and the rough <b>day-book</b> is a write-ahead log. Break it, then watch recovery fix it.</p>
+
+<div class="transport">
+  <button class="primary" id="story">▶ Run the whole story</button>
+  <button id="back">◂ Back</button>
+  <button id="stepb">Step ▸</button>
+  <button id="play">▶ Play</button>
+  <button id="reset">Reset</button>
+  <span class="tick m" id="tick">step 0</span>
+  <span class="tick m" id="mode">running</span>
+</div>
+
+<div class="cols">
+  <div class="stage">
+
+    <div class="card">
+      <h3>The counter <span class="hint">what Asha is asked to do</span></h3>
+      <div class="counter" id="counter"></div>
+      <div class="note" id="counternote"></div>
+    </div>
+
+    <div class="band ram">
+      <div class="bandhead">
+        <span class="nm">RAM — Asha's desk</span>
+        <span class="why">Evaporates in <b>any</b> crash. Nothing here is a promise.</span>
+      </div>
+      <div class="split">
+        <div class="sub"><div class="st">Buffer pool — ledger pages being worked on</div><div class="pages" id="pool"></div></div>
+        <div class="sub"><div class="st">Log buffer — day-book lines not yet handed over</div><div class="recs" id="logbuf"></div></div>
+      </div>
+    </div>
+    <div class="gravity">↓ write() ↓</div>
+
+    <div class="band osc">
+      <div class="bandhead">
+        <span class="nm">OS page cache — the out-tray</span>
+        <span class="why">Survives the <b>process</b> dying. Burns in a <b>power cut</b>.</span>
+      </div>
+      <div class="split">
+        <div class="sub"><div class="st">Handed to the kernel, not yet sealed</div><div class="recs" id="logcache"></div></div>
+        <div class="sub"><div class="st">Device write cache <span id="lyingtag"></span></div><div class="recs" id="logdev"></div></div>
+      </div>
+    </div>
+    <div class="gravity">↓ fsync() ↓</div>
+
+    <div class="band disk">
+      <div class="bandhead">
+        <span class="nm">DISK — the fireproof safe</span>
+        <span class="why">The only thing Vikram will find in the morning.</span>
+      </div>
+      <div class="split">
+        <div class="sub"><div class="st">Day-book (WAL) — sealed, append-only</div><div class="recs" id="logdisk"></div></div>
+        <div class="sub"><div class="st">Bound ledger (data file)</div><div class="pages" id="disk"></div>
+          <div class="btns" style="margin-top:8px" id="flushbtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--vol-soft);border-color:var(--vol-line)"></i>volatile — will evaporate</span>
+      <span><i style="background:var(--cache-soft);border-color:var(--cache-line)"></i>written, not sealed</span>
+      <span><i style="background:var(--dur-soft);border-color:var(--dur-line)"></i>sealed — survives power loss</span>
+      <span><i style="background:var(--bad-soft);border-color:var(--bad-line)"></i>promise broken / damaged</span>
+    </div>
+
+    <div class="card">
+      <h3>Inspector <span class="hint">click any page or day-book line</span></h3>
+      <div class="inspect" id="inspect">Nothing selected.</div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card">
+      <h3>The verdict <span class="hint">what a customer would say</span></h3>
+      <div class="verdict" id="verdict"><div class="big">Books balance.</div><div class="why">Nothing has happened yet.</div></div>
+      <div class="tally" id="tally"></div>
+    </div>
+
+    <div class="card">
+      <h3>The fire alarm</h3>
+      <div class="btns">
+        <button class="danger" id="crashp">Kill the process</button>
+        <button class="danger" id="crashw">Cut the power</button>
+      </div>
+      <div class="note" style="border:0;padding-top:7px;margin-top:7px">Killing the process loses Asha's desk. Cutting the power loses the out-tray too — that is the whole difference between <span class="m">kill -9</span> and a power cut.</div>
+      <div class="btns" style="margin-top:8px"><button class="primary" id="recover" disabled>Open the branch (recover)</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Policies <span class="hint">each one breaks something specific</span></h3>
+      <div class="pol" id="pol"></div>
+    </div>
+
+    <div class="card">
+      <h3>What just happened</h3>
+      <div class="log" id="events"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3>Predict, then run <span class="hint">guess before you press — being wrong is the lesson</span></h3>
+  <div class="scengrid" id="scens"></div>
+  <div class="note">Simplifications, stated honestly: data pages are shown going straight from the buffer pool to the safe (their own OS-cache hop is elided — it is the <em>log's</em> hop that decides durability); undo here writes literal old values, so real engines' logical undo is described in the doc rather than simulated; and torn-page repair is modelled as "the log kept a full copy of this page or it didn't".</div>
+</div>
+</div>
+
+<script id="engine">
+/* ---------- pure simulation engine (no DOM) ---------- */
+var BASE = {5:{who:"Ravi",v:700}, 9:{who:"Meera",v:300}};
+var TXDEF = {
+  T1:{name:"T1 — move ₹500 Ravi → Meera", deltas:{5:-500,9:500}},
+  T2:{name:"T2 — move ₹100 Meera → Ravi", deltas:{9:-100,5:100}}
+};
+
+function initState(pol){
+  return {
+    n:0, nextLsn:101,
+    log:{buf:[],cache:[],dev:[],disk:[]},
+    pool:{}, disk:{5:{v:700,pageLSN:100},9:{v:300,pageLSN:100}},
+    half:null, torn:{}, fpi:{},
+    txns:{}, acked:[],
+    pol: pol || {wal:true, steal:true, force:false, fsync:true, fpw:true, lying:false},
+    dead:false, deadKind:null, rec:null,
+    pending:[], events:[], sel:null, flash:null
+  };
+}
+function clone(s){ return JSON.parse(JSON.stringify(s)); }
+function poolOrLoad(s,p){ if(!s.pool[p]) s.pool[p]={v:s.disk[p].v, pageLSN:s.disk[p].pageLSN, dirty:false, tx:null}; return s.pool[p]; }
+function allLog(s){ return s.log.disk.concat(s.log.dev, s.log.cache, s.log.buf); }
+function findRec(s,lsn){ var a=allLog(s); for(var i=0;i<a.length;i++) if(a[i].lsn===lsn) return a[i]; return null; }
+function say(s,txt,tech,kind){ s.events.unshift({s:txt,t:tech||"",k:kind||"acc",n:s.n}); if(s.events.length>60) s.events.pop(); }
+
+/* ---- enqueue helpers: every user action becomes a list of micro-steps ---- */
+function enq(s,steps){ s.pending = s.pending.concat(steps); }
+
+function actBegin(s,tx){
+  enq(s,[{op:"begin",tx:tx}]);
+}
+function actUpdate(s,tx,page){
+  var d = TXDEF[tx].deltas[page];
+  enq(s,[{op:"update",tx:tx,page:page,delta:d}]);
+}
+function actCommit(s,tx){
+  var st=[{op:"commitrec",tx:tx}];
+  if(s.pol.force){
+    var ds=dirtyOf(s,tx);
+    for(var i=0;i<ds.length;i++) st=st.concat(flushSteps(s,ds[i]));
+  }
+  st.push({op:"logwrite"});
+  if(s.pol.fsync) st.push({op:"logsync"});
+  st.push({op:"ack",tx:tx});
+  enq(s,st);
+}
+function actAbort(s,tx){
+  enq(s,[{op:"rollback",tx:tx}]);
+}
+function dirtyOf(s,tx){ var r=[]; for(var p in s.pool) if(s.pool[p].dirty && s.pool[p].tx===tx) r.push(+p); return r; }
+function flushSteps(s,page){
+  return [{op:"flushprep",page:page},{op:"flushhalf",page:page},{op:"flushdone",page:page}];
+}
+function actFlush(s,page){ enq(s,flushSteps(s,page)); }
+function actCheckpoint(s){ enq(s,[{op:"ckpt"}]); }
+function actBadWrite(s){ enq(s,[{op:"begin",tx:"T3"},{op:"badupd"},{op:"commitrec",tx:"T3"},{op:"logwrite"},{op:"logsync"},{op:"ack",tx:"T3"}]); }
+function actCrash(s,kind){ enq(s,[{op:"crash",kind:kind}]); }
+function actRecover(s){ enq(s,[{op:"recstart"}]); }
+
+/* ---- the reducer: apply exactly one micro-step ---- */
+function step(s){
+  if(s.pending.length){ var st=s.pending.shift(); s.n++; apply(s,st); return s; }
+  if(s.rec && !s.rec.done){ s.n++; recStep(s); return s; }
+  return s;
+}
+function apply(s,st){
+  s.flash=null;
+  var p,r,tx;
+  switch(st.op){
+    case "begin":
+      s.txns[st.tx]={status:"running",lastLsn:null};
+      if(s.pol.wal){ r={lsn:s.nextLsn++,type:"begin",tx:st.tx,prev:null}; s.log.buf.push(r); s.txns[st.tx].lastLsn=r.lsn;
+        say(s,"Asha opens "+st.tx+" in the day-book. Nothing has changed yet — this line just says a job has started.","#"+r.lsn+" "+st.tx+" BEGIN","acc"); }
+      else say(s,"Asha starts "+st.tx+" with no day-book at all. Nobody will ever know this job existed.","(WAL off)","bad");
+      break;
+    case "update":
+      p=poolOrLoad(s,st.page);
+      var before=p.v, after=p.v+st.delta;
+      if(s.pol.wal){
+        var needFpi = s.pol.fpw && !s.fpi[st.page];
+        r={lsn:s.nextLsn++,type:"update",tx:st.tx,page:st.page,before:before,after:after,prev:s.txns[st.tx].lastLsn,fpi:needFpi};
+        s.log.buf.push(r); s.txns[st.tx].lastLsn=r.lsn;
+        if(needFpi) s.fpi[st.page]=r.lsn;
+        p.v=after; p.pageLSN=r.lsn; p.dirty=true; p.tx=st.tx; s.flash={pg:st.page,rec:r.lsn};
+        say(s,"Asha writes the intention down first, then changes the page on her desk: "+BASE[st.page].who+" goes ₹"+before+" → ₹"+after+".",
+          "#"+r.lsn+" "+st.tx+" p"+st.page+" before ₹"+before+" after ₹"+after+(needFpi?" +full-page image":""),"vol");
+      } else {
+        p.v=after; p.pageLSN=0; p.dirty=true; p.tx=st.tx; s.flash={pg:st.page};
+        say(s,"Asha changes the page on her desk with no note anywhere: "+BASE[st.page].who+" ₹"+before+" → ₹"+after+".","(no log record written)","bad");
+      }
+      break;
+    case "badupd":
+      p=poolOrLoad(s,5); var b2=p.v;
+      r={lsn:s.nextLsn++,type:"update",tx:"T3",page:5,before:b2,after:-50,prev:s.txns.T3.lastLsn,fpi:false};
+      s.log.buf.push(r); s.txns.T3.lastLsn=r.lsn; p.v=-50; p.pageLSN=r.lsn; p.dirty=true; p.tx="T3"; s.flash={pg:5,rec:r.lsn};
+      say(s,"The application sets Ravi's balance to −₹50. No constraint was ever declared, so nothing objects.","#"+r.lsn+" T3 p5 before ₹"+b2+" after ₹-50","bad");
+      break;
+    case "commitrec":
+      if(s.pol.wal){ r={lsn:s.nextLsn++,type:"commit",tx:st.tx,prev:s.txns[st.tx].lastLsn}; s.log.buf.push(r);
+        s.txns[st.tx].lastLsn=r.lsn; s.flash={rec:r.lsn};
+        say(s,"The commit line is written — but it is still on Asha's desk. It is not a promise until it reaches the safe.","#"+r.lsn+" "+st.tx+" COMMIT","vol"); }
+      s.txns[st.tx].status="committed";
+      break;
+    case "logwrite":
+      if(s.log.buf.length){ var k=s.log.buf.length; s.log.cache=s.log.cache.concat(s.log.buf); s.log.buf=[];
+        say(s,"Asha hands "+k+" day-book line"+(k>1?"s":"")+" to the out-tray. Safe from her walking out — not safe from fire.","write() → OS page cache","cache"); }
+      break;
+    case "logsync":
+      var moved=s.log.cache.length;
+      if(!moved){ say(s,"Nothing waiting to be sealed.","fsync() no-op","acc"); break; }
+      if(s.pol.lying){ s.log.dev=s.log.dev.concat(s.log.cache); s.log.cache=[];
+        say(s,"The safe says “sealed” and it is lying — the "+moved+" line"+(moved>1?"s are":" is")+" still in a cache that a power cut wipes.","fsync() returned, data still volatile","bad"); }
+      else { s.log.disk=s.log.disk.concat(s.log.cache); s.log.cache=[];
+        say(s,moved+" day-book line"+(moved>1?"s are":" is")+" now sealed in the safe. This is the moment a promise can be made.","fsync() → durable","dur"); }
+      break;
+    case "ack":
+      s.acked.push(st.tx);
+      say(s,"Asha tells the customer “done” for "+st.tx+". From now on the books owe them this transfer.","COMMIT acknowledged to client","dur");
+      break;
+    case "flushprep":
+      if(s.pol.wal){
+        p=poolOrLoad(s,st.page);
+        var need=[], i;
+        for(i=0;i<s.log.buf.length;i++) if(s.log.buf[i].lsn<=p.pageLSN) need.push(s.log.buf[i]);
+        if(s.log.cache.length||need.length){
+          s.log.cache=s.log.cache.concat(s.log.buf); s.log.buf=[];
+          if(s.pol.lying){ s.log.dev=s.log.dev.concat(s.log.cache); } else { s.log.disk=s.log.disk.concat(s.log.cache); }
+          s.log.cache=[];
+          say(s,"The WAL rule fires: before page "+st.page+" may be written, every day-book line describing it must already be sealed.","seal log through #"+p.pageLSN+", then write page","dur");
+          break;
+        }
+      }
+      say(s,"Log is already sealed past page "+st.page+"; the page write may proceed.","WAL rule satisfied","acc");
+      break;
+    case "flushhalf":
+      s.half={page:st.page, v:s.pool[st.page].v, pageLSN:s.pool[st.page].pageLSN};
+      s.flash={pg:st.page};
+      say(s,"The write of page "+st.page+" is in progress — the sectors are going down one at a time. A crash right now leaves it half old and half new.","write() page "+st.page+" (in flight)","vol");
+      break;
+    case "flushdone":
+      p=s.pool[st.page];
+      s.disk[st.page]={v:p.v,pageLSN:p.pageLSN}; p.dirty=false; s.half=null; s.flash={pg:st.page};
+      say(s,"Page "+st.page+" is now in the bound ledger: "+BASE[st.page].who+" = ₹"+p.v+". Note this can happen for an uncommitted job — that is “steal”.",
+        "page "+st.page+" → data file, pageLSN #"+p.pageLSN,"dur");
+      break;
+    case "ckpt":
+      r={lsn:s.nextLsn++,type:"ckpt",active:Object.keys(s.txns).filter(function(t){return s.txns[t].status==="running";})};
+      s.log.buf.push(r); s.log.cache=s.log.cache.concat(s.log.buf); s.log.buf=[];
+      s.log.disk=s.log.disk.concat(s.log.cache); s.log.cache=[]; s.fpi={};
+      say(s,"Checkpoint: a line saying “Vikram may start reading from here”. Recovery no longer has to read the whole day-book.","#"+r.lsn+" CHECKPOINT","acc");
+      break;
+    case "rollback":
+      tx=st.tx;
+      var chain=[], cur=s.txns[tx].lastLsn, guard=0;
+      while(cur && guard++<50){ var rr=findRec(s,cur); if(!rr) break; if(rr.type==="update") chain.push(rr); cur=rr.prev; }
+      for(var j=0;j<chain.length;j++){
+        var u=chain[j]; p=poolOrLoad(s,u.page);
+        var clr={lsn:s.nextLsn++,type:"clr",tx:tx,page:u.page,after:u.before,undoes:u.lsn,undoNext:u.prev,prev:s.txns[tx].lastLsn};
+        s.log.buf.push(clr); s.txns[tx].lastLsn=clr.lsn;
+        p.v=u.before; p.pageLSN=clr.lsn; p.dirty=true;
+      }
+      s.txns[tx].status="aborted";
+      say(s,"The customer changed their mind, so "+tx+" is rolled back using the old values in the day-book — the very same machinery recovery uses.",
+        chain.length+" compensation record(s) written","undo");
+      break;
+    case "crash":
+      s.dead=true; s.deadKind=st.kind; s.rec=null;
+      /* work in flight is lost; a restart that was already scheduled still happens */
+      s.pending=s.pending.filter(function(x){ return x.op==="recstart"; });
+      s.pool={}; s.log.buf=[];
+      if(st.kind==="power"){ s.log.cache=[]; s.log.dev=[];
+        if(s.half){ if(s.pol.fpw && s.fpi[s.half.page]!==undefined){ } else { s.torn[s.half.page]=true; } s.half=null; }
+        say(s,"THE POWER IS CUT. Asha's desk and the out-tray are both gone. Only the safe survived.","volatile: buffer pool + OS cache + device cache lost","bad");
+      } else {
+        if(s.half){ s.half=null; }
+        say(s,"THE PROCESS IS KILLED. Asha walked out — but the out-tray is the building's, not hers, so anything handed over is still there.","volatile: buffer pool lost; OS cache intact","bad");
+      }
+      break;
+    case "recstart":
+      s.rec={phase:"analysis",i:0,losers:{},txt:{},dpt:{},redoFrom:null,undoSet:null,done:false,started:true};
+      var L=recLog(s), startIdx=0;
+      for(var q=L.length-1;q>=0;q--) if(L[q].type==="ckpt"){ startIdx=q; break; }
+      s.rec.i=startIdx;
+      say(s,"Vikram opens the branch. He reads the day-book from the last checkpoint and works out what was going on when the alarm went off.","RECOVERY — pass 1: analysis","acc");
+      break;
+  }
+}
+function recLog(s){
+  /* Whatever physically survived the crash and would be returned by reading the file:
+     always the platters; after a PROCESS kill also the OS cache and the device cache,
+     because neither of those belongs to the process. A power cut has already emptied them. */
+  var a=s.log.disk.concat(s.log.cache, s.log.dev);
+  a.sort(function(x,y){ return x.lsn-y.lsn; });
+  return a;
+}
+
+/* ---- recovery, one micro-step at a time ---- */
+function recStep(s){
+  s.flash=null;
+  var R=s.rec, L=recLog(s), i, rr;
+  if(R.phase==="analysis"){
+    if(R.i>=L.length){
+      R.losers={}; var any=false;
+      for(var t in R.txt) if(R.txt[t].status==="running"){ R.losers[t]=R.txt[t]; any=true; }
+      var mins=null; for(var pp in R.dpt) if(mins===null||R.dpt[pp]<mins) mins=R.dpt[pp];
+      R.redoFrom=mins; R.phase="redo"; R.i=0;
+      say(s,"Analysis done. "+(any?("Unfinished job(s): "+Object.keys(R.losers).join(", ")+" — these are the losers and everything they did must go."):"Every job in the log had finished. Nothing to undo."),
+        "losers="+(any?Object.keys(R.losers).join(","):"none")+"  redo from #"+(mins===null?"—":mins),"acc");
+      return;
+    }
+    rr=L[R.i++];
+    if(rr.type==="begin"){ R.txt[rr.tx]={status:"running",lastLsn:rr.lsn}; say(s,rr.tx+" had started.","#"+rr.lsn+" BEGIN "+rr.tx,"acc"); }
+    else if(rr.type==="update"||rr.type==="clr"){ if(!R.txt[rr.tx]) R.txt[rr.tx]={status:"running",lastLsn:rr.lsn}; R.txt[rr.tx].lastLsn=rr.lsn;
+      if(R.dpt[rr.page]===undefined) R.dpt[rr.page]=rr.lsn;
+      say(s,"Page "+rr.page+" was changed by "+rr.tx+", so the ledger copy may be out of date from here on.","#"+rr.lsn+" touches p"+rr.page,"acc"); }
+    else if(rr.type==="commit"){ if(R.txt[rr.tx]) R.txt[rr.tx].status="committed"; say(s,rr.tx+" had committed — the customer was told “done”, so its effects must end up in the ledger.","#"+rr.lsn+" COMMIT "+rr.tx,"dur"); }
+    else if(rr.type==="end"){ delete R.txt[rr.tx]; say(s,rr.tx+" was already fully taken back before the crash — nothing left to do for it.","#"+rr.lsn+" END "+rr.tx,"undo"); }
+    else if(rr.type==="ckpt"){ say(s,"Checkpoint line — this is where reading began.","#"+rr.lsn+" CHECKPOINT","acc"); }
+    return;
+  }
+  if(R.phase==="redo"){
+    if(R.redoFrom===null){ R.phase="undoinit"; return; }
+    while(R.i<L.length && (L[R.i].lsn<R.redoFrom || (L[R.i].type!=="update"&&L[R.i].type!=="clr"))) R.i++;
+    if(R.i>=L.length){ R.phase="undoinit"; say(s,"Redo finished. The ledger now looks exactly as it did at the instant of the alarm — including any damage from unfinished jobs.","RECOVERY — pass 2 complete","redo"); return; }
+    rr=L[R.i++];
+    if(s.torn[rr.page]){ say(s,"Page "+rr.page+" is damaged — half old, half new — so there is nothing coherent to apply this line to.","p"+rr.page+" TORN, redo cannot proceed on it","bad"); return; }
+    var d=s.disk[rr.page];
+    if(d.pageLSN>=rr.lsn){ say(s,"Line #"+rr.lsn+" is skipped: page "+rr.page+" already carries this change (its stamp is #"+d.pageLSN+"). This is what makes redo safe to run twice.","#"+rr.lsn+" ≤ pageLSN #"+d.pageLSN+" → skip","redo"); }
+    else { s.disk[rr.page]={v:rr.after,pageLSN:rr.lsn}; s.flash={pg:rr.page,rec:rr.lsn};
+      say(s,"Redo: page "+rr.page+" is set to ₹"+rr.after+", finishing work the log recorded but the ledger never received.","#"+rr.lsn+" > pageLSN → apply, p"+rr.page+" = ₹"+rr.after,"redo"); }
+    return;
+  }
+  if(R.phase==="undoinit"){
+    var set={}; var n=0;
+    for(var t2 in R.losers){ set[t2]=R.losers[t2].lastLsn; n++; }
+    R.undoSet=set; R.phase= n? "undo":"finish";
+    if(n) say(s,"Now the third pass: take back everything the unfinished jobs did, walking their lines backwards.","RECOVERY — pass 3: undo","undo");
+    return;
+  }
+  if(R.phase==="undo"){
+    var best=null,bt=null;
+    for(var t3 in R.undoSet){ var v=R.undoSet[t3]; if(v!==null&&v!==undefined&&(best===null||v>best)){best=v;bt=t3;} }
+    if(best===null){ R.phase="finish"; return; }
+    rr=findInLog(L,best);
+    if(!rr){ R.undoSet[bt]=null; return; }
+    if(rr.type==="clr"){ R.undoSet[bt]=rr.undoNext;
+      say(s,"Line #"+rr.lsn+" is a compensation record: this undo already happened before the crash, so it is not done again — and a compensation record is never itself undone.","#"+rr.lsn+" CLR → resume at #"+(rr.undoNext||"end"),"undo"); return; }
+    if(rr.type==="begin"){ R.undoSet[bt]=null;
+      var endr={lsn:s.nextLsn++,type:"end",tx:bt}; s.log.disk.push(endr);
+      say(s,bt+" is fully taken back. Its END line goes in the day-book so nobody undoes it again.","#"+endr.lsn+" "+bt+" END","undo"); return; }
+    if(rr.type==="update"){
+      var clr={lsn:s.nextLsn++,type:"clr",tx:bt,page:rr.page,after:rr.before,undoes:rr.lsn,undoNext:rr.prev,prev:null};
+      s.log.disk.push(clr);
+      if(!s.torn[rr.page]){ s.disk[rr.page]={v:rr.before,pageLSN:clr.lsn}; }
+      s.flash={pg:rr.page,rec:clr.lsn};
+      R.undoSet[bt]=rr.prev;
+      say(s,"Undo: page "+rr.page+" goes back to ₹"+rr.before+", the value it had before the unfinished job touched it. A compensation record records that this has been done.",
+        "#"+clr.lsn+" CLR undoes #"+rr.lsn+", undoNext=#"+(rr.prev||"—"),"undo");
+      return;
+    }
+    R.undoSet[bt]=rr.prev; return;
+  }
+  if(R.phase==="finish"){
+    R.done=true; s.dead=false;
+    for(var lt in R.losers){ if(s.txns[lt]) s.txns[lt].status="aborted"; }
+    var a=audit(s);
+    say(s,"Recovery is complete and the counter is open. "+a.line, a.tech, a.ok?"dur":"bad");
+    return;
+  }
+}
+function findInLog(L,lsn){ for(var i=0;i<L.length;i++) if(L[i].lsn===lsn) return L[i]; return null; }
+
+/* ---- the auditor: does the ledger honour what was promised? ----
+   It looks for ANY subset of transfers whose combined effect explains what the
+   books say. If no subset explains it, some transfer is half-applied. */
+function audit(s){
+  var tornPages=Object.keys(s.torn);
+  var view = s.dead ? s.disk : mergedView(s);
+  if(tornPages.length){
+    return {ok:false,total:null,broken:["Durability","Atomicity"],
+      line:"Page "+tornPages.join(", ")+" is damaged — half old, half new — so the ledger cannot be read at all.",
+      tech:"torn page(s): "+tornPages.join(",")};
+  }
+  var total=0; for(var p in view) total+=view[p].v;
+  var broken=[], reasons=[];
+
+  if(s.txns.T3 && s.acked.indexOf("T3")>=0 && view[5] && view[5].v<0){
+    broken.push("Consistency");
+    reasons.push("Ravi's balance is ₹"+view[5].v+" — a value no rule ever allowed, committed atomically and durably");
+    return {ok:false,total:total,broken:broken,line:broken.join(" and ")+" broken: "+reasons.join("; ")+".",
+      tech:"Σ balances = ₹"+total+" (no CHECK constraint was ever declared)"};
+  }
+
+  var txs=[]; if(s.txns.T1) txs.push("T1"); if(s.txns.T2) txs.push("T2");
+  var found=null;
+  for(var mask=0; mask< (1<<txs.length); mask++){
+    var exp={5:BASE[5].v, 9:BASE[9].v}, sub=[];
+    for(var i=0;i<txs.length;i++) if(mask&(1<<i)){
+      sub.push(txs[i]);
+      var d=TXDEF[txs[i]].deltas; for(var k in d) exp[k]+=d[k];
+    }
+    if(view[5]&&view[9]&&view[5].v===exp[5]&&view[9].v===exp[9]){ found=sub; break; }
+  }
+  if(found===null){
+    broken.push("Atomicity");
+    reasons.push("no combination of whole transfers explains ₹"+(view[5]?view[5].v:"?")+" and ₹"+(view[9]?view[9].v:"?")+" — a transfer is half-applied");
+  } else {
+    for(var a=0;a<s.acked.length;a++){
+      var t=s.acked[a]; if(t==="T3") continue;
+      if(found.indexOf(t)<0){ if(broken.indexOf("Durability")<0) broken.push("Durability");
+        reasons.push(t+" was acknowledged to the customer and is not in the books"); }
+    }
+    for(var b=0;b<found.length;b++){
+      var f=found[b];
+      if(s.txns[f] && s.txns[f].status!=="committed"){ if(broken.indexOf("Atomicity")<0) broken.push("Atomicity");
+        reasons.push(f+" never committed, yet its effects are in the books"); }
+    }
+  }
+  var ok=broken.length===0;
+  return {ok:ok,total:total,broken:broken,
+    line: ok ? ("Total ₹"+total+", every acknowledged transfer present in full, no half-transfers.")
+             : (broken.join(" and ")+" broken: "+reasons.join("; ")+". Total reads ₹"+total+"."),
+    tech:"Σ balances = ₹"+total+" (must be ₹1000)"};
+}
+function mergedView(s){
+  var v={}; for(var p in s.disk) v[p]={v:s.disk[p].v};
+  for(var q in s.pool) v[q]={v:s.pool[q].v};
+  return v;
+}
+</script>
+
+<script>
+/* ---------- UI ---------- */
+var S = initState(), HIST=[], timer=null;
+var POLS=[
+  {k:"wal", n:"Keep a day-book (write-ahead log)", d:"Off = change the ledger directly with no notes. This is §3's naive design."},
+  {k:"steal", n:"Allow stealing pages", d:"On = an unfinished job's page may reach the safe. Needed for jobs bigger than memory; forces undo to exist."},
+  {k:"force", n:"Force pages at commit", d:"On = write every touched page to the safe before saying “done”. Correct, and expensive."},
+  {k:"fsync", n:"Seal the log before saying “done”", d:"Off = acknowledge from the out-tray. Survives a process kill, not a power cut."},
+  {k:"fpw", n:"Keep a full page copy in the log", d:"Off = a crash mid-page-write leaves a page half old, half new, unrepairable."},
+  {k:"lying", n:"The safe lies about sealing", d:"On = fsync returns while data sits in a volatile device cache. Nothing reports an error."}
+];
+var SCENS=[
+  {id:"s1",q:"Asha has said “done” and the day-book is sealed — but neither ledger page has been written yet. The power is cut. What does Vikram find?",
+   opts:["The transfer is lost — nothing reached the ledger","The transfer is there — recovery finishes it from the day-book","Half the transfer is there"],a:1,
+   why:"Redo. The commit line was sealed, so the promise was real; recovery replays lines #102 and #103 into the ledger. This is the normal state of every busy database at crash time — committed work usually lives only in the log.",
+   run:function(){ reset(true); seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],["crash","power"],["recover"]]); }},
+  {id:"s2",q:"Turn OFF “seal the log before saying done”, so Asha acknowledges from the out-tray. Then compare: kill the process, versus cut the power.",
+   opts:["Both lose the transfer","Both keep it","The process kill keeps it; the power cut loses it"],a:2,
+   why:"You are watching the power-cut half, and it loses the transfer. To see the other half: press <b>Reset</b> (it keeps this switch off), replay Begin → Change page 5 → Change page 9 → Commit, and then press <b>Kill the process</b> instead — the transfer survives. The out-tray belongs to the building, not to Asha. A process kill leaves it intact, so the log line is still found. A power cut takes it. This is exactly your redis lab's measured result — kill -9 with appendfsync no lost nothing, power loss cost 530 ms of traffic — and it is why innodb_flush_log_at_trx_commit=2 is a real, defensible setting rather than simply “unsafe”.",
+   run:function(){ reset(true); setPol("fsync",false); seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],["crash","power"],["recover"]]); }},
+  {id:"s3",q:"T2 has changed Meera's page but has NOT committed, and that page gets written to the safe anyway. Then the power is cut. What must recovery do?",
+   opts:["Nothing — uncommitted data never reaches the safe","Redo it, since it is in the ledger","Undo it, using the old value from the day-book"],a:2,
+   why:"Undo. Stealing pages is mandatory once a job is bigger than memory, so uncommitted data on disk is designed for, not accidental. Watch redo run FIRST and leave the total at ₹900 — it repeats history on purpose so undo always starts from the pre-crash state.",
+   run:function(){ reset(true); seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],["begin","T2"],["upd","T2",9],["flush",9],["crash","power"],["recover"]]); }},
+  {id:"s4",q:"Turn the day-book OFF entirely — Asha just changes the ledger carefully, page 5 then page 9. The alarm goes off between the two. What is the total?",
+   opts:["₹1000 — the database repairs itself","₹500 — ₹500 has silently vanished","An error is raised at startup"],a:1,
+   why:"₹500, with no error anywhere. There is no record that the two changes belonged together, so nothing can detect or repair it. Atomicity is not something a database has by being careful; it is something the log buys.",
+   run:function(){ reset(true); setPol("wal",false); seq([["begin","T1"],["upd","T1",5],["flush",5],["upd","T1",9],["crash","power"],["recover"]]); }},
+  {id:"s5",q:"The power is cut a second time, in the middle of the undo pass. We recover again from scratch. What is the final total?",
+   opts:["₹1000 — recovery is restartable","₹900 — the half-finished undo is lost","₹1100 — the undo is applied twice"],a:0,
+   why:"₹1000. Redo is idempotent because of the stamp on each page, and undo resumes from the last compensation record's undoNext pointer instead of starting over. Recovery is not a privileged mode — it can be interrupted like anything else, so it was designed to be interrupted.",
+   run:function(){ reset(true); seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],["begin","T2"],["upd","T2",9],["flush",9],["crash","power"],["recover"]]); }},
+  {id:"s6",q:"Turn OFF “keep a full page copy in the log”, then cut the power while a ledger page is being written. What does recovery do with that page?",
+   opts:["Replays the day-book onto it and repairs it","Nothing can repair it — it is half old, half new","Rejects the whole database and starts empty"],a:1,
+   why:"Nothing can repair it. Redo instructions say things like “set the balance field in slot 3”, which is meaningless if half the page's structure is from before and half from after. This is why full_page_writes (PostgreSQL) and the doublewrite buffer (InnoDB) exist, and why turning them off is a bet on your storage, not a performance tip.",
+   run:function(){ reset(true); setPol("fpw",false); seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],["flushhalfonly",9],["crash","power"],["recover"]]); }}
+];
+
+function $(id){ return document.getElementById(id); }
+function push(){ HIST.push(clone(S)); if(HIST.length>400) HIST.shift(); }
+var DEFPOL={wal:true, steal:true, force:false, fsync:true, fpw:true, lying:false};
+/* reset() keeps whatever switches you have set, so you can re-run your own experiment.
+   reset(true) restores the defaults — every scenario starts from a known board. */
+function reset(defaults){ stop(); var pol = defaults? clone(DEFPOL) : clone(S.pol); S=initState(pol); HIST=[]; render(); }
+function setPol(k,v){ S.pol[k]=v; render(); }
+
+function doStep(){ if(!S.pending.length && !(S.rec&&!S.rec.done)) return false; push(); step(S); render(); return true; }
+function back(){ if(!HIST.length) return; S=HIST.pop(); render(); }
+function stop(){ if(timer){clearInterval(timer);timer=null;} $("play").textContent="▶ Play"; }
+function play(){ if(timer){stop();return;} $("play").textContent="❚❚ Pause"; timer=setInterval(function(){ if(!doStep()) stop(); },520); }
+function runAll(){ var guard=0; while(doStepSilent()&&guard++<600){} render(); }
+function doStepSilent(){ if(!S.pending.length && !(S.rec&&!S.rec.done)) return false; push(); step(S); return true; }
+
+function seq(list){
+  for(var i=0;i<list.length;i++){
+    var a=list[i];
+    if(a[0]==="begin") actBegin(S,a[1]);
+    else if(a[0]==="upd") actUpdate(S,a[1],a[2]);
+    else if(a[0]==="commit") actCommit(S,a[1]);
+    else if(a[0]==="abort") actAbort(S,a[1]);
+    else if(a[0]==="flush") actFlush(S,a[1]);
+    else if(a[0]==="flushhalfonly") enq(S,[{op:"flushprep",page:a[1]},{op:"flushhalf",page:a[1]}]);
+    else if(a[0]==="ckpt") actCheckpoint(S);
+    else if(a[0]==="crash") actCrash(S,a[1]);
+    else if(a[0]==="recover") actRecover(S);
+  }
+  render();
+}
+
+function render(){
+  $("tick").textContent="step "+S.n;
+  $("mode").textContent = S.dead ? (S.rec? "recovering":"CRASHED — press recover") : (S.rec&&S.rec.done? "recovered":"running");
+  $("mode").style.color = S.dead? "var(--bad)":"var(--muted)";
+  $("recover").disabled = !S.dead || !!S.rec;
+  $("crashp").disabled = S.dead; $("crashw").disabled = S.dead;
+  $("back").disabled = !HIST.length;
+  $("stepb").disabled = !(S.pending.length || (S.rec&&!S.rec.done));
+  $("lyingtag").textContent = S.pol.lying ? "— lying about fsync" : "— unused unless the safe lies";
+
+  renderCounter(); renderPool(); renderRecs("logbuf",S.log.buf); renderRecs("logcache",S.log.cache);
+  renderRecs("logdev",S.log.dev); renderRecs("logdisk",S.log.disk); renderDisk(); renderFlush();
+  renderVerdict(); renderEvents(); renderPol(); renderInspect();
+}
+function txPill(t){
+  var st=S.txns[t];
+  if(!st) return '<span class="pill">not started</span>';
+  if(st.status==="committed"&&S.acked.indexOf(t)>=0) return '<span class="pill ok">told “done”</span>';
+  if(st.status==="committed") return '<span class="pill run">commit line written</span>';
+  if(st.status==="aborted") return '<span class="pill gone">rolled back</span>';
+  return '<span class="pill run">in progress</span>';
+}
+function renderCounter(){
+  var h="", ts=["T1","T2"];
+  for(var i=0;i<ts.length;i++){
+    var t=ts[i], d=TXDEF[t], st=S.txns[t], live=!S.dead;
+    var started=!!st, running=st&&st.status==="running";
+    h+='<div class="txbox"><div class="tn">'+t+' '+txPill(t)+'</div><div class="td">'+d.name.split("— ")[1]+'</div><div class="btns">'+
+      btn("begin-"+t,"Begin",!live||started)+
+      btn("u1-"+t,"Change page 5",!live||!running)+
+      btn("u2-"+t,"Change page 9",!live||!running)+
+      btn("c-"+t,"Commit + tell customer",!live||!running)+
+      btn("a-"+t,"Customer cancels",!live||!running)+
+      '</div></div>';
+  }
+  h+='<div class="txbox"><div class="tn">T3 <span class="pill">the C problem</span></div><div class="td">Write a balance of −₹50 and commit it</div><div class="btns">'+
+    btn("bad","Commit nonsense",!(!S.dead)||!!S.txns.T3)+btn("ckpt","Checkpoint now",S.dead)+'</div></div>';
+  $("counter").innerHTML=h;
+  for(var j=0;j<ts.length;j++) wire(ts[j]);
+  var b=$("bad"); if(b) b.onclick=function(){ actBadWrite(S); render(); };
+  var c=$("ckpt"); if(c) c.onclick=function(){ actCheckpoint(S); render(); };
+  $("counternote").innerHTML = S.pol.steal? "In a real database you do <b>not</b> choose when a page is written to disk — a background writer does it whenever it likes. That is why every combination below has to be survivable. The buttons under the ledger let you play that role by hand."
+    : "<b>Stealing is off</b>, so pages of an unfinished job cannot be written to the safe. Correct, but it caps a job at the size of memory — which is why no real engine does this.";
+}
+function btn(id,label,dis){ return '<button class="sm" id="'+id+'"'+(dis?' disabled':'')+'>'+label+'</button>'; }
+function wire(t){
+  var b;
+  b=$("begin-"+t); if(b) b.onclick=function(){ actBegin(S,t); render(); };
+  b=$("u1-"+t); if(b) b.onclick=function(){ actUpdate(S,t,5); render(); };
+  b=$("u2-"+t); if(b) b.onclick=function(){ actUpdate(S,t,9); render(); };
+  b=$("c-"+t); if(b) b.onclick=function(){ actCommit(S,t); render(); };
+  b=$("a-"+t); if(b) b.onclick=function(){ actAbort(S,t); render(); };
+}
+function pageCard(p,rec,dirty,torn,half,flash){
+  var cls="pg"+(dirty?" dirty":"")+(torn?" torn":"")+(half?" half":"")+(flash?" flash":"");
+  var val = torn? "— torn —" : "₹"+rec.v;
+  return '<button class="'+cls+'" data-pg="'+p+'"><div class="who">page '+p+' · '+BASE[p].who+'</div><div class="val">'+val+
+    '</div><div class="lsn">stamp #'+(rec.pageLSN||"—")+(dirty?" · dirty":"")+'</div></button>';
+}
+function renderPool(){
+  var ks=Object.keys(S.pool), h="";
+  if(!ks.length) h='<span class="empty">'+(S.dead?"gone — the desk burned":"no pages loaded yet")+'</span>';
+  for(var i=0;i<ks.length;i++){ var p=ks[i]; h+=pageCard(p,S.pool[p],S.pool[p].dirty,false,false,S.flash&&S.flash.pg==p); }
+  $("pool").innerHTML=h; bindPages("pool");
+}
+function renderDisk(){
+  var h="";
+  for(var p in S.disk){ var isHalf=S.half&&S.half.page==p; h+=pageCard(p,S.disk[p],false,!!S.torn[p],isHalf,S.flash&&S.flash.pg==p); }
+  $("disk").innerHTML=h; bindPages("disk");
+}
+function bindPages(id){
+  var ns=$(id).querySelectorAll("[data-pg]");
+  for(var i=0;i<ns.length;i++) ns[i].onclick=(function(p){ return function(){ S.sel={kind:"page",p:p}; renderInspect(); }; })(ns[i].getAttribute("data-pg"));
+}
+function recLine(r){
+  if(r.type==="begin") return "#"+r.lsn+"  "+r.tx+" BEGIN";
+  if(r.type==="commit") return "#"+r.lsn+"  "+r.tx+" COMMIT";
+  if(r.type==="end") return "#"+r.lsn+"  "+r.tx+" END";
+  if(r.type==="ckpt") return "#"+r.lsn+"  CHECKPOINT";
+  if(r.type==="clr") return "#"+r.lsn+"  "+r.tx+" CLR p"+r.page+" → ₹"+r.after+"  undoNext #"+(r.undoNext||"—");
+  return "#"+r.lsn+"  "+r.tx+" p"+r.page+"  ₹"+r.before+" → ₹"+r.after+(r.fpi?"  +page copy":"");
+}
+function renderRecs(id,arr){
+  var h="";
+  if(!arr.length) h='<span class="empty">empty</span>';
+  for(var i=0;i<arr.length;i++){ var r=arr[i];
+    var cls="rec"+(r.type==="commit"?" commit":"")+(r.type==="clr"?" clr":"")+(r.type==="ckpt"?" ckpt":"")+((S.flash&&S.flash.rec===r.lsn)?" flash":"");
+    h+='<button class="'+cls+'" data-lsn="'+r.lsn+'">'+recLine(r)+'</button>';
+  }
+  $(id).innerHTML=h;
+  var ns=$(id).querySelectorAll("[data-lsn]");
+  for(var j=0;j<ns.length;j++) ns[j].onclick=(function(l){ return function(){ S.sel={kind:"rec",lsn:+l}; renderInspect(); }; })(ns[j].getAttribute("data-lsn"));
+}
+function renderFlush(){
+  var h="";
+  for(var p in S.disk){
+    var pl=S.pool[p], can = !S.dead && pl && pl.dirty && (S.pol.steal || (S.txns[pl.tx]&&S.txns[pl.tx].status!=="running"));
+    h+=btn("f-"+p,"Write page "+p+" to the safe",!can);
+  }
+  $("flushbtns").innerHTML=h;
+  for(var q in S.disk){ var b=$("f-"+q); if(b) b.onclick=(function(pg){ return function(){ actFlush(S,pg); render(); }; })(q); }
+}
+function renderVerdict(){
+  var a=audit(S), v=$("verdict");
+  var running = !S.dead && !(S.rec&&S.rec.done);
+  var cls="verdict", big, why;
+  if(S.dead && !S.rec){ cls+=" warn"; big="The building is empty."; why="Nothing can be judged until Vikram opens the branch. Press <b>Open the branch (recover)</b>."; }
+  else if(!a.ok){ cls+=" bad"; big=a.broken.length?(a.broken.join(" + ")+" broken"):"The books are wrong"; why=a.line; }
+  else { cls+=" ok"; big= running? "Books balance so far.":"Books balance. Every promise kept."; why=a.line; }
+  v.className=cls;
+  v.innerHTML='<div class="big">'+big+'</div><div class="why">'+why+'</div>';
+  var t="";
+  var view = S.dead? S.disk : mergedView(S);
+  for(var p in BASE){ t+='<div class="t">'+BASE[p].who+' <b>'+(S.torn[p]?"torn":"₹"+(view[p]?view[p].v:"?"))+'</b></div>'; }
+  t+='<div class="t">Total <b>'+(a.total===null?"unreadable":"₹"+a.total)+'</b> / ₹1000</div>';
+  t+='<div class="t">Sealed lines <b>'+S.log.disk.length+'</b></div>';
+  $("tally").innerHTML=t;
+}
+function renderEvents(){
+  var h="";
+  for(var i=0;i<S.events.length;i++){ var e=S.events[i];
+    h+='<div class="ev k-'+e.k+'"><div class="s">'+e.s+'</div>'+(e.t?'<div class="t">'+e.t+'</div>':'')+'</div>';
+  }
+  if(!h) h='<span class="empty">Nothing yet. Press a button at the counter, or “Run the whole story”.</span>';
+  $("events").innerHTML=h;
+}
+function renderPol(){
+  var h="";
+  for(var i=0;i<POLS.length;i++){ var p=POLS[i];
+    h+='<label class="sw"><input type="checkbox" id="p-'+p.k+'"'+(S.pol[p.k]?" checked":"")+'><span><span class="sn">'+p.n+'</span><br><span class="sd">'+p.d+'</span></span></label>';
+  }
+  $("pol").innerHTML=h;
+  for(var j=0;j<POLS.length;j++){ (function(k){ $("p-"+k).onchange=function(){ S.pol[k]=this.checked; render(); }; })(POLS[j].k); }
+}
+function renderInspect(){
+  var el=$("inspect");
+  if(!S.sel){ el.textContent="Nothing selected. Click a ledger page or a day-book line."; return; }
+  if(S.sel.kind==="page"){
+    var p=S.sel.p, d=S.disk[p], m=S.pool[p];
+    var txt="page "+p+"  ("+BASE[p].who+")\n";
+    txt+="  in the safe : ₹"+d.v+"   stamp #"+d.pageLSN+(S.torn[p]?"   *** TORN ***":"")+"\n";
+    txt+="  on the desk : "+(m? ("₹"+m.v+"   stamp #"+m.pageLSN+(m.dirty?"   dirty (not yet written)":"   clean")) : "not loaded")+"\n";
+    txt+="  started at  : ₹"+BASE[p].v+"\n";
+    txt+="\nThe stamp is the page's pageLSN — the last day-book line already reflected here.\nRedo applies a line only when its number is greater than this stamp.";
+    el.textContent=txt; return;
+  }
+  var r=findRec(S,S.sel.lsn);
+  if(!r){ el.textContent="That line did not survive."; return; }
+  var where = S.log.disk.indexOf(r)>=0?"sealed in the safe":(S.log.dev.indexOf(r)>=0?"in the device's volatile cache (fsync lied)":(S.log.cache.indexOf(r)>=0?"in the out-tray (OS page cache)":"on Asha's desk (log buffer)"));
+  var o="#"+r.lsn+"  "+r.type.toUpperCase()+(r.tx?"  "+r.tx:"")+"\n  where: "+where+"\n";
+  if(r.page!==undefined) o+="  page: "+r.page+"\n";
+  if(r.before!==undefined) o+="  before-image: ₹"+r.before+"   (this is what UNDO uses)\n";
+  if(r.after!==undefined) o+="  after-image : ₹"+r.after+"   (this is what REDO uses)\n";
+  if(r.prev!==undefined&&r.prev!==null) o+="  prevLSN: #"+r.prev+"   (previous line of the same job)\n";
+  if(r.undoNext!==undefined) o+="  undoNext: #"+(r.undoNext||"—")+"   (where a restarted rollback resumes)\n";
+  if(r.fpi) o+="  carries a full copy of the page (torn-page insurance)\n";
+  el.textContent=o;
+}
+
+/* scenarios */
+(function(){
+  var h="";
+  for(var i=0;i<SCENS.length;i++){ var s=SCENS[i];
+    h+='<div class="card scen" id="sc-'+s.id+'"><div class="q">'+s.q+'</div><div class="opts">';
+    for(var j=0;j<s.opts.length;j++) h+='<button data-s="'+s.id+'" data-o="'+j+'">'+s.opts[j]+'</button>';
+    h+='</div><div class="res" id="res-'+s.id+'"></div></div>';
+  }
+  $("scens").innerHTML=h;
+  var ns=$("scens").querySelectorAll("[data-s]");
+  for(var k=0;k<ns.length;k++){
+    ns[k].onclick=(function(sid,oi){ return function(){
+      var sc=null; for(var q=0;q<SCENS.length;q++) if(SCENS[q].id===sid) sc=SCENS[q];
+      var right = oi===sc.a;
+      var r=$("res-"+sid);
+      r.className="res show "+(right?"right":"wrong");
+      r.innerHTML='<div class="hd">'+(right?"You had it.":"Not quite — and this is the useful kind of wrong.")+'</div>'+
+        '<div>Correct answer: <b>'+sc.opts[sc.a]+'</b>. '+sc.why+'</div><div style="margin-top:7px"><em>Now watch it run above.</em></div>';
+      runScenario(sc);
+      window.scrollTo({top:0,behavior:"smooth"});
+    }; })(ns[k].getAttribute("data-s"), +ns[k].getAttribute("data-o"));
+  }
+})();
+
+function runScenario(sc){
+  stop();
+  if(sc.id==="s5"){
+    reset(true);
+    seq([["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],
+         ["begin","T2"],["upd","T2",9],["flush",9],["crash","power"],["recover"]]);
+    /* advance only until the undo pass has written its first compensation record */
+    var g=0;
+    while((S.pending.length||(S.rec&&!S.rec.done))&&g++<600){
+      doStepSilent();
+      if(S.rec&&S.rec.phase==="undo"&&S.log.disk.filter(function(r){return r.type==="clr";}).length===1) break;
+    }
+    actCrash(S,"power"); runAll();
+    actRecover(S); runAll();
+    render(); return;
+  }
+  sc.run(); runAll();
+}
+
+/* transport wiring */
+$("stepb").onclick=doStep;
+$("back").onclick=back;
+$("play").onclick=play;
+$("reset").onclick=function(){ reset(); };
+$("crashp").onclick=function(){ actCrash(S,"process"); render(); };
+$("crashw").onclick=function(){ actCrash(S,"power"); render(); };
+$("recover").onclick=function(){ actRecover(S); render(); };
+$("story").onclick=function(){
+  reset();
+  seq([["ckpt"],["begin","T1"],["upd","T1",5],["upd","T1",9],["commit","T1"],
+       ["begin","T2"],["upd","T2",9],["flush",9],["crash","power"],["recover"]]);
+  play();
+};
+render();
+</script>

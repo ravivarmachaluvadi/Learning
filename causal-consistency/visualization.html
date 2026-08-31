@@ -1,0 +1,896 @@
+<title>The Comment Before the Post</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+
+<style>
+:root{
+  --ground:#EDF0F5; --surface:#FFFFFF; --surface-2:#F5F7FA; --line:#D2D9E3;
+  --ink:#121A25; --muted:#57657A; --faint:#8593A6;
+  --past:#2B4A9E;   --past-soft:#DEE5F7;
+  --future:#B05908; --future-soft:#FAE9D6;
+  --conc:#78889C;   --conc-soft:#E7EBF1;
+  --bad:#AE1F38;    --bad-soft:#F9E0E5;
+  --held:#87691A;   --held-soft:#F7EEDA;
+  --ok:#1F7A5A;
+  --r0:#2B4A9E; --r1:#7A3C8F; --r2:#0F7360;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C111A; --surface:#141C28; --surface-2:#1B2532; --line:#2A3746;
+    --ink:#E3EAF3; --muted:#94A3B6; --faint:#6C7B8E;
+    --past:#84A4F7;   --past-soft:#182444;
+    --future:#F0A45C; --future-soft:#3A2814;
+    --conc:#8C9BAC;   --conc-soft:#1E2733;
+    --bad:#F2839A;    --bad-soft:#3A1721;
+    --held:#DCBE6C;   --held-soft:#332B12;
+    --ok:#57C9A2;
+    --r0:#84A4F7; --r1:#C48FD8; --r2:#4FC7AC;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C111A; --surface:#141C28; --surface-2:#1B2532; --line:#2A3746;
+  --ink:#E3EAF3; --muted:#94A3B6; --faint:#6C7B8E;
+  --past:#84A4F7;   --past-soft:#182444;
+  --future:#F0A45C; --future-soft:#3A2814;
+  --conc:#8C9BAC;   --conc-soft:#1E2733;
+  --bad:#F2839A;    --bad-soft:#3A1721;
+  --held:#DCBE6C;   --held-soft:#332B12;
+  --ok:#57C9A2;
+  --r0:#84A4F7; --r1:#C48FD8; --r2:#4FC7AC;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Newsreader,Georgia,serif; font-size:17.5px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1220px; margin:0 auto; padding:34px 20px 90px}
+h1,h2,h3,.ui,button,select,label{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(30px,5.2vw,52px); line-height:1.03; letter-spacing:-.03em; font-weight:700; margin:0 0 12px; text-wrap:balance}
+h2{font-size:19px; font-weight:600; letter-spacing:-.01em; margin:0 0 6px}
+p{margin:0 0 12px; max-width:66ch}
+.lede{font-size:19px; color:var(--muted); max-width:63ch}
+.eyebrow{font-size:11px; font-weight:600; letter-spacing:.17em; text-transform:uppercase; color:var(--faint); margin:0 0 10px; font-family:"Bricolage Grotesque",sans-serif}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
+header.hero{border-bottom:1px solid var(--line); padding-bottom:24px; margin-bottom:22px}
+
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:17px 18px 15px; margin-bottom:16px}
+.hint{font-size:14.5px; color:var(--muted); max-width:72ch; margin:0 0 12px}
+.row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+
+button{font-size:13px; font-weight:600; background:var(--surface-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:7px; padding:6px 11px; cursor:pointer; line-height:1.4}
+button:hover:not(:disabled){border-color:var(--past); color:var(--past)}
+button:disabled{opacity:.35; cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--future); outline-offset:2px}
+button.tiny{font-size:11.5px; padding:3px 7px; border-radius:5px}
+button.on{background:var(--past-soft); border-color:var(--past); color:var(--past)}
+select{font-family:"JetBrains Mono",monospace; font-size:12.5px; padding:5px 7px;
+  background:var(--surface-2); color:var(--ink); border:1px solid var(--line); border-radius:6px}
+
+.rules{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px}
+.rulecard{text-align:left; padding:11px 13px; border-radius:11px; background:var(--surface);
+  border:1px solid var(--line); cursor:pointer}
+.rulecard:hover{border-color:var(--past)}
+.rulecard[aria-pressed="true"]{border-color:var(--past); background:var(--past-soft); box-shadow:inset 3px 0 0 var(--past)}
+.rulecard .t{display:block; font-size:14px; font-weight:700; margin-bottom:2px}
+.rulecard .s{display:block; font-family:Newsreader,serif; font-weight:400; font-size:13px; color:var(--muted); line-height:1.42}
+.rulecard[aria-pressed="true"] .t{color:var(--past)}
+
+.verdict{border:1px solid var(--line); border-left:5px solid var(--ok); background:var(--surface);
+  border-radius:11px; padding:13px 16px; margin-bottom:16px}
+.verdict.bad{border-left-color:var(--bad); background:var(--bad-soft)}
+.verdict .v-main{font-family:"Bricolage Grotesque",sans-serif; font-weight:600; font-size:16.5px}
+.verdict .v-sub{font-size:14.5px; color:var(--muted); margin-top:3px}
+
+#chart{width:100%; height:auto; display:block; overflow:visible}
+.chartbox{overflow-x:auto; border:1px solid var(--line); border-radius:9px; background:var(--surface-2); padding:8px}
+
+.regions{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px}
+.region{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:11px 13px}
+.region.changed{animation:flash 1s ease-out}
+@keyframes flash{0%{border-color:var(--future); box-shadow:0 0 0 0 var(--future)}100%{border-color:var(--line); box-shadow:0 0 0 7px transparent}}
+@media (prefers-reduced-motion:reduce){.region.changed{animation:none; border-color:var(--future)}}
+.region h3{font-size:15px; font-weight:700; margin:0 0 7px; display:flex; gap:8px; align-items:center}
+.pill{font-family:"JetBrains Mono",monospace; font-size:10.5px; padding:2px 6px; border-radius:20px; border:1px solid var(--line); color:var(--muted); font-weight:500}
+.pill.cut{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.kv{font-family:"JetBrains Mono",monospace; font-size:12.5px; margin:2px 0; display:flex; justify-content:space-between; gap:10px}
+.kv .k{color:var(--faint)}
+.kv .v{font-weight:600}
+.kv .v.absent{color:var(--faint); font-weight:400}
+.held{margin-top:8px; font-family:"JetBrains Mono",monospace; font-size:11.5px;
+  background:var(--held-soft); border:1px dashed var(--held); color:var(--held); border-radius:7px; padding:6px 8px}
+.acts{margin-top:9px; display:flex; flex-wrap:wrap; gap:5px}
+
+.wire{display:flex; flex-direction:column; gap:7px; max-height:230px; overflow-y:auto}
+.msg{border:1px solid var(--conc); background:var(--conc-soft); border-radius:8px; padding:7px 9px;
+  font-family:"JetBrains Mono",monospace; font-size:11.5px}
+.msg .hdr{display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600; color:var(--muted)}
+.empty-note{color:var(--faint); font-size:14px; font-style:italic}
+
+.log{max-height:250px; overflow-y:auto; display:flex; flex-direction:column-reverse}
+.entry{padding:8px 0; border-bottom:1px solid var(--line)}
+.entry:first-child{border-bottom:none}
+.entry .n{font-size:15px}
+.entry .tech{font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--faint); margin-top:3px}
+.entry.hi .n{color:var(--future); font-weight:600}
+.entry.viol .n{color:var(--bad); font-weight:600}
+
+.scen-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:10px}
+.scen{text-align:left; padding:11px 13px; border-radius:11px; background:var(--surface); border:1px solid var(--line); cursor:pointer}
+.scen:hover{border-color:var(--future)}
+.scen.done{border-color:var(--ok)}
+.scen .q{display:block; font-size:13.5px; font-weight:700; margin-bottom:3px}
+.scen .w{display:block; font-family:Newsreader,serif; font-weight:400; font-size:13px; color:var(--muted); line-height:1.42}
+
+.ask{border:1px solid var(--future); background:var(--future-soft); border-radius:11px; padding:15px 17px; margin-bottom:15px}
+.ask .qq{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:17px; margin-bottom:4px}
+.ask .setup{font-size:15px; color:var(--muted); margin-bottom:11px; max-width:70ch}
+.ask .opts{display:flex; flex-wrap:wrap; gap:8px}
+.ask .opts button{background:var(--surface)}
+.result{margin-top:12px; padding-top:11px; border-top:1px solid var(--line); font-size:15.5px}
+.tag{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; padding:2px 7px; border-radius:4px; margin-right:8px}
+.tag.right{background:var(--ok); color:var(--surface)}
+.tag.wrong{background:var(--bad); color:var(--surface)}
+
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted); margin-top:9px}
+.legend span{display:flex; align-items:center; gap:6px}
+.sw{width:12px; height:12px; border-radius:50%; display:inline-block; border:1px solid var(--line)}
+footer{margin-top:32px; padding-top:16px; border-top:1px solid var(--line); color:var(--faint); font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Three regions · no coordinator · one shared feed</p>
+  <h1>The Comment Before the Post</h1>
+  <p class="lede">
+    Amira posts a photo in London. Ben, in Frankfurt, reads it and leaves a
+    comment. Cara opens the app in Singapore — and sees the comment sitting
+    there with no post above it. Nothing crashed and no rule was broken. This
+    page is about which rule was missing.
+  </p>
+</header>
+
+<div class="panel">
+  <p class="eyebrow">Step 1 · what does a region wait for before showing a change it received?</p>
+  <div class="rules" id="rules"></div>
+  <p class="hint" id="ruleHint" style="margin-top:12px;margin-bottom:0"></p>
+</div>
+
+<div class="verdict" id="verdict"></div>
+
+<div class="panel">
+  <h2>Who knew what, and when</h2>
+  <p class="hint">
+    Time runs left to right; one lane per region. A filled circle is a change
+    made in that region, a hollow ring is somebody reading, and an arrow is a
+    copy of a change travelling to another region. A dashed tail means the copy
+    arrived but is being deliberately held back.
+    <strong>Click any circle</strong> to light up everything it depends on and
+    everything that depends on it — the rest is neither, which is the whole idea.
+  </p>
+  <div class="chartbox"><svg id="chart" role="img" aria-label="Space-time diagram of regions and messages"></svg></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--past)"></i> caused this (its past)</span>
+    <span><i class="sw" style="background:var(--future)"></i> caused by this (its future)</span>
+    <span><i class="sw" style="background:var(--conc)"></i> neither — concurrent</span>
+    <span><i class="sw" style="background:var(--bad)"></i> a read that saw an effect with no cause</span>
+    <span><i class="sw" style="background:var(--held-soft);border-color:var(--held)"></i> received but held back</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>What each region shows right now</h2>
+  <p class="hint">
+    These are the answers a user in that region would get this instant.
+    Everything here is a control: write, read, cut a region off, or slow a route
+    down — nothing on this page is hardcoded because it "doesn't matter".
+  </p>
+  <div class="regions" id="regions"></div>
+</div>
+
+<div class="panel">
+  <div class="row" style="justify-content:space-between; align-items:flex-start">
+    <div>
+      <h2>Copies travelling between regions</h2>
+      <p class="hint" style="margin:0">Sending is not arriving. Deliver them in whatever order you like.</p>
+    </div>
+    <div class="row">
+      <button id="tick">Advance time ▸</button>
+      <button id="tick5">▸▸ 5 ticks</button>
+      <button id="undo">← Step back</button>
+      <button id="repair">Repair: resend what's missing</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+  <div class="row" style="margin:11px 0">
+    <label class="mono" style="font-size:12.5px;color:var(--muted)">slow route</label>
+    <select id="slowFrom"></select><span class="mono">→</span><select id="slowTo"></select>
+    <label class="mono" style="font-size:12.5px;color:var(--muted)">extra ticks</label>
+    <select id="slowAmt"></select>
+    <button id="stickyBtn"></button>
+  </div>
+  <div class="wire" id="wire"></div>
+</div>
+
+<div class="panel">
+  <h2>What just happened</h2>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="panel">
+  <h2>Guess first, then watch</h2>
+  <p class="hint">Each one sets up a situation, asks what will happen, then plays it out with narration.</p>
+  <div id="askSlot"></div>
+  <div class="scen-grid" id="scens"></div>
+</div>
+
+<footer>
+  Companion to the <span class="mono">causal-consistency</span> lab —
+  <span class="mono">java src/Sim.java</span>,
+  <span class="mono">java src/Tests.java</span>,
+  <span class="mono">java src/Experiments.java</span>.
+  Every outcome here matches a test in that lab.
+</footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const REGIONS = [
+  {name:"London",   who:"Amira", colour:"var(--r0)"},
+  {name:"Frankfurt",who:"Ben",   colour:"var(--r1)"},
+  {name:"Singapore",who:"Cara",  colour:"var(--r2)"}
+];
+const KEYS = ["post", "comment", "audience"];
+
+const RULES = {
+  none: {
+    title:"Show it the moment it lands",
+    sub:"No waiting at all. The fastest design, and the one almost everybody ships first.",
+    hint:"A region applies every change the instant the copy arrives. Perfectly reasonable until two changes travel by routes of different speeds — then the second one can overtake the first."
+  },
+  lamport: {
+    title:"Order by one shared counter",
+    sub:"Every change carries a number bigger than any the author had seen; apply in number order.",
+    hint:"Cheap and it does order cause before effect — but a region cannot know whether a smaller number is still in flight, so it must wait to hear from everyone. One quiet region stalls the world."
+  },
+  deps: {
+    title:"Wait for the changes it was based on",
+    sub:"Each change lists what its author had already seen. Hold it until all of those are applied.",
+    hint:"Exact, and this is what the COPS paper does. The list is the cost: a client's causal past only ever gets longer, so the list grows without bound unless you prune it."
+  },
+  vv: {
+    title:"One counter per region",
+    sub:"A compact way of saying the same thing: how much of each region's history the author had seen.",
+    hint:"Three numbers instead of a list, and what production systems actually ship. It over-orders slightly — it also waits for changes the author never actually looked at — which costs latency, not correctness."
+  }
+};
+
+const SCENARIOS = [
+  { id:"anomaly", rule:"none",
+    card:"The comment with no post", cardSub:"Show it the moment it lands",
+    q:"Amira posts. Ben reads the post and comments. Cara opens the app. The London→Singapore route is slow. What does Cara see?",
+    setup:"Nothing is dropped and nothing is broken — the two changes simply travel by routes of different speeds.",
+    opts:[{t:"Both, or neither — never just one", ok:false},
+          {t:"The comment, with no post above it", ok:true},
+          {t:"An error, because the post is missing", ok:false}],
+    why:"Ben's comment only exists because he read Amira's post, but nothing in the message says so. Frankfurt→Singapore is fast, London→Singapore is slow, so the effect overtakes its cause. No component misbehaved; the design simply never recorded that one change depended on another.",
+    steps:[["slow",0,2,10],["write",0,"post","photo-of-a-dog"],["tick",3],["read",1,"post"],
+           ["write",1,"comment","lovely dog!"],["tick",3],["read",2,"comment"],["read",2,"post"]] },
+
+  { id:"fixed", rule:"vv",
+    card:"The same afternoon, with the rule on", cardSub:"One counter per region",
+    q:"Identical script, but now Singapore holds a change back until it has everything that change was based on. What does Cara see?",
+    setup:"Same slow route, same timings, same three actions.",
+    opts:[{t:"Both the post and the comment", ok:false},
+          {t:"Neither — she waits", ok:true},
+          {t:"The post but not the comment", ok:false}],
+    why:"This is the point most people miss: the rule does not make anything arrive sooner. Singapore already HAS the comment — it is sitting in memory, deliberately not shown. Consistency here is bought entirely with latency, and the currency is a correct blank instead of an incorrect answer.",
+    steps:[["slow",0,2,10],["write",0,"post","photo-of-a-dog"],["tick",3],["read",1,"post"],
+           ["write",1,"comment","lovely dog!"],["tick",3],["read",2,"comment"],["read",2,"post"]] },
+
+  { id:"leak", rule:"none",
+    card:"The same bug, with consequences", cardSub:"Show it the moment it lands",
+    q:"Amira first removes her manager from who-can-see-my-photos, then posts a photo. The two keys live on different shards, and the audience shard is the slow one. What does the manager's region show?",
+    setup:"Two changes, one obvious order, no coordination between the shards carrying them.",
+    opts:[{t:"The photo, still under the old audience", ok:true},
+          {t:"Nothing, until both arrive", ok:false},
+          {t:"The new audience, then the photo", ok:false}],
+    why:"This is the example from the COPS paper, and it is why causal consistency is treated as a security property rather than a tidiness one. 'Remove access, then publish' is two writes to two keys, and nothing but a causal rule keeps them in that order on a remote replica.",
+    steps:[["slow",0,2,14],["write",0,"audience","everyone-except-manager"],["tick",2],
+           ["slowoff"],["write",0,"post","the-holiday-photo"],["tick",4],
+           ["read",2,"post"],["read",2,"audience"]] },
+
+  { id:"concurrent", rule:"vv",
+    card:"Two people, one key, same moment", cardSub:"Causality has no opinion",
+    q:"Amira and Ben both set the same key at the same instant, neither having seen the other. Does the causal rule decide which wins?",
+    setup:"Neither write is in the other's past. Watch the diagram: clicking either one greys out the other.",
+    opts:[{t:"No — it has nothing to say about them", ok:true},
+          {t:"Yes, the earlier timestamp wins", ok:false},
+          {t:"Yes, the first to arrive wins everywhere", ok:false}],
+    why:"Look at the diagram: click either circle and the other stays grey. Neither is in the other's past, so the causal rule has no opinion about them and never holds either one back. Something ELSE decided the winner here — this page always applies a timestamp tie-break, which is why all three regions agree. Take that tie-break away and they can settle into different states and stay there: the Java lab measures 400 out of 400 runs diverging. Causal ordering plus an agreed tie-break is called causal+, and it is what every real system ships, because causal ordering alone does not even promise the regions end up the same.",
+    steps:[["write",0,"post","Dog Photos"],["write",1,"post","My Dog"],["tick",6],
+           ["read",0,"post"],["read",1,"post"],["read",2,"post"]] },
+
+  { id:"partition", rule:"vv",
+    card:"Cut Singapore off entirely", cardSub:"What the whole thing is for",
+    q:"The link to Singapore fails. Cara keeps using the app. What happens to her reads and writes?",
+    setup:"A linearizable store would have to refuse her — a minority cannot form a majority.",
+    opts:[{t:"They all succeed; her view is just stale", ok:true},
+          {t:"Writes succeed, reads fail", ok:false},
+          {t:"Everything blocks until the link is back", ok:false}],
+    why:"This is the formal reason causal consistency matters: it is the strongest model that can keep answering on both sides of a partition. Stale is a legal answer here. Note what healing does NOT do, though — the copies lost during the outage are not resent by the causal rule; a separate background repair has to push them.",
+    steps:[["write",0,"post","before-the-outage"],["tick",4],["cut",2],
+           ["write",2,"comment","written-in-singapore"],["write",0,"post","written-in-london"],
+           ["tick",4],["read",2,"comment"],["read",2,"post"],["heal"],["tick",2],["read",2,"post"],
+           ["repair"],["tick",4],["read",2,"post"]] },
+
+  { id:"roam", rule:"vv",
+    card:"A load balancer moves the user mid-session", cardSub:"Causal between regions is not enough",
+    q:"Amira writes to her profile in London, and her next request is routed to Frankfurt before the copy gets there. Does she see her own change?",
+    setup:"The regions are running the full causal rule. The client is the thing that moved.",
+    opts:[{t:"No — her own write has vanished", ok:true},
+          {t:"Yes, the causal rule covers this", ok:false}],
+    why:"Ordering between regions says nothing about a client that hops between them: the write is simply still in flight. The client has to carry its own position in history and present it, so the new region knows to wait. MongoDB calls that token afterClusterTime; without it, 'sticky sessions' is doing all the work you thought the database was doing.",
+    steps:[["write",0,"audience","new-setting"],["tick",1],["roam",0,1],["read",0,"audience"],
+           ["tick",3],["read",0,"audience"]] }
+];
+
+/* ------------------------------------------------------------ pure model */
+
+const clone = s => JSON.parse(JSON.stringify(s));
+const dotStr = (r, s) => "R" + r + "#" + s;
+
+function initState(ruleKey){
+  return {
+    ruleKey,
+    sticky:true,
+    tick:0,
+    msgId:1,
+    slow:{from:0, to:2, extra:0},
+    regions:[0,1,2].map(i => ({id:i, store:{}, applied:[], pending:[], vv:[0,0,0], heardFrom:[0,0,0], lamport:0, seq:0, group:0})),
+    clients:REGIONS.map((r,i) => ({name:r.who, region:i, context:[], readSet:[], myWrites:[]})),
+    writes:{},           // dot -> write
+    msgs:[],             // every copy ever sent, with its fate
+    events:[],           // for the diagram
+    log:[],
+    anomalies:0,
+    changed:[],
+    selected:null
+  };
+}
+
+function rule(st){
+  return {none:{ord:"none"}, lamport:{ord:"lamport"}, deps:{ord:"deps"}, vv:{ord:"vv"}}[st.ruleKey];
+}
+
+function pastOf(st, dotId){
+  const w = st.writes[dotId];
+  return w ? w.deps : [];
+}
+function futureOf(st, dotId){
+  return Object.values(st.writes).filter(w => w.deps.includes(dotId)).map(w => w.id);
+}
+
+function apply(s, act){
+  const st = clone(s);
+  st.changed = [];
+  const [kind, ...a] = act;
+
+  if (kind === "write"){
+    const i = a[0], key = a[1], value = a[2];
+    const cl = st.clients[i];
+    if (!st.sticky) cl.region = (cl.region + 1) % st.regions.length;   // routed somewhere new
+    const r = st.regions[cl.region];
+    r.lamport++; r.seq++;
+    const id = dotStr(r.id, r.seq);
+    r.vv[r.id] = r.seq;
+    const w = {id, key, value, region:r.id, tick:st.tick,
+               deps:[...cl.context], lamport:r.lamport, vv:[...r.vv]};
+    st.writes[id] = w;
+    applyAt(st, r, w, true);
+    cl.context.push(id); cl.myWrites.push(id);
+    st.events.push({tick:st.tick, lane:r.id, kind:"write", id, key, value});
+    st.changed = [r.id];
+    for (let j = 0; j < st.regions.length; j++){
+      if (j === r.id) continue;
+      if (st.regions[j].group !== r.group) continue;
+      const extra = (st.slow.from === r.id && st.slow.to === j) ? st.slow.extra : 0;
+      st.msgs.push({id:st.msgId++, from:r.id, to:j, writeId:id,
+                    sendTick:st.tick, arriveTick:st.tick + 2 + extra,
+                    delivered:false, appliedTick:null, dropped:false});
+    }
+    log(st, `${cl.name} sets ${key} to “${value}”. Her own region shows it at once.`,
+        `${id} deps[${w.deps.join(", ") || "none"}] lamport=${w.lamport} counters=[${w.vv}]`);
+  }
+
+  else if (kind === "read"){
+    const i = a[0], key = a[1];
+    const cl = st.clients[i];
+    if (!st.sticky) cl.region = (cl.region + 1) % st.regions.length;   // routed somewhere new
+    const r = st.regions[cl.region];
+    const w = r.store[key] ? st.writes[r.store[key]] : null;
+    let bad = null;
+    if (w){
+      for (const d of w.deps){
+        if (r.applied.includes(d)) continue;
+        const cause = st.writes[d];
+        const shownId = r.store[cause.key];
+        const shown = shownId ? st.writes[shownId] : null;
+        const visible = shown && (shown.id === d || shown.deps.includes(d));
+        if (!visible){ bad = {cause, shown}; break; }
+      }
+      cl.readSet.push(w.id);
+      cl.context = [...new Set([...cl.context, w.id, ...w.deps])];
+    }
+    st.events.push({tick:st.tick, lane:cl.region, kind:"read", key,
+                    value:w ? w.value : null, bad: !!bad, id:w ? w.id : null});
+    st.changed = [cl.region];
+    if (bad){
+      st.anomalies++;
+      log(st, `${cl.name} reads ${key} and gets “${w.value}” — but ${bad.cause.key} here still reads ` +
+              `${bad.shown ? "“" + bad.shown.value + "”" : "nothing at all"}. She is looking at an effect whose cause is invisible.`,
+          `${w.id} depends on ${bad.cause.id} (${bad.cause.key}=${bad.cause.value}), which R${cl.region} has not applied`, true);
+    } else {
+      log(st, `${cl.name} reads ${key} and gets ${w ? "“" + w.value + "”" : "nothing — this region has no value for it yet"}.`,
+          w ? `returned ${w.id}; every write it depends on is applied here` : `key absent at R${cl.region}`);
+    }
+  }
+
+  else if (kind === "tick"){
+    const n = a[0] || 1;
+    let acc = st;
+    for (let k = 0; k < n; k++) acc = oneTick(acc);
+    return acc;
+  }
+
+  else if (kind === "deliver"){
+    const m = st.msgs.find(x => x.id === a[0]);
+    if (m && !m.delivered) return deliverMsg(st, m);
+  }
+
+  else if (kind === "drop"){
+    const m = st.msgs.find(x => x.id === a[0]);
+    if (m){ m.dropped = true; m.delivered = true;
+      log(st, `That copy is thrown away. Nobody is told, and nothing will resend it on its own.`,
+          `msg ${m.id} (${m.writeId}) dropped in flight`); }
+  }
+
+  else if (kind === "slow"){ st.slow = {from:a[0], to:a[1], extra:a[2]};
+    log(st, `The route ${REGIONS[a[0]].name} → ${REGIONS[a[1]].name} is now ${a[2]} ticks slower than the others.`,
+        `linkDelay[${a[0]}][${a[1]}] = +${a[2]}`); }
+  else if (kind === "slowoff"){ st.slow = {from:st.slow.from, to:st.slow.to, extra:0};
+    log(st, `That route is back to normal speed.`, `linkDelay reset to 0`); }
+
+  else if (kind === "cut"){ st.regions[a[0]].group = 1;
+    log(st, `${REGIONS[a[0]].name} is cut off from the other regions.`, `partition: R${a[0]} isolated`); }
+  else if (kind === "heal"){ st.regions.forEach(r => r.group = 0);
+    log(st, `The network heals. Note that nothing automatically resends what was lost — a background repair round has to.`,
+        `all regions back in one group`); }
+
+  else if (kind === "repair"){
+    let n = 0;
+    for (let i = 0; i < st.regions.length; i++)
+      for (let j = 0; j < st.regions.length; j++){
+        if (i === j || st.regions[i].group !== st.regions[j].group) continue;
+        for (const id of st.regions[i].applied){
+          if (st.regions[j].applied.includes(id)) continue;
+          if (st.regions[j].pending.some(p => p.writeId === id)) continue;
+          if (st.msgs.some(m => !m.delivered && !m.dropped && m.to === j && m.writeId === id)) continue;
+          st.msgs.push({id:st.msgId++, from:i, to:j, writeId:id, sendTick:st.tick,
+                        arriveTick:st.tick + 1, delivered:false, appliedTick:null, dropped:false});
+          n++;
+        }
+      }
+    log(st, `A background repair round resends ${n} missing cop${n===1?"y":"ies"}. The causal rule never does this by itself — it decides WHEN a change may be shown, not whether it gets there.`,
+        `anti-entropy queued ${n} message(s)`);
+  }
+
+  else if (kind === "roam"){ st.clients[a[0]].region = a[1];
+    log(st, `${st.clients[a[0]].name} is routed to ${REGIONS[a[1]].name} for her next request.`,
+        `client ${st.clients[a[0]].name} moved to R${a[1]}`); }
+
+  else if (kind === "sticky"){
+    st.sticky = a[0];
+    log(st, st.sticky
+        ? "Users now stay in one region for every request."
+        : "Users are now routed to a different region on every request — as a load balancer with no session affinity would.",
+        st.sticky ? "session stickiness ON" : "session stickiness OFF");
+  }
+  else if (kind === "select"){ st.selected = a[0]; }
+
+  return st;
+}
+
+function oneTick(s){
+  const st = clone(s);
+  st.tick++;
+  st.changed = [];
+  const due = st.msgs.filter(m => !m.delivered && !m.dropped && m.arriveTick <= st.tick);
+  let acc = st;
+  for (const m of due) acc = deliverMsg(acc, acc.msgs.find(x => x.id === m.id));
+  for (const r of acc.regions) drain(acc, r);
+  return acc;
+}
+
+function deliverMsg(st, m){
+  m.delivered = true;
+  const r = st.regions[m.to];
+  if (r.group !== st.regions[m.from].group){
+    m.dropped = true;
+    log(st, `A copy could not reach ${REGIONS[m.to].name} — that region is cut off.`, `msg ${m.id} blocked`);
+    return st;
+  }
+  const wIn = st.writes[m.writeId];
+  r.heardFrom[m.from] = Math.max(r.heardFrom[m.from], wIn.lamport);
+  if (r.applied.includes(m.writeId)) return st;
+  r.pending.push({writeId:m.writeId, msgId:m.id, arrived:st.tick});
+  const before = r.applied.length;
+  drain(st, r);
+  const w = st.writes[m.writeId];
+  if (r.applied.length > before){
+    st.changed = [r.id];
+    log(st, `${REGIONS[m.to].name} receives ${w.key}=“${w.value}” and shows it straight away.`,
+        `${w.id} applied at R${r.id}; every dependency was already present`);
+  } else {
+    log(st, `${REGIONS[m.to].name} receives ${w.key}=“${w.value}” and holds it back — something it depends on has not arrived yet.`,
+        `${w.id} held at R${r.id}; waiting for ${missing(st, r, w).join(", ")}`);
+  }
+  return st;
+}
+
+function missing(st, r, w){
+  if (st.ruleKey === "deps") return w.deps.filter(d => !r.applied.includes(d));
+  if (st.ruleKey === "vv"){
+    const out = [];
+    const src = w.region;
+    if (w.vv[src] !== r.vv[src] + 1) out.push(`R${src} up to #${w.vv[src] - 1}`);
+    for (let j = 0; j < r.vv.length; j++)
+      if (j !== src && w.vv[j] > r.vv[j]) out.push(`R${j} up to #${w.vv[j]}`);
+    return out;
+  }
+  if (st.ruleKey === "lamport") return ["news from every region at counter ≥ " + w.lamport];
+  return [];
+}
+
+function drain(st, r){
+  let progress = true;
+  while (progress){
+    progress = false;
+    r.pending.sort((a, b) => st.writes[a.writeId].lamport - st.writes[b.writeId].lamport);
+    for (let i = 0; i < r.pending.length; i++){
+      const w = st.writes[r.pending[i].writeId];
+      if (!deliverable(st, r, w)) continue;
+      const held = r.pending[i];
+      r.pending.splice(i, 1);
+      applyAt(st, r, w, false);
+      const msg = st.msgs.find(m => m.id === held.msgId);
+      if (msg) msg.appliedTick = st.tick;
+      progress = true;
+      break;
+    }
+  }
+}
+
+/* THE rule under test — everything else on this page is scaffolding. */
+function deliverable(st, r, w){
+  switch (st.ruleKey){
+    case "none": return true;
+    case "lamport":
+      // safe only once EVERY other region has been heard from at a counter at
+      // least this high — otherwise something older could still be in flight
+      for (let j = 0; j < st.regions.length; j++){
+        if (j === r.id) continue;
+        if (r.heardFrom[j] < w.lamport) return false;
+      }
+      return true;
+    case "deps":
+      return w.deps.every(d => r.applied.includes(d));
+    case "vv": {
+      const src = w.region;
+      if (w.vv[src] !== r.vv[src] + 1) return false;
+      for (let j = 0; j < r.vv.length; j++)
+        if (j !== src && w.vv[j] > r.vv[j]) return false;
+      return true;
+    }
+  }
+}
+
+function applyAt(st, r, w, local){
+  const cur = r.store[w.key] ? st.writes[r.store[w.key]] : null;
+  let wins = true;
+  if (cur){
+    if (cur.deps.includes(w.id)) wins = false;
+    else if (w.deps.includes(cur.id)) wins = true;
+    else wins = w.lamport !== cur.lamport ? w.lamport > cur.lamport : w.region > cur.region;
+  }
+  if (wins) r.store[w.key] = w.id;
+  if (!r.applied.includes(w.id)) r.applied.push(w.id);
+  r.vv[w.region] = Math.max(r.vv[w.region], parseInt(w.id.split("#")[1], 10));
+  r.lamport = Math.max(r.lamport, w.lamport);
+}
+
+function log(st, text, tech, viol){ st.log.push({text, tech, viol: !!viol}); }
+
+/* ------------------------------------------------------------------- app */
+
+let state = initState("none");
+let history = [];
+let active = null, answered = {}, playing = false;
+const $ = id => document.getElementById(id);
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function push(act){ history.push(clone(state)); state = apply(state, act); render(); }
+
+function setRule(k, quiet){
+  state = initState(k); history = [];
+  if (!quiet) log(state, `Switched to: ${RULES[k].title}. Everything is reset.`, RULES[k].sub);
+  render();
+}
+
+function render(){
+  $("rules").innerHTML = Object.entries(RULES).map(([k,v]) =>
+    `<button class="rulecard" data-rule="${k}" aria-pressed="${k===state.ruleKey}">
+       <span class="t">${v.title}</span><span class="s">${v.sub}</span></button>`).join("");
+  $("ruleHint").textContent = RULES[state.ruleKey].hint;
+
+  renderVerdict();
+  renderChart();
+  renderRegions();
+  renderWire();
+  renderControls();
+
+  $("log").innerHTML = state.log.slice(-40).map((e,i,arr) =>
+    `<div class="entry ${i===arr.length-1?"hi":""} ${e.viol?"viol":""}">
+       <div class="n">${e.text}</div>${e.tech?`<div class="tech">${e.tech}</div>`:""}</div>`).join("")
+    || `<p class="empty-note">Nothing has happened yet.</p>`;
+
+  $("scens").innerHTML = SCENARIOS.map(s =>
+    `<button class="scen ${answered[s.id]?"done":""}" data-scen="${s.id}">
+       <span class="q">${s.card}</span><span class="w">${s.cardSub}${answered[s.id]?" · done":""}</span></button>`).join("");
+
+  $("undo").disabled = history.length === 0;
+  renderAsk();
+}
+
+function renderVerdict(){
+  const v = $("verdict");
+  const held = state.regions.reduce((n,r) => n + r.pending.length, 0);
+  if (state.anomalies > 0){
+    const last = [...state.log].reverse().find(e => e.viol);
+    v.className = "verdict bad";
+    v.innerHTML = `<div class="v-main">Somebody saw an effect whose cause was invisible — ${state.anomalies} time${state.anomalies>1?"s":""} so far</div>
+      <div class="v-sub">${last ? last.text : ""}</div>`;
+  } else {
+    v.className = "verdict";
+    v.innerHTML = `<div class="v-main">No region can currently show an effect without its cause</div>
+      <div class="v-sub">${held > 0
+        ? `${held} change${held>1?"s have":" has"} arrived somewhere and ${held>1?"are":"is"} being deliberately held back — that is the price being paid right now.`
+        : `Nothing is being held back. Either the rule has nothing to wait for, or nothing has been sent yet.`}</div>`;
+  }
+}
+
+function renderChart(){
+  const svg = $("chart");
+  const maxTick = Math.max(12, state.tick + 2);
+  const W = Math.max(760, 60 + maxTick * 44);
+  const laneH = 84, top = 34, H = top + laneH * 3 + 24;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  const x = t => 96 + t * 44;
+  const y = l => top + l * laneH + laneH / 2;
+
+  const sel = state.selected;
+  const past = sel ? new Set(pastOf(state, sel)) : null;
+  const fut = sel ? new Set(futureOf(state, sel)) : null;
+  const cls = id => {
+    if (!sel) return "var(--conc)";
+    if (id === sel) return "var(--future)";
+    if (past.has(id)) return "var(--past)";
+    if (fut.has(id)) return "var(--future)";
+    return "var(--conc)";
+  };
+  const op = id => (!sel || id === sel || past.has(id) || fut.has(id)) ? 1 : 0.28;
+
+  let out = "";
+  for (let t = 0; t <= maxTick; t += 2)
+    out += `<text x="${x(t)}" y="20" text-anchor="middle" font-family="JetBrains Mono, monospace"
+             font-size="10" fill="var(--faint)">${t}</text>`;
+  REGIONS.forEach((r, i) => {
+    out += `<line x1="96" y1="${y(i)}" x2="${W-16}" y2="${y(i)}" stroke="var(--line)" stroke-width="2"/>`;
+    out += `<text x="10" y="${y(i)-4}" font-family="Bricolage Grotesque, sans-serif" font-size="13"
+             font-weight="700" fill="${r.colour}">${r.name}</text>`;
+    out += `<text x="10" y="${y(i)+12}" font-family="Newsreader, serif" font-size="12" fill="var(--faint)">${r.who}</text>`;
+    if (state.regions[i].group !== 0)
+      out += `<text x="10" y="${y(i)+27}" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--bad)">cut off</text>`;
+  });
+
+  for (const m of state.msgs){
+    const w = state.writes[m.writeId];
+    const x1 = x(m.sendTick), y1 = y(m.from);
+    const x2 = x(Math.min(m.arriveTick, maxTick)), y2 = y(m.to);
+    const stroke = m.dropped ? "var(--bad)" : cls(m.writeId);
+    const o = m.dropped ? 0.5 : op(m.writeId) * 0.75;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 14;
+    out += `<path d="M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}" fill="none" stroke="${stroke}"
+             stroke-width="1.6" opacity="${o}" ${m.dropped ? 'stroke-dasharray="3 3"' : ''}/>`;
+    if (!m.dropped){
+      out += `<circle cx="${x2}" cy="${y2}" r="2.6" fill="${stroke}" opacity="${o}"/>`;
+      const appliedAt = m.appliedTick;
+      if (appliedAt !== null && appliedAt > m.arriveTick)
+        out += `<line x1="${x2}" y1="${y2}" x2="${x(appliedAt)}" y2="${y2}" stroke="var(--held)"
+                 stroke-width="3.5" stroke-dasharray="4 3" opacity="0.9"/>`;
+      else if (appliedAt === null && m.delivered)
+        out += `<line x1="${x2}" y1="${y2}" x2="${x(state.tick)}" y2="${y2}" stroke="var(--held)"
+                 stroke-width="3.5" stroke-dasharray="4 3" opacity="0.9"/>`;
+    }
+  }
+
+  for (const e of state.events){
+    const cx = x(e.tick), cy = y(e.lane);
+    if (e.kind === "write"){
+      out += `<circle class="ev" data-id="${e.id}" cx="${cx}" cy="${cy}" r="8" fill="${cls(e.id)}"
+               opacity="${op(e.id)}" style="cursor:pointer"><title>${e.id} ${e.key}=${e.value}</title></circle>`;
+      out += `<text x="${cx}" y="${cy-15}" text-anchor="middle" font-family="JetBrains Mono, monospace"
+               font-size="10" fill="var(--muted)" opacity="${op(e.id)}">${e.key}=${e.value}</text>`;
+    } else {
+      const bad = e.bad;
+      out += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--surface)"
+               stroke="${bad ? "var(--bad)" : "var(--muted)"}" stroke-width="${bad?3:2}"/>`;
+      out += `<text x="${cx}" y="${cy+24}" text-anchor="middle" font-family="JetBrains Mono, monospace"
+               font-size="9.5" fill="${bad ? "var(--bad)" : "var(--faint)"}">read ${e.key}</text>`;
+    }
+  }
+  svg.innerHTML = out;
+}
+
+function renderRegions(){
+  $("regions").innerHTML = state.regions.map((r, i) => {
+    const cl = state.clients.find(c => c.region === i);
+    const rows = KEYS.map(k => {
+      const id = r.store[k];
+      const w = id ? state.writes[id] : null;
+      return `<div class="kv"><span class="k">${k}</span>
+        <span class="v ${w?"":"absent"}">${w ? w.value : "— nothing —"}</span></div>`;
+    }).join("");
+    const held = r.pending.map(p => {
+      const w = state.writes[p.writeId];
+      return `${w.key}=“${w.value}” waiting for ${missing(state, r, w).join(", ") || "an ordering condition"}`;
+    }).join("<br>");
+    const who = state.clients.filter(c => c.region === i).map(c => c.name).join(", ") || "nobody";
+    return `<div class="region ${state.changed.includes(i)?"changed":""}">
+      <h3><span style="color:${REGIONS[i].colour}">${REGIONS[i].name}</span>
+        <span class="pill ${r.group?"cut":""}">${r.group ? "cut off" : "connected"}</span>
+        <span class="pill">serving ${who}</span></h3>
+      ${rows}
+      ${held ? `<div class="held">holding back: ${held}</div>` : ""}
+      <div class="acts">
+        <span class="mono" style="font-size:11px;color:var(--faint)">write</span>
+        ${KEYS.map(k => `<button class="tiny" data-act="write" data-i="${i}" data-key="${k}">${k}</button>`).join("")}
+      </div>
+      <div class="acts">
+        <span class="mono" style="font-size:11px;color:var(--faint)">read</span>
+        ${KEYS.map(k => `<button class="tiny" data-act="read" data-i="${i}" data-key="${k}">${k}</button>`).join("")}
+        <button class="tiny" data-act="cut" data-i="${i}">${r.group ? "reconnect" : "cut off"}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderWire(){
+  const live = state.msgs.filter(m => !m.delivered && !m.dropped);
+  $("wire").innerHTML = live.length ? live.map(m => {
+    const w = state.writes[m.writeId];
+    return `<div class="msg"><div class="hdr">
+        <span>${REGIONS[m.from].name} → ${REGIONS[m.to].name}</span>
+        <span>arrives at tick ${m.arriveTick}</span></div>
+      <div style="color:var(--muted);margin-bottom:5px">${w.key}=“${w.value}” &nbsp;${w.id}
+        &nbsp;deps[${w.deps.join(", ") || "none"}]</div>
+      <div class="row">
+        <button class="tiny" data-act="deliver" data-id="${m.id}">Deliver now</button>
+        <button class="tiny" data-act="drop" data-id="${m.id}">Drop it</button>
+      </div></div>`;
+  }).join("") : `<p class="empty-note">Nothing in flight.</p>`;
+}
+
+function renderControls(){
+  const opt = (v, label, sel) => `<option value="${v}" ${v==sel?"selected":""}>${label}</option>`;
+  $("slowFrom").innerHTML = REGIONS.map((r,i) => opt(i, r.name, state.slow.from)).join("");
+  $("slowTo").innerHTML = REGIONS.map((r,i) => opt(i, r.name, state.slow.to)).join("");
+  $("slowAmt").innerHTML = [0,4,8,10,14,20].map(n => opt(n, n === 0 ? "none" : "+" + n, state.slow.extra)).join("");
+  const b = $("stickyBtn");
+  b.textContent = state.sticky ? "users stay in their region" : "users get routed anywhere";
+  b.className = state.sticky ? "on" : "";
+}
+
+function renderAsk(){
+  const slot = $("askSlot");
+  if (!active){ slot.innerHTML = ""; return; }
+  const s = active.s;
+  slot.innerHTML = `<div class="ask">
+    <div class="qq">${s.q}</div>
+    <div class="setup">${s.setup} &nbsp;<span class="mono" style="font-size:12.5px">rule: ${RULES[s.rule].title}</span></div>
+    ${active.picked == null
+      ? `<div class="opts">${s.opts.map((o,i)=>`<button data-opt="${i}">${o.t}</button>`).join("")}</div>`
+      : `<div class="opts">${s.opts.map(o => `<button disabled class="${o.ok?"on":""}">${o.ok?"✓ ":""}${o.t}</button>`).join("")}</div>
+         <div class="result"><span class="tag ${s.opts[active.picked].ok?"right":"wrong"}">${s.opts[active.picked].ok?"you were right":"not quite"}</span>${s.why}
+         ${active.done ? `<div style="margin-top:9px"><button data-replay="1">Replay it</button> <button data-close="1">Close and play freely</button></div>`
+                       : `<div class="mono" style="margin-top:9px;color:var(--faint)">playing…</div>`}</div>`}
+  </div>`;
+}
+
+async function play(s){
+  playing = true;
+  setRule(s.rule, true);
+  log(state, `Setting up: ${s.card}.`, RULES[s.rule].sub);
+  render();
+  const gap = reduced ? 0 : 780;
+  for (const act of s.steps){
+    await new Promise(r => setTimeout(r, gap));
+    history.push(clone(state));
+    state = apply(state, act);
+    render();
+  }
+  playing = false;
+  active.done = true;
+  renderAsk();
+}
+
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("button, circle.ev");
+  if (!t) return;
+
+  if (t.tagName === "circle"){ push(["select", state.selected === t.dataset.id ? null : t.dataset.id]); return; }
+  if (t.dataset.rule){ active = null; setRule(t.dataset.rule); return; }
+  if (t.dataset.scen){
+    const s = SCENARIOS.find(x => x.id === t.dataset.scen);
+    active = {s, picked:null, done:false};
+    setRule(s.rule, true);
+    log(state, `Ready: ${s.card}. Answer the question above and it plays.`, s.setup);
+    render();
+    document.querySelector(".ask")?.scrollIntoView({behavior: reduced ? "auto" : "smooth", block:"center"});
+    return;
+  }
+  if (t.dataset.opt != null && active){
+    active.picked = Number(t.dataset.opt);
+    answered[active.s.id] = true;
+    renderAsk(); play(active.s); return;
+  }
+  if (t.dataset.replay && active){ active.done = false; renderAsk(); play(active.s); return; }
+  if (t.dataset.close){ active = null; renderAsk(); return; }
+
+  if (playing) return;
+  const a = t.dataset.act;
+  if (!a) return;
+  const i = Number(t.dataset.i), id = Number(t.dataset.id), key = t.dataset.key;
+  if (a === "write") push(["write", i, key, key + "-v" + (state.tick + 1)]);
+  else if (a === "read") push(["read", i, key]);
+  else if (a === "deliver") push(["deliver", id]);
+  else if (a === "drop") push(["drop", id]);
+  else if (a === "cut") push(state.regions[i].group ? ["heal"] : ["cut", i]);
+});
+
+$("tick").onclick = () => { if (!playing) push(["tick", 1]); };
+$("tick5").onclick = () => { if (!playing) push(["tick", 5]); };
+$("undo").onclick = () => { if (history.length && !playing){ state = history.pop(); render(); } };
+$("repair").onclick = () => { if (!playing) push(["repair"]); };
+$("reset").onclick = () => { if (!playing){ active = null; setRule(state.ruleKey); } };
+$("stickyBtn").onclick = () => { if (!playing) push(["sticky", !state.sticky]); };
+["slowFrom","slowTo","slowAmt"].forEach(id => $(id).onchange = () => {
+  if (playing) return;
+  push(["slow", Number($("slowFrom").value), Number($("slowTo").value), Number($("slowAmt").value)]);
+});
+
+setRule("none", true);
+log(state, "Three regions, one shared feed, nobody in charge.",
+    "Pick a rule above, press the buttons on a region, or jump to a “guess first” situation at the bottom.");
+render();
+})();
+</script>

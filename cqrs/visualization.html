@@ -1,0 +1,439 @@
+<title>Ledger &amp; Chalkboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Red+Hat+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #eef2ef; --surface: #fafcfa; --surface2: #e2eae4;
+    --ink: #1f2823; --muted: #6f7d74; --line: #d0dcd3;
+    --accent: #2e7f6e; --accent-soft: #d9ece7;
+    --write: #44599e; --write-soft: #dfe4f2;
+    --event: #b8860f; --event-soft: #f3e8cd;
+    --stale: #b8860f; --stale-soft: #f3e8cd;
+    --fresh: #2e7f6e; --fresh-soft: #d9ece7;
+    --bad: #c04a3e; --bad-soft: #f2ddda;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151b17; --surface: #1d2620; --surface2: #263129;
+      --ink: #e4ece6; --muted: #93a398; --line: #34423a;
+      --accent: #5cb8a2; --accent-soft: #1e352f;
+      --write: #8fa3e0; --write-soft: #232b42;
+      --event: #d9a940; --event-soft: #362c14;
+      --stale: #d9a940; --stale-soft: #362c14;
+      --fresh: #5cb8a2; --fresh-soft: #1e352f;
+      --bad: #dd7364; --bad-soft: #3c211d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151b17; --surface: #1d2620; --surface2: #263129;
+    --ink: #e4ece6; --muted: #93a398; --line: #34423a;
+    --accent: #5cb8a2; --accent-soft: #1e352f;
+    --write: #8fa3e0; --write-soft: #232b42;
+    --event: #d9a940; --event-soft: #362c14;
+    --stale: #d9a940; --stale-soft: #362c14;
+    --fresh: #5cb8a2; --fresh-soft: #1e352f;
+    --bad: #dd7364; --bad-soft: #3c211d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Manrope", "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; }
+  .mono { font-family: "Red Hat Mono", ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 20px 60px; }
+  header h1 { font-size: 27px; font-weight: 800; margin: 4px 0 2px; text-wrap: balance; }
+  header .sub { color: var(--muted); max-width: 76ch; margin: 0 0 6px; }
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  #verdict { margin: 14px 0; padding: 12px 16px; border-radius: 10px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 5px solid var(--accent); font-size: 15px; }
+  #verdict.stale { border-left-color: var(--stale); } #verdict.bad { border-left-color: var(--bad); }
+  #verdict.good { border-left-color: var(--fresh); }
+  #verdict .tech { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; font-family: "Red Hat Mono", monospace; }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); }
+
+  .stories { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .stories button, .cmds button, .transport button {
+    text-align: left; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--ink); font: 600 13px "Manrope", sans-serif; cursor: pointer; }
+  .stories button:hover, .cmds button:hover, .transport button:hover { border-color: var(--accent); }
+  .stories button .hint { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+  .transport { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .transport button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .flow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+  @media (max-width: 760px) { .flow { grid-template-columns: 1fr; } }
+  .zone { border-radius: 10px; padding: 10px 12px; border: 1px dashed var(--line); background: var(--surface2); }
+  .zone h3 { margin: 0 0 2px; font-size: 13.5px; }
+  .zone .zsub { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; }
+  .zone.writez { border-color: var(--write); } .zone.readz { border-color: var(--accent); }
+  .projz { border: 2px solid var(--event); border-radius: 10px; background: var(--surface); padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px; min-width: 190px; }
+  .projz h3 { margin: 0; font-size: 13.5px; }
+  .projz .status { font-family: "Red Hat Mono", monospace; font-size: 11.5px; }
+  .projz label { display: flex; gap: 6px; align-items: baseline; font-size: 12px; cursor: pointer; }
+  .projz input { accent-color: var(--accent); }
+  .projz .speedrow { font-size: 12px; }
+  .projz input[type=range] { width: 100%; accent-color: var(--accent); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; font-family: "Red Hat Mono", monospace; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  td.cancelled { color: var(--muted); text-decoration: line-through; }
+
+  .feed { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0 2px; align-items: center; }
+  .ev { font-family: "Red Hat Mono", monospace; font-size: 10.5px; font-weight: 600; padding: 2px 7px;
+    border-radius: 999px; border: 1px solid var(--event); background: var(--event-soft); color: var(--event); }
+  .ev.applied { opacity: .45; border-style: dashed; }
+  .ckpt { font-family: "Red Hat Mono", monospace; font-size: 10px; color: var(--accent); font-weight: 600; }
+
+  .bigtile { display: flex; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+  .tile { flex: 1 1 120px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
+  .tile .n { font-family: "Red Hat Mono", monospace; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .tile.freshT { border-color: var(--fresh); } .tile.staleT { border-color: var(--stale); }
+  .tile.badT { border-color: var(--bad); background: var(--bad-soft); }
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 999px; padding: 1px 8px; }
+  .badge.fresh { background: var(--fresh-soft); color: var(--fresh); }
+  .badge.stale { background: var(--stale-soft); color: var(--stale); }
+  .badge.bad { background: var(--bad-soft); color: var(--bad); }
+
+  #loglines { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
+  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .ll .t { font-size: 13px; }
+  .ll .tech { font-family: "Red Hat Mono", monospace; font-size: 11px; color: var(--muted); }
+  .ll.w { border-left-color: var(--write); } .ll.p { border-left-color: var(--event); }
+  .ll.q { border-left-color: var(--accent); } .ll.x { border-left-color: var(--bad); }
+  .foot { margin-top: 16px; color: var(--muted); font-size: 12.5px; max-width: 84ch; }
+  .cmds { display: flex; flex-direction: column; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CQRS · command–query separation, simulated</div>
+    <h1>Ledger &amp; Chalkboard</h1>
+    <p class="sub">A shop records every sale in one guarded <b>ledger</b> (the write side — rules enforced, one entry
+    per sale, an event per entry). A <b>clerk</b> copies new events onto <b>chalkboards</b> (the read side — one board
+    per question) whenever they get to it. Queries read only the boards — instantly, but the boards run behind the
+    ledger. Place orders, slow the clerk down, break the clerk's habits, and watch what queries see. The stories on the
+    left narrate the important scenes.</p>
+  </header>
+
+  <div id="verdict"><span id="vtext">Pick a story, or just start placing orders.</span><span class="tech" id="vtech"></span></div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Play a story for me</h2>
+      <div class="stories">
+        <button data-story="lagclose"><span>1 · A sale reaches the board</span><span class="hint">Command, lag, projection, fresh query</span></button>
+        <button data-story="stale"><span>2 · The stale confirmation page</span><span class="hint">Query races the clerk — and loses</span></button>
+        <button data-story="holiday"><span>3 · The clerk takes a break</span><span class="hint">Writes keep working; boards freeze; backlog drains later</span></button>
+        <button data-story="dup"><span>4 · The careless clerk</span><span class="hint">Redelivery + non-idempotent copying = wrong revenue</span></button>
+        <button data-story="rebuild"><span>5 · Erase the board, keep the truth</span><span class="hint">Any board rebuilds from the ledger's events</span></button>
+      </div>
+
+      <h2>Commands (the ledger door)</h2>
+      <div class="cmds">
+        <button id="cmdPriya">Priya orders a keyboard — ₹80</button>
+        <button id="cmdAmit">Amit orders a desk — ₹300</button>
+        <button id="cmdCancel">Cancel Priya's latest order</button>
+      </div>
+
+      <h2 style="margin-top:14px">Queries (the boards)</h2>
+      <div class="cmds">
+        <button id="qRevenue">Manager asks: revenue today?</button>
+        <button id="qDash">Priya asks: where are my orders?</button>
+      </div>
+
+      <div class="transport">
+        <button id="btnPlay" class="primary">Run clock</button>
+        <button id="btnReset">Reset shop</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="flow">
+          <div class="zone writez">
+            <h3>Write side — the ledger</h3>
+            <p class="zsub">Normalized; every rule checked here. Commands land instantly.</p>
+            <div class="tablewrap"><table id="ordersTbl">
+              <thead><tr><th>order</th><th>customer</th><th>status</th><th class="num">total</th></tr></thead>
+              <tbody></tbody></table></div>
+            <p class="zsub" style="margin-top:8px">Event feed (the facts, in order):</p>
+            <div class="feed" id="feed"></div>
+          </div>
+          <div class="projz">
+            <h3>The clerk (projector)</h3>
+            <div class="status" id="projStatus">idle</div>
+            <div class="speedrow">Clerk speed: <span class="mono" id="vSpeed">1 event / 2 ticks</span>
+              <input type="range" id="speed" min="0" max="4" value="2"></div>
+            <label><input type="checkbox" id="paused"><span><b>on a break</b> (stop projecting)</span></label>
+            <label><input type="checkbox" id="naive"><span><b>careless</b> (non-idempotent copying)</span></label>
+            <button id="btnRedeliver" title="Rewind the checkpoint to 0 — the feed will redeliver everything, as at-least-once feeds do">Redeliver the feed</button>
+            <button id="btnRebuild" title="Erase both boards and reset the checkpoint — the clerk rewrites them from history">Erase boards &amp; rebuild</button>
+          </div>
+          <div class="zone readz">
+            <h3>Read side — the chalkboards</h3>
+            <p class="zsub">Denormalized; one board per question; zero business logic.</p>
+            <div class="bigtile">
+              <div class="tile" id="revTile"><div class="n" id="revN">₹0</div><div class="l">today's revenue board</div></div>
+              <div class="tile" id="lagTile"><div class="n" id="lagN">0</div><div class="l">events behind the ledger</div></div>
+            </div>
+            <p class="zsub">Priya's dashboard board:</p>
+            <div class="tablewrap"><table id="dashTbl">
+              <thead><tr><th>order</th><th>status</th><th class="num">total</th></tr></thead>
+              <tbody></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h2>What just happened</h2>
+        <div id="loglines"></div>
+      </div>
+
+      <p class="foot"><b>Rules this page uses</b>: the clock ticks continuously while "Run clock" is on; the clerk copies
+      one event per <i>N</i> ticks (the speed slider — production projectors are fast, but never instantaneous; the slider
+      exaggerates reality so you can see it). "Careless" copying adds revenue without checking whether the event was
+      already applied — harmless until "Redeliver the feed", which every real at-least-once feed eventually does on its
+      own. The verdict compares each board against the ledger's own truth, which the page computes on the side — in
+      production nobody has that luxury, which is exactly why idempotency and rebuilds matter.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- engine (no DOM — testable headlessly) ---------------- */
+function makeShop() {
+  const shop = {
+    // write side
+    orders: [],            // {id, customer, status, total}
+    events: [],            // {seq, type, order_id, customer, total}
+    // read side
+    checkpoint: 0,
+    dashboard: {},         // order_id -> {customer, status, total}
+    revenue: 0,
+    // knobs
+    naive: false,
+    nextId: 1,
+    log: [],
+  };
+  const ev = (kind, text, tech) => shop.log.push({ kind, text, tech });
+
+  shop.place = function (customer, product, total) {
+    const id = "ord-" + shop.nextId++;
+    shop.orders.push({ id, customer, status: "PLACED", total });
+    shop.events.push({ seq: shop.events.length + 1, type: "OrderPlaced", order_id: id, customer, total });
+    ev("w", `${customer} placed ${id} (${product}, ₹${total}). The ledger recorded it and appended event #${shop.events.length} — in one transaction. The boards know nothing yet.`,
+       `command OK → OrderPlaced seq=${shop.events.length}`);
+    return id;
+  };
+  shop.cancel = function (customer) {
+    const o = [...shop.orders].reverse().find(x => x.customer === customer && x.status === "PLACED");
+    if (!o) { ev("x", `Cancel rejected: ${customer} has no cancellable order. The write side said no; no event was produced.`, "CommandRejected"); return false; }
+    o.status = "CANCELLED";
+    shop.events.push({ seq: shop.events.length + 1, type: "OrderCancelled", order_id: o.id, customer, total: o.total });
+    ev("w", `${o.id} cancelled in the ledger; event #${shop.events.length} appended. The boards still show it as PLACED until the clerk catches up.`,
+       `OrderCancelled seq=${shop.events.length}`);
+    return true;
+  };
+  shop.lag = () => shop.events.length - shop.checkpoint;
+
+  shop.applyOne = function () {                      // the clerk copies ONE event
+    if (shop.checkpoint >= shop.events.length) return false;
+    const e = shop.events[shop.checkpoint];          // next unapplied (seq = checkpoint+1)
+    if (e.type === "OrderPlaced") {
+      const firstTime = !(e.order_id in shop.dashboard);
+      if (firstTime || shop.naive) shop.revenue += e.total;
+      if (firstTime || shop.naive) shop.dashboard[e.order_id] = { customer: e.customer, status: "PLACED", total: e.total };
+      ev("p", `The clerk copied event #${e.seq}: ${e.order_id} onto the boards — dashboard row written, ₹${e.total} added to the revenue board.` +
+         (!firstTime && shop.naive ? " (It was ALREADY on the board — a careful clerk would have skipped the revenue add!)" : ""),
+         `apply seq=${e.seq}${!firstTime && shop.naive ? " — DUPLICATE, added anyway" : ""}`);
+    } else if (e.type === "OrderCancelled") {
+      const row = shop.dashboard[e.order_id];
+      const firstTime = row && row.status !== "CANCELLED";
+      if (row) row.status = "CANCELLED";
+      if (firstTime || shop.naive) shop.revenue -= e.total;
+      ev("p", `The clerk copied event #${e.seq}: ${e.order_id} marked CANCELLED, ₹${e.total} subtracted from revenue.` +
+         (!firstTime && shop.naive ? " (Already cancelled on the board — the careful clerk would not subtract again!)" : ""),
+         `apply seq=${e.seq}${!firstTime && shop.naive ? " — DUPLICATE, subtracted anyway" : ""}`);
+    }
+    shop.checkpoint = e.seq;
+    return true;
+  };
+
+  shop.redeliver = function () {
+    shop.checkpoint = 0;
+    ev("x", "The feed redelivered from the start (at-least-once delivery doing what it always eventually does). A careful clerk will shrug; a careless one is about to corrupt the boards.",
+       "checkpoint ← 0; all events will be re-applied");
+  };
+  shop.rebuild = function () {
+    shop.dashboard = {}; shop.revenue = 0; shop.checkpoint = 0;
+    ev("p", "Both boards erased and the clerk sent back to event #1. Nothing of value was lost — the ledger's events are the durable truth; boards are rebuildable caches.",
+       "read models dropped; replay from seq 1");
+  };
+
+  // ground truth, computed from the ledger (what the boards SHOULD say)
+  shop.truthRevenue = () => shop.orders.reduce((s, o) => s + (o.status === "CANCELLED" ? 0 : o.total), 0);
+  shop.boardState = function () {                    // fresh / stale / corrupt
+    if (shop.lag() > 0) return "stale";
+    return shop.revenue === shop.truthRevenue() ? "fresh" : "corrupt";
+  };
+  return shop;
+}
+
+/* ---------------- headless self-test ---------------- */
+if (typeof document === "undefined") {
+  const s = makeShop();
+  s.place("priya", "keyboard", 80);
+  console.assert(s.lag() === 1 && s.revenue === 0, "command lands, board stale");
+  while (s.applyOne()) {}
+  console.assert(s.lag() === 0 && s.revenue === 80 && s.boardState() === "fresh", "drain -> fresh");
+  s.cancel("priya"); while (s.applyOne()) {}
+  console.assert(s.revenue === 0 && s.boardState() === "fresh", "cancel projected");
+  // careful clerk survives redelivery
+  s.redeliver(); while (s.applyOne()) {}
+  console.assert(s.revenue === 0 && s.boardState() === "fresh", "idempotent redelivery harmless, got " + s.revenue);
+  // careless clerk corrupts
+  const n = makeShop(); n.naive = true;
+  n.place("priya", "keyboard", 80); while (n.applyOne()) {}
+  n.redeliver(); while (n.applyOne()) {}
+  console.assert(n.revenue === 160 && n.boardState() === "corrupt", "naive redelivery double-counts, got " + n.revenue);
+  // rebuild heals
+  n.naive = false; n.rebuild(); while (n.applyOne()) {}
+  console.assert(n.revenue === 80 && n.boardState() === "fresh", "rebuild heals corruption, got " + n.revenue);
+  // rejection produces no event
+  const r = makeShop(); const evs = r.events.length; r.cancel("nobody");
+  console.assert(r.events.length === evs, "rejected command emits nothing");
+  console.log("self-test complete: lag/fresh/corrupt/rebuild/rejection all verified");
+}
+
+/* ---------------- UI ---------------- */
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+  let shop = makeShop(), clock = null, tickCount = 0, narration = null;
+  const SPEED_LABELS = ["stopped", "1 event / 4 ticks", "1 event / 2 ticks", "1 event / tick", "2 events / tick"];
+  const SPEED_APPLY = t => [0, (t % 4 === 0 ? 1 : 0), (t % 2 === 0 ? 1 : 0), 1, 2][+$("speed").value];
+
+  function verdict(text, tech, cls) { $("vtext").textContent = text; $("vtech").textContent = tech || ""; $("verdict").className = cls || ""; }
+
+  function autoVerdict() {
+    const st = shop.boardState(), lag = shop.lag(), truth = shop.truthRevenue();
+    if (st === "corrupt") verdict(`The boards are CORRUPTED: the revenue board says ₹${shop.revenue} but the ledger's truth is ₹${truth}. No amount of waiting fixes this — only "Erase boards & rebuild" (with a careful clerk) will.`,
+      `board ${shop.revenue} ≠ ledger ${truth}; lag 0`, "bad");
+    else if (st === "stale") verdict(`The boards are ${lag} event(s) behind the ledger. Queries right now answer from the past — correctly for their checkpoint, wrongly for the present.`,
+      `checkpoint ${shop.checkpoint} / ${shop.events.length}`, "stale");
+    else verdict(`The boards are fresh: every recorded event is reflected. Queries and ledger agree (revenue ₹${shop.revenue}).`,
+      `checkpoint ${shop.checkpoint} / ${shop.events.length}`, "good");
+  }
+
+  function render() {
+    $("ordersTbl").tBodies[0].replaceChildren(...shop.orders.map(o => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="mono">${o.id}</td><td>${o.customer}</td><td${o.status === "CANCELLED" ? ' class="cancelled"' : ""}>${o.status}</td><td class="num">₹${o.total}</td>`;
+      return tr;
+    }));
+    const feed = shop.events.map(e => {
+      const s = document.createElement("span");
+      s.className = "ev" + (e.seq <= shop.checkpoint ? " applied" : "");
+      s.textContent = `#${e.seq} ${e.type === "OrderPlaced" ? "placed" : "cancelled"}`;
+      s.title = `${e.type} ${e.order_id} ₹${e.total}` + (e.seq <= shop.checkpoint ? " (applied)" : " (waiting)");
+      return s;
+    });
+    const ck = document.createElement("span"); ck.className = "ckpt"; ck.textContent = `▲ clerk at ${shop.checkpoint}`;
+    $("feed").replaceChildren(...feed, ck);
+    $("revN").textContent = "₹" + shop.revenue;
+    $("lagN").textContent = shop.lag();
+    const st = shop.boardState();
+    $("revTile").className = "tile " + (st === "corrupt" ? "badT" : st === "stale" ? "staleT" : "freshT");
+    $("lagTile").className = "tile " + (shop.lag() ? "staleT" : "freshT");
+    $("dashTbl").tBodies[0].replaceChildren(...Object.entries(shop.dashboard).filter(([, r]) => r.customer === "priya").map(([id, r]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="mono">${id}</td><td${r.status === "CANCELLED" ? ' class="cancelled"' : ""}>${r.status}</td><td class="num">₹${r.total}</td>`;
+      return tr;
+    }));
+    $("projStatus").textContent = $("paused").checked ? "on a break — backlog " + shop.lag()
+      : (shop.lag() ? "copying… " + shop.lag() + " behind" : "idle — all caught up");
+    $("loglines").replaceChildren(...shop.log.slice(-50).map(e => {
+      const d = document.createElement("div"); d.className = "ll " + e.kind;
+      d.innerHTML = `<div class="t">${e.text}</div><div class="tech">${e.tech}</div>`;
+      return d;
+    }).reverse());
+    if (!narration) autoVerdict();
+  }
+
+  function tick() {
+    tickCount++;
+    if (!$("paused").checked) {
+      shop.naive = $("naive").checked;
+      for (let i = 0; i < SPEED_APPLY(tickCount); i++) shop.applyOne();
+    }
+    render();
+  }
+  function startClock() { if (!clock) { clock = setInterval(tick, 450); $("btnPlay").textContent = "Pause clock"; } else { clearInterval(clock); clock = null; $("btnPlay").textContent = "Run clock"; } }
+
+  $("cmdPriya").addEventListener("click", () => { narration = null; shop.place("priya", "keyboard", 80); render(); });
+  $("cmdAmit").addEventListener("click", () => { narration = null; shop.place("amit", "desk", 300); render(); });
+  $("cmdCancel").addEventListener("click", () => { narration = null; shop.cancel("priya"); render(); });
+  $("qRevenue").addEventListener("click", () => {
+    narration = null;
+    const truth = shop.truthRevenue(), st = shop.boardState();
+    shop.log.push({ kind: "q", text: `Manager queries the revenue board: ₹${shop.revenue}. ` +
+      (st === "fresh" ? "Fresh — matches the ledger." : st === "stale" ? `The ledger's truth is ₹${truth} — the board is ${shop.lag()} event(s) behind. Stale, not wrong: it is the correct answer for an earlier moment.` :
+      `The ledger's truth is ₹${truth} — the board is simply WRONG (corrupted), and waiting won't fix it.`),
+      tech: `SELECT revenue — no joins, no locks on the write side` });
+    render();
+  });
+  $("qDash").addEventListener("click", () => {
+    narration = null;
+    const rows = Object.entries(shop.dashboard).filter(([, r]) => r.customer === "priya");
+    const missing = shop.orders.filter(o => o.customer === "priya" && !(o.id in shop.dashboard)).length;
+    shop.log.push({ kind: "q", text: `Priya queries her dashboard: ${rows.length} order(s) shown.` +
+      (missing ? ` She just placed ${missing} more that the board hasn't heard about — the confirmation page looks broken to her. This is the read-your-own-writes problem.` : " Complete."),
+      tech: "SELECT * FROM customer_dashboard WHERE customer='priya'" });
+    render();
+  });
+  $("btnRedeliver").addEventListener("click", () => { narration = null; shop.redeliver(); render(); });
+  $("btnRebuild").addEventListener("click", () => { narration = null; shop.rebuild(); render(); });
+  $("btnPlay").addEventListener("click", startClock);
+  $("btnReset").addEventListener("click", () => { shop = makeShop(); tickCount = 0; narration = null;
+    $("paused").checked = false; $("naive").checked = false; render(); verdict("Shop reset. Place an order, or pick a story.", "", ""); });
+  $("speed").addEventListener("input", () => $("vSpeed").textContent = SPEED_LABELS[+$("speed").value]);
+  ["paused", "naive"].forEach(id => $(id).addEventListener("change", render));
+
+  const STORIES = {
+    lagclose: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = false; $("speed").value = 1;
+      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300);
+      verdict("Story 1 — two commands hit the ledger instantly; the boards start 2 events behind. Watch the clerk (slow today) copy them over, and the lag tile fall to 0.", "", "stale"); },
+    stale: () => { shop = makeShop(); $("paused").checked = true; $("naive").checked = false;
+      shop.place("priya", "keyboard", 80);
+      shop.log.push({ kind: "q", text: "Priya's confirmation page queries her dashboard immediately: EMPTY. Her order exists — the ledger has it — but the board hasn't heard. Un-pause the clerk (or press her query button again after) to watch it appear.", tech: "the consistency window, experienced as a user" });
+      verdict("Story 2 — the command succeeded, the immediate query shows nothing. This exact moment is CQRS's price. Fixes: wait-for-checkpoint, route this one query to the ledger, or build the page from the command's own result.", "", "stale"); },
+    holiday: () => { shop = makeShop(); $("paused").checked = true; $("naive").checked = false;
+      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300); shop.cancel("priya");
+      verdict("Story 3 — the clerk is on a break and three events queue up. Notice commands NEVER failed — writes and reads are decoupled; reads just age. Un-pause 'on a break' and watch the backlog drain in order.", "", "stale"); },
+    dup: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = true; $("speed").value = 3;
+      shop.place("priya", "keyboard", 80);
+      verdict("Story 4 — the clerk is CARELESS (adds revenue without checking if an event was already copied). Let it catch up, then press 'Redeliver the feed' and watch ₹80 become ₹160 — silent corruption. Then fix the habit (uncheck careless) and press 'Erase boards & rebuild'.", "", "bad"); },
+    rebuild: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = false; $("speed").value = 3;
+      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300); shop.cancel("priya");
+      verdict("Story 5 — let the clerk catch up, then press 'Erase boards & rebuild': the boards vanish and reappear identical, replayed from the ledger's events. Boards are caches; the feed is what you protect.", "", ""); },
+  };
+  document.querySelectorAll(".stories button").forEach(b => b.addEventListener("click", () => {
+    narration = true; STORIES[b.dataset.story]();
+    $("vSpeed").textContent = SPEED_LABELS[+$("speed").value];
+    render(); if (!clock) startClock();
+  }));
+
+  $("vSpeed").textContent = SPEED_LABELS[+$("speed").value];
+  render(); verdict("Pick a story, or place an order and press Run clock.", "", "");
+}
+</script>

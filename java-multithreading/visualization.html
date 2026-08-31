@@ -1,0 +1,1442 @@
+<title>The Interleaving Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#E9EBEA; --surface:#FBFCFC; --surface-2:#F1F4F3; --sunk:#E0E4E3;
+  --ink:#16211F; --ink-soft:#41514E; --muted:#697B77; --rule:#D0D8D6; --rule-hard:#B6C2BF;
+  --tA:#0F7B7C; --tA-bg:#DDEFEF; --tB:#B0700A; --tB-bg:#F7EAD4; --tC:#6A45A6; --tC-bg:#EBE3F6;
+  --bad:#B4302A; --bad-bg:#F8E2E0; --good:#26714A; --good-bg:#DDEFE4;
+  --warn-bg:#FAF0D8;
+  --shadow:0 1px 2px rgba(20,35,32,.07), 0 6px 18px -10px rgba(20,35,32,.22);
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12181A; --surface:#1A2225; --surface-2:#212B2E; --sunk:#0D1214;
+    --ink:#E2E9E7; --ink-soft:#B4C2BF; --muted:#849692; --rule:#2C393C; --rule-hard:#3E4E51;
+    --tA:#49C3C0; --tA-bg:#123234; --tB:#E2A33F; --tB-bg:#33260F; --tC:#A98BE0; --tC-bg:#241C38;
+    --bad:#F2756A; --bad-bg:#3A1A18; --good:#5DC58C; --good-bg:#123024;
+    --warn-bg:#332B12;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12181A; --surface:#1A2225; --surface-2:#212B2E; --sunk:#0D1214;
+  --ink:#E2E9E7; --ink-soft:#B4C2BF; --muted:#849692; --rule:#2C393C; --rule-hard:#3E4E51;
+  --tA:#49C3C0; --tA-bg:#123234; --tB:#E2A33F; --tB-bg:#33260F; --tC:#A98BE0; --tC-bg:#241C38;
+  --bad:#F2756A; --bad-bg:#3A1A18; --good:#5DC58C; --good-bg:#123024;
+  --warn-bg:#332B12;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -12px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+  -webkit-font-smoothing:antialiased;padding:0;margin:0}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 20px 80px}
+h1,h2,h3{font-family:var(--mono);font-weight:600;text-wrap:balance;margin:0}
+a{color:var(--tA)}
+.lede{max-width:66ch;color:var(--ink-soft)}
+.label{font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- masthead ---------- */
+header.top{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+header.top h1{font-size:clamp(24px,3.4vw,38px);letter-spacing:-.02em}
+header.top .sub{margin-top:6px;font-size:15px;color:var(--ink-soft);max-width:70ch}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;align-items:center}
+.legend .item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
+.swatch{width:11px;height:11px;border-radius:2px;flex:none}
+.swatch.sq{border-radius:50%}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.tab{font-family:var(--mono);font-size:13px;font-weight:500;padding:9px 15px;border:none;
+  background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tA)}
+.tab:focus-visible{outline:2px solid var(--tA);outline-offset:2px;border-radius:3px}
+
+/* ---------- scenario picker ---------- */
+.scenarios{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.scn{font-family:var(--sans);font-size:12.5px;padding:7px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--rule-hard);background:var(--surface);color:var(--ink-soft)}
+.scn:hover{border-color:var(--muted)}
+.scn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.scn:focus-visible{outline:2px solid var(--tA);outline-offset:2px}
+
+/* ---------- panels ---------- */
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow)}
+.card .hd{padding:10px 14px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;
+  align-items:center;gap:10px}
+.card .bd{padding:14px}
+
+/* ---------- story + verdict ---------- */
+.story{margin-bottom:14px;padding:14px 16px;background:var(--surface-2);border-left:3px solid var(--rule-hard);
+  border-radius:0 6px 6px 0}
+.story h2{font-size:15px;margin-bottom:5px}
+.story p{margin:6px 0 0;font-size:14px;color:var(--ink-soft);max-width:74ch}
+.verdict{padding:13px 16px;border-radius:8px;margin-bottom:12px;border:1px solid var(--rule);
+  background:var(--surface);display:flex;gap:12px;align-items:flex-start}
+.verdict .tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;padding:3px 8px;
+  border-radius:4px;flex:none;margin-top:1px}
+.verdict.ok{background:var(--good-bg);border-color:var(--good)}
+.verdict.ok .tag{background:var(--good);color:var(--surface)}
+.verdict.bad{background:var(--bad-bg);border-color:var(--bad)}
+.verdict.bad .tag{background:var(--bad);color:var(--surface)}
+.verdict.stuck{background:var(--warn-bg);border-color:var(--tB)}
+.verdict.stuck .tag{background:var(--tB);color:var(--surface)}
+.verdict.pending .tag{background:var(--muted);color:var(--surface)}
+.verdict .txt{font-size:14px}
+.verdict .txt b{display:block;font-size:15px;margin-bottom:2px}
+
+/* ---------- interleaving ribbon ---------- */
+.ribbon-wrap{margin-bottom:14px}
+.ribbon{display:flex;gap:2px;flex-wrap:wrap;padding:8px 10px;background:var(--sunk);border-radius:6px;
+  min-height:38px;align-items:center;border:1px solid var(--rule)}
+.tick{width:15px;height:21px;border-radius:2px;border:none;cursor:pointer;position:relative;padding:0;
+  font-family:var(--mono);font-size:9px;color:#fff;line-height:21px;text-align:center}
+.tick:hover{filter:brightness(1.15)}
+.tick:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.tick.now{box-shadow:0 0 0 2px var(--ink)}
+.ribbon .empty{font-size:12px;color:var(--muted);font-family:var(--sans)}
+
+/* ---------- grid ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1080px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px}
+
+/* ---------- thread cards ---------- */
+.thread{border-radius:8px;border:1px solid var(--rule);background:var(--surface);overflow:hidden;box-shadow:var(--shadow)}
+.thread .th{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--rule)}
+.thread .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.thread .name{font-family:var(--mono);font-size:13px;font-weight:600}
+.state{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 7px;
+  border-radius:3px;margin-left:auto;border:1px solid transparent}
+.state.RUNNABLE{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.state.BLOCKED{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.state.WAITING{background:var(--warn-bg);color:var(--tB);border-color:var(--tB)}
+.state.TERMINATED{background:var(--sunk);color:var(--muted);border-color:var(--rule-hard)}
+.prog{font-family:var(--mono);font-size:12px;padding:8px 0;background:var(--surface)}
+.line{display:flex;gap:8px;padding:1px 12px 1px 6px;white-space:pre;overflow-x:auto}
+.line .arrow{width:14px;flex:none;color:var(--muted);text-align:center}
+.line.at{background:var(--sunk);font-weight:500}
+.line.at .arrow{color:inherit;font-weight:600}
+.line .cmt{color:var(--muted)}
+.regs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--rule);
+  background:var(--surface-2)}
+.chip{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--rule-hard);
+  background:var(--surface);color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.chip b{color:var(--ink);font-weight:600}
+.chip.stale{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.chip.flash{animation:flash .7s ease-out}
+@keyframes flash{from{background:var(--tA-bg);box-shadow:0 0 0 3px var(--tA-bg)}to{}}
+@media (prefers-reduced-motion:reduce){.chip.flash{animation:none;outline:2px solid var(--tA)}}
+
+/* ---------- heap / monitors ---------- */
+.varrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--rule)}
+.varrow:last-child{border-bottom:none}
+.varrow .n{font-family:var(--mono);font-size:13px}
+.varrow .n em{font-style:normal;color:var(--tA);font-weight:600}
+.varrow .v{font-family:var(--mono);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.varrow .v.flash{animation:flash .7s ease-out;border-radius:4px;padding:0 4px}
+.mon{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;margin-bottom:10px;background:var(--surface-2)}
+.mon:last-child{margin-bottom:0}
+.mon .mname{font-family:var(--mono);font-size:12.5px;font-weight:600;margin-bottom:6px}
+.mon .row{display:flex;gap:8px;align-items:baseline;font-size:12px;padding:2px 0}
+.mon .row .k{color:var(--muted);width:112px;flex:none;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.pill{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:3px;color:#fff;font-weight:500}
+.pill.none{background:none;color:var(--muted);border:1px dashed var(--rule-hard);padding:1px 6px}
+
+/* ---------- log ---------- */
+.log{max-height:520px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:0}
+.ev{padding:9px 13px;border-bottom:1px solid var(--rule);font-size:13px;border-left:3px solid transparent}
+.ev:first-child{border-bottom:none}
+.ev .who{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em}
+.ev .what{margin-top:1px;color:var(--ink)}
+.ev .why{margin-top:3px;font-size:12.5px;color:var(--ink-soft)}
+.ev .tech{margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ev.hot{background:var(--bad-bg)}
+.ev.good{background:var(--good-bg)}
+
+/* ---------- controls ---------- */
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow)}
+button.btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 13px;border-radius:6px;
+  border:1px solid var(--rule-hard);background:var(--surface-2);color:var(--ink);cursor:pointer}
+button.btn:hover:not(:disabled){background:var(--sunk)}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+button.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.btn.primary:hover:not(:disabled){filter:brightness(1.25)}
+button.btn.run{background:var(--tA);border-color:var(--tA);color:#fff}
+button.btn.run:hover:not(:disabled){filter:brightness(1.1)}
+button.btn:focus-visible{outline:2px solid var(--tA);outline-offset:2px}
+.sep{width:1px;height:24px;background:var(--rule);margin:0 2px}
+.who-runs{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+button.trun{font-family:var(--mono);font-size:12px;font-weight:600;padding:6px 11px;border-radius:6px;
+  cursor:pointer;color:#fff;border:1px solid transparent}
+button.trun:disabled{opacity:.3;cursor:not-allowed}
+button.trun:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+select,input[type=range]{font-family:var(--sans);font-size:12.5px}
+select{padding:5px 8px;border-radius:6px;border:1px solid var(--rule-hard);background:var(--surface-2);color:var(--ink)}
+.toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;
+  padding:5px 10px;border:1px solid var(--rule-hard);border-radius:6px;background:var(--surface-2)}
+.toggle input{accent-color:var(--tA);cursor:pointer}
+
+/* ---------- predict ---------- */
+.predict{border:1px solid var(--tB);background:var(--warn-bg);border-radius:8px;padding:13px 15px;margin-bottom:14px}
+.predict .q{font-size:14.5px;font-weight:600;margin:4px 0 10px}
+.predict .opts{display:flex;gap:8px;flex-wrap:wrap}
+.predict button{font-family:var(--sans);font-size:13px;padding:7px 13px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--rule-hard);background:var(--surface);color:var(--ink);text-align:left}
+.predict button:hover{border-color:var(--ink)}
+.predict button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.predict button.picked{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.predict .after{margin-top:11px;font-size:13.5px;padding-top:11px;border-top:1px solid var(--rule-hard);color:var(--ink)}
+.predict .after b{font-family:var(--mono);font-size:12px;letter-spacing:.05em}
+
+/* ---------- pool tab ---------- */
+.pool-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.pool-grid{grid-template-columns:1fr}}
+.worker{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--rule);
+  border-radius:6px;margin-bottom:8px;background:var(--surface-2)}
+.worker .wn{font-family:var(--mono);font-size:12px;font-weight:600;width:76px;flex:none}
+.worker .bar{flex:1;height:20px;background:var(--sunk);border-radius:4px;overflow:hidden;position:relative}
+.worker .fill{height:100%;transition:width .12s linear}
+@media (prefers-reduced-motion:reduce){.worker .fill{transition:none}}
+.worker .bar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:var(--ink);mix-blend-mode:normal}
+.qslots{display:flex;gap:5px;flex-wrap:wrap;min-height:34px;align-items:center;padding:8px;
+  background:var(--sunk);border-radius:6px;border:1px solid var(--rule)}
+.qslot{font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:4px;background:var(--surface);
+  border:1px solid var(--rule-hard)}
+.qslot.free{border-style:dashed;color:var(--muted);opacity:.6}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:9px}
+.stat{border:1px solid var(--rule);border-radius:6px;padding:9px 11px;background:var(--surface-2)}
+.stat .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--mono);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:1px}
+.stat.alarm{border-color:var(--bad);background:var(--bad-bg)}
+.stat.alarm .v{color:var(--bad)}
+.slider-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12.5px}
+.slider-row label{width:150px;flex:none;color:var(--ink-soft)}
+.slider-row output{font-family:var(--mono);font-weight:600;width:74px;text-align:right;font-size:12px}
+table.mini{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+table.mini th,table.mini td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.mini th{font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+table.mini td:first-child,table.mini th:first-child{text-align:left}
+.hidden{display:none}
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:76ch}
+.foot code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 4px;border-radius:3px}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <h1>The Interleaving Machine</h1>
+  <p class="sub">Two or three Java threads, one shared piece of memory, and <b>you</b> deciding who runs
+  next. Every line of Java below is broken into the small machine steps the CPU actually performs — because
+  the gap <em>between</em> those steps is where every threading bug lives.</p>
+  <div class="legend">
+    <span class="label">Threads</span>
+    <span class="item"><span class="swatch sq" style="background:var(--tA)"></span>Thread A</span>
+    <span class="item"><span class="swatch sq" style="background:var(--tB)"></span>Thread B</span>
+    <span class="item"><span class="swatch sq" style="background:var(--tC)"></span>Thread C</span>
+    <span class="sep"></span>
+    <span class="label">States</span>
+    <span class="item"><span class="state RUNNABLE">RUNNABLE</span>can run now</span>
+    <span class="item"><span class="state BLOCKED">BLOCKED</span>wants a lock someone holds</span>
+    <span class="item"><span class="state WAITING">WAITING</span>asked to be woken later</span>
+  </div>
+</header>
+
+<div class="tabs" role="tablist">
+  <button class="tab" id="tab-machine" role="tab" aria-selected="true" aria-controls="panel-machine">Interleaving machine</button>
+  <button class="tab" id="tab-pool" role="tab" aria-selected="false" aria-controls="panel-pool">Thread pool</button>
+</div>
+
+<!-- ================= MACHINE ================= -->
+<section id="panel-machine" role="tabpanel" aria-labelledby="tab-machine">
+
+  <div class="scenarios" id="scnList"></div>
+
+  <div class="story" id="story">
+    <h2 id="storyTitle"></h2>
+    <p id="storyText"></p>
+  </div>
+
+  <div class="predict" id="predict">
+    <span class="label">Predict before you run</span>
+    <div class="q" id="predictQ"></div>
+    <div class="opts" id="predictOpts"></div>
+    <div class="after hidden" id="predictAfter"></div>
+  </div>
+
+  <div class="verdict pending" id="verdict">
+    <span class="tag" id="verdictTag">READY</span>
+    <span class="txt"><b id="verdictHead"></b><span id="verdictBody"></span></span>
+  </div>
+
+  <div class="ribbon-wrap">
+    <span class="label">The interleaving so far &mdash; one tick per machine step, coloured by thread. Click any tick to rewind to it.</span>
+    <div class="ribbon" id="ribbon"></div>
+  </div>
+
+  <div class="controls">
+    <span class="label" style="margin-right:2px">Run one step of</span>
+    <span class="who-runs" id="whoRuns"></span>
+    <span class="sep"></span>
+    <button class="btn" id="btnBack">&larr; Step back</button>
+    <button class="btn run" id="btnDemo">&#9654; Show me the point of this scenario</button>
+    <button class="btn" id="btnAuto">Let the scheduler choose</button>
+    <button class="btn primary" id="btnReset">Reset</button>
+    <span class="sep"></span>
+    <span id="scnOpts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></span>
+  </div>
+
+  <div class="grid">
+    <div class="col" id="threadsCol"></div>
+    <div class="col">
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">Shared memory (the heap)</h3>
+          <span class="label">every thread sees this</span></div>
+        <div class="bd" id="heapBox"></div>
+      </div>
+      <div class="card" id="monCard">
+        <div class="hd"><h3 style="font-size:13px">Locks</h3><span class="label">owner &middot; queues</span></div>
+        <div class="bd" id="monBox"></div>
+      </div>
+      <div class="card" id="cacheNote">
+        <div class="hd"><h3 style="font-size:13px">Why private copies exist</h3></div>
+        <div class="bd" style="font-size:12.5px;color:var(--ink-soft)">
+          <p style="margin:0">Each thread card shows a <b>private copy</b> row. A thread that reads an ordinary
+          field is allowed to keep using the value it read the first time — the JVM may hold it in a CPU register
+          and never look at memory again. That is legal, and it is why a write by one thread can stay invisible
+          to another <em>forever</em>. Marking the field <code style="font-family:var(--mono)">volatile</code>,
+          or reading it inside a lock, removes the private copy.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">What just happened</h3><span class="label">newest first</span></div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= POOL ================= -->
+<section id="panel-pool" role="tabpanel" aria-labelledby="tab-pool" class="hidden">
+
+  <div class="story">
+    <h2>Nobody creates a thread per request forever</h2>
+    <p>A thread costs about a megabyte of stack and a system call to create. So real Java servers keep a fixed
+    crew of threads and feed them a queue of work. That single decision — <b>how many workers, how deep a
+    queue</b> — is the most common production tuning knob in Java, and the most common way to hang a service.
+    Set the numbers below and press play. Time is counted in ticks; a tick is one unit of work.</p>
+  </div>
+
+  <div class="verdict pending" id="pverdict">
+    <span class="tag" id="pverdictTag">READY</span>
+    <span class="txt"><b id="pverdictHead"></b><span id="pverdictBody"></span></span>
+  </div>
+
+  <div class="controls" style="display:block">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:2px 26px">
+      <div class="slider-row"><label for="pW">Worker threads</label>
+        <input type="range" id="pW" min="1" max="6" value="2" style="flex:1"><output id="pWo">2</output></div>
+      <div class="slider-row"><label for="pQ">Queue capacity</label>
+        <input type="range" id="pQ" min="0" max="12" value="6" style="flex:1"><output id="pQo">6</output></div>
+      <div class="slider-row"><label for="pN">Tasks submitted at once</label>
+        <input type="range" id="pN" min="1" max="16" value="12" style="flex:1"><output id="pNo">12</output></div>
+      <div class="slider-row"><label for="pD">Ticks of work per task</label>
+        <input type="range" id="pD" min="1" max="10" value="5" style="flex:1"><output id="pDo">5</output></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+      <label class="toggle"><input type="checkbox" id="pNest">Each task submits a sub-task <b style="font-family:var(--mono)">to the same pool</b> and waits for it</label>
+      <label class="toggle"><input type="checkbox" id="pCaller">When the queue is full, the submitting thread runs the task itself (CallerRunsPolicy)</label>
+      <span class="sep"></span>
+      <button class="btn run" id="pPlay">&#9654; Play</button>
+      <button class="btn" id="pStep">Step 1 tick</button>
+      <button class="btn" id="pBack">&larr; Back</button>
+      <button class="btn primary" id="pReset">Reset</button>
+    </div>
+  </div>
+
+  <div class="pool-grid">
+    <div class="col">
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">The crew</h3><span class="label" id="pClock">tick 0</span></div>
+        <div class="bd" id="pWorkers"></div>
+      </div>
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">The queue</h3><span class="label">tasks waiting for a free worker</span></div>
+        <div class="bd"><div class="qslots" id="pQueue"></div></div>
+      </div>
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">Numbers</h3></div>
+        <div class="bd"><div class="stats" id="pStats"></div></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">What just happened</h3><span class="label">newest first</span></div>
+        <div class="log" id="pLog" style="max-height:420px"></div>
+      </div>
+      <div class="card">
+        <div class="hd"><h3 style="font-size:13px">Sweep: how long 12 tasks &times; 5 ticks take</h3>
+          <span class="label">queue 12, no nesting</span></div>
+        <div class="bd"><table class="mini" id="pSweep"></table>
+          <p style="font-size:12.5px;color:var(--ink-soft);margin:10px 0 0">Doubling the crew roughly halves
+          the wall clock — right up to the point where there is no work left to hand out. Past that, extra
+          workers finish nothing sooner. In a real service they still cost memory and context switches.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<p class="foot">This page is a <b>model</b>, not a JVM. Two honest simplifications: (1) each Java line is split
+into the machine steps that matter for the lesson, not the exact bytecode; (2) the private-copy row models
+<em>stale reads</em> as a cached value, whereas a real JVM usually produces the same effect by keeping the
+field in a CPU register and never re-reading memory. The observable consequence — a write that another
+thread never sees — is identical, and the Java Memory Model permits both. Everything else here (lock owner,
+entry set, wait set, <code>notifyAll</code> waking threads into the entry set rather than into the running
+state, compare-and-set failing and retrying) mirrors real <code>synchronized</code> and
+<code>java.util.concurrent</code> behaviour.</p>
+
+</div>
+
+<script id="engine-js">
+"use strict";
+/* ==========================================================================
+   PURE ENGINE — no DOM. Deterministic. state in, new state out.
+   Extracted and replayed headlessly by validate-visualization.sh
+   ========================================================================== */
+var clone = function(o){ return JSON.parse(JSON.stringify(o)); };
+var has = function(o,k){ return Object.prototype.hasOwnProperty.call(o,k); };
+var truthy = function(v){ return v !== 0 && v !== false && v !== null && v !== undefined; };
+
+/* ---------- reading and writing shared memory ---------- */
+function readVar(st, t, name){
+  if (!st.caching || st.volatiles.indexOf(name) >= 0) return st.heap[name];
+  if (has(t.cache, name)) return t.cache[name];
+  t.cache[name] = st.heap[name];
+  return t.cache[name];
+}
+function writeVar(st, t, name, val){
+  st.heap[name] = val;
+  if (st.caching && st.volatiles.indexOf(name) < 0) t.cache[name] = val;
+}
+function push(st, t, what, why, tech, kind, changed){
+  st.log.push({ i: st.log.length, tid: t ? t.id : null, name: t ? t.name : 'scheduler',
+                what: what, why: why || '', tech: tech || '', kind: kind || 'normal',
+                changed: changed || [] });
+}
+function entrySet(st, mon){
+  return st.threads.filter(function(t){
+    return (t.blockedOn === mon || t.reacquire === mon) && t.status !== 'TERMINATED';
+  }).map(function(t){ return t.id; });
+}
+
+/* ---------- normalize: derive thread runnability from lock ownership ---------- */
+function normalize(st){
+  st.threads.forEach(function(t){
+    if (t.status === 'TERMINATED' || t.status === 'WAITING') return;
+    var m = t.reacquire || t.blockedOn;
+    if (m) t.status = (st.monitors[m].owner === null) ? 'RUNNABLE' : 'BLOCKED';
+    else   t.status = 'RUNNABLE';
+  });
+  var alive = st.threads.filter(function(t){ return t.status !== 'TERMINATED'; });
+  var runnable = st.threads.filter(function(t){ return t.status === 'RUNNABLE'; });
+  if (alive.length === 0) st.run = 'DONE';
+  else if (runnable.length === 0) st.run = 'STUCK';
+  else st.run = 'RUNNING';
+  return st;
+}
+function runnableIds(st){
+  return st.threads.filter(function(t){ return t.status === 'RUNNABLE'; }).map(function(t){ return t.id; });
+}
+
+/* ==========================================================================
+   step(state, tid) -> new state.  One machine instruction of one thread.
+   ========================================================================== */
+function step(state, tid){
+  var st = clone(state);
+  var t = null, i;
+  for (i = 0; i < st.threads.length; i++) if (st.threads[i].id === tid) t = st.threads[i];
+  if (!t || t.status !== 'RUNNABLE') return state;
+  st.steps++;
+  st.lastTid = tid;
+
+  /* a thread woken from wait() must take the lock back before its next line runs */
+  if (t.reacquire){
+    var rm = st.monitors[t.reacquire];
+    if (rm.owner === null){
+      rm.owner = t.id; t.reacquire = null; t.blockedOn = null; t.cache = {};
+      push(st, t, t.name + ' took the lock back and returned from wait().',
+        'Being woken is not the same as running. wait() had handed the lock away, so ' + t.name +
+        ' had to queue for it like everybody else. Only now does the line after wait() execute.',
+        'monitor ' + rm.name + ': owner = ' + t.name + ' (reacquired)', 'normal', ['mon:' + rm.name]);
+    }
+    return normalize(st);
+  }
+
+  var ins = t.prog[t.pc];
+  var m, v, before, woken;
+
+  switch (ins.op){
+
+    case 'LOAD':
+      v = readVar(st, t, ins.var);
+      t.regs[ins.reg] = v;
+      var fromCache = st.caching && st.volatiles.indexOf(ins.var) < 0 && has(t.cache, ins.var) &&
+                      t.cache[ins.var] !== st.heap[ins.var];
+      push(st, t, t.name + ' read ' + ins.var + ' and got ' + fmt(v) + '.',
+        fromCache
+          ? 'It did NOT look at memory. It reused the private copy it made earlier — memory actually holds ' +
+            fmt(st.heap[ins.var]) + ' right now. Nothing forces it to look again.'
+          : 'The value is now sitting in a CPU register that only ' + t.name + ' can see. Whatever happens to ' +
+            ins.var + ' in memory from this moment on, ' + t.name + ' will not notice.',
+        t.name + ': ' + ins.reg + ' = ' + ins.var + '  ->  ' + fmt(v),
+        fromCache ? 'hot' : 'normal', ['reg:' + t.id + '.' + ins.reg]);
+      t.pc++;
+      break;
+
+    case 'STORE':
+      before = st.heap[ins.var];
+      writeVar(st, t, ins.var, t.regs[ins.reg]);
+      var overwrote = (typeof before === 'number' && typeof t.regs[ins.reg] === 'number' &&
+                       t.regs[ins.reg] <= before);
+      var subst = function(x){ return x.replace(/\$T/g, t.name).replace(/\$V/g, fmt(t.regs[ins.reg]))
+                                        .replace(/\$B/g, fmt(before)); };
+      push(st, t, (ins.what ? subst(ins.what) :
+                   t.name + ' wrote ' + fmt(t.regs[ins.reg]) + ' into ' + ins.var + '.'),
+        ins.why ? subst(ins.why) :
+        (overwrote
+          ? 'Memory held ' + fmt(before) + ' and now holds ' + fmt(t.regs[ins.reg]) +
+            '. This write is based on a value that was already out of date — it silently erases work another thread finished.'
+          : 'It writes back the register it computed from, not the value in memory. Memory held ' + fmt(before) + '.'),
+        t.name + ': ' + ins.var + ' = ' + ins.reg + '  ->  ' + fmt(t.regs[ins.reg]),
+        (ins.hotIfNegative ? (t.regs[ins.reg] < 0) : overwrote) ? 'hot' : 'normal',
+        ['heap:' + ins.var]);
+      t.pc++;
+      break;
+
+    case 'SETV':
+      before = st.heap[ins.var];
+      writeVar(st, t, ins.var, ins.value);
+      push(st, t, t.name + ' set ' + ins.var + ' to ' + fmt(ins.value) + '.',
+        st.caching && st.volatiles.indexOf(ins.var) < 0
+          ? 'Memory now holds ' + fmt(ins.value) + '. That does not mean any other thread will ever read it — ' +
+            'a thread with its own private copy has no reason to look at memory again.'
+          : ins.var + ' is volatile, so this write goes straight to memory and every later read of ' + ins.var +
+            ' by any thread is guaranteed to see it.',
+        t.name + ': ' + ins.var + ' = ' + fmt(ins.value) + ' (was ' + fmt(before) + ')',
+        'normal', ['heap:' + ins.var]);
+      t.pc++;
+      break;
+
+    case 'ADD':
+      t.regs[ins.reg] = (t.regs[ins.reg] | 0) + ins.n;
+      push(st, t, t.name + ' computed ' + ins.reg + ' = ' + fmt(t.regs[ins.reg]) + '.',
+        'This happens entirely inside ' + t.name + "'s own registers. Shared memory is not touched and no other " +
+        'thread can see it.', t.name + ': ' + ins.reg + ' += ' + ins.n + '  ->  ' + fmt(t.regs[ins.reg]),
+        'normal', ['reg:' + t.id + '.' + ins.reg]);
+      t.pc++;
+      break;
+
+    case 'COPY':
+      t.regs[ins.to] = t.regs[ins.from];
+      push(st, t, t.name + ' copied ' + ins.from + ' into ' + ins.to + ' (' + fmt(t.regs[ins.to]) + ').',
+        'Private register work — invisible to everyone else.',
+        t.name + ': ' + ins.to + ' = ' + ins.from, 'normal', ['reg:' + t.id + '.' + ins.to]);
+      t.pc++;
+      break;
+
+    case 'BRANCH':
+      v = truthy(t.regs[ins.reg]);
+      push(st, t, (ins.what ? ins.what.replace(/\$T/g, t.name) + ' (' + (v ? 'true' : 'false') + ')'
+                             : t.name + ' checked its condition: ' + (v ? 'true' : 'false') + '.'),
+        (v ? (ins.whyT || ins.why) : (ins.whyF || ins.why)) || (v ? 'It skips ahead.' : 'It falls through to the next line.'),
+        t.name + ': if (' + ins.reg + ') goto ' + ins.target + '  ->  ' + (v ? 'taken' : 'not taken'),
+        'normal', []);
+      t.pc = v ? ins.target : t.pc + 1;
+      break;
+
+    case 'JMP':
+      if (ins.count) st.counters[ins.count] = (st.counters[ins.count] || 0) + 1;
+      push(st, t, ins.text || (t.name + ' looped back.'), ins.why || '',
+        t.name + ': goto ' + ins.target, 'normal', []);
+      t.pc = ins.target;
+      break;
+
+    case 'LOCK':
+      m = st.monitors[ins.mon];
+      if (m.owner === null){
+        m.owner = t.id; t.blockedOn = null; t.cache = {};
+        push(st, t, t.name + ' entered the lock on ' + m.name + '.',
+          'Two things just happened, not one. ' + t.name + ' is now the only thread allowed inside this block, ' +
+          'AND it threw away all its private copies — its next read will come from real memory.',
+          'monitor ' + m.name + ': owner = ' + t.name, 'good', ['mon:' + m.name]);
+        t.pc++;
+      } else {
+        t.blockedOn = ins.mon;
+        push(st, t, t.name + ' tried to enter the lock on ' + m.name + ' and could not.',
+          nameOf(st, m.owner) + ' owns it. ' + t.name + ' is now BLOCKED: it will not execute a single further ' +
+          'instruction until the lock is released. It has not moved past this line.',
+          t.name + ': BLOCKED on monitor ' + m.name + ' (held by ' + nameOf(st, m.owner) + ')',
+          'hot', ['mon:' + m.name]);
+      }
+      break;
+
+    case 'UNLOCK':
+      m = st.monitors[ins.mon];
+      m.owner = null;
+      push(st, t, t.name + ' released the lock on ' + m.name + '.',
+        'Everything ' + t.name + ' wrote inside the block is now guaranteed to be visible to the next thread ' +
+        'that takes this same lock. That guarantee is one-way: it only helps threads that take the lock.',
+        'monitor ' + m.name + ': owner = null', 'good', ['mon:' + m.name]);
+      t.pc++;
+      break;
+
+    case 'WAIT':
+      m = st.monitors[ins.mon];
+      m.owner = null;
+      m.waitSet.push(t.id);
+      t.status = 'WAITING';
+      t.pc++;
+      push(st, t, t.name + ' called wait() and went to sleep.',
+        'wait() does something people forget: it GIVES THE LOCK BACK. ' + t.name +
+        ' is now in the wait set of ' + m.name + ', holding nothing, and it will never run again on its own. ' +
+        'Only another thread calling notify() can move it.',
+        t.name + ': ' + m.name + '.wait() — released monitor, moved to wait set',
+        'normal', ['mon:' + m.name]);
+      break;
+
+    case 'NOTIFYALL':
+      m = st.monitors[ins.mon];
+      woken = m.waitSet.slice();
+      m.waitSet = [];
+      woken.forEach(function(id){
+        st.threads.forEach(function(x){ if (x.id === id){ x.status = 'BLOCKED'; x.reacquire = ins.mon; } });
+      });
+      if (woken.length === 0){
+        push(st, t, t.name + ' called notifyAll() and woke nobody.',
+          'The wait set was empty. The signal is not stored anywhere — no counter, no flag, no queue. ' +
+          'It is simply gone. A thread that calls wait() one instruction later will sleep through it forever.',
+          m.name + '.notifyAll(): wait set empty, signal discarded', 'hot', ['mon:' + m.name]);
+      } else {
+        push(st, t, t.name + ' called notifyAll() and woke ' + woken.length + ' thread' +
+          (woken.length > 1 ? 's' : '') + ': ' + woken.map(function(i2){ return nameOf(st, i2); }).join(' and ') + '.',
+          'Woken does not mean running. They moved out of the wait set into the queue for the lock — which ' +
+          t.name + ' is still holding. They will run one at a time, later, in no guaranteed order.',
+          m.name + '.notifyAll(): wait set -> entry set [' + woken.join(', ') + ']', 'normal', ['mon:' + m.name]);
+      }
+      t.pc++;
+      break;
+
+    case 'CAS':
+      var cur = st.heap[ins.var], exp = t.regs[ins.expect], nxt = t.regs[ins.next];
+      t.cache = {};
+      if (cur === exp){
+        st.heap[ins.var] = nxt;
+        t.regs[ins.result] = 1;
+        push(st, t, t.name + ' compare-and-set succeeded: ' + ins.var + ' went from ' + fmt(exp) + ' to ' + fmt(nxt) + '.',
+          'The CPU compared and swapped in ONE indivisible instruction. Nothing could slip in between the ' +
+          'compare and the swap, which is exactly the gap that loses updates.',
+          t.name + ': CAS(' + ins.var + ', expect ' + fmt(exp) + ', set ' + fmt(nxt) + ') -> true',
+          'good', ['heap:' + ins.var]);
+      } else {
+        t.regs[ins.result] = 0;
+        st.counters.casFail = (st.counters.casFail || 0) + 1;
+        push(st, t, t.name + ' compare-and-set FAILED: it expected ' + fmt(exp) + ' but memory holds ' + fmt(cur) + '.',
+          'Somebody changed the value after ' + t.name + ' read it, so ' + t.name + ' refuses to write. ' +
+          'Nothing is lost and nothing is blocked — it simply goes round the loop and tries again with fresh data.',
+          t.name + ': CAS(' + ins.var + ', expect ' + fmt(exp) + ') -> false (actual ' + fmt(cur) + ')',
+          'normal', ['heap:' + ins.var]);
+      }
+      t.pc++;
+      break;
+
+    case 'NOTE':
+      if (ins.count) st.counters[ins.count] = (st.counters[ins.count] || 0) + 1;
+      push(st, t, ins.text.replace(/\$T/g, t.name), ins.why || '', ins.tech || '', ins.kind || 'normal', []);
+      t.pc++;
+      break;
+
+    case 'END':
+      t.status = 'TERMINATED';
+      push(st, t, t.name + ' finished.', '', t.name + ': TERMINATED', 'normal', []);
+      break;
+  }
+
+  if (t.status !== 'TERMINATED' && t.status !== 'WAITING' && !t.blockedOn) t.status = 'RUNNABLE';
+  return normalize(st);
+}
+
+function nameOf(st, id){
+  for (var i = 0; i < st.threads.length; i++) if (st.threads[i].id === id) return st.threads[i].name;
+  return id;
+}
+function fmt(v){
+  if (v === true) return 'true';
+  if (v === false) return 'false';
+  return String(v);
+}
+</script>
+
+<script id="scenarios-js">
+"use strict";
+/* ==========================================================================
+   SCENARIOS — pure data + builders. Also replayed by validate-visualization.sh
+   ========================================================================== */
+function T(id, name, prog){
+  return { id:id, name:name, prog:prog, pc:0, regs:{}, cache:{},
+           status:'RUNNABLE', blockedOn:null, reacquire:null };
+}
+function baseState(threads, heap, monitors, opts){
+  var mons = {};
+  (monitors||[]).forEach(function(n){ mons[n] = { name:n, owner:null, waitSet:[] }; });
+  var st = { threads:threads, heap:heap, monitors:mons, volatiles:(opts&&opts.volatiles)||[],
+             caching:!!(opts&&opts.caching), log:[], steps:0, counters:{}, lastTid:null, run:'RUNNING' };
+  return normalize(st);
+}
+
+var SCENARIOS = {
+
+/* ---------------------------------------------------------------- 1 ---- */
+lost: {
+  title: '1 · The vanishing increment',
+  story: 'Two threads each run one line of Java: <b>count++</b>. Two increments, so the answer must be 2. ' +
+         'But <b>count++</b> is not one action — it is three: read the number out of memory into the CPU, ' +
+         'add one inside the CPU, write it back. The three steps are shown as three lines below. ' +
+         'You choose who runs each step.',
+  predict: { q: 'Two threads each do count++ exactly once, starting from 0. What values can the final count be?',
+    opts: [{t:'Always 2'}, {t:'2, or sometimes 1', correct:true}, {t:'2, or sometimes 3'}],
+    reveal: '<b>2, or sometimes 1.</b> If both threads read 0 before either writes, both compute 1 and both ' +
+            'write 1. One increment is silently erased. It can never be 3 — no thread ever invents a value ' +
+            'higher than what it read plus one. This is called a <b>lost update</b>, and it is the single ' +
+            'most common concurrency bug in the world.' },
+  options: [],
+  script: ['A','B','A','A','B','B','A','B'],
+  build: function(){
+    var p = function(){ return [
+      {op:'LOAD',  reg:'r', var:'count',           src:'int r = count;', cmt:'read memory  ->  register'},
+      {op:'ADD',   reg:'r', n:1,                   src:'r = r + 1;',     cmt:'add, inside the CPU only'},
+      {op:'STORE', var:'count', reg:'r',           src:'count = r;',     cmt:'write register  ->  memory'},
+      {op:'END',   src:'// thread finished'} ]; };
+    return baseState([T('A','Thread A',p()), T('B','Thread B',p())], {count:0}, [], {caching:false});
+  },
+  verdict: function(st){
+    if (st.run !== 'DONE') return {level:'pending', head:'Running.', body:'Keep stepping. Watch what each thread reads before the other one writes.'};
+    if (st.heap.count === 2) return {level:'ok', head:'count = 2. Both increments survived.',
+      body:'This interleaving happened to be safe. That is the danger: the same code is correct on most runs and wrong on some. Press Reset and try letting both threads read before either writes.'};
+    return {level:'bad', head:'count = ' + st.heap.count + '. One increment vanished.',
+      body:'Nothing crashed. No exception was thrown. Both threads reported success. The number is simply wrong, and it will stay wrong forever. This is a lost update.'};
+  }
+},
+
+/* ---------------------------------------------------------------- 2 ---- */
+flag: {
+  title: '2 · The stop signal that never arrives',
+  story: 'A worker thread loops until someone sets a <b>stop</b> flag. Another thread sets it. This looks ' +
+         'unbreakable — and it is one of the classic Java hangs. Watch the worker\'s <b>private copy</b> row ' +
+         'as the flag changes in memory. Then turn on <b>volatile</b> and run it again.',
+  predict: { q: 'Thread B sets stop = true. Thread A is looping on while (!stop). What happens to Thread A?',
+    opts: [{t:'It stops, immediately'}, {t:'It stops, but maybe a bit late'}, {t:'It may loop forever', correct:true}],
+    reveal: '<b>It may loop forever.</b> Nothing in Java promises a thread will ever re-read an ordinary field. ' +
+            'The JVM is allowed to load <b>stop</b> once, keep it in a register, and never look at memory again — ' +
+            'which is a perfectly good optimisation for single-threaded code. The write really did happen; ' +
+            'the reader just never looks. This is a <b>visibility</b> failure, and unlike the lost update it is ' +
+            'not about timing at all.' },
+  options: [{key:'vol', label:'Declare <b>volatile boolean stop</b>', def:false}],
+  script: ['A','A','A','A','B','B','A','A','A','A','A','A','A','A','A','A','A','A'],
+  build: function(o){
+    var worker = [
+      {op:'LOAD',   reg:'s', var:'stop', src:'  s = stop;', cmt:'re-read the flag'},
+      {op:'BRANCH', reg:'s', target:4,   src:'  if (s) break;', cmt:'leave the loop?',
+        what:'$T checked the stop flag', whyT:'The flag it just read is true, so the loop ends and the thread shuts down cleanly.',
+        whyF:'The flag it just read is false, so it goes round again — and it will read the same private copy next time.'},
+      {op:'ADD',    reg:'n', n:1,        src:'  work++;', cmt:'do a unit of work'},
+      {op:'JMP',    target:0, count:'loops', src:'}', cmt:'loop back to the top',
+        text:'$T went round the loop again.', why:'Nothing about looping forces a fresh look at memory.'},
+      {op:'NOTE',   text:'$T left the loop and is shutting down.', src:'shutdown();', cmt:'clean exit'},
+      {op:'END',    src:'// thread finished'} ];
+    var stopper = [
+      {op:'SETV', var:'stop', value:true, src:'stop = true;', cmt:'ask the worker to stop'},
+      {op:'END',  src:'// thread finished'} ];
+    return baseState([T('A','Worker', worker), T('B','Stopper', stopper)],
+      {stop:false}, [], {caching:true, volatiles: o.vol ? ['stop'] : []});
+  },
+  verdict: function(st){
+    var a = st.threads[0];
+    if (a.status === 'TERMINATED')
+      return {level:'ok', head:'The worker saw the flag and shut down.',
+        body:'Because stop is volatile, every read of it goes to memory and every write is published to memory. The private copy is gone, and so is the hang.'};
+    if (!st.heap.stop) return {level:'pending', head:'The flag has not been set yet.', body:'Run the Stopper thread and then keep running the Worker.'};
+    var n = st.counters.loops || 0;
+    return {level:'stuck', head:'stop is true in memory, and the worker has looped ' + n + ' more times without noticing.',
+      body:'It will never notice. There is no timeout, no error, no CPU idling — the thread is at 100% and perfectly healthy, doing nothing useful, forever. In production this looks like a shutdown that hangs.'};
+  }
+},
+
+/* ---------------------------------------------------------------- 3 ---- */
+sync: {
+  title: '3 · What a lock actually buys you',
+  story: 'Same two increments as scenario 1, but now wrapped in <b>synchronized (lock)</b>. Try to reproduce ' +
+         'the lost update: run Thread A one step, then try to run Thread B. You will find you <em>cannot</em> — ' +
+         'the machine will not let you. A lock does not slow threads down; it removes interleavings from ' +
+         'existence.',
+  predict: { q: 'A lock gives you two guarantees, not one. The first is mutual exclusion — only one thread inside at a time. What is the second?',
+    opts: [{t:'It makes the code run faster'}, {t:'It makes memory writes visible to the next thread that takes the same lock', correct:true}, {t:'It guarantees threads take turns fairly'}],
+    reveal: '<b>Visibility.</b> Releasing a lock publishes everything you wrote inside it; acquiring the same ' +
+            'lock throws away your private copies. So <b>synchronized</b> fixes scenario 1 AND scenario 2 at ' +
+            'once. It is emphatically <em>not</em> fairness: plain <b>synchronized</b> makes no promise about ' +
+            'who gets in next, and a thread can be skipped over many times.' },
+  options: [{key:'nolock', label:'Remove the <b>synchronized</b> block', def:false}],
+  script: 'alternate',
+  build: function(o){
+    var p = function(){
+      var body = [
+        {op:'LOAD',  reg:'r', var:'count', src:'  int r = count;', cmt:'read memory  ->  register'},
+        {op:'ADD',   reg:'r', n:1,         src:'  r = r + 1;',     cmt:'add'},
+        {op:'STORE', var:'count', reg:'r', src:'  count = r;',     cmt:'write back'} ];
+      if (o.nolock) return body.concat([{op:'END', src:'// thread finished'}]);
+      return [{op:'LOCK', mon:'lock', src:'synchronized (lock) {', cmt:'enter — one thread at a time'}]
+        .concat(body, [{op:'UNLOCK', mon:'lock', src:'}', cmt:'leave — publish everything written'},
+                       {op:'END', src:'// thread finished'}]);
+    };
+    return baseState([T('A','Thread A',p()), T('B','Thread B',p())], {count:0},
+      o.nolock ? [] : ['lock'], {caching:true});
+  },
+  verdict: function(st){
+    if (st.run !== 'DONE') return {level:'pending', head:'Running.', body:'Try to make Thread B run while Thread A is inside the block. The button will be disabled — that is mutual exclusion, made physical.'};
+    if (st.heap.count === 2) return {level:'ok', head:'count = 2, and there was no interleaving that could have made it 1.',
+      body:'The read, the add and the write are still three separate steps — the lock did not make them one instruction. It made it impossible for another thread to be inside those three steps at the same time. That is all mutual exclusion ever means.'};
+    return {level:'bad', head:'count = ' + st.heap.count + '. The increment was lost again.',
+      body:'With the synchronized block removed, the three steps are exposed once more. Turn the lock back on and try to reproduce this — you will not be able to.'};
+  }
+},
+
+/* ---------------------------------------------------------------- 4 ---- */
+deadlock: {
+  title: '4 · Two locks, two threads, no progress',
+  story: 'A money transfer locks both accounts before moving anything — sensible, and correct on its own. ' +
+         'Now two transfers run at once in opposite directions. Each thread grabs one account and then asks ' +
+         'for the other. Nobody is misbehaving. Nobody will ever finish.',
+  predict: { q: 'Thread A holds accountA and wants accountB. Thread B holds accountB and wants accountA. How does the JVM resolve this?',
+    opts: [{t:'It detects the cycle and throws an exception'}, {t:'One thread times out after a while'}, {t:'It does nothing at all — both threads stay blocked forever', correct:true}],
+    reveal: '<b>Nothing at all.</b> Plain <b>synchronized</b> has no timeout, no deadlock detection and no way ' +
+            'to give up. Both threads sit in BLOCKED forever, using no CPU, throwing no error. The service ' +
+            'stops answering and the metrics look calm. You find it by taking a thread dump ' +
+            '(<b>jstack</b>), which prints "Found one Java-level deadlock" and names both threads.' },
+  options: [{key:'order', label:'Make both threads lock accounts in the <b>same order</b>', def:false}],
+  script: 'alternate',
+  build: function(o){
+    var mk = function(first, second, label){ return [
+      {op:'LOCK', mon:first,  src:'synchronized (' + first + ') {',   cmt:'take the first account'},
+      {op:'NOTE', text:'$T holds ' + first + ' and now needs ' + second + '.',
+        why:'It is holding a lock while asking for another one. That single sentence is the whole cause of every deadlock.',
+        src:'  // holding ' + first + ', need ' + second, cmt:''},
+      {op:'LOCK', mon:second, src:'  synchronized (' + second + ') {', cmt:'take the second account'},
+      {op:'NOTE', text:'$T moved the money: ' + label, src:'    transfer(50);', cmt:'the actual work'},
+      {op:'UNLOCK', mon:second, src:'  }', cmt:''},
+      {op:'UNLOCK', mon:first,  src:'}', cmt:''},
+      {op:'END', src:'// thread finished'} ]; };
+    var a = mk('accountA','accountB','A -> B');
+    var b = o.order ? mk('accountA','accountB','B -> A') : mk('accountB','accountA','B -> A');
+    return baseState([T('A','Transfer A→B',a), T('B','Transfer B→A',b)],
+      {}, ['accountA','accountB'], {caching:false});
+  },
+  verdict: function(st){
+    if (st.run === 'STUCK') return {level:'bad', head:'Deadlock. Both threads are BLOCKED and neither can ever move.',
+      body:'Each holds exactly what the other is waiting for. No CPU is being used, no exception is thrown, no log line is written. The only evidence is a thread dump. Turn on the lock-ordering option and run it again.'};
+    if (st.run === 'DONE') return {level:'ok', head:'Both transfers completed.',
+      body:'With a global order on the locks — always accountA before accountB — a cycle cannot form: whoever gets accountA first will always be able to get accountB eventually. Consistent lock ordering is the standard, boring, effective cure.'};
+    return {level:'pending', head:'Running.', body:'Give each thread its first lock, then ask each for its second.'};
+  }
+},
+
+/* ---------------------------------------------------------------- 5 ---- */
+signal: {
+  title: '5 · if versus while, and a buffer that goes negative',
+  story: 'A buffer holds items. Two consumers wait when it is empty; a producer adds <b>one</b> item and calls ' +
+         '<b>notifyAll()</b>. The consumers were written with <b>if (items == 0) wait();</b> — which reads ' +
+         'perfectly naturally and is wrong. Watch the buffer count at the end.',
+  predict: { q: 'Two consumers are asleep. The producer adds ONE item and calls notifyAll(), waking both. What does the buffer count end up as, with if instead of while?',
+    opts: [{t:'0 — the second consumer waits again'}, {t:'−1 — both consumers take an item, but only one exists', correct:true}, {t:'0 — the JVM only lets one consumer through'}],
+    reveal: '<b>−1.</b> notifyAll() wakes every sleeper, but there was only one item. With <b>if</b>, a woken ' +
+            'thread carries straight on as though the condition it slept on must now be true. It is not: ' +
+            'another thread got there first. The condition must be re-checked <em>after</em> waking, which is ' +
+            'why the rule is absolute: <b>always call wait() inside a while loop, never an if</b>.' },
+  options: [{key:'wh', label:'Use <b>while</b> instead of <b>if</b>', def:false}],
+  script: ['A','A','A','A','B','B','B','B','C','C','C','C','C'],
+  build: function(o){
+    var consumer = function(){ return [
+      {op:'LOCK', mon:'buffer', src:'synchronized (buffer) {', cmt:'enter the buffer\'s lock'},
+      {op:'LOAD', reg:'r', var:'items', src:'  int r = items;', cmt:'read the count'},
+      {op:'BRANCH', reg:'r', target:5,
+        src: o.wh ? '  while (r == 0) {' : '  if (r == 0) {', cmt:'empty? then sleep',
+        what:'$T checked whether the buffer has anything in it',
+        whyT:'It is not empty, so there is no reason to sleep — go straight to taking an item.',
+        whyF:'It is empty. There is nothing to take, so the only sane thing to do is sleep until somebody adds something.'},
+      {op:'WAIT', mon:'buffer', src:'    buffer.wait();', cmt:'sleep, giving the lock back'},
+      {op:'JMP', target: o.wh ? 1 : 5,
+        src: o.wh ? '  }   // loop back and re-check' : '  }   // carry straight on',
+        text: o.wh ? '$T woke up and is re-checking the condition.' : '$T woke up and is NOT re-checking the condition.',
+        why: o.wh ? 'This is the whole point of while. Being woken only means "something changed" — it never means "your condition is now true".'
+                  : 'It slept because the buffer was empty, and it is now assuming that the buffer must therefore be full. Nothing guarantees that. Another consumer may already have taken the item.',
+        cmt:''},
+      {op:'LOAD', reg:'r', var:'items', src:'  int r = items;', cmt:'take one item'},
+      {op:'ADD', reg:'r', n:-1, src:'  r = r - 1;', cmt:''},
+      {op:'STORE', var:'items', reg:'r', src:'  items = r;', cmt:'take the item', hotIfNegative:true,
+        what:'$T took an item — the buffer count is now $V.',
+        why:'It is acting on a check it made BEFORE it went to sleep. Whether that check is still true depends entirely on whether it looked again after waking up.'},
+      {op:'NOTE', text:'$T is now processing the item it believes it took.', src:'  consume();', cmt:''},
+      {op:'UNLOCK', mon:'buffer', src:'}', cmt:''},
+      {op:'END', src:'// thread finished'} ]; };
+    var producer = [
+      {op:'LOCK', mon:'buffer', src:'synchronized (buffer) {', cmt:''},
+      {op:'SETV', var:'items', value:1, src:'  items = 1;', cmt:'produce exactly ONE item'},
+      {op:'NOTIFYALL', mon:'buffer', src:'  buffer.notifyAll();', cmt:'wake every sleeper'},
+      {op:'UNLOCK', mon:'buffer', src:'}', cmt:''},
+      {op:'END', src:'// thread finished'} ];
+    return baseState([T('A','Consumer 1',consumer()), T('B','Consumer 2',consumer()), T('C','Producer',producer)],
+      {items:0}, ['buffer'], {caching:false});
+  },
+  verdict: function(st){
+    if (st.heap.items < 0) return {level:'bad', head:'items = ' + st.heap.items + '. The buffer went negative.',
+      body:'One item was produced and two were consumed. The second consumer is now processing an item that does not exist — in real code that is a null, an index out of bounds, or a duplicate charge. Switch to while and run it again.'};
+    if (st.run === 'DONE' || st.run === 'STUCK'){
+      var sleeping = st.threads.filter(function(t){ return t.status === 'WAITING'; });
+      return {level:'ok', head:'items = ' + st.heap.items + '. Nothing was taken that did not exist.',
+        body: sleeping.length
+          ? sleeping[0].name + ' woke up, re-checked the condition, found the buffer empty again and went back to sleep. That is correct behaviour, not a bug — one item genuinely cannot feed two consumers. It is why waiting must always be a loop.'
+          : 'Every consumer that took an item found one there to take.'};
+    }
+    return {level:'pending', head:'Running.', body:'Put both consumers to sleep first, then run the producer.'};
+  }
+},
+
+/* ---------------------------------------------------------------- 6 ---- */
+cas: {
+  title: '6 · Winning without a lock',
+  story: 'Same counter, no lock at all. <b>AtomicInteger.incrementAndGet()</b> reads the value, computes the ' +
+         'next one, and then asks the CPU to write it back <em>only if nothing has changed since the read</em>. ' +
+         'If something changed, the write is refused and the thread simply tries again. No thread is ever ' +
+         'blocked; a thread just occasionally redoes its own arithmetic.',
+  predict: { q: 'Both threads read 0. Thread A writes 1 first. What happens to Thread B\'s write?',
+    opts: [{t:'It overwrites with 1 — the same lost update as scenario 1'}, {t:'It is refused, and B retries from the new value', correct:true}, {t:'Thread B blocks until A is finished'}],
+    reveal: '<b>Refused, then retried.</b> Compare-and-set is a single machine instruction that compares and ' +
+            'writes without any gap in between — the gap is exactly what lost the update in scenario 1. ' +
+            'The cost moves from <em>waiting</em> to <em>redoing</em>: under heavy contention, threads burn ' +
+            'CPU retrying instead of sleeping. That trade is why atomics are excellent for a counter and ' +
+            'poor for a long critical section.' },
+  options: [],
+  script: ['A','B','A','A','A','A','A','B','B','B','B','B','B','B','B','B','B'],
+  build: function(){
+    var p = function(){ return [
+      {op:'LOAD',   reg:'old', var:'count', src:'int old = count.get();', cmt:'read the current value'},
+      {op:'COPY',   to:'next', from:'old',  src:'int next = old;', cmt:''},
+      {op:'ADD',    reg:'next', n:1,        src:'next = next + 1;', cmt:'compute what it should become'},
+      {op:'CAS',    var:'count', expect:'old', next:'next', result:'ok',
+        src:'boolean ok = count.compareAndSet(old, next);', cmt:'write ONLY if unchanged'},
+      {op:'BRANCH', reg:'ok', target:6, src:'if (ok) return;', cmt:'',
+        what:'$T looked at whether its write went through',
+        whyT:'It did. The increment is safely in memory and this thread is finished.',
+        whyF:'It did not. Nothing is broken and nothing is lost — the thread just has stale numbers and must start over.'},
+      {op:'JMP',    target:0, count:'retries', src:'// else: loop and try again', cmt:'',
+        text:'$T is starting over with a fresh read.',
+        why:'This is the whole cost of the lock-free approach: wasted work, never waiting.'},
+      {op:'END',    src:'// thread finished'} ]; };
+    return baseState([T('A','Thread A',p()), T('B','Thread B',p())], {count:0}, [], {caching:false});
+  },
+  verdict: function(st){
+    if (st.run !== 'DONE') return {level:'pending', head:'Running.', body:'Let both threads read 0 before either one does its compare-and-set.'};
+    var f = st.counters.casFail || 0;
+    if (st.heap.count === 2) return {level:'ok', head:'count = 2, with ' + f + ' rejected write' + (f===1?'':'s') + ' along the way.',
+      body: f ? 'A thread was told "no, the value moved" and quietly redid its work with fresh data. No lock was taken and no thread was ever blocked — but ' + f + ' unit' + (f===1?' of':'s of') + ' arithmetic was thrown away. Multiply that by heavy contention and you get a counter that burns CPU.' :
+                'This interleaving had no contention, so no compare-and-set was refused. Reset and interleave the reads to see a retry.'};
+    return {level:'bad', head:'count = ' + st.heap.count + '.', body:'That should not be reachable with compare-and-set — if you are seeing this, the model is wrong.'};
+  }
+}
+};
+var SCENARIO_ORDER = ['lost','flag','sync','deadlock','signal','cas'];
+
+/* pick the next thread when the learner asks the scheduler to choose:
+   prefer a thread other than the one that just ran, so interleavings actually interleave */
+function alternatePick(st){
+  var r = runnableIds(st);
+  if (!r.length) return null;
+  var others = r.filter(function(id){ return id !== st.lastTid; });
+  return others.length ? others[0] : r[0];
+}
+</script>
+
+<script id="pool-js">
+"use strict";
+/* ==========================================================================
+   POOL ENGINE — pure. One tick = one unit of work.
+   ========================================================================== */
+function poolInit(cfg){
+  var st = { cfg:cfg, tick:0, workers:[], queue:[], pending:[], caller:{task:null, remaining:0},
+             completed:0, rejected:0, callerRan:0, maxQ:0, latencies:[], created:0,
+             log:[], run:'RUNNING' };
+  var i;
+  for (i = 0; i < cfg.W; i++) st.workers.push({ id:i, name:'pool-worker-' + (i+1), task:null, remaining:0, blockedOn:null });
+  for (i = 0; i < cfg.N; i++) st.pending.push(mkTask(st, 'task-' + (i+1), cfg.D, null));
+  plog(st, 'The caller submitted ' + cfg.N + ' tasks in one burst.',
+    'A pool with ' + cfg.W + ' worker' + (cfg.W>1?'s':'') + ' can run ' + cfg.W + ' of them at once. The rest have to go somewhere: the queue holds ' +
+    (cfg.Q === 0 ? 'nothing at all' : cfg.Q + ' of them') + ', and anything beyond that is ' +
+    (cfg.callerRuns ? 'run by the submitting thread itself.' : 'rejected outright.'));
+  poolSubmitPhase(st);
+  poolFillIdle(st);
+  return st;
+}
+function mkTask(st, name, dur, parent){
+  st.created++;
+  return { name:name, dur:dur, remaining:dur, parent:parent, spawned:false, submitAt:st.tick, isSub:!!parent };
+}
+function plog(st, what, why, kind){
+  st.log.push({ i:st.log.length, tick:st.tick, what:what, why:why||'', kind:kind||'normal' });
+}
+function idleWorker(st){
+  for (var i = 0; i < st.workers.length; i++)
+    if (!st.workers[i].task) return st.workers[i];
+  return null;
+}
+function poolSubmitPhase(st){
+  while (st.pending.length && !st.caller.task){
+    var t = st.pending[0];
+    var w = idleWorker(st);
+    if (w){ st.pending.shift(); w.task = t; w.remaining = t.remaining;
+      plog(st, w.name + ' picked up ' + t.name + ' straight away.', 'There was a free worker, so nothing had to wait.');
+      continue; }
+    if (st.queue.length < st.cfg.Q){ st.pending.shift(); st.queue.push(t);
+      st.maxQ = Math.max(st.maxQ, st.queue.length);
+      plog(st, t.name + ' went into the queue (' + st.queue.length + ' of ' + st.cfg.Q + ' slots used).',
+        'Every worker is busy. The task is not lost — it is just not started yet, and its clock is already running.');
+      continue; }
+    if (st.cfg.callerRuns){ st.pending.shift(); st.caller.task = t; st.caller.remaining = t.remaining; st.callerRan++;
+      plog(st, 'The queue was full, so the SUBMITTING thread ran ' + t.name + ' itself.',
+        'CallerRunsPolicy. The submitter is now busy doing pool work for ' + t.dur + ' ticks, which means it cannot submit anything else. That is the point: it applies back-pressure to whoever is producing work.', 'warn');
+      continue; }
+    st.pending.shift(); st.rejected++;
+    plog(st, t.name + ' was REJECTED. The queue is full and every worker is busy.',
+      'A real pool throws RejectedExecutionException here. Somebody has to catch it and decide what happens to that work — dropping it silently is how requests disappear.', 'bad');
+  }
+}
+function poolFillIdle(st){
+  var w, t;
+  while (st.queue.length && (w = idleWorker(st))){
+    t = st.queue.shift(); w.task = t; w.remaining = t.remaining;
+    plog(st, w.name + ' took ' + t.name + ' off the queue.',
+      'It waited ' + (st.tick - t.submitAt) + ' tick' + ((st.tick - t.submitAt)===1?'':'s') + ' before a worker was free. That waiting time is latency the client sees, even though the work itself has not started.');
+  }
+}
+function poolComplete(st, task, by){
+  st.completed++;
+  st.latencies.push(st.tick - task.submitAt);
+  plog(st, by + ' finished ' + task.name + '.',
+    'Submitted at tick ' + task.submitAt + ', finished at tick ' + st.tick + ' — ' + (st.tick - task.submitAt) +
+    ' ticks of latency for ' + task.dur + ' ticks of actual work.', 'good');
+  if (task.parent){
+    st.workers.forEach(function(w){
+      if (w.blockedOn === task.name){
+        w.blockedOn = null;
+        plog(st, w.name + ' woke up: the sub-task it was waiting for is done.', 'It can now finish its own task.');
+      }
+    });
+  }
+}
+function poolStep(state){
+  var st = clone(state);
+  if (st.run !== 'RUNNING') return state;
+  st.tick++;
+
+  if (st.caller.task){
+    st.caller.remaining--;
+    if (st.caller.remaining <= 0){ poolComplete(st, st.caller.task, 'The submitting thread'); st.caller.task = null; }
+  }
+  poolSubmitPhase(st);
+
+  st.workers.forEach(function(w){
+    if (!w.task || w.blockedOn) return;
+    if (st.cfg.nested && !w.task.isSub && !w.task.spawned && w.remaining <= Math.ceil(w.task.dur/2)){
+      w.task.spawned = true;
+      var subDur = Math.max(1, Math.round(st.cfg.D / 2));
+      var sub = mkTask(st, w.task.name + '.sub', subDur, w.task.name);
+      w.blockedOn = sub.name;
+      st.pending.push(sub);
+      plog(st, w.name + ' submitted ' + sub.name + ' to its own pool and is now waiting for it.',
+        'The worker is occupied but doing nothing. It holds a pool thread hostage while it waits for work that needs a pool thread.', 'warn');
+      return;
+    }
+    w.remaining--;
+    if (w.remaining <= 0){ var done = w.task; w.task = null; poolComplete(st, done, w.name); }
+  });
+
+  poolSubmitPhase(st);
+  poolFillIdle(st);
+
+  var busy = st.workers.some(function(w){ return w.task && !w.blockedOn; });
+  var blocked = st.workers.filter(function(w){ return w.blockedOn; }).length;
+  if (!busy && !st.caller.task && blocked > 0 && blocked === st.workers.filter(function(w){return w.task;}).length){
+    st.run = 'DEADLOCK';
+    plog(st, 'DEADLOCK. Every worker is waiting for a sub-task, and every sub-task is waiting for a worker.',
+      'Nothing is broken, nothing is slow, nothing throws. The pool will sit like this until the process is killed. This is thread-pool starvation deadlock, and it is why a task must never block on work submitted to its own pool.', 'bad');
+  } else if (!st.pending.length && !st.queue.length && !st.caller.task &&
+             !st.workers.some(function(w){ return w.task; })){
+    st.run = 'DONE';
+    plog(st, 'All work finished at tick ' + st.tick + '.', '');
+  } else if (st.tick > 400){ st.run = 'CAPPED'; }
+  return st;
+}
+function poolVerdict(st){
+  var mean = st.latencies.length ? (st.latencies.reduce(function(a,b){return a+b;},0)/st.latencies.length) : 0;
+  if (st.run === 'DEADLOCK') return { level:'bad', head:'Thread-pool starvation deadlock at tick ' + st.tick + '.',
+    body:'All ' + st.cfg.W + ' workers are blocked waiting for sub-tasks, and those sub-tasks are sitting in the queue waiting for a worker. The pool cannot free itself. This is why "just call the service from inside the task" is dangerous when both use the same executor.' };
+  if (st.run === 'DONE') return { level:'ok', head:'Finished at tick ' + st.tick + '. Mean latency ' + mean.toFixed(1) + ' ticks per task.',
+    body: (st.rejected ? st.rejected + ' task' + (st.rejected===1?' was':'s were') + ' rejected and never ran. ' : '') +
+          (st.callerRan ? st.callerRan + ' task' + (st.callerRan===1?' was':'s were') + ' run by the submitting thread, which throttled submission. ' : '') +
+          'Pure work was ' + (st.cfg.N * st.cfg.D) + ' ticks across ' + st.cfg.W + ' worker' + (st.cfg.W>1?'s':'') +
+          '. Whole tasks cannot be split, so the best any queue could achieve here is ' +
+          st.cfg.D + ' x ' + Math.ceil(st.cfg.N / st.cfg.W) + ' = ' + (st.cfg.D * Math.ceil(st.cfg.N / st.cfg.W)) +
+          ' ticks. Queueing never creates throughput — it only decides who waits.' };
+  if (st.run === 'CAPPED') return { level:'stuck', head:'Stopped after 400 ticks.', body:'This configuration is not converging.' };
+  return { level:'pending', head:'Tick ' + st.tick + '.', body:'Press Play, or step one tick at a time and watch the queue drain.' };
+}
+/* makespan sweep over pool size — pure, used for the table and by the validator */
+function poolSweep(N, D, Q, maxW){
+  var out = [], w;
+  for (w = 1; w <= maxW; w++){
+    var st = poolInit({ W:w, Q:Q, N:N, D:D, nested:false, callerRuns:false });
+    var guard = 0;
+    while (st.run === 'RUNNING' && guard++ < 500) st = poolStep(st);
+    var mean = st.latencies.reduce(function(a,b){return a+b;},0) / (st.latencies.length||1);
+    out.push({ w:w, makespan:st.tick, meanLat:Math.round(mean*10)/10, maxQ:st.maxQ });
+  }
+  return out;
+}
+</script>
+
+<script id="ui-js">
+"use strict";
+(function(){
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+var COLOR = { A:'var(--tA)', B:'var(--tB)', C:'var(--tC)' };
+var BGC   = { A:'var(--tA-bg)', B:'var(--tB-bg)', C:'var(--tC-bg)' };
+
+/* ---------------- tabs ---------------- */
+function showTab(which){
+  ['machine','pool'].forEach(function(k){
+    $('tab-'+k).setAttribute('aria-selected', String(k===which));
+    $('panel-'+k).classList.toggle('hidden', k!==which);
+  });
+}
+$('tab-machine').onclick = function(){ showTab('machine'); };
+$('tab-pool').onclick    = function(){ showTab('pool'); renderPool(); };
+
+/* ================= MACHINE ================= */
+var cur = 'lost', opts = {}, hist = [], timer = null, predicted = null;
+
+function scn(){ return SCENARIOS[cur]; }
+function st(){ return hist[hist.length-1]; }
+
+function loadScenario(id, keepPredict){
+  stopTimer();
+  cur = id; opts = {};
+  (scn().options||[]).forEach(function(o){ opts[o.key] = o.def; });
+  if (!keepPredict) predicted = null;
+  hist = [ scn().build(opts) ];
+  renderAll();
+}
+function rebuild(){ stopTimer(); hist = [ scn().build(opts) ]; renderAll(); }
+function stopTimer(){ if (timer){ clearInterval(timer); timer = null; $('btnDemo').innerHTML = '&#9654; Show me the point of this scenario'; } }
+
+function doStep(tid){
+  var next = step(st(), tid);
+  if (next === st()) return false;
+  hist.push(next); renderAll(); return true;
+}
+
+/* ---- scenario picker ---- */
+function renderPicker(){
+  $('scnList').innerHTML = SCENARIO_ORDER.map(function(id){
+    return '<button class="scn" data-id="'+id+'" aria-pressed="'+(id===cur)+'">'+esc(SCENARIOS[id].title)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('scnList').children, function(b){
+    b.onclick = function(){ loadScenario(b.dataset.id); };
+  });
+}
+
+/* ---- options ---- */
+function renderOpts(){
+  var o = scn().options || [];
+  $('scnOpts').innerHTML = o.map(function(x,i){
+    return '<label class="toggle"><input type="checkbox" data-k="'+x.key+'"'+(opts[x.key]?' checked':'')+'>'+x.label+'</label>';
+  }).join('');
+  Array.prototype.forEach.call($('scnOpts').querySelectorAll('input'), function(inp){
+    inp.onchange = function(){ opts[inp.dataset.k] = inp.checked; rebuild(); };
+  });
+}
+
+/* ---- predict card ---- */
+function renderPredict(finished){
+  var p = scn().predict;
+  $('predictQ').innerHTML = p.q;
+  $('predictOpts').innerHTML = p.opts.map(function(o,i){
+    return '<button data-i="'+i+'" class="'+(predicted===i?'picked':'')+'">'+o.t+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('predictOpts').children, function(b){
+    b.onclick = function(){ predicted = +b.dataset.i; rebuild(); renderPredict(false); runDemo(); };
+  });
+  var after = $('predictAfter');
+  if (predicted !== null && finished){
+    var right = !!p.opts[predicted].correct;
+    after.classList.remove('hidden');
+    after.innerHTML = '<b style="color:'+(right?'var(--good)':'var(--bad)')+'">'+
+      (right ? 'YOU CALLED IT.' : 'NOT QUITE.') + '</b> ' + p.reveal;
+  } else if (predicted !== null){
+    after.classList.remove('hidden');
+    after.innerHTML = '<b>RUNNING YOUR PREDICTION…</b> watch the log on the right.';
+  } else { after.classList.add('hidden'); after.innerHTML = ''; }
+}
+
+/* ---- threads ---- */
+function renderThreads(){
+  var s = st(), changed = s.log.length ? s.log[s.log.length-1].changed : [];
+  $('threadsCol').innerHTML = s.threads.map(function(t){
+    var prog = t.prog.map(function(ins, i){
+      var at = (i === t.pc && t.status !== 'TERMINATED');
+      return '<div class="line'+(at?' at':'')+'"><span class="arrow">'+(at?'▸':'')+'</span>'+
+        '<span>'+esc(ins.src || '')+'</span>'+(ins.cmt ? '<span class="cmt">   // '+esc(ins.cmt)+'</span>' : '')+'</div>';
+    }).join('');
+    var regs = Object.keys(t.regs).map(function(k){
+      return '<span class="chip" data-key="reg:'+t.id+'.'+k+'">'+esc(k)+' = <b>'+esc(fmt(t.regs[k]))+'</b></span>';
+    }).join('');
+    var cacheKeys = Object.keys(t.cache);
+    var cacheHtml = '';
+    if (s.caching){
+      cacheHtml = '<div class="regs" style="border-top:1px dashed var(--rule)"><span class="label" style="width:100%">Private copy this thread is using</span>' +
+        (cacheKeys.length ? cacheKeys.map(function(k){
+          var stale = t.cache[k] !== s.heap[k];
+          return '<span class="chip'+(stale?' stale':'')+'">'+esc(k)+' = <b>'+esc(fmt(t.cache[k]))+'</b>'+
+                 (stale ? ' &nbsp;&mdash; memory says '+esc(fmt(s.heap[k])) : '')+'</span>';
+        }).join('') : '<span class="chip" style="opacity:.6">none yet</span>') + '</div>';
+    }
+    return '<div class="thread">'+
+      '<div class="th" style="background:'+BGC[t.id]+'"><span class="dot" style="background:'+COLOR[t.id]+'"></span>'+
+      '<span class="name">'+esc(t.name)+'</span><span class="state '+t.status+'">'+t.status+'</span></div>'+
+      '<div class="prog">'+prog+'</div>'+
+      (regs ? '<div class="regs"><span class="label" style="width:100%">Private registers</span>'+regs+'</div>' : '')+
+      cacheHtml + '</div>';
+  }).join('');
+  flash(changed);
+}
+
+/* ---- heap + monitors ---- */
+function renderHeap(){
+  var s = st(), keys = Object.keys(s.heap);
+  $('heapBox').innerHTML = keys.length ? keys.map(function(k){
+    return '<div class="varrow"><span class="n">'+(s.volatiles.indexOf(k)>=0?'<em>volatile</em> ':'')+esc(k)+
+      '</span><span class="v" data-key="heap:'+k+'">'+esc(fmt(s.heap[k]))+'</span></div>';
+  }).join('') : '<p style="margin:0;font-size:13px;color:var(--muted)">This scenario shares locks, not data.</p>';
+
+  var mons = Object.keys(s.monitors);
+  $('monCard').classList.toggle('hidden', mons.length === 0);
+  $('cacheNote').classList.toggle('hidden', !s.caching);
+  $('monBox').innerHTML = mons.map(function(m){
+    var mo = s.monitors[m], entry = entrySet(s, m);
+    var pill = function(id){ return '<span class="pill" style="background:'+COLOR[id]+'">'+esc(nameOf(s,id))+'</span>'; };
+    return '<div class="mon" data-key="mon:'+m+'"><div class="mname">'+esc(m)+'</div>'+
+      '<div class="row"><span class="k">Held by</span>'+(mo.owner ? pill(mo.owner) : '<span class="pill none">nobody</span>')+'</div>'+
+      '<div class="row"><span class="k">Queued to enter</span>'+(entry.length ? entry.map(pill).join(' ') : '<span class="pill none">empty</span>')+'</div>'+
+      '<div class="row"><span class="k">Asleep in wait()</span>'+(mo.waitSet.length ? mo.waitSet.map(pill).join(' ') : '<span class="pill none">empty</span>')+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+/* ---- log + ribbon + verdict ---- */
+function renderLog(){
+  var s = st();
+  $('log').innerHTML = s.log.slice(-60).map(function(e){
+    var c = e.tid ? COLOR[e.tid] : 'var(--muted)';
+    return '<div class="ev '+(e.kind==='hot'?'hot':e.kind==='good'?'good':'')+'" style="border-left-color:'+c+'">'+
+      '<div class="who" style="color:'+c+'">'+esc(e.name)+' &middot; step '+(e.i+1)+'</div>'+
+      '<div class="what">'+esc(e.what)+'</div>'+
+      (e.why ? '<div class="why">'+esc(e.why)+'</div>' : '')+
+      (e.tech ? '<div class="tech">'+esc(e.tech)+'</div>' : '')+'</div>';
+  }).join('');
+}
+function renderRibbon(){
+  var s = st();
+  if (!s.log.length){ $('ribbon').innerHTML = '<span class="empty">No steps yet. Run one.</span>'; return; }
+  $('ribbon').innerHTML = s.log.map(function(e,i){
+    return '<button class="tick'+(i===s.log.length-1?' now':'')+'" data-i="'+i+'" '+
+      'style="background:'+(e.tid?COLOR[e.tid]:'var(--muted)')+'" title="'+esc(e.name+': '+e.what)+'">'+
+      (e.tid||'?')+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('ribbon').children, function(b){
+    if (!b.dataset) return;
+    b.onclick = function(){ stopTimer(); hist = hist.slice(0, (+b.dataset.i)+2); renderAll(); };
+  });
+}
+function renderVerdict(){
+  var v = scn().verdict(st());
+  var el = $('verdict');
+  el.className = 'verdict ' + v.level;
+  $('verdictTag').textContent = {ok:'SAFE', bad:'BROKEN', stuck:'STUCK', pending:'RUNNING'}[v.level];
+  $('verdictHead').textContent = v.head;
+  $('verdictBody').textContent = v.body;
+  return v;
+}
+function renderControls(){
+  var s = st();
+  $('whoRuns').innerHTML = s.threads.map(function(t){
+    var can = t.status === 'RUNNABLE';
+    var nx = t.reacquire ? 'take the lock back' : (t.prog[t.pc] ? (t.prog[t.pc].src || t.prog[t.pc].op).trim() : '');
+    return '<button class="trun" data-id="'+t.id+'" '+(can?'':'disabled')+' style="background:'+COLOR[t.id]+'" '+
+      'title="'+esc(nx)+'">'+esc(t.name)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('whoRuns').children, function(b){
+    b.onclick = function(){ stopTimer(); doStep(b.dataset.id); };
+  });
+  $('btnBack').disabled = hist.length < 2;
+  $('btnAuto').disabled = runnableIds(s).length === 0;
+}
+function flash(keys){
+  if (!keys || !keys.length) return;
+  keys.forEach(function(k){
+    Array.prototype.forEach.call(document.querySelectorAll('[data-key="'+k+'"]'), function(el){
+      el.classList.add('flash');
+      setTimeout(function(){ el.classList.remove('flash'); }, 700);
+    });
+  });
+}
+function renderAll(){
+  var s = st();
+  $('storyTitle').innerHTML = scn().title;
+  $('storyText').innerHTML = scn().story;
+  renderPicker(); renderOpts(); renderThreads(); renderHeap(); renderLog(); renderRibbon();
+  renderVerdict(); renderControls();
+  renderPredict(s.run === 'DONE' || s.run === 'STUCK');
+}
+
+/* ---- scripted demonstration ---- */
+function runDemo(){
+  stopTimer();
+  hist = [ scn().build(opts) ];
+  var script = scn().script, k = 0, guard = 0;
+  $('btnDemo').innerHTML = '&#9632; Stop';
+  timer = setInterval(function(){
+    var s = st(), tid;
+    if (Array.isArray(script) && k < script.length) tid = script[k++];
+    else tid = alternatePick(s);
+    guard++;
+    var capped = (s.counters.loops || 0) > 12 || guard > 90;
+    if (!tid || s.run !== 'RUNNING' || capped){ stopTimer(); renderAll(); return; }
+    if (!doStep(tid)) { stopTimer(); renderAll(); }
+  }, 420);
+}
+$('btnDemo').onclick = function(){ if (timer) { stopTimer(); renderAll(); } else runDemo(); };
+$('btnAuto').onclick  = function(){ stopTimer(); var t = alternatePick(st()); if (t) doStep(t); };
+$('btnBack').onclick  = function(){ stopTimer(); if (hist.length > 1){ hist.pop(); renderAll(); } };
+$('btnReset').onclick = function(){ predicted = null; rebuild(); };
+
+/* ================= POOL ================= */
+var pst = null, ptimer = null, phist = [];
+function pcfg(){
+  return { W:+$('pW').value, Q:+$('pQ').value, N:+$('pN').value, D:+$('pD').value,
+           nested:$('pNest').checked, callerRuns:$('pCaller').checked };
+}
+function poolReset(){
+  if (ptimer){ clearInterval(ptimer); ptimer = null; $('pPlay').innerHTML = '&#9654; Play'; }
+  phist = [ poolInit(pcfg()) ]; renderPool();
+}
+function pnow(){ return phist[phist.length-1]; }
+function renderPool(){
+  if (!phist.length) phist = [ poolInit(pcfg()) ];
+  var s = pnow();
+  ['W','Q','N','D'].forEach(function(k){ $('p'+k+'o').textContent = $('p'+k).value; });
+  $('pClock').textContent = 'tick ' + s.tick;
+
+  $('pWorkers').innerHTML = s.workers.map(function(w,i){
+    var col = [ 'var(--tA)','var(--tB)','var(--tC)','var(--good)','var(--muted)','var(--ink-soft)' ][i % 6];
+    var pct = w.task ? Math.round(((w.task.dur - w.remaining) / w.task.dur) * 100) : 0;
+    var txt = !w.task ? 'idle' : (w.blockedOn ? 'BLOCKED waiting for ' + w.blockedOn : w.task.name + ' — ' + w.remaining + ' ticks left');
+    return '<div class="worker"><span class="wn">#'+(i+1)+'</span>'+
+      '<span class="bar"><span class="fill" style="width:'+pct+'%;background:'+(w.blockedOn?'var(--bad)':col)+'"></span>'+
+      '<span>'+esc(txt)+'</span></span></div>';
+  }).join('') + (s.caller.task
+    ? '<div class="worker" style="border-style:dashed"><span class="wn">caller</span><span class="bar">'+
+      '<span class="fill" style="width:'+Math.round(((s.caller.task.dur-s.caller.remaining)/s.caller.task.dur)*100)+'%;background:var(--tB)"></span>'+
+      '<span>running '+esc(s.caller.task.name)+' itself — cannot submit anything else</span></span></div>' : '');
+
+  var slots = [];
+  for (var i = 0; i < Math.max(s.cfg.Q, s.queue.length); i++)
+    slots.push(s.queue[i] ? '<span class="qslot">'+esc(s.queue[i].name)+'</span>' : '<span class="qslot free">empty</span>');
+  $('pQueue').innerHTML = slots.length ? slots.join('') :
+    '<span class="qslot free">no queue at all — a task with no free worker is handled immediately or refused</span>';
+
+  var mean = s.latencies.length ? (s.latencies.reduce(function(a,b){return a+b;},0)/s.latencies.length).toFixed(1) : '—';
+  $('pStats').innerHTML =
+    stat('Tick', s.tick) + stat('Done', s.completed + ' / ' + s.created) +
+    stat('Waiting', s.queue.length + s.pending.length) + stat('Mean latency', mean) +
+    stat('Peak queue', s.maxQ) + stat('Rejected', s.rejected, s.rejected > 0);
+
+  $('pLog').innerHTML = s.log.slice(-50).map(function(e){
+    var c = e.kind==='bad' ? 'var(--bad)' : e.kind==='good' ? 'var(--good)' : e.kind==='warn' ? 'var(--tB)' : 'var(--muted)';
+    return '<div class="ev '+(e.kind==='bad'?'hot':e.kind==='good'?'good':'')+'" style="border-left-color:'+c+'">'+
+      '<div class="who" style="color:'+c+'">tick '+e.tick+'</div><div class="what">'+esc(e.what)+'</div>'+
+      (e.why ? '<div class="why">'+esc(e.why)+'</div>' : '')+'</div>';
+  }).join('');
+
+  var v = poolVerdict(s);
+  $('pverdict').className = 'verdict ' + v.level;
+  $('pverdictTag').textContent = {ok:'FINISHED', bad:'HUNG', stuck:'STOPPED', pending:'RUNNING'}[v.level];
+  $('pverdictHead').textContent = v.head;
+  $('pverdictBody').textContent = v.body;
+  $('pBack').disabled = phist.length < 2;
+
+  var sweep = poolSweep(12, 5, 12, 6);
+  $('pSweep').innerHTML = '<tr><th>Workers</th><th>Finishes at tick</th><th>Mean latency</th><th>Peak queue</th></tr>' +
+    sweep.map(function(r){ return '<tr><td>'+r.w+'</td><td>'+r.makespan+'</td><td>'+r.meanLat+'</td><td>'+r.maxQ+'</td></tr>'; }).join('');
+}
+function stat(k, v, alarm){
+  return '<div class="stat'+(alarm?' alarm':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
+}
+['pW','pQ','pN','pD'].forEach(function(id){ $(id).oninput = poolReset; });
+$('pNest').onchange = poolReset; $('pCaller').onchange = poolReset;
+$('pReset').onclick = poolReset;
+$('pStep').onclick = function(){ var n = poolStep(pnow()); if (n !== pnow()) phist.push(n); renderPool(); };
+$('pBack').onclick = function(){ if (phist.length > 1){ phist.pop(); renderPool(); } };
+$('pPlay').onclick = function(){
+  if (ptimer){ clearInterval(ptimer); ptimer = null; $('pPlay').innerHTML = '&#9654; Play'; return; }
+  $('pPlay').innerHTML = '&#9632; Pause';
+  ptimer = setInterval(function(){
+    var n = poolStep(pnow());
+    if (n === pnow()){ clearInterval(ptimer); ptimer = null; $('pPlay').innerHTML = '&#9654; Play'; renderPool(); return; }
+    phist.push(n); renderPool();
+  }, 260);
+};
+
+/* ---- boot ---- */
+loadScenario('lost');
+poolReset();
+
+/* exposed only so validate-visualization.sh can drive the render path headlessly */
+if (typeof globalThis !== 'undefined') globalThis.__viz = {
+  loadScenario: loadScenario, rebuild: rebuild, renderAll: renderAll, doStep: doStep,
+  poolReset: poolReset, renderPool: renderPool, showTab: showTab,
+  state: function(){ return st(); }, setOpt: function(k,v){ opts[k]=v; rebuild(); },
+  poolStepOnce: function(){ var n = poolStep(pnow()); if (n !== pnow()) phist.push(n); renderPool(); }
+};
+})();
+</script>

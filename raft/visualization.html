@@ -1,0 +1,1022 @@
+<title>The Raft Log Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#EFF2F0; --surface:#FAFCFA; --surface-2:#E5EAE7; --sunken:#E9EEEB;
+  --ink:#16211E; --ink-2:#55645F; --ink-3:#8A9994; --line:#D3DBD7; --line-2:#C0CAC5;
+  --leader:#0F6E63; --candidate:#6C4FA3; --follower:#63736D; --dead:#AE2F39;
+  --commit:#2C7A4B; --warn:#A2621A; --ok:#2C7A4B;
+  --t1:#0F6E63; --t2:#6C4FA3; --t3:#A2621A; --t4:#AE2F39; --t5:#2A6698; --t6:#6F6A25; --t7:#8A3E7A;
+  --shadow:0 1px 2px rgba(20,35,30,.07), 0 8px 24px -12px rgba(20,35,30,.18);
+  --radius:5px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ground:#0E1415; --surface:#161E1F; --surface-2:#1F2A2B; --sunken:#121A1B;
+  --ink:#E2EAE7; --ink-2:#9AAAA5; --ink-3:#6A7B76; --line:#2A3536; --line-2:#384748;
+  --leader:#45C1B0; --candidate:#A98BE0; --follower:#849690; --dead:#E4737C;
+  --commit:#63BE87; --warn:#DFA05C; --ok:#63BE87;
+  --t1:#45C1B0; --t2:#A98BE0; --t3:#DFA05C; --t4:#E4737C; --t5:#71AEE4; --t6:#BFB863; --t7:#DE8FCB;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1415; --surface:#161E1F; --surface-2:#1F2A2B; --sunken:#121A1B;
+  --ink:#E2EAE7; --ink-2:#9AAAA5; --ink-3:#6A7B76; --line:#2A3536; --line-2:#384748;
+  --leader:#45C1B0; --candidate:#A98BE0; --follower:#849690; --dead:#E4737C;
+  --commit:#63BE87; --warn:#DFA05C; --ok:#63BE87;
+  --t1:#45C1B0; --t2:#A98BE0; --t3:#DFA05C; --t4:#E4737C; --t5:#71AEE4; --t6:#BFB863; --t7:#DE8FCB;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1220px; margin:0 auto; padding:34px 22px 80px}
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif; text-wrap:balance; margin:0}
+h1{font-size:clamp(28px,4.2vw,44px); font-weight:700; letter-spacing:-.022em; line-height:1.06}
+h2{font-size:19px; font-weight:600; letter-spacing:-.01em}
+h3{font-size:15px; font-weight:600}
+.eyebrow{font-family:Archivo,sans-serif; font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.lede{max-width:64ch; color:var(--ink-2); font-size:16.5px; margin:14px 0 0}
+.lede strong{color:var(--ink); font-weight:600}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+
+header.top{border-bottom:1px solid var(--line); padding-bottom:26px; margin-bottom:22px}
+
+/* ---------- verdict ---------- */
+.verdict{
+  display:flex; gap:14px; align-items:flex-start; margin-top:22px; padding:14px 16px;
+  background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--leader);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+}
+.verdict[data-mood="bad"]{border-left-color:var(--dead)}
+.verdict[data-mood="wait"]{border-left-color:var(--warn)}
+.verdict .vtext{flex:1; min-width:0}
+.verdict .vhead{font-family:Archivo,sans-serif; font-weight:600; font-size:15.5px}
+.verdict .vsub{color:var(--ink-2); font-size:14px; margin-top:3px}
+.safety{
+  flex:0 0 auto; text-align:right; font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+  color:var(--ink-3); line-height:1.5; border-left:1px solid var(--line); padding-left:14px;
+}
+.safety b{display:block; font-size:12.5px; color:var(--ok); letter-spacing:.02em}
+.safety.broken b{color:var(--dead)}
+
+/* ---------- layout ---------- */
+.console{display:grid; grid-template-columns:255px minmax(0,1fr); gap:20px; margin-top:22px; align-items:start}
+@media (max-width:900px){ .console{grid-template-columns:1fr} }
+
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+.panel > .phead{
+  display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+  padding:11px 14px; border-bottom:1px solid var(--line);
+}
+.panel > .pbody{padding:14px}
+
+.rail{display:flex; flex-direction:column; gap:14px; position:sticky; top:16px}
+.group{display:flex; flex-direction:column; gap:8px}
+.group + .group{margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.glabel{font-family:Archivo,sans-serif; font-size:10.5px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3)}
+
+button{
+  font:inherit; font-family:Archivo,sans-serif; font-size:13.5px; font-weight:500;
+  color:var(--ink); background:var(--surface-2); border:1px solid var(--line-2);
+  border-radius:var(--radius); padding:7px 11px; cursor:pointer; text-align:left;
+  transition:background .13s, border-color .13s, transform .06s;
+}
+button:hover:not(:disabled){background:var(--surface); border-color:var(--ink-3)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.42; cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--leader); outline-offset:2px}
+button.primary{background:var(--leader); border-color:var(--leader); color:#fff; font-weight:600}
+button.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--leader)}
+button.danger{color:var(--dead); border-color:var(--dead)}
+.btnrow{display:flex; gap:7px; flex-wrap:wrap}
+.btnrow button{flex:1; text-align:center; padding:7px 8px}
+
+label.field{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--ink-2)}
+select, input[type=range]{font:inherit; width:100%}
+select{font-family:"IBM Plex Mono",monospace; font-size:12.5px; padding:6px 8px; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:var(--radius)}
+input[type=range]{accent-color:var(--leader); cursor:pointer}
+.readout{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+
+/* ---------- the board ---------- */
+.board{display:flex; flex-direction:column; gap:0}
+#rowswrap{position:relative}
+#flight{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+.gridhead{
+  display:flex; align-items:center; gap:0; padding:7px 14px 5px; border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-3); letter-spacing:.04em;
+}
+.gridhead{padding-left:52px}
+.gridhead .ghspacer{flex:0 0 var(--namew)}
+.gridhead .ghcells{display:flex; gap:4px}
+.gridhead .ghcell{width:var(--cellw); text-align:center; font-variant-numeric:tabular-nums}
+
+.srow{
+  display:flex; align-items:center; gap:0; padding:9px 14px 9px 52px;
+  border-bottom:1px solid var(--line); position:relative; transition:background .18s;
+}
+.srow:last-child{border-bottom:none}
+.srow.changed{background:color-mix(in srgb, var(--leader) 9%, transparent)}
+.srow.dead{opacity:.5}
+.srow.selected{box-shadow:inset 3px 0 0 var(--ink-3)}
+.tear{height:0; border-top:3px dashed var(--dead); position:relative; margin:0}
+.tear::after{
+  content:attr(data-label); position:absolute; right:12px; top:-9px; padding:1px 7px;
+  background:var(--ground); color:var(--dead); font-family:Archivo,sans-serif;
+  font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+}
+.sname{flex:0 0 var(--namew); display:flex; flex-direction:column; gap:3px; padding-right:12px}
+.sid{display:flex; align-items:center; gap:7px}
+.sid .dot{width:9px; height:9px; border-radius:50%; background:var(--follower); flex:0 0 auto}
+.sid .who{font-family:Archivo,sans-serif; font-weight:600; font-size:14px}
+.badge{
+  font-family:Archivo,sans-serif; font-size:9.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; padding:1.5px 6px; border-radius:99px; border:1px solid currentColor;
+}
+.role-leader{color:var(--leader)} .role-candidate{color:var(--candidate)}
+.role-follower{color:var(--ink-3)} .role-dead{color:var(--dead)}
+.smeta{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3);
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.cells{display:flex; gap:4px; align-items:center; min-height:34px}
+.cell{
+  width:var(--cellw); height:34px; border-radius:3px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; border:1.5px solid currentColor;
+  background:color-mix(in srgb, currentColor 12%, transparent);
+  font-family:"IBM Plex Mono",monospace; line-height:1.1; position:relative; cursor:default;
+}
+.cell.committed{background:currentColor; color:currentColor}
+.cell.committed .cmd, .cell.committed .trm{color:var(--surface)}
+:root[data-theme="dark"] .cell.committed .cmd, :root[data-theme="dark"] .cell.committed .trm{color:#0E1415}
+.cell .cmd{font-size:11px; font-weight:600; color:var(--ink); max-width:100%; overflow:hidden}
+.cell .trm{font-size:9px; color:var(--ink-2)}
+.cell.fresh{animation:pop .45s ease-out}
+@keyframes pop{from{transform:scale(.6); opacity:0} to{transform:scale(1); opacity:1}}
+.cell.ghost{border-style:dashed; opacity:.75}
+.empty{color:var(--ink-3); font-family:"IBM Plex Mono",monospace; font-size:11.5px; padding-left:2px}
+
+/* ---------- event log ---------- */
+.eventlog{max-height:290px; overflow-y:auto; padding:0}
+.ev{padding:9px 14px; border-bottom:1px solid var(--line); display:flex; gap:11px}
+.ev:last-child{border-bottom:none}
+.ev .t{flex:0 0 46px; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3);
+  font-variant-numeric:tabular-nums; padding-top:2px}
+.ev .body{flex:1; min-width:0}
+.ev .say{font-size:14px}
+.ev .tech{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.ev.latest{background:color-mix(in srgb, var(--leader) 8%, transparent)}
+.ev.bad .say{color:var(--dead); font-weight:600}
+.ev.good .say{color:var(--commit); font-weight:600}
+
+/* ---------- scenarios ---------- */
+.scenarios{margin-top:34px}
+.scards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:14px; margin-top:16px}
+.scard{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:15px; display:flex; flex-direction:column; gap:9px; box-shadow:var(--shadow)}
+.scard h3{font-size:15px}
+.scard p{margin:0; font-size:13.5px; color:var(--ink-2)}
+.scard .q{font-size:13.5px; color:var(--ink); font-weight:600}
+.opts{display:flex; flex-direction:column; gap:5px}
+.opts button{font-size:13px; padding:6px 10px}
+.opts button.picked{border-color:var(--ink); background:var(--surface)}
+.opts button.right{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opts button.wrong{border-color:var(--dead); background:color-mix(in srgb,var(--dead) 12%,transparent)}
+.reveal{font-size:13.5px; border-top:1px solid var(--line); padding-top:9px; color:var(--ink-2)}
+.reveal b{color:var(--ink)}
+
+/* ---------- legend ---------- */
+.legend{margin-top:34px; display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:20px}
+.legend ul{list-style:none; margin:9px 0 0; padding:0; display:flex; flex-direction:column; gap:6px}
+.legend li{display:flex; gap:9px; align-items:center; font-size:13.5px; color:var(--ink-2)}
+.sw{width:26px; height:16px; border-radius:3px; flex:0 0 auto; border:1.5px solid currentColor;
+  background:color-mix(in srgb, currentColor 14%, transparent)}
+.sw.filled{background:currentColor}
+.sw.dashed{border-style:dashed}
+.tiny{font-size:12.5px; color:var(--ink-3)}
+footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line); color:var(--ink-3); font-size:13px}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Consensus, one tick at a time</div>
+  <h1>The Raft Log Grid</h1>
+  <p class="lede">Five servers must keep <strong>the same list of commands in the same order</strong>, while
+  machines die and the network tears. Every row below is one server. Every column is one slot in that list —
+  so if two servers ever disagree about slot 3, you will see it as two different colours in the same column.
+  Nothing here is a recording: the protocol is running, and you can break it.</p>
+  <div class="verdict" id="verdict" data-mood="wait">
+    <div class="vtext">
+      <div class="vhead" id="vhead">Nobody is in charge yet.</div>
+      <div class="vsub" id="vsub">Press <b>Play</b> and watch the servers notice.</div>
+    </div>
+    <div class="safety" id="safetybox">
+      <b id="safetyhead">SAFETY HOLDS</b>
+      <span id="safetysub">0 violations in 0 ticks</span>
+    </div>
+  </div>
+</header>
+
+<div class="console">
+  <div class="rail">
+    <div class="panel"><div class="pbody">
+      <div class="group">
+        <div class="glabel">Time</div>
+        <div class="btnrow">
+          <button id="back" title="Undo one step">◀ Back</button>
+          <button id="next" title="Run until the next thing happens">Next ▶</button>
+        </div>
+        <div class="btnrow">
+          <button id="play" class="primary">▶ Play</button>
+          <button id="reset">Reset</button>
+        </div>
+        <div class="readout" id="clock">tick 0 · term 0 · 0 messages in flight</div>
+      </div>
+
+      <div class="group">
+        <div class="glabel">The client</div>
+        <button id="write">Send a write to the leader</button>
+        <button id="writeFollower">Send a write to a follower</button>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Break something</div>
+        <label class="field">Tear the network between
+          <select id="tear">
+            <option value="-1">nowhere — everyone can talk</option>
+          </select>
+        </label>
+        <label class="field">Drop <span class="readout" id="droplbl">0%</span> of all messages
+          <input type="range" id="drop" min="0" max="90" step="10" value="0">
+        </label>
+        <label class="field">Message delay <span class="readout" id="laglbl">1–3 ticks</span>
+          <input type="range" id="lag" min="1" max="12" step="1" value="3">
+        </label>
+      </div>
+
+      <div class="group">
+        <div class="glabel">Election timeouts</div>
+        <div class="btnrow">
+          <button id="tmRandom" class="picked">Random</button>
+          <button id="tmFixed">Identical</button>
+        </div>
+        <p class="tiny" id="tmnote" style="margin:0">Random (15–30 ticks) is real Raft. Switch to identical
+        to see why the randomness is not decoration.</p>
+      </div>
+    </div></div>
+
+    <div class="panel"><div class="phead"><h2>Selected server</h2></div>
+      <div class="pbody" id="inspector">
+        <p class="tiny" style="margin:0">Click any server row to read its full state.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:20px; min-width:0">
+    <div class="panel board">
+      <div class="phead">
+        <h2>The cluster</h2>
+        <span class="readout" id="boardnote">rows = servers · columns = slots in the log</span>
+      </div>
+      <div class="gridhead" id="gridhead"></div>
+      <div id="rowswrap">
+        <svg id="flight" role="img" aria-label="Messages currently travelling between servers"></svg>
+        <div id="rows"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>What just happened</h2>
+        <span class="readout" id="evcount">0 events</span></div>
+      <div class="eventlog" id="eventlog">
+        <div class="ev"><div class="t">—</div><div class="body"><div class="say">
+          Nothing yet. Every line here says what changed and why, in a full sentence.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="scenarios">
+  <div class="eyebrow">Guess first, then watch</div>
+  <h2 style="margin-top:6px; font-size:23px">Six things that can go wrong</h2>
+  <p class="lede" style="font-size:15.5px">Each card resets the cluster, asks you to commit to an answer,
+  then runs the scenario with narration. Being wrong here is the point — it is how the surprising rules
+  stop being arbitrary.</p>
+  <div class="scards" id="scards"></div>
+</section>
+
+<section class="legend">
+  <div>
+    <div class="eyebrow">A server's job</div>
+    <ul>
+      <li><span class="sw filled" style="color:var(--leader)"></span> <b style="color:var(--leader)">Leader</b> — the only one that takes writes</li>
+      <li><span class="sw filled" style="color:var(--candidate)"></span> <b style="color:var(--candidate)">Candidate</b> — asking to be leader</li>
+      <li><span class="sw filled" style="color:var(--follower)"></span> <b>Follower</b> — copying the leader</li>
+      <li><span class="sw filled" style="color:var(--dead)"></span> <b style="color:var(--dead)">Crashed</b> — sends and hears nothing</li>
+    </ul>
+  </div>
+  <div>
+    <div class="eyebrow">A slot in the log</div>
+    <ul>
+      <li><span class="sw dashed" style="color:var(--t2)"></span> written down, <b>not yet safe</b> — can still be deleted</li>
+      <li><span class="sw filled" style="color:var(--t2)"></span> <b>committed</b> — a majority has it, it can never change</li>
+      <li><span class="tiny" style="color:var(--ink-2)">colour = the term the entry was created in</span></li>
+    </ul>
+  </div>
+  <div>
+    <div class="eyebrow">In the band above</div>
+    <ul>
+      <li><span class="sw filled" style="color:var(--candidate)"></span> a vote being asked for, or given</li>
+      <li><span class="sw filled" style="color:var(--leader)"></span> log entries, or the reply to them</li>
+      <li><span class="tiny" style="color:var(--ink-2)">a dot travelling = a message that has not arrived yet</span></li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Timings are shortened so you can watch them: election timeout 15–30 ticks, heartbeat every 5.
+  A real cluster uses roughly 150–300 ms and 50 ms. Everything else — the voting rule, the log
+  consistency check, the commit rule — is the protocol as written in the Raft paper, with one
+  simplification: this page does not model writing to disk, so a crash here loses only the
+  in-memory bookkeeping, never the log.
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   1. THE PROTOCOL. A faithful port of src/RaftNode.java, on a shortened clock.
+   ========================================================================== */
+const N = 5;
+const CFG = { EMIN: 15, EMAX: 30, HB: 5, LAT_MIN: 1 };
+const CMDS = "abcdefghijklmnopqrstuvwxyz";
+
+function rnd(s){ // mulberry32: deterministic, and survives being cloned
+  s.rng = (s.rng + 0x6D2B79F5) | 0;
+  let t = s.rng;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const randInt = (s, lo, hi) => lo + Math.floor(rnd(s) * (hi - lo + 1));
+
+function newNode(id){
+  return { id, role:"follower", term:0, votedFor:-1,
+           log:[{term:0, cmd:"·"}], commitIndex:0, lastApplied:0, applied:[],
+           votes:[], nextIndex:Array(N).fill(1), matchIndex:Array(N).fill(0),
+           alive:true, eDeadline:0, hbDeadline:0 };
+}
+
+function initState(seed){
+  const s = { t:0, rng:(seed>>>0), nodes:[], flight:[], events:[], tear:-1,
+              drop:0, latMax:3, fixedTimeout:false, violations:[], seenViol:{},
+              msgSeq:0, committedEver:{}, nextCmd:0, sel:null };
+  for (let i=0;i<N;i++) s.nodes.push(newNode(i));
+  for (const n of s.nodes) resetElectionTimer(s, n);
+  return s;
+}
+
+function ev(s, say, tech, kind){ s.events.push({t:s.t, say, tech, kind:kind||""}); }
+const majority = () => Math.floor(N/2) + 1;
+const lastIdx  = n => n.log.length - 1;
+const lastTerm = n => n.log[n.log.length-1].term;
+
+function resetElectionTimer(s, n){
+  // Randomised on purpose: identical timeouts mean nobody ever wins.
+  const spread = s.fixedTimeout ? 0 : randInt(s, 0, CFG.EMAX - CFG.EMIN);
+  n.eDeadline = s.t + CFG.EMIN + spread;
+}
+
+function connected(s, a, b){
+  if (s.tear < 0) return true;
+  return (a <= s.tear) === (b <= s.tear);
+}
+
+function send(s, from, to, m){
+  if (!connected(s, from, to)) return;
+  if (rnd(s) < s.drop) return;
+  const lat = randInt(s, CFG.LAT_MIN, s.latMax);
+  s.flight.push(Object.assign({ id: s.msgSeq++, from, to, sentAt: s.t, deliverAt: s.t + lat }, m));
+}
+
+/* ---------------- elections ---------------- */
+function startElection(s, n){
+  n.role = "candidate";
+  n.term++;                 // every attempt is a NEW term
+  n.votedFor = n.id;        // INVARIANT: this is the one vote this server has this term
+  n.votes = [n.id];
+  resetElectionTimer(s, n);
+  ev(s, `S${n.id} got bored of waiting and is asking the others to make it leader.`,
+        `S${n.id} -> candidate, term ${n.term}, log ends (idx ${lastIdx(n)}, term ${lastTerm(n)})`);
+  for (let p=0;p<N;p++) if (p!==n.id)
+    send(s, n.id, p, { type:"RequestVote", term:n.term, lastLogIndex:lastIdx(n), lastLogTerm:lastTerm(n) });
+  checkWon(s, n);
+}
+
+function upToDate(n, candIdx, candTerm){
+  if (candTerm !== lastTerm(n)) return candTerm > lastTerm(n);
+  return candIdx >= lastIdx(n);
+}
+
+function stepDown(s, n, term, why){
+  if (n.role !== "follower" || n.term !== term)
+    ev(s, `S${n.id} heard about a newer term than its own, so it gave up being ${n.role==="leader"?"leader":"a candidate"}.`,
+          `S${n.id} term ${n.term} -> ${term}, role -> follower (${why})`);
+  n.term = term; n.role = "follower"; n.votedFor = -1; n.votes = [];
+  resetElectionTimer(s, n);
+}
+
+function onRequestVote(s, n, m){
+  if (m.term > n.term) stepDown(s, n, m.term, "vote request from a higher term");
+  let granted = false;
+  if (m.term === n.term){
+    const free  = n.votedFor === -1 || n.votedFor === m.from;
+    const fresh = upToDate(n, m.lastLogIndex, m.lastLogTerm);
+    if (free && fresh){
+      granted = true; n.votedFor = m.from; resetElectionTimer(s, n);
+      ev(s, `S${n.id} voted for S${m.from}. It had not voted yet in this term, and S${m.from}'s list is at least as complete as its own.`,
+            `S${n.id} grants vote, term ${n.term}, votedFor=${m.from}`);
+    } else if (!fresh){
+      ev(s, `S${n.id} refused to vote for S${m.from}: S${m.from} is missing entries that S${n.id} already has.`,
+            `S${n.id} refuses: cand (idx ${m.lastLogIndex}, term ${m.lastLogTerm}) < mine (idx ${lastIdx(n)}, term ${lastTerm(n)})`, "bad");
+    } else {
+      ev(s, `S${n.id} refused to vote for S${m.from}: it already used its single vote for this term on S${n.votedFor}.`,
+            `S${n.id} refuses: votedFor=${n.votedFor} in term ${n.term}`);
+    }
+  }
+  send(s, n.id, m.from, { type:"VoteReply", term:n.term, granted });
+}
+
+function onVoteReply(s, n, m){
+  if (m.term > n.term) { stepDown(s, n, m.term, "a voter knew a higher term"); return; }
+  if (n.role !== "candidate" || m.term !== n.term) return;
+  if (m.granted && !n.votes.includes(m.from)) { n.votes.push(m.from); checkWon(s, n); }
+}
+
+function checkWon(s, n){
+  if (n.role !== "candidate" || n.votes.length < majority()) return;
+  n.role = "leader";
+  n.nextIndex  = Array(N).fill(lastIdx(n) + 1);   // optimistic: assume they match me
+  n.matchIndex = Array(N).fill(0);
+  n.matchIndex[n.id] = lastIdx(n);
+  n.hbDeadline = s.t;
+  ev(s, `S${n.id} is the new leader. ${n.votes.length} of ${N} servers voted for it, which is a majority.`,
+        `S${n.id} -> LEADER of term ${n.term}, votes [${n.votes.join(",")}]`, "good");
+}
+
+/* ---------------- log replication ---------------- */
+function clientWrite(s, n, cmd){
+  if (n.role !== "leader" || !n.alive) return false;
+  n.log.push({ term:n.term, cmd });                // leaders only ever append
+  n.matchIndex[n.id] = lastIdx(n);
+  ev(s, `The client asked the leader to record "${cmd}". S${n.id} wrote it into slot ${lastIdx(n)} — but has NOT told the client it is done.`,
+        `S${n.id} append idx ${lastIdx(n)} term ${n.term}`);
+  for (let p=0;p<N;p++) if (p!==n.id) sendAppend(s, n, p);
+  return true;
+}
+
+function sendAppend(s, n, to){
+  let prev = Math.max(0, n.nextIndex[to] - 1);
+  if (prev > lastIdx(n)) prev = lastIdx(n);
+  send(s, n.id, to, { type:"AppendEntries", term:n.term, prevLogIndex:prev,
+                      prevLogTerm:n.log[prev].term, entries:n.log.slice(prev+1),
+                      leaderCommit:n.commitIndex });
+}
+
+function onAppendEntries(s, n, m){
+  if (m.term < n.term){ send(s, n.id, m.from, {type:"AppendReply", term:n.term, success:false, matchIndex:0}); return; }
+  if (m.term > n.term) stepDown(s, n, m.term, `message from leader S${m.from}`);
+  n.role = "follower"; resetElectionTimer(s, n);
+
+  // INVARIANT (Log Matching): one (index, term) comparison certifies the whole prefix.
+  const ok = m.prevLogIndex <= lastIdx(n) && n.log[m.prevLogIndex].term === m.prevLogTerm;
+  if (!ok){
+    ev(s, `S${n.id} told the leader "no" — the leader assumed S${n.id} already had slot ${m.prevLogIndex}, and it does not match.`,
+          `S${n.id} rejects: leader prev (idx ${m.prevLogIndex}, term ${m.prevLogTerm}); my log ends at ${lastIdx(n)}`);
+    send(s, n.id, m.from, {type:"AppendReply", term:n.term, success:false, matchIndex:0});
+    return;
+  }
+  let idx = m.prevLogIndex, deleted = 0;
+  for (const e of m.entries){
+    idx++;
+    if (idx <= lastIdx(n)){
+      if (n.log[idx].term !== e.term){ deleted = n.log.length - idx; n.log.length = idx; n.log.push(e); }
+    } else n.log.push(e);
+  }
+  if (deleted) ev(s, `S${n.id} threw away ${deleted} of its own entries and took the leader's instead. Those entries were never committed, so nobody was ever told they were safe.`,
+        `S${n.id} truncate from idx ${m.prevLogIndex+1}, adopt leader's suffix`, "bad");
+  if (m.leaderCommit > n.commitIndex){
+    const was = n.commitIndex;
+    n.commitIndex = Math.min(m.leaderCommit, lastIdx(n));
+    if (n.commitIndex > was)
+      ev(s, `S${n.id} learned from the leader that slots up to ${n.commitIndex} are safe, and ran them.`,
+            `S${n.id} commitIndex ${was} -> ${n.commitIndex}`);
+  }
+  send(s, n.id, m.from, {type:"AppendReply", term:n.term, success:true, matchIndex:m.prevLogIndex + m.entries.length});
+}
+
+function onAppendReply(s, n, m){
+  if (m.term > n.term){ stepDown(s, n, m.term, "a follower knew a higher term"); return; }
+  if (n.role !== "leader" || m.term !== n.term) return;
+  if (m.success){
+    n.matchIndex[m.from] = Math.max(n.matchIndex[m.from], m.matchIndex);
+    n.nextIndex[m.from]  = n.matchIndex[m.from] + 1;
+    advanceCommit(s, n);
+  } else {
+    n.nextIndex[m.from] = Math.max(1, n.nextIndex[m.from] - 1);
+    sendAppend(s, n, m.from);
+  }
+}
+
+function advanceCommit(s, n){
+  for (let k = lastIdx(n); k > n.commitIndex; k--){
+    let count = 0;
+    for (let p=0;p<N;p++) if (n.matchIndex[p] >= k) count++;
+    // INVARIANT: a leader may only count replicas for an entry from its OWN term.
+    if (count >= majority() && n.log[k].term === n.term){
+      ev(s, `"${n.log[k].cmd}" is now safe forever: ${count} of ${N} servers have it written down. The client can be told the write succeeded.`,
+            `S${n.id} commitIndex ${n.commitIndex} -> ${k} (entry term ${n.log[k].term} == leader term ${n.term})`, "good");
+      n.commitIndex = k;
+      return;
+    }
+  }
+}
+
+function applyCommitted(n){
+  while (n.lastApplied < n.commitIndex){ n.lastApplied++; n.applied.push(n.log[n.lastApplied].cmd); }
+}
+
+/* ---------------- the clock ---------------- */
+function receive(s, n, m){
+  if (!n.alive) return;
+  if (m.type === "RequestVote")  onRequestVote(s, n, m);
+  else if (m.type === "VoteReply")     onVoteReply(s, n, m);
+  else if (m.type === "AppendEntries") onAppendEntries(s, n, m);
+  else if (m.type === "AppendReply")   onAppendReply(s, n, m);
+}
+
+function tickOnce(s){
+  s.t++;
+  const due = s.flight.filter(m => m.deliverAt <= s.t);
+  s.flight = s.flight.filter(m => m.deliverAt > s.t);
+  for (const m of due){
+    if (!connected(s, m.from, m.to)) continue;   // a tear eats packets already in flight
+    receive(s, s.nodes[m.to], m);
+  }
+  for (const n of s.nodes){
+    if (!n.alive) continue;
+    if (n.role === "leader"){
+      if (s.t >= n.hbDeadline){ n.hbDeadline = s.t + CFG.HB; for (let p=0;p<N;p++) if (p!==n.id) sendAppend(s, n, p); }
+    } else if (s.t >= n.eDeadline) startElection(s, n);
+    applyCommitted(n);
+  }
+  checkSafety(s);
+}
+
+/* ---------------- the safety checker ---------------- */
+function violate(s, msg){
+  if (s.seenViol[msg]) return;
+  s.seenViol[msg] = true;
+  s.violations.push(`t=${s.t} ${msg}`);
+  ev(s, "SAFETY BROKEN — " + msg, "this can never happen in real Raft", "bad");
+}
+function checkSafety(s){
+  const byTerm = {};
+  for (const n of s.nodes) if (n.alive && n.role === "leader") (byTerm[n.term] ||= []).push(n.id);
+  for (const k in byTerm) if (byTerm[k].length > 1)
+    violate(s, `term ${k} has ${byTerm[k].length} leaders at once (S${byTerm[k].join(", S")})`);
+  for (const n of s.nodes){
+    const upto = Math.min(n.commitIndex, lastIdx(n));
+    for (let i=1;i<=upto;i++){
+      const cur = n.log[i].cmd + "@t" + n.log[i].term;
+      if (!s.committedEver[i]) s.committedEver[i] = cur;
+      else if (s.committedEver[i] !== cur)
+        violate(s, `slot ${i} was committed as ${s.committedEver[i]} but S${n.id} now has ${cur} there`);
+    }
+  }
+  for (let a=0;a<N;a++) for (let b=a+1;b<N;b++){
+    const la = s.nodes[a].log, lb = s.nodes[b].log;
+    for (let i=Math.min(la.length, lb.length)-1;i>=1;i--){
+      if (la[i].term === lb[i].term){
+        for (let j=1;j<=i;j++) if (la[j].cmd !== lb[j].cmd || la[j].term !== lb[j].term){
+          violate(s, `S${a} and S${b} agree on slot ${i} but differ at slot ${j}`); break;
+        }
+        break;
+      }
+    }
+    const xa = s.nodes[a].applied, xb = s.nodes[b].applied;
+    for (let i=0;i<Math.min(xa.length, xb.length);i++) if (xa[i] !== xb[i]){
+      violate(s, `S${a} ran "${xa[i]}" where S${b} ran "${xb[i]}"`); break;
+    }
+  }
+}
+
+/* ---------------- faults & helpers ---------------- */
+function crash(s, id){
+  s.nodes[id].alive = false;
+  ev(s, `S${id} crashed. It now sends nothing and hears nothing.`, `S${id} alive=false`, "bad");
+}
+function restart(s, id){
+  const n = s.nodes[id];
+  n.alive = true; n.role = "follower"; n.commitIndex = 0; n.lastApplied = 0; n.applied = []; n.votes = [];
+  resetElectionTimer(s, n);
+  ev(s, `S${id} restarted. It kept its list and who it voted for; it forgot everything else and has to be told again what is safe.`,
+        `S${id} restart: kept term=${n.term}, votedFor=${n.votedFor}, log len ${lastIdx(n)}`);
+}
+function letTimeout(s, id, inTicks){    // steer WHICH server wakes first; votes still follow the real rules
+  for (const n of s.nodes) n.eDeadline = s.t + 100000;
+  s.nodes[id].eDeadline = s.t + inTicks;
+}
+function leaderOf(s){
+  let best = null;
+  for (const n of s.nodes) if (n.alive && n.role === "leader" && (!best || n.term > best.term)) best = n;
+  return best;
+}
+function nextCmdName(s){ return CMDS[s.nextCmd++ % 26]; }
+
+/* ==========================================================================
+   2. THE PAGE
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const TERMC = i => `var(--t${((i-1) % 7) + 1})`;
+let S = initState(20260829);
+let history = [];
+let playing = false, runToken = 0, speed = 90;
+
+function snapshot(){ history.push(JSON.stringify(S)); if (history.length > 900) history.shift(); }
+function stepTick(){ snapshot(); tickOnce(S); }
+
+/* ---- one render pass ---- */
+let prevCells = {};
+function render(){
+  const maxLen = Math.max(...S.nodes.map(n => n.log.length), 2);
+  const cols = Math.max(maxLen - 1, 6);
+  const cellw = cols > 12 ? 36 : 48;
+  document.documentElement.style.setProperty("--cellw", cellw + "px");
+  document.documentElement.style.setProperty("--namew", "168px");
+
+  // column header
+  let gh = '<span class="ghspacer">slot &rarr;</span><span class="ghcells">';
+  for (let i=1;i<=cols;i++) gh += `<span class="ghcell">${i}</span>`;
+  $("gridhead").innerHTML = gh + "</span>";
+
+  // rows
+  const rows = $("rows");
+  let html = "";
+  for (const n of S.nodes){
+    if (S.tear >= 0 && n.id === S.tear + 1)
+      html += `<div class="tear" data-label="network torn here"></div>`;
+    const role = !n.alive ? "dead" : n.role;
+    const roleName = !n.alive ? "crashed" : n.role;
+    const col = !n.alive ? "var(--dead)" : n.role==="leader" ? "var(--leader)"
+              : n.role==="candidate" ? "var(--candidate)" : "var(--follower)";
+    let cells = "";
+    for (let i=1;i<=cols;i++){
+      if (i >= n.log.length){ cells += `<div class="cell" style="border:none;background:none"></div>`; continue; }
+      const e = n.log[i];
+      const committed = i <= n.commitIndex;
+      const key = `${n.id}:${i}`;
+      const sig = e.cmd + "@" + e.term;
+      const fresh = prevCells[key] !== undefined && prevCells[key] !== sig ? " fresh"
+                  : prevCells[key] === undefined ? " fresh" : "";
+      prevCells[key] = sig;
+      cells += `<div class="cell ${committed ? "committed" : "ghost"}${fresh}" style="color:${TERMC(e.term)}"
+                 title="slot ${i}: ${e.cmd}, created in term ${e.term}${committed ? " — committed" : " — not committed yet"}">
+                 <span class="cmd">${e.cmd}</span><span class="trm">t${e.term}</span></div>`;
+    }
+    for (let i=n.log.length;i<=cols;i++) prevCells[`${n.id}:${i}`] = undefined;
+    html += `<div class="srow ${!n.alive?"dead":""} ${S.sel===n.id?"selected":""}" data-id="${n.id}">
+        <div class="sname">
+          <div class="sid"><span class="dot" style="background:${col}"></span>
+            <span class="who">S${n.id}</span>
+            <span class="badge role-${role}">${roleName}</span></div>
+          <div class="smeta">term ${n.term} · voted ${n.votedFor<0?"—":"S"+n.votedFor} · safe to ${n.commitIndex}</div>
+        </div>
+        <div class="cells">${cells || '<span class="empty">nothing written yet</span>'}</div>
+      </div>`;
+  }
+  rows.innerHTML = html;
+  for (const el of rows.querySelectorAll(".srow"))
+    el.onclick = () => { S.sel = +el.dataset.id; render(); };
+
+  drawFlight();
+  renderVerdict();
+  renderEvents();
+  renderInspector();
+
+  const l = leaderOf(S);
+  $("clock").textContent = `tick ${S.t} · term ${Math.max(...S.nodes.map(n=>n.term))} · ${S.flight.length} message${S.flight.length===1?"":"s"} in flight`;
+  $("write").disabled = !l;
+  $("back").disabled = history.length === 0;
+}
+
+function drawFlight(){
+  const svg = $("flight"), wrap = $("rowswrap");
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const ys = {};
+  for (const el of $("rows").querySelectorAll(".srow"))
+    ys[+el.dataset.id] = el.offsetTop + el.offsetHeight/2;
+  let out = "";
+  for (const m of S.flight){
+    const y1 = ys[m.from], y2 = ys[m.to];
+    if (y1 === undefined || y2 === undefined) continue;
+    const vote = m.type === "RequestVote" || m.type === "VoteReply";
+    const c = vote ? "var(--candidate)" : "var(--leader)";
+    const reply = m.type === "VoteReply" || m.type === "AppendReply";
+    const x = 34, bulge = 12 + Math.abs(y2-y1) * 0.32;
+    const cx = x - bulge, cy = (y1+y2)/2;
+    const p = Math.min(1, (S.t - m.sentAt) / Math.max(1, m.deliverAt - m.sentAt));
+    const bx = (1-p)*(1-p)*x + 2*(1-p)*p*cx + p*p*x;
+    const by = (1-p)*(1-p)*y1 + 2*(1-p)*p*cy + p*p*y2;
+    out += `<path d="M ${x} ${y1} Q ${cx} ${cy} ${x} ${y2}" fill="none" stroke="${c}"
+             stroke-width="1.2" opacity=".38" ${reply?'stroke-dasharray="3 3"':''}/>`;
+    out += `<circle cx="${bx}" cy="${by}" r="${reply?3:4.2}" fill="${reply?"var(--surface)":c}"
+             stroke="${c}" stroke-width="1.6"/>`;
+  }
+  svg.innerHTML = out;
+}
+
+function renderVerdict(){
+  const l = leaderOf(S), box = $("verdict");
+  const alive = S.nodes.filter(n=>n.alive).length;
+  let head, sub, mood = "wait";
+  if (S.tear >= 0){
+    const top = S.tear + 1, bot = N - top;
+    const bigSide = Math.max(top, bot), can = bigSide >= majority();
+    head = l ? `S${l.id} leads term ${l.term} on the side with ${l.id <= S.tear ? top : bot} servers.`
+             : "The network is torn and nobody can lead yet.";
+    sub = can ? `Only the side holding ${majority()} or more of the ${N} servers can accept writes. The other side can talk, vote and elect — it just can never finish anything.`
+              : `Neither side has ${majority()} of the ${N} servers, so neither side can elect a leader or commit a write. This is the split the cluster refuses to guess its way out of.`;
+    mood = can ? "wait" : "bad";
+  } else if (!l){
+    head = alive < majority() ? `Only ${alive} of ${N} servers are alive — not a majority.` : "Nobody is in charge right now.";
+    sub  = alive < majority() ? "A leader needs votes from a majority, so no election can succeed until servers come back. Reads and writes are refused; nothing is lost."
+                              : "The servers are waiting out their timers. The first one to run out will ask the others for votes.";
+    mood = "bad";
+  } else {
+    const committed = l.commitIndex;
+    head = `S${l.id} is the leader of term ${l.term}. The cluster is accepting writes.`;
+    sub  = committed ? `${committed} write${committed===1?" is":"s are"} committed — a majority has them written down, so they can never be lost or changed, even if S${l.id} dies this instant.`
+                     : "No write has been committed yet. Send one and watch what has to happen before it is safe.";
+    mood = "good";
+  }
+  box.dataset.mood = mood === "good" ? "" : mood;
+  $("vhead").textContent = head; $("vsub").textContent = sub;
+  const sb = $("safetybox");
+  if (S.violations.length){
+    sb.classList.add("broken");
+    $("safetyhead").textContent = "SAFETY BROKEN";
+    $("safetysub").textContent = `${S.violations.length} violation${S.violations.length===1?"":"s"}`;
+  } else {
+    sb.classList.remove("broken");
+    $("safetyhead").textContent = "SAFETY HOLDS";
+    $("safetysub").textContent = `0 violations in ${S.t} ticks`;
+  }
+}
+
+function renderEvents(){
+  const box = $("eventlog");
+  const list = S.events.slice(-40);
+  $("evcount").textContent = `${S.events.length} event${S.events.length===1?"":"s"}`;
+  if (!list.length){
+    box.innerHTML = `<div class="ev"><div class="t">—</div><div class="body"><div class="say">
+      Nothing yet. Every line here says what changed and why, in a full sentence.</div></div></div>`;
+    return;
+  }
+  box.innerHTML = list.map((e,i) =>
+    `<div class="ev ${e.kind} ${i===list.length-1?"latest":""}">
+       <div class="t">${e.t}</div>
+       <div class="body"><div class="say">${e.say}</div><div class="tech">${e.tech}</div></div>
+     </div>`).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderInspector(){
+  const box = $("inspector");
+  if (S.sel === null){ box.innerHTML = `<p class="tiny" style="margin:0">Click any server row to read its full state.</p>`; return; }
+  const n = S.nodes[S.sel];
+  const rows = [
+    ["what it thinks it is", n.alive ? n.role : "crashed"],
+    ["term it believes in", n.term],
+    ["who it voted for", n.votedFor < 0 ? "nobody yet" : "S" + n.votedFor],
+    ["entries written down", lastIdx(n)],
+    ["entries it knows are safe", n.commitIndex],
+    ["commands actually run", n.applied.length ? n.applied.join(", ") : "none"],
+  ];
+  if (n.role === "leader") rows.push(["it believes others have", n.matchIndex.map((m,i)=>`S${i}:${m}`).join("  ")]);
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+      <b style="font-family:Archivo,sans-serif">Server ${n.id}</b>
+      <button class="${n.alive?"danger":""}" id="killbtn" style="padding:4px 9px;font-size:12.5px">
+        ${n.alive ? "Crash it" : "Restart it"}</button></div>` +
+    rows.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.8px;padding:3px 0;border-bottom:1px solid var(--line)">
+      <span style="color:var(--ink-2)">${k}</span><span class="mono" style="text-align:right">${v}</span></div>`).join("");
+  $("killbtn").onclick = () => { stop(); snapshot(); n.alive ? crash(S, n.id) : restart(S, n.id); render(); };
+}
+
+/* ---- controls ---- */
+function stop(){ playing = false; runToken++; $("play").textContent = "▶ Play"; }
+
+async function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+async function advance(cond, max, token){
+  for (let i=0;i<max;i++){
+    if (token !== runToken) return false;
+    if (cond && cond()) return true;
+    stepTick(); render();
+    await sleep(speed);
+  }
+  return cond ? cond() : true;
+}
+
+$("play").onclick = async () => {
+  if (playing){ stop(); return; }
+  playing = true; $("play").textContent = "❚❚ Pause";
+  const token = ++runToken;
+  while (token === runToken){ stepTick(); render(); await sleep(speed); }
+};
+$("next").onclick = () => {
+  stop();
+  const before = S.events.length;
+  for (let i=0;i<80 && S.events.length===before;i++) stepTick();
+  render();
+};
+$("back").onclick = () => {
+  stop();
+  if (!history.length) return;
+  S = JSON.parse(history.pop());
+  prevCells = {};
+  render();
+};
+$("reset").onclick = () => { stop(); doReset(); };
+function doReset(keepSettings){
+  const old = S;
+  S = initState(20260829 + Math.floor(Math.random()*1000));
+  if (keepSettings !== false){ S.drop = old.drop; S.latMax = old.latMax; S.tear = old.tear; S.fixedTimeout = old.fixedTimeout; }
+  for (const n of S.nodes) resetElectionTimer(S, n);
+  history = []; prevCells = {};
+  render();
+}
+$("write").onclick = () => {
+  stop(); snapshot();
+  const l = leaderOf(S);
+  if (l) clientWrite(S, l, nextCmdName(S));
+  render();
+};
+$("writeFollower").onclick = () => {
+  stop(); snapshot();
+  const f = S.nodes.find(n => n.alive && n.role !== "leader");
+  if (f){
+    const l = leaderOf(S);
+    ev(S, `The client asked S${f.id} to record something. S${f.id} refused — it is not the leader${l?`, and pointed the client at S${l.id}`:" and does not know who is"}.`,
+          `S${f.id} role=${f.role}: client writes are leader-only`);
+  }
+  render();
+};
+$("tear").onchange = e => { stop(); snapshot(); S.tear = +e.target.value; render(); };
+$("drop").oninput = e => { S.drop = +e.target.value/100; $("droplbl").textContent = e.target.value + "%"; };
+$("lag").oninput  = e => { S.latMax = +e.target.value; $("laglbl").textContent = `1–${e.target.value} ticks`; };
+$("tmRandom").onclick = () => setTimeoutMode(false);
+$("tmFixed").onclick  = () => setTimeoutMode(true);
+function setTimeoutMode(fixed){ stop(); applyTimeoutMode(fixed); }
+function applyTimeoutMode(fixed){
+  $("tmRandom").classList.toggle("picked", !fixed);
+  $("tmFixed").classList.toggle("picked", fixed);
+  $("tmnote").textContent = fixed
+    ? "Identical timeouts: every server now wakes at the same instant, votes for itself, and nobody ever reaches a majority. Press Reset, then Play."
+    : "Random (15–30 ticks) is real Raft. Switch to identical to see why the randomness is not decoration.";
+  S.fixedTimeout = fixed;
+  for (const n of S.nodes) resetElectionTimer(S, n);
+  render();
+}
+(function fillTear(){
+  const sel = $("tear");
+  for (let i=0;i<N-1;i++){
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `S${i} and S${i+1}  (${i+1} | ${N-i-1})`;
+    sel.appendChild(o);
+  }
+})();
+window.addEventListener("resize", drawFlight);
+
+/* ---- scenarios: predict, then watch ---- */
+const SCENARIOS = [
+{ id:"elect", title:"Nobody is in charge",
+  blurb:"Five servers switch on. None of them is special. None of them can see the others' clocks.",
+  q:"What decides which one becomes leader?",
+  opts:["The one with the lowest number wins","Each waits a random time; the first to run out asks for votes","They all become leaders and sort it out later"],
+  right:1,
+  why:"Every server waits a <b>random</b> amount of time for a leader to speak up. The first one whose timer runs out becomes a candidate and asks the other four for votes. It only needs three of five to say yes — and the others say yes because they have not voted this term and have nothing to lose.",
+  run: async (tok) => { doReset(false); await advance(()=>leaderOf(S), 200, tok); await advance(null, 25, tok); } },
+
+{ id:"durable", title:"When is a write actually safe?",
+  blurb:"The leader takes a write from a client and puts it in the next free slot.",
+  q:"At what moment can the client be told 'saved'?",
+  opts:["As soon as the leader has written it down","Once a majority of servers have written it down","Only once all five have written it down"],
+  right:1,
+  why:"The leader writes it locally first, but that means nothing — if the leader dies now, the entry disappears with it. It becomes <b>committed</b> the instant a majority (3 of 5) have stored it, because any future leader must collect votes from a majority, and two majorities always share at least one server. Waiting for all five would mean one slow machine can stop the whole cluster.",
+  run: async (tok) => { doReset(false); await advance(()=>leaderOf(S), 200, tok);
+    snapshot(); clientWrite(S, leaderOf(S), nextCmdName(S)); render();
+    await advance(()=>leaderOf(S).commitIndex >= 1, 60, tok); await advance(null, 20, tok); } },
+
+{ id:"death", title:"The leader dies mid-flight",
+  blurb:"One write is committed. Then the leader is switched off without warning.",
+  q:"What happens to the committed write?",
+  opts:["It is lost — it lived on the leader","It survives: whoever wins next is guaranteed to already have it","It survives only if the new leader remembers to ask around"],
+  right:1,
+  why:"Nobody copies it back. It is already on a majority, and a candidate can only win with votes from a majority — so at least one voter holds the entry, and that voter <b>refuses to vote</b> for any candidate whose log is behind its own. The winner therefore always already has it. Watch the refusals in the event log.",
+  run: async (tok) => { doReset(false); await advance(()=>leaderOf(S), 200, tok);
+    snapshot(); clientWrite(S, leaderOf(S), nextCmdName(S)); render();
+    await advance(()=>leaderOf(S).commitIndex>=1, 60, tok);
+    await advance(null, 12, tok);
+    snapshot(); crash(S, leaderOf(S).id); render();
+    await advance(()=>leaderOf(S), 200, tok); await advance(null, 30, tok); } },
+
+{ id:"split", title:"The network tears in two",
+  blurb:"A switch fails. S0 and S1 can no longer reach S2, S3 and S4. The old leader is on the small side and does not know it.",
+  q:"Which side can keep accepting writes?",
+  opts:["Both — each side has a leader","Only the side with three servers","Neither — the cluster stops entirely"],
+  right:1,
+  why:"Two leaders really do exist for a while, and that is <b>fine</b>: they are in different terms, and the old one can never reach a majority, so it can never commit anything. Its writes pile up unacknowledged and are deleted when the network heals. The three-server side elects a newer leader and carries on. This is the CAP trade made concrete — the minority chooses to refuse rather than to guess.",
+  run: async (tok) => { doReset(false); await advance(()=>leaderOf(S), 200, tok);
+    const l = leaderOf(S);
+    snapshot(); clientWrite(S, l, nextCmdName(S)); render();
+    await advance(()=>l.commitIndex>=1, 60, tok);
+    // put the old leader on the small side
+    S.tear = (l.id <= 1) ? 1 : 2; $("tear").value = S.tear;
+    ev(S, `The network tore. S0–S${S.tear} can no longer reach S${S.tear+1}–S${N-1}.`, `partition after row ${S.tear}`, "bad");
+    render(); await advance(null, 8, tok);
+    snapshot(); clientWrite(S, l, "?"); clientWrite(S, l, "?"); render();
+    await advance(()=>{ const k = leaderOf(S); return k && k.term > l.term; }, 200, tok);
+    const k = leaderOf(S); if (k) { snapshot(); clientWrite(S, k, nextCmdName(S)); render(); }
+    await advance(null, 40, tok);
+    snapshot(); S.tear = -1; $("tear").value = -1;
+    ev(S, "The network healed. Everyone can talk again.", "partition cleared", "good"); render();
+    await advance(null, 60, tok); } },
+
+{ id:"stale", title:"The server that missed three writes",
+  blurb:"S4 was switched off while three writes were committed. It comes back and its timer runs out first, so it asks to be leader.",
+  q:"Can a server whose list is behind win the election?",
+  opts:["Yes — a vote is a vote","No — voters refuse a candidate whose list is behind theirs","Only if it claims a higher term"],
+  right:1,
+  why:"A higher term is <b>not</b> enough. Every voter compares the candidate's last entry with its own, and refuses if its own is more complete. This one rule is the whole reason a committed write can never be deleted by a later leader: to win you must be at least as up to date as a majority, and a majority holds every committed entry.",
+  run: async (tok) => { doReset(false); await advance(()=>leaderOf(S), 200, tok);
+    snapshot(); crash(S, 4); render(); await advance(null, 6, tok);
+    for (let i=0;i<3;i++){ snapshot(); clientWrite(S, leaderOf(S), nextCmdName(S)); render(); await advance(null, 12, tok); }
+    await advance(()=>leaderOf(S).commitIndex>=3, 80, tok);
+    snapshot(); restart(S, 4); crash(S, leaderOf(S).id); letTimeout(S, 4, 2); render();
+    await advance(()=>leaderOf(S), 250, tok); await advance(null, 30, tok); } },
+
+{ id:"fixed", title:"Everyone wakes at the same moment",
+  blurb:"The randomness is switched off: all five servers now use exactly the same waiting time.",
+  q:"How many leaders does this cluster end up with?",
+  opts:["One, same as always — it just takes longer","None, forever — they keep cancelling each other out","Five, all at once"],
+  right:1,
+  why:"All five time out on the same tick, all five vote for themselves, and each has exactly one vote out of the five — nobody reaches three. They all time out again together in the next term, and again, and again. Nothing incorrect ever happens; the cluster simply never gets anything done. This is a <b>liveness</b> failure, and randomised timeouts are the entire fix.",
+  run: async (tok) => { doReset(false); applyTimeoutMode(true);
+    for (const n of S.nodes) resetElectionTimer(S, n);
+    await advance(null, 130, tok);
+    ev(S, `Term ${Math.max(...S.nodes.map(n=>n.term))} and still no leader. Each election splits five ways.`,
+       "split vote, every term", "bad"); render(); } },
+];
+
+$("scards").innerHTML = SCENARIOS.map(sc => `
+  <div class="scard" data-id="${sc.id}">
+    <h3>${sc.title}</h3>
+    <p>${sc.blurb}</p>
+    <div class="q">${sc.q}</div>
+    <div class="opts">${sc.opts.map((o,i)=>`<button data-i="${i}">${o}</button>`).join("")}</div>
+    <div class="reveal" hidden></div>
+  </div>`).join("");
+
+for (const sc of SCENARIOS){
+  const card = document.querySelector(`.scard[data-id="${sc.id}"]`);
+  card.querySelectorAll(".opts button").forEach(b => {
+    b.onclick = async () => {
+      const i = +b.dataset.i;
+      card.querySelectorAll(".opts button").forEach(x => { x.classList.remove("picked","right","wrong"); x.disabled = true; });
+      b.classList.add(i === sc.right ? "right" : "wrong");
+      card.querySelectorAll(".opts button")[sc.right].classList.add("right");
+      const rev = card.querySelector(".reveal");
+      rev.hidden = false;
+      rev.innerHTML = `<b>${i === sc.right ? "Right." : "Not quite."}</b> ${sc.why}
+        <div style="margin-top:8px" class="tiny">Running it now — watch the grid above.</div>`;
+      stop();
+      const tok = ++runToken;
+      await sc.run(tok);
+      if (tok === runToken){
+        rev.querySelector(".tiny").textContent = "Done. Scroll up to read the final state, or press Back to replay it a step at a time.";
+        card.querySelectorAll(".opts button").forEach(x => x.disabled = false);
+      }
+    };
+  });
+}
+
+render();
+</script>

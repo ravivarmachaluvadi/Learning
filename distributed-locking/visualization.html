@@ -1,0 +1,716 @@
+<title>The Spare Key</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg:#F7F5F2; --panel:#FFFFFF; --panel2:#F0EDE8; --ink:#231F1A; --muted:#6A6257;
+  --line:#DFD9D0; --key:#A66A1E; --key-soft:#F5EBDC; --ok:#206E52; --ok-soft:#E1F0E9;
+  --bad:#B8433C; --bad-soft:#F7E4E2; --tok:#33628F; --tok-soft:#E3EBF3;
+  --shadow:0 1px 3px rgba(35,31,26,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#151210; --panel:#1E1A16; --panel2:#262119; --ink:#EBE6DE; --muted:#A2988A;
+    --line:#373026; --key:#D79A4A; --key-soft:#332815; --ok:#43B98D; --ok-soft:#153026;
+    --bad:#E0736A; --bad-soft:#3A201C; --tok:#7FAAD2; --tok-soft:#1B2A38;
+    --shadow:0 1px 3px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#151210; --panel:#1E1A16; --panel2:#262119; --ink:#EBE6DE; --muted:#A2988A;
+  --line:#373026; --key:#D79A4A; --key-soft:#332815; --ok:#43B98D; --ok-soft:#153026;
+  --bad:#E0736A; --bad-soft:#3A201C; --tok:#7FAAD2; --tok-soft:#1B2A38;
+  --shadow:0 1px 3px rgba(0,0,0,.45);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 "Public Sans",system-ui,sans-serif; }
+h1,h3 { font-family:"Bricolage Grotesque","Public Sans",sans-serif; text-wrap:balance; margin:0; }
+.mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+header { max-width:1240px; margin:0 auto; padding:20px 22px 12px; }
+header h1 { font-size:30px; font-weight:700; }
+header .sub { color:var(--muted); max-width:70ch; margin:6px 0 0; }
+.wrap { max-width:1240px; margin:0 auto; padding:0 22px 40px; display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; }
+.stage { border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.rail { display:flex; flex-direction:column; gap:12px; }
+.card { border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:12px 14px; box-shadow:var(--shadow); }
+.card h3 { font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:8px; }
+/* clients */
+.clients { display:flex; flex-wrap:wrap; gap:10px; }
+.client { --hue:#888; flex:1 1 175px; min-width:175px; border:1.5px solid var(--hue); border-radius:10px; background:var(--panel); padding:8px 10px; }
+.client .who { display:flex; align-items:baseline; gap:8px; }
+.client .name { font-weight:700; color:var(--hue); }
+.client .st { font-size:12px; color:var(--muted); margin-left:auto; text-align:right; }
+.client .st.warn { color:var(--key); font-weight:600; }
+.client .st.err { color:var(--bad); font-weight:600; }
+.client .st.ok { color:var(--ok); font-weight:600; }
+.belief { margin-top:6px; font-size:12.5px; border-top:1px dashed var(--line); padding-top:6px; }
+.belief .v { font-family:"IBM Plex Mono",monospace; }
+.stale-flag { display:inline-block; font-size:11px; font-weight:700; color:var(--bad); border:1px solid var(--bad); border-radius:4px; padding:0 5px; margin-left:6px; }
+.knobs { display:flex; gap:6px; margin-top:7px; align-items:center; flex-wrap:wrap; }
+.knobs label { font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+.knobs input[type=number] { width:44px; font:12px "IBM Plex Mono",monospace; background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:2px 4px; }
+.mini { font-size:11.5px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:6px; padding:2px 8px; cursor:pointer; }
+.mini:hover { border-color:var(--key); color:var(--key); }
+.mini[disabled] { opacity:.4; cursor:default; }
+/* stations */
+.stations { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.station { border:1.5px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px 14px; }
+.station .t { font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.station .row { display:flex; gap:18px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+.kv .k { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.kv .val { font-family:"IBM Plex Mono",monospace; font-size:15px; }
+.leasebar { height:8px; border-radius:4px; background:var(--line); overflow:hidden; margin-top:8px; }
+.leasebar > div { height:100%; background:var(--key); transition:width .2s; }
+@media (prefers-reduced-motion: reduce) { .leasebar > div { transition:none; } }
+.qchip { border:1px dashed var(--key); color:var(--key); border-radius:6px; padding:0 8px; font-weight:600; font-size:12.5px; }
+.dial { display:inline-flex; align-items:center; gap:6px; background:var(--tok-soft); color:var(--tok); border-radius:6px; padding:1px 9px; font-family:"IBM Plex Mono",monospace; font-weight:600; }
+/* wire */
+.wirebox { border:1px dashed var(--line); border-radius:8px; padding:6px 10px; font-size:12.5px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; min-height:32px; align-items:center; }
+.pkt { border:1px solid var(--tok); color:var(--tok); border-radius:6px; padding:1px 8px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; }
+/* verdict + log */
+.verdict { border-left:4px solid var(--tok); background:var(--tok-soft); border-radius:8px; padding:10px 14px; font-size:14.5px; }
+.verdict.good { border-left-color:var(--ok); background:var(--ok-soft); }
+.verdict.badv { border-left-color:var(--bad); background:var(--bad-soft); }
+.log { max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:2px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--panel); }
+.ev { font-size:13px; padding:3px 6px; border-radius:6px; }
+.ev .tk { font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:11.5px; margin-right:6px; }
+.ev .det { display:block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); margin:1px 0 0 34px; }
+.ev.bad { background:var(--bad-soft); }
+.ev.good { background:var(--ok-soft); }
+.ev.warn { background:var(--key-soft); }
+.ev.new { animation:pulse .7s ease-out; }
+@keyframes pulse { from { outline:2px solid var(--tok); } to { outline:2px solid transparent; } }
+@media (prefers-reduced-motion: reduce) { .ev.new { animation:none; } }
+/* transport, controls, scenarios */
+.transport { display:flex; gap:6px; flex-wrap:wrap; align-items:center; border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+.transport button { font:600 13px "Public Sans",sans-serif; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:7px; padding:6px 11px; cursor:pointer; }
+.transport button:hover { border-color:var(--ok); }
+.transport button[disabled] { opacity:.4; cursor:default; }
+.transport button:focus-visible, .opt:focus-visible, .mini:focus-visible { outline:2px solid var(--ok); outline-offset:1px; }
+.tickbox { font-family:"IBM Plex Mono",monospace; font-size:13px; margin-left:auto; color:var(--muted); }
+.ctl { display:flex; flex-direction:column; gap:9px; font-size:13.5px; }
+.ctl label { display:flex; align-items:center; gap:8px; justify-content:space-between; }
+.ctl select, .ctl input[type=number] { font:13px "Public Sans",sans-serif; background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:4px 6px; max-width:170px; }
+.ctl input[type=checkbox] { accent-color:var(--ok); }
+.ctl .hint { font-size:12px; color:var(--muted); margin-top:-4px; }
+.scen { border:1px solid var(--line); border-radius:8px; padding:9px 11px; margin-bottom:8px; background:var(--panel); }
+.scen .t { font-weight:700; font-size:13.5px; }
+.scen .q { font-size:13px; color:var(--muted); margin:3px 0 7px; }
+.opt { display:block; width:100%; text-align:left; font:13px "Public Sans",sans-serif; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:6px; padding:5px 9px; margin-top:4px; cursor:pointer; }
+.opt:hover { border-color:var(--tok); }
+.mets { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:13px; }
+.mets .m b { font-family:"IBM Plex Mono",monospace; font-size:15px; font-variant-numeric:tabular-nums; }
+.mets .m span { color:var(--muted); display:block; font-size:11.5px; }
+.legend { font-size:12.5px; color:var(--muted); display:flex; flex-direction:column; gap:5px; }
+.legend .li { display:flex; align-items:center; gap:8px; }
+.sw { width:14px; height:14px; border-radius:4px; flex:none; }
+@media (max-width:900px) { .wrap { grid-template-columns:1fr; } .stations { grid-template-columns:1fr; } }
+</style>
+
+<header>
+  <h1>The Spare Key</h1>
+  <p class="sub">A photography club has one darkroom and one key. If a keyholder goes silent,
+  the front desk hands out a numbered <b>spare</b> after a timeout — which rescues crashes and
+  creates a monster: a keyholder who was only <i>asleep</i>. Watch clients acquire a lock,
+  stall, crash, and write late — and watch the enlarger's <b>token dial</b> become the only
+  thing standing between a nap and corrupted data. Time moves in ticks; nothing is random.</p>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="transport">
+      <button id="bPlay">▶ Play</button>
+      <button id="bStep">Step ▸</button>
+      <button id="bBack">◂ Back</button>
+      <button id="bReset">Reset</button>
+      <label style="font-size:12.5px;color:var(--muted)">speed
+        <input id="speed" type="range" min="120" max="1100" value="620" style="width:80px;vertical-align:middle"></label>
+      <span class="tickbox" id="tickbox">tick 0</span>
+    </div>
+    <div id="clientsBox"></div>
+    <div class="stations">
+      <div class="station" id="lockBox"></div>
+      <div class="station" id="resBox"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">writes in flight (the wire)</div>
+      <div class="wirebox" id="wireBox"></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div>
+      <h3 style="font:700 12px 'Public Sans';letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 6px">What just happened (newest first)</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card"><h3>Predict, then run</h3><div id="scenBox"></div></div>
+    <div class="card"><h3>Rules of this world</h3><div class="ctl" id="ctlBox"></div></div>
+    <div class="card"><h3>Costs so far</h3><div class="mets" id="metsBox"></div></div>
+    <div class="card"><h3>Legend</h3><div class="legend" id="legendBox"></div></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================ sim core
+   Pure state + step(state). DOM-free, deterministic — the same code runs
+   headless (node / osascript) for the scenario self-tests at the bottom. */
+
+const HUES = ["#8A63D2", "#4C8AC9", "#C46A92", "#3D9DB3", "#7E8C3A", "#B07A4C"];
+const NAMES = ["Pia", "Quinn", "Ana", "Raj", "Lena", "Omar"];
+
+function fresh(cfg) {
+  cfg = cfg || {};
+  const n = cfg.n || 2;
+  const clients = [];
+  for (let i = 0; i < n; i++) {
+    const o = (cfg.clients && cfg.clients[i]) || {};
+    clients.push({
+      id: i, name: NAMES[i], hue: HUES[i],
+      startAt: o.startAt != null ? o.startAt : i,
+      work: o.work != null ? o.work : 4,
+      rounds: o.rounds || 1,
+      pauses: (o.pauses || []).map(p => ({...p})),   // {round, len}
+      state: "idle", workLeft: 0, readValue: 0, tok: -1,
+      pausedUntil: -1, pauseAsk: 0, crashed: false,
+      done: 0, redone: 0, waited: 0,
+    });
+  }
+  return {
+    tick: 0, maxTicks: cfg.maxTicks || 200, finished: false,
+    ttl: cfg.ttl != null ? cfg.ttl : 0,             // 0 = no expiry
+    fencing: cfg.fencing || "off",                  // off | writes | all
+    watch: !!cfg.watch,
+    msgDelay: cfg.msgDelay != null ? cfg.msgDelay : 2,
+    pollEvery: 2,
+    srv: { holder: null, token: 0, expiresAt: Infinity, queue: [] },
+    res: { value: 0, maxToken: -1, accepted: 0, rejected: 0 },
+    wire: [],                                        // {at, seq, cli, newValue, tok}
+    seq: 0, msgs: 0, overlapTicks: 0, lost: 0,
+    clients, log: [],
+  };
+}
+
+function ev(st, text, kind, detail) {
+  st.log.push({ tick: st.tick, text, kind: kind || "", detail: detail || null });
+}
+const believing = c => !c.crashed && c.tok >= 0 && (c.state === "working" || c.state === "awaitAck");
+
+function srvFree(st) {
+  const s = st.srv;
+  return s.holder === null || (st.ttl > 0 && st.tick >= s.expiresAt);
+}
+function grant(st, c) {
+  const s = st.srv;
+  st.msgs++;
+  if (!srvFree(st)) return -1;
+  if (s.holder !== null)
+    ev(st, "FRONT DESK: " + st.clients[s.holder].name + "'s lease (key #" + s.token +
+       ") has been silent past its deadline — handing a SPARE key to " + c.name + ".", "warn");
+  s.holder = c.id;
+  s.token++;                                        // monotonic: every grant, one higher
+  s.expiresAt = st.ttl > 0 ? st.tick + st.ttl : Infinity;
+  return s.token;
+}
+function release(st, c) {
+  const s = st.srv;
+  st.msgs++;
+  if (s.holder === c.id && s.token === c.tok) { s.holder = null; s.expiresAt = Infinity; }
+}
+
+function startWork(st, c, tok) {
+  c.tok = tok;
+  c.state = "working";
+  c.workLeft = c.work;
+  c.readValue = st.res.value; st.msgs++;
+  if (st.fencing === "all") st.res.maxToken = Math.max(st.res.maxToken, tok); // fenced READ raises the dial
+  ev(st, c.name + " gets key #" + tok + ", reads value=" + c.readValue +
+     (st.fencing === "all" ? " (the read sets the dial to " + st.res.maxToken + ")" : "") +
+     ", starts " + c.work + " ticks of work.", "");
+  // scripted pause at the start of this round's work
+  const p = c.pauses.find(p => p.round === c.done);
+  if (p) {
+    c.pauses = c.pauses.filter(x => x !== p);
+    c.pausedUntil = st.tick + p.len;
+    ev(st, c.name + " STOPS RESPONDING for " + p.len + " ticks — a GC pause, a swap storm. " +
+       c.name + " will never know it happened.", "bad");
+  }
+}
+
+function step(st) {
+  if (st.finished) return st;
+  st.tick++;
+  // 1. deliver writes
+  st.wire.sort((a, b) => a.at - b.at || a.seq - b.seq);
+  const arriving = st.wire.filter(d => d.at <= st.tick);
+  st.wire = st.wire.filter(d => d.at > st.tick);
+  for (const d of arriving) {
+    const c = st.clients[d.cli];
+    const stale = st.fencing !== "off" && d.tok < st.res.maxToken;
+    st.msgs++;
+    if (stale) {
+      st.res.rejected++;
+      ev(st, "ENLARGER: REFUSED " + c.name + "'s write value=" + d.newValue +
+         " — key #" + d.tok + " is lower than the dial (" + st.res.maxToken + "). A stale holder, fenced off.", "good",
+         "write(v=" + d.newValue + ", token=" + d.tok + ") -> REJECT (dial=" + st.res.maxToken + ")");
+      if (!c.crashed && c.state === "awaitAck") {
+        c.redone++; release(st, c);
+        c.state = "idle"; c.tok = -1;
+        ev(st, c.name + " learns the write bounced: its lease was stale. Re-acquire, redo.", "warn");
+      }
+      continue;
+    }
+    if (st.fencing !== "off") st.res.maxToken = Math.max(st.res.maxToken, d.tok);
+    st.res.value = d.newValue; st.res.accepted++;
+    ev(st, "ENLARGER: accepted " + c.name + "'s write value=" + d.newValue +
+       (st.fencing !== "off" ? " (key #" + d.tok + ", dial now " + st.res.maxToken + ")" : "") + ".", "good");
+    if (!c.crashed && c.state === "awaitAck") {
+      release(st, c);
+      c.done++;
+      c.state = "idle"; c.tok = -1;
+      ev(st, c.name + " returns the key. Sections completed: " + c.done + "/" + c.rounds + ".", "");
+    }
+  }
+  // 2. clients act
+  for (const c of st.clients) {
+    if (c.crashed || c.done >= c.rounds) continue;
+    if (c.pauseAsk > 0) {
+      c.pausedUntil = Math.max(c.pausedUntil, st.tick + c.pauseAsk);
+      ev(st, c.name + " STOPS RESPONDING for " + c.pauseAsk + " ticks (you pressed the button). " +
+         (c.state === "working" || c.state === "awaitAck" ? "It believes it holds key #" + c.tok + "." : ""), "bad");
+      c.pauseAsk = 0;
+    }
+    if (st.tick < c.pausedUntil) { continue; }
+    switch (c.state) {
+      case "idle":
+        if (st.tick >= c.startAt + 1) tryAcquire(st, c);
+        break;
+      case "waiting":
+        c.waited++;
+        if (st.watch) break;                        // will be notified
+        if ((st.tick - c.startAt) % st.pollEvery === 0) tryAcquire(st, c);
+        break;
+      case "working":
+        c.workLeft--;
+        if (c.workLeft <= 0) {
+          const d = st.msgDelay;
+          st.wire.push({ at: st.tick + d, seq: st.seq++, cli: c.id, newValue: c.readValue + 1, tok: c.tok });
+          c.state = "awaitAck";
+          ev(st, c.name + " mails its write value=" + (c.readValue + 1) + " (key #" + c.tok +
+             ") — it travels " + d + " tick" + (d === 1 ? "" : "s") + ".", "",
+             "write(v=" + (c.readValue + 1) + ", token=" + c.tok + ") in flight");
+        }
+        break;
+    }
+  }
+  // 3. watch handover
+  if (st.watch && srvFree(st) && st.srv.queue.length > 0) {
+    const id = st.srv.queue.shift();
+    const c = st.clients[id];
+    if (!c.crashed && c.state === "waiting") {
+      const t = grant(st, c);
+      if (t >= 0) {
+        ev(st, "FRONT DESK notifies " + c.name + " — the key is theirs. Nobody else was woken.", "warn");
+        startWork(st, c, t);
+      }
+    }
+  }
+  // 4. metrics + end
+  let bel = 0;
+  for (const c of st.clients) if (believing(c)) bel++;
+  if (bel >= 2) st.overlapTicks++;
+  const completed = st.clients.reduce((a, c) => a + c.done, 0);
+  st.lost = completed - st.res.value;
+  const allDone = st.clients.every(c => c.crashed || c.done >= c.rounds);
+  if ((allDone && st.wire.length === 0) || st.tick >= st.maxTicks) st.finished = true;
+  return st;
+}
+
+function tryAcquire(st, c) {
+  if (st.watch && !srvFree(st)) {
+    if (!st.srv.queue.includes(c.id)) {
+      st.srv.queue.push(c.id); st.msgs++;
+      ev(st, c.name + " waits; the front desk will call when the key frees (watch, no polling).", "");
+    }
+    c.state = "waiting";
+    return;
+  }
+  const t = grant(st, c);
+  if (t >= 0) startWork(st, c, t);
+  else {
+    if (c.state !== "waiting") ev(st, c.name + " asks for the key — " +
+        st.clients[st.srv.holder].name + " has it. " + c.name + " will keep asking.", "");
+    c.state = "waiting";
+  }
+}
+
+/* ============================================================ scenarios */
+const SCENARIOS = [
+  {
+    id: "crash0", title: "1 · The key in a dead pocket",
+    q: "No spare-key rule (no TTL). Pia takes the key and her process crashes. What happens to Quinn?",
+    opts: ["An error after a while", "Nothing, forever — Quinn waits until the end of time", "The server notices the crash and frees the key"],
+    correct: 1,
+    cfg: { ttl: 0, n: 2, maxTicks: 60 },
+    inject: { atTick: 2, crash: 0 },
+    evaluate(st) { return { happened: st.clients[1].done === 0,
+      why: "Nobody can tell a dead process from a slow one; the lock server saw silence, and silence is also what patience looks like. Without an expiry, one crash is a permanent, error-free outage. This is why every real distributed lock is a lease." }; },
+  },
+  {
+    id: "crash1", title: "2 · The spare-key rule",
+    q: "Same crash, but leases now expire after 10 ticks of silence. When does Quinn finish?",
+    opts: ["Immediately — the crash is detected", "About one TTL after the crash", "Never — the crashed lease still blocks"],
+    correct: 1,
+    cfg: { ttl: 10, n: 2, maxTicks: 80 },
+    inject: { atTick: 2, crash: 0 },
+    evaluate(st) { return { happened: st.clients[1].done === 1 && st.tick <= 25,
+      why: "The lease freed itself at its deadline — no human, no reboot, finished by t" + st.tick + ". The TTL is the price tag on crash recovery. Now watch what the same rule does to someone who is merely asleep…" }; },
+  },
+  {
+    id: "pause", title: "3 · The sleeper wakes",
+    q: "TTL 10, no token dial. Pia pauses 20 ticks mid-work (a GC stall — longer than the TTL). Quinn takes the spare and finishes. Then Pia wakes. What does the data show at the end?",
+    opts: ["Both updates — Pia notices and redoes", "One update is silently GONE", "Pia's write errors out"],
+    correct: 1,
+    cfg: { ttl: 10, n: 2, fencing: "off", maxTicks: 120, clients: [{ pauses: [{ round: 0, len: 20 }] }, {}] },
+    evaluate(st) { return { happened: st.lost >= 1 && st.overlapTicks > 0,
+      why: "A paused process does not experience its pause — Pia woke and finished her write as if nothing had happened, on top of Quinn's. " + st.overlapTicks + " ticks had TWO believed keyholders, and " + st.lost + " update vanished with no error anywhere. The lock worked exactly as designed; the design judges by time, and time lied." }; },
+  },
+  {
+    id: "fence", title: "4 · The token dial",
+    q: "Same sleep, but every key is numbered and the enlarger refuses any number below the highest it has seen (on every operation). Now what happens to Pia's late write?",
+    opts: ["Refused at the enlarger — Pia redoes with a fresh key", "Still lost — the dial can't help", "Quinn is blocked instead"],
+    correct: 0,
+    cfg: { ttl: 10, n: 2, fencing: "all", maxTicks: 160, clients: [{ pauses: [{ round: 0, len: 20 }] }, {}] },
+    evaluate(st) { return { happened: st.lost === 0 && st.res.rejected >= 1,
+      why: "Quinn's spare key carried a higher number; the moment it touched the enlarger the dial rose, and Pia's late write refused itself by arithmetic — no timing assumption anywhere. " + st.res.rejected + " stale write rejected, 0 lost; the sleeper alone paid, with a redo. Note the dial did NOT prevent two believers — it made the overlap harmless." }; },
+  },
+  {
+    id: "readrace", title: "5 · The nap SHORTER than the TTL",
+    q: "TTL 30, pause only 25 — shorter than the TTL! — and the dial checks WRITES ONLY. Safe?",
+    opts: ["Safe — the lease never expired... right?", "An update is lost, with ZERO rejections logged", "The write is rejected as usual"],
+    correct: 1,
+    cfg: { ttl: 30, n: 2, fencing: "writes", maxTicks: 160, msgDelay: 3, clients: [{ pauses: [{ round: 0, len: 25 }] }, {}] },
+    evaluate(st) { return { happened: st.lost >= 1 && st.res.rejected === 0,
+      why: "The hold isn't just the pause: acquire + work + pause + the write's TRAVEL TIME crossed the 30-tick deadline while the write was in flight. Quinn READ the old value before that ghost packet landed; then both writes arrived with valid, increasing key numbers — both accepted, one update gone, zero rejections. The fix: reads must raise the dial too (switch the rule to 'every operation' and replay). This is the bug the lab found in itself." }; },
+  },
+  {
+    id: "herd", title: "6 · Six people, one key",
+    q: "Six clients want the key (12-tick holds). Compare everyone-keeps-asking (polling) with the front desk calling the next waiter (watch). What differs?",
+    opts: ["Watch finishes much sooner", "Same finish time — polling just sends far more messages", "Polling is faster (no waiting for a call)"],
+    correct: 1,
+    compare: [
+      { cfg: { ttl: 0, n: 6, maxTicks: 400, clients: [{work:12},{work:12},{work:12},{work:12},{work:12},{work:12}] }, label: "polling" },
+      { cfg: { ttl: 0, n: 6, watch: true, maxTicks: 400, clients: [{work:12},{work:12},{work:12},{work:12},{work:12},{work:12}] }, label: "watch" },
+    ],
+    evaluate(st, both) { return { happened: both[1].msgs * 2 < both[0].msgs && Math.abs(both[0].tick - both[1].tick) <= 3,
+      why: "Polling: " + both[0].msgs + " messages, finished t" + both[0].tick + "; watch: " + both[1].msgs + " messages, finished t" + both[1].tick + " — within a tick of each other. The herd's extra messages bought nothing but load on the lock service at its busiest moment, and the watch queue also hands the key over in FIFO order, which polling never promises." }; },
+  },
+];
+
+function runToEnd(cfg, inject) {
+  const st = fresh(cfg);
+  while (!st.finished) {
+    step(st);
+    if (inject && st.tick === inject.atTick && inject.crash != null && !st.clients[inject.crash].crashed) {
+      st.clients[inject.crash].crashed = true;
+      ev(st, st.clients[inject.crash].name + " CRASHES holding key #" + st.clients[inject.crash].tok + ". It will never release it.", "bad");
+    }
+  }
+  return st;
+}
+
+/* ============================================================ headless self-test */
+function selfTest() {
+  const out = [];
+  const okc = (n, c) => out.push((c ? "PASS " : "FAIL ") + n);
+  for (const sc of SCENARIOS) {
+    if (sc.compare) {
+      const both = sc.compare.map(x => runToEnd(x.cfg));
+      okc("scenario " + sc.id, sc.evaluate(both[1], both).happened);
+    } else {
+      okc("scenario " + sc.id, sc.evaluate(runToEnd(sc.cfg, sc.inject)).happened);
+    }
+  }
+  const a = JSON.stringify(runToEnd(SCENARIOS[4].cfg));
+  const b = JSON.stringify(runToEnd(SCENARIOS[4].cfg));
+  okc("deterministic", a === b);
+  // happy path stays exclusive and exact
+  const h = runToEnd({ ttl: 10, n: 3, fencing: "all", maxTicks: 300, clients: [{rounds:2},{rounds:2},{rounds:2}] });
+  okc("happy path exact (" + h.res.value + "/6)", h.res.value === 6 && h.overlapTicks === 0 && h.lost === 0);
+  return out;
+}
+if (typeof document === "undefined") {
+  const res = selfTest();
+  res.forEach(r => console.log(r));
+  if (res.some(r => r.startsWith("FAIL"))) {
+    if (typeof process !== "undefined") process.exit(1);
+    throw new Error("self-test failed");
+  }
+} else {
+
+/* ============================================================ UI */
+let userCfg = { ttl: 10, fencing: "off", watch: false, msgDelay: 2, n: 2,
+                perClient: {} };
+let state = null, history = [], playing = null, renderedLog = 0;
+let activeScenario = null;   // {sc, chosen, phase, results}
+let pendingInject = null;
+
+const $ = id => document.getElementById(id);
+const clone = s => JSON.parse(JSON.stringify(s));
+
+function buildFromUser() {
+  const clients = [];
+  for (let i = 0; i < userCfg.n; i++) clients.push(userCfg.perClient[i] || {});
+  return fresh({ ttl: userCfg.ttl, fencing: userCfg.fencing, watch: userCfg.watch,
+                 msgDelay: userCfg.msgDelay, n: userCfg.n, maxTicks: 300, clients });
+}
+function resetSim(st, inject) {
+  stopPlay();
+  state = st || buildFromUser();
+  pendingInject = inject || null;
+  history = []; renderedLog = 0;
+  render();
+}
+function doStep() {
+  if (state.finished) return;
+  history.push(clone(state));
+  step(state);
+  if (pendingInject && state.tick === pendingInject.atTick) {
+    const c = state.clients[pendingInject.crash];
+    if (!c.crashed) { c.crashed = true;
+      ev(state, c.name + " CRASHES holding key #" + c.tok + ". It will never release it.", "bad"); }
+  }
+  render();
+  if (state.finished) { stopPlay(); showFinalVerdict(); }
+}
+function doBack() {
+  if (!history.length) return;
+  stopPlay();
+  state = history.pop();
+  renderedLog = state.log.length;
+  render();
+}
+function stopPlay() { if (playing) { clearInterval(playing); playing = null; $("bPlay").textContent = "▶ Play"; } }
+function togglePlay() {
+  if (playing) { stopPlay(); return; }
+  if (state.finished) return;
+  $("bPlay").textContent = "❚❚ Pause";
+  playing = setInterval(doStep, 1220 - Number($("speed").value));
+}
+
+function keySvg(color) {
+  return '<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><circle cx="4.5" cy="4.5" r="3" fill="none" stroke="' + color + '" stroke-width="1.8"/><path d="M6.8 6.8 L12 12 M10 10 l1.8-1.8 M8.2 8.2 l1.6-1.6" stroke="' + color + '" stroke-width="1.8" fill="none"/></svg>';
+}
+
+function stateLabel(c) {
+  if (c.crashed) return ["CRASHED", "err"];
+  if (state.tick < c.pausedUntil) return ["PAUSED until t" + c.pausedUntil + " (believes it holds key #" + c.tok + ")", "err"];
+  switch (c.state) {
+    case "idle": return [c.done >= c.rounds ? c.done + "/" + c.rounds + " done ✓" : "arrives t" + (c.startAt + 1), c.done >= c.rounds ? "ok" : ""];
+    case "waiting": return ["waiting for the key", "warn"];
+    case "working": return ["working… " + c.workLeft + " left (key #" + c.tok + ")", ""];
+    case "awaitAck": return ["write in flight (key #" + c.tok + ")", ""];
+  }
+  return [c.state, ""];
+}
+
+function renderClients() {
+  $("clientsBox").innerHTML = '<div class="clients">' + state.clients.map(c => {
+    const [lab, cls] = stateLabel(c);
+    const holderNow = state.srv.holder === c.id && !srvFree(state);
+    const staleBelief = believing(c) && !holderNow;
+    return '<div class="client" style="--hue:' + c.hue + '">' +
+      '<div class="who"><span class="name">' + c.name + '</span><span class="st ' + cls + '">' + lab + '</span></div>' +
+      '<div class="belief">' + (c.tok >= 0 && believing(c)
+          ? 'believes: holds key <span class="v">#' + c.tok + '</span>, read value=<span class="v">' + c.readValue + '</span>' +
+            (staleBelief ? '<span class="stale-flag">STALE</span>' : ' <span style="color:var(--key)">' + keySvg("currentColor") + '</span>')
+          : '<span style="color:var(--muted)">holds nothing</span>') + '</div>' +
+      '<div class="belief" style="border:none;padding-top:2px;color:var(--muted)">done ' + c.done + '/' + c.rounds +
+        (c.redone ? ' · redone ' + c.redone : '') + (c.waited ? ' · waited ' + c.waited : '') + '</div>' +
+      '<div class="knobs">' +
+        '<label>work <input type="number" min="1" max="30" value="' + c.work + '" data-k="work" data-i="' + c.id + '"></label>' +
+        '<button class="mini" data-pause="' + c.id + '" ' + (c.crashed || c.done >= c.rounds ? "disabled" : "") + '>pause 20</button>' +
+        '<button class="mini" data-crash="' + c.id + '" ' + (c.crashed ? "disabled" : "") + '>crash</button>' +
+      '</div></div>';
+  }).join("") + '</div>';
+  document.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("change", () => {
+    const i = Number(inp.dataset.i);
+    userCfg.perClient[i] = userCfg.perClient[i] || {};
+    userCfg.perClient[i][inp.dataset.k] = Number(inp.value);
+    activeScenario = null; resetSim();
+  }));
+  document.querySelectorAll("button[data-pause]").forEach(b => b.addEventListener("click", () => {
+    state.clients[Number(b.dataset.pause)].pauseAsk = 20; doStep();
+  }));
+  document.querySelectorAll("button[data-crash]").forEach(b => b.addEventListener("click", () => {
+    const c = state.clients[Number(b.dataset.crash)];
+    c.crashed = true;
+    ev(state, c.name + " CRASHES" + (c.tok >= 0 ? " holding key #" + c.tok : "") + ".", "bad");
+    doStep();
+  }));
+}
+
+function renderStations() {
+  const s = state.srv;
+  const holder = s.holder != null ? state.clients[s.holder] : null;
+  const leaseLeft = holder && state.ttl > 0 ? Math.max(0, s.expiresAt - state.tick) : null;
+  const expired = holder && state.ttl > 0 && state.tick >= s.expiresAt;
+  $("lockBox").innerHTML =
+    '<div class="t">' + keySvg("var(--key)") + ' front desk (lock service)' +
+      '<span class="dial" title="last key number handed out">key counter: ' + s.token + '</span></div>' +
+    '<div class="row">' +
+      '<div class="kv"><div class="k">key is with</div><div class="val">' +
+        (holder ? '<span style="color:' + holder.hue + ';font-weight:700">' + holder.name + '</span> (#' + s.token + ')' +
+          (expired ? ' <span style="color:var(--bad);font-weight:700">EXPIRED</span>' : '') : 'on the hook') + '</div></div>' +
+      '<div class="kv"><div class="k">spare-key rule</div><div class="val">' +
+        (state.ttl > 0 ? 'after ' + state.ttl + ' ticks' : 'NONE — waits forever') + '</div></div>' +
+      (s.queue.length ? '<div class="kv"><div class="k">will be called</div><div class="val">' +
+        s.queue.map(q => '<span class="qchip">' + state.clients[q].name + '</span>').join(" ") + '</div></div>' : '') +
+    '</div>' +
+    (holder && state.ttl > 0 ? '<div class="leasebar" title="lease time remaining"><div style="width:' +
+      Math.round(100 * (leaseLeft / state.ttl)) + '%"></div></div>' : '');
+  const r = state.res;
+  $("resBox").innerHTML =
+    '<div class="t">the enlarger (the protected resource)' +
+      (state.fencing !== "off" ? '<span class="dial" title="highest key number seen — lower numbers are refused">dial: ' +
+        (r.maxToken < 0 ? "–" : r.maxToken) + '</span>' : '<span class="dial" style="opacity:.55">no dial (fencing off)</span>') + '</div>' +
+    '<div class="row">' +
+      '<div class="kv"><div class="k">value</div><div class="val">' + r.value + '</div></div>' +
+      '<div class="kv"><div class="k">writes accepted</div><div class="val">' + r.accepted + '</div></div>' +
+      '<div class="kv"><div class="k">refused</div><div class="val" style="' + (r.rejected ? "color:var(--ok);font-weight:700" : "") + '">' + r.rejected + '</div></div>' +
+      '<div class="kv"><div class="k">updates lost</div><div class="val" style="' + (state.lost ? "color:var(--bad);font-weight:700" : "") + '">' + state.lost + '</div></div>' +
+    '</div>';
+  $("wireBox").innerHTML = state.wire.length
+    ? state.wire.map(d => '<span class="pkt">' + state.clients[d.cli].name + ': v=' + d.newValue +
+        ' key#' + d.tok + ' → t' + d.at + '</span>').join("")
+    : '<span>empty — messages appear here while travelling, even if their sender has crashed or slept</span>';
+}
+
+function renderLog() {
+  const items = state.log.slice(-80);
+  $("log").innerHTML = items.map((e, i) => {
+    const isNew = state.log.length - (items.length - i) >= renderedLog;
+    return '<div class="ev ' + e.kind + (isNew ? ' new' : '') + '"><span class="tk">t' +
+      String(e.tick).padStart(3, "0") + '</span>' + e.text +
+      (e.detail ? '<span class="det">' + e.detail + '</span>' : '') + '</div>';
+  }).reverse().join("");
+  renderedLog = state.log.length;
+}
+
+function renderMets() {
+  const completed = state.clients.reduce((a, c) => a + c.done, 0);
+  $("metsBox").innerHTML = [
+    ["sections completed", completed],
+    ["updates silently lost", state.lost, state.lost > 0],
+    ["stale writes refused", state.res.rejected],
+    ["ticks with 2+ believers", state.overlapTicks, state.overlapTicks > 0],
+    ["work redone", state.clients.reduce((a, c) => a + c.redone, 0)],
+    ["messages sent", state.msgs],
+  ].map(([k, v, bad]) => '<div class="m"><b style="' + (bad ? "color:var(--bad)" : "") + '">' + v + '</b><span>' + k + '</span></div>').join("");
+}
+
+function showFinalVerdict() {
+  const v = $("verdict");
+  if (activeScenario) {
+    const { sc, chosen } = activeScenario;
+    let res;
+    if (sc.compare) {
+      if (activeScenario.phase === 0) {   // first of two runs done: start second
+        activeScenario.results = [clone(state)];
+        activeScenario.phase = 1;
+        v.className = "verdict"; v.innerHTML = "First run (<b>" + sc.compare[0].label + "</b>) done: " + state.msgs +
+          " messages, finished t" + state.tick + ". Now the same board with <b>" + sc.compare[1].label + "</b>…";
+        setTimeout(() => { resetSim(fresh(sc.compare[1].cfg)); togglePlay(); }, 900);
+        return;
+      }
+      res = sc.evaluate(state, [activeScenario.results[0], state]);
+    } else {
+      res = sc.evaluate(state);
+    }
+    const right = chosen === sc.correct;
+    v.className = "verdict " + (right ? "good" : "badv");
+    v.innerHTML = "<b>" + (right ? "Your prediction held." : "Not what you predicted.") + "</b> " +
+      "You chose “" + sc.opts[chosen] + "”; what happened: <b>" + sc.opts[sc.correct] + "</b>. " + res.why;
+    activeScenario = null;
+    return;
+  }
+  const completed = state.clients.reduce((a, c) => a + c.done, 0);
+  v.className = "verdict " + (state.lost > 0 ? "badv" : "good");
+  v.innerHTML = "Run finished at t" + state.tick + ": <b>" + completed + " sections completed</b>, " +
+    (state.lost > 0 ? "<b>" + state.lost + " update(s) silently lost</b>, " : "nothing lost, ") +
+    state.res.rejected + " stale write(s) refused, " + state.overlapTicks +
+    " tick(s) with two believed keyholders." +
+    (state.lost > 0 ? " <b>Silent loss is the outcome nothing can repair — nobody knows it happened.</b> Try the token dial (rules → fencing: every operation)." : "");
+}
+
+function render() {
+  $("tickbox").textContent = "tick " + state.tick + (state.finished ? " · finished" : "");
+  renderClients(); renderStations(); renderLog(); renderMets();
+  if (!state.finished) {
+    const v = $("verdict"); v.className = "verdict";
+    v.textContent = state.tick === 0
+      ? "Pick a scenario on the right and commit to a prediction — or press Play and improvise with the pause/crash buttons."
+      : (activeScenario ? "Scenario running — your prediction is locked in…" : "Running… the log narrates every step. ◂ Back replays any moment.");
+  }
+  $("bBack").disabled = history.length === 0;
+}
+
+function renderScenarios() {
+  $("scenBox").innerHTML = SCENARIOS.map(sc =>
+    '<div class="scen"><div class="t">' + sc.title + '</div><div class="q">' + sc.q + '</div>' +
+    sc.opts.map((o, i) => '<button class="opt" data-sc="' + sc.id + '" data-i="' + i + '">' + o + '</button>').join("") +
+    '</div>').join("") +
+    '<div style="font-size:12px;color:var(--muted);margin-top:5px">Being wrong here is the point — commit first.</div>';
+  document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+    const sc = SCENARIOS.find(s => s.id === b.dataset.sc);
+    activeScenario = { sc, chosen: Number(b.dataset.i), phase: 0, results: [] };
+    resetSim(fresh(sc.compare ? sc.compare[0].cfg : sc.cfg), sc.inject || null);
+    togglePlay();
+  }));
+}
+
+function renderControls() {
+  const c = $("ctlBox");
+  c.innerHTML =
+    '<label>Spare-key rule (TTL, ticks) <input id="cTtl" type="number" min="0" max="60" value="' + userCfg.ttl + '"></label>' +
+    '<div class="hint">0 = no expiry: crashes block forever</div>' +
+    '<label>Token dial (fencing) <select id="cFence">' +
+      '<option value="off">off — trust the lock</option>' +
+      '<option value="writes">checks writes only</option>' +
+      '<option value="all">checks every operation</option></select></label>' +
+    '<label>Waiters <select id="cWatch"><option value="poll">keep asking (poll)</option>' +
+      '<option value="watch">front desk calls next (watch)</option></select></label>' +
+    '<label>Write travel time <input id="cDelay" type="number" min="0" max="10" value="' + userCfg.msgDelay + '"></label>' +
+    '<label>People <input id="cN" type="number" min="2" max="6" value="' + userCfg.n + '"></label>' +
+    '<div class="hint">Work time is on each person’s card; pause/crash are buttons. Any change resets the run.</div>';
+  $("cFence").value = userCfg.fencing;
+  $("cWatch").value = userCfg.watch ? "watch" : "poll";
+  $("cTtl").onchange = () => { userCfg.ttl = Number($("cTtl").value); activeScenario = null; resetSim(); };
+  $("cFence").onchange = () => { userCfg.fencing = $("cFence").value; activeScenario = null; resetSim(); };
+  $("cWatch").onchange = () => { userCfg.watch = $("cWatch").value === "watch"; activeScenario = null; resetSim(); };
+  $("cDelay").onchange = () => { userCfg.msgDelay = Number($("cDelay").value); activeScenario = null; resetSim(); };
+  $("cN").onchange = () => { userCfg.n = Math.max(2, Math.min(6, Number($("cN").value))); activeScenario = null; resetSim(); };
+}
+
+function renderLegend() {
+  $("legendBox").innerHTML =
+    '<div class="li"><span style="color:var(--key)">' + keySvg("currentColor") + '</span>&nbsp;the key = the lock; numbered on every grant</div>' +
+    '<div class="li"><span class="dial" style="font-size:11px">dial: 4</span>&nbsp;enlarger refuses key numbers below this</div>' +
+    '<div class="li"><span class="sw" style="background:var(--key)"></span>lease bar — time before the spare-key rule fires</div>' +
+    '<div class="li"><span class="stale-flag" style="margin:0">STALE</span>&nbsp;believes it holds the key; the desk disagrees</div>' +
+    '<div class="li"><span class="sw" style="background:var(--ok-soft);border-left:3px solid var(--ok)"></span>green — accepted write or a refusal doing its job</div>' +
+    '<div class="li"><span class="sw" style="background:var(--key-soft);border-left:3px solid var(--key)"></span>amber — expiry, waiting, redo</div>' +
+    '<div class="li"><span class="sw" style="background:var(--bad-soft);border-left:3px solid var(--bad)"></span>red — a pause, a crash, or data lost</div>';
+}
+
+$("bPlay").addEventListener("click", togglePlay);
+$("bStep").addEventListener("click", () => { stopPlay(); doStep(); });
+$("bBack").addEventListener("click", doBack);
+$("bReset").addEventListener("click", () => { activeScenario = null; resetSim(); });
+$("speed").addEventListener("input", () => { if (playing) { stopPlay(); togglePlay(); } });
+
+renderScenarios(); renderControls(); renderLegend();
+resetSim();
+}
+</script>

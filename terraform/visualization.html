@@ -1,0 +1,1167 @@
+<title>Three States, One Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Spline+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#EDF0EC; --surface:#FFFFFF; --surface-2:#F5F7F3; --surface-3:#E4E9E2;
+  --ink:#191F1B; --ink-2:#4C584F; --ink-3:#7B877F;
+  --line:#D5DBD4; --line-strong:#B4BEB5;
+  --accent:#5A3E8E; --accent-ink:#5A3E8E; --accent-soft:#ECE6F6;
+  --add:#2A6B46; --add-soft:#DEF0E5; --add-line:#89BE9F;
+  --chg:#87600A; --chg-soft:#F6EAD3; --chg-line:#D5B269;
+  --del:#A0332A; --del-soft:#F8E0DD; --del-line:#DB968D;
+  --unm:#67736C; --unm-soft:#E7EBE7; --unm-line:#B6C0B8;
+  --shadow:0 1px 2px rgba(25,31,27,.05),0 6px 18px rgba(25,31,27,.06);
+  --r:9px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111513; --surface:#181D1A; --surface-2:#1E2522; --surface-3:#26302B;
+    --ink:#E8EDE9; --ink-2:#A9B5AD; --ink-3:#78847C;
+    --line:#2A332E; --line-strong:#3C4741;
+    --accent:#B49BE0; --accent-ink:#C3AEE9; --accent-soft:#221A33;
+    --add:#63C08D; --add-soft:#112418; --add-line:#2E6244;
+    --chg:#DCA94D; --chg-soft:#271F10; --chg-line:#6B5322;
+    --del:#E37B69; --del-soft:#2A1512; --del-line:#743630;
+    --unm:#8C978F; --unm-soft:#1D2320; --unm-line:#3A443E;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111513; --surface:#181D1A; --surface-2:#1E2522; --surface-3:#26302B;
+  --ink:#E8EDE9; --ink-2:#A9B5AD; --ink-3:#78847C;
+  --line:#2A332E; --line-strong:#3C4741;
+  --accent:#B49BE0; --accent-ink:#C3AEE9; --accent-soft:#221A33;
+  --add:#63C08D; --add-soft:#112418; --add-line:#2E6244;
+  --chg:#DCA94D; --chg-soft:#271F10; --chg-line:#6B5322;
+  --del:#E37B69; --del-soft:#2A1512; --del-line:#743630;
+  --unm:#8C978F; --unm-soft:#1D2320; --unm-line:#3A443E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Spline Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1600px;margin:0 auto;padding:18px 20px 56px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 22px;padding-bottom:13px;border-bottom:2px solid var(--line-strong)}
+.eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.brand h1{font-size:19px;font-weight:700;margin:1px 0 0;letter-spacing:-.012em}
+.brand p{margin:2px 0 0;color:var(--ink-3);font-size:12.5px}
+.themeBtn{margin-left:auto;background:var(--surface);border:1px solid var(--line-strong);color:var(--ink-2);
+  border-radius:99px;padding:5px 13px;font:inherit;font-size:12px;cursor:pointer}
+.themeBtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+.verdict{margin-top:15px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--add);
+  border-radius:var(--r);padding:13px 17px;box-shadow:var(--shadow)}
+.verdict.k-chg{border-left-color:var(--chg)} .verdict.k-del{border-left-color:var(--del)}
+.verdict.k-acc{border-left-color:var(--accent)}
+.vHead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.vTag{font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.verdict.k-add .vTag{color:var(--add)} .verdict.k-chg .vTag{color:var(--chg)}
+.verdict.k-del .vTag{color:var(--del)} .verdict.k-acc .vTag{color:var(--accent-ink)}
+.vText{margin-top:5px;font-size:14.5px;max-width:88ch}
+.vSub{margin-top:3px;font-size:12.5px;color:var(--ink-3)}
+
+.cols{display:grid;grid-template-columns:238px minmax(0,1fr) 304px;gap:15px;margin-top:15px;align-items:start}
+@media (max-width:1280px){.cols{grid-template-columns:238px minmax(0,1fr)}}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.panel + .panel{margin-top:13px}
+.panel h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+  margin:0;padding:11px 14px;border-bottom:1px solid var(--line)}
+.panel .body{padding:13px 14px}
+
+.grp{margin-bottom:14px}
+.grp:last-child{margin-bottom:0}
+.gl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;display:block;margin-bottom:7px}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+button.b{font:inherit;font-size:12.5px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line-strong);
+  border-radius:6px;padding:6px 10px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+button.b:hover:not(:disabled){border-color:var(--accent);color:var(--accent-ink)}
+button.b:disabled{opacity:.4;cursor:not-allowed}
+button.b.on{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.b.on{color:#111513}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.b.on{color:#111513}}
+button.b.wide{width:100%;text-align:left}
+button.b.warn{border-color:var(--chg-line);color:var(--chg)}
+button.b.bad{border-color:var(--del-line);color:var(--del)}
+button.b.bad:hover:not(:disabled){background:var(--del-soft);border-color:var(--del)}
+button.b.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] button.b.go{color:#111513}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.b.go{color:#111513}}
+button.b:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.45}
+
+/* ---- the four-column comparison ---- */
+.triWrap{overflow-x:auto}
+.tri{min-width:640px;display:grid;grid-template-columns:minmax(180px,1.15fr) 1fr 1fr 1fr;
+  border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.th{background:var(--surface-3);padding:8px 11px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:600;color:var(--ink-2);border-bottom:1px solid var(--line)}
+.th .sub{display:block;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-3);font-size:11px;margin-top:1px}
+.cell{padding:7px 11px;border-bottom:1px solid var(--line);font-size:12px;background:var(--surface);
+  font-family:"JetBrains Mono",monospace;overflow-wrap:anywhere}
+.cell.addr{font-weight:500;cursor:pointer;background:var(--surface-2)}
+.cell.addr:hover{color:var(--accent-ink)}
+.cell.none{color:var(--ink-3);font-style:normal}
+.rowsel .cell{outline:2px solid var(--accent);outline-offset:-2px}
+.st-agree .cell.addr{border-left:3px solid var(--add-line)}
+.st-pending .cell.addr{border-left:3px solid var(--chg-line);background:var(--chg-soft)}
+.st-drift .cell.addr{border-left:3px solid var(--del-line);background:var(--del-soft)}
+.st-gone .cell.addr{border-left:3px solid var(--del-line);background:var(--del-soft)}
+.st-create .cell.addr{border-left:3px solid var(--add-line);background:var(--add-soft)}
+.st-destroy .cell.addr{border-left:3px solid var(--del-line);background:var(--del-soft)}
+.st-unmanaged .cell.addr{border-left:3px solid var(--unm-line);background:var(--unm-soft);color:var(--ink-3)}
+.badge{display:inline-block;font-family:"Spline Sans",sans-serif;font-size:9.5px;letter-spacing:.07em;
+  text-transform:uppercase;font-weight:600;padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.bg-agree{background:var(--add-soft);color:var(--add)}
+.bg-pending{background:var(--chg-soft);color:var(--chg)}
+.bg-drift{background:var(--del-soft);color:var(--del)}
+.bg-unmanaged{background:var(--unm-soft);color:var(--unm)}
+.flash{animation:fl 1s ease-out}
+@keyframes fl{0%{background:var(--accent-soft)}100%{background:transparent}}
+@media (prefers-reduced-motion: reduce){.flash{animation:none}}
+
+/* ---- plan output ---- */
+.term{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.65;overflow-x:auto;white-space:pre;margin-top:12px}
+.term .a-add{color:var(--add)} .term .a-chg{color:var(--chg)} .term .a-del{color:var(--del)}
+.term .a-rep{color:var(--del);font-weight:700}
+.term .dim{color:var(--ink-3)}
+.term .warnline{color:var(--del);font-weight:700}
+.term .sum{color:var(--ink);font-weight:700}
+.applyRow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:11px}
+.stepPill{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-3)}
+
+/* ---- inspector / log ---- */
+.insp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px}
+.insp dt{color:var(--ink-3);font-size:11.5px}
+.insp dd{margin:0;font-family:"JetBrains Mono",monospace;font-size:11.5px;overflow-wrap:anywhere}
+.insp .why{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2);
+  font-family:"Newsreader",Georgia,serif;line-height:1.55}
+.empty{color:var(--ink-3);font-size:12.5px;font-style:italic}
+.log{max-height:300px;overflow-y:auto}
+.ev{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.ev:last-child{border-bottom:none}
+.ev .em{color:var(--ink)}
+.ev .en{margin-top:2px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.ev.k-add{border-left:3px solid var(--add);padding-left:11px}
+.ev.k-chg{border-left:3px solid var(--chg);padding-left:11px}
+.ev.k-del{border-left:3px solid var(--del);padding-left:11px}
+.ev.k-acc{border-left:3px solid var(--accent);padding-left:11px}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 15px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--ink-2)}
+.lg{display:flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:2px;border:1px solid}
+.sw.a{background:var(--add-soft);border-color:var(--add-line)}
+.sw.p{background:var(--chg-soft);border-color:var(--chg-line)}
+.sw.d{background:var(--del-soft);border-color:var(--del-line)}
+.sw.u{background:var(--unm-soft);border-color:var(--unm-line)}
+
+/* ---- scenarios ---- */
+.scen{padding:13px 14px;border-bottom:1px solid var(--line)}
+.scen:last-child{border-bottom:none}
+.scenTitle{font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:99px;
+  background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--line)}
+.scenQ{font-family:"Newsreader",Georgia,serif;font-size:14.5px;margin:8px 0 9px;line-height:1.5}
+.opts{display:flex;flex-direction:column;gap:5px}
+.opt{text-align:left;font:inherit;font-size:12.5px;background:var(--surface-2);border:1px solid var(--line-strong);
+  color:var(--ink-2);border-radius:6px;padding:7px 10px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent-ink)}
+.opt.right{border-color:var(--add);background:var(--add-soft);color:var(--add)}
+.opt.wrong{border-color:var(--del);background:var(--del-soft);color:var(--del)}
+.reveal{margin-top:10px;padding:10px 12px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);
+  font-size:12.5px;line-height:1.6}
+.reveal b{color:var(--ink)} .reveal code{font-family:"JetBrains Mono",monospace;font-size:11.5px}
+footer.foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12px;max-width:84ch}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">Marigold Pay &middot; infrastructure reconciler &middot; simulated</div>
+    <h1>Three states, one plan</h1>
+    <p>What you want, what Terraform remembers, and what is actually out there. Make them disagree.</p>
+  </div>
+  <button class="themeBtn" id="themeBtn" type="button">Switch theme</button>
+</header>
+
+<div class="verdict k-add" id="verdict">
+  <div class="vHead"><span class="vTag mono" id="vTag">No changes</span></div>
+  <div class="vText" id="vText">Everything agrees. Your configuration, Terraform's record and the cloud all say the same thing.</div>
+  <div class="vSub" id="vSub">Press <b>Plan</b> to see it computed, or change something on the left and watch the columns disagree.</div>
+</div>
+
+<div class="cols">
+
+  <!-- ============ LEFT: CONTROLS ============ -->
+  <div>
+    <section class="panel">
+      <h2>Edit the config (what you want)</h2>
+      <div class="body">
+        <div class="grp">
+          <span class="gl">Load balancer</span>
+          <div class="seg">
+            <button class="b" id="cfgTimeout" type="button">Set idle_timeout &rarr; 90</button>
+          </div>
+          <div class="hint">A normal, updatable attribute. The safe kind of change.</div>
+        </div>
+        <div class="grp">
+          <span class="gl">Database</span>
+          <div class="seg">
+            <button class="b" id="cfgClass" type="button">Bigger instance class</button>
+            <button class="b bad" id="cfgAz" type="button">Move to another zone</button>
+          </div>
+          <div class="hint" id="pdHint"></div>
+          <div class="seg" style="margin-top:6px">
+            <button class="b" id="pdBtn" type="button">prevent_destroy: off</button>
+          </div>
+        </div>
+        <div class="grp">
+          <span class="gl">Remove a resource</span>
+          <div class="seg">
+            <button class="b bad" id="cfgDropBucket" type="button">Delete the logs bucket block</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>The subnets &mdash; identity</h2>
+      <div class="body">
+        <div class="grp">
+          <span class="gl">How instances are addressed</span>
+          <div class="seg">
+            <button class="b" data-idm="count" type="button">count</button>
+            <button class="b" data-idm="for_each" type="button">for_each</button>
+          </div>
+          <div class="hint" id="idmHint"></div>
+        </div>
+        <div class="grp">
+          <span class="gl">Change the list</span>
+          <div class="seg">
+            <button class="b bad" id="rmMiddle" type="button">Remove the 2nd subnet</button>
+            <button class="b warn" id="swapMid" type="button">Swap 2nd and 3rd</button>
+          </div>
+          <div class="hint">Both change the list without changing what the other four subnets are.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Somebody else acts</h2>
+      <div class="body">
+        <div class="grp">
+          <span class="gl">In the AWS console</span>
+          <div class="seg">
+            <button class="b warn" id="conEdit" type="button">Widen a security rule (the 2am fix)</button>
+          </div>
+          <div class="seg" style="margin-top:5px">
+            <button class="b bad" id="conDelete" type="button">Delete the load balancer</button>
+            <button class="b warn" id="conCreate" type="button">Create something by hand</button>
+          </div>
+        </div>
+        <div class="grp">
+          <span class="gl">Another engineer</span>
+          <div class="seg">
+            <button class="b" id="lockBtn" type="button">State lock: on</button>
+          </div>
+          <div class="seg" style="margin-top:5px">
+            <button class="b bad wide" id="otherApply" type="button">Ravi applies at the same time</button>
+          </div>
+          <div class="hint" id="lockHint"></div>
+        </div>
+        <div class="grp">
+          <span class="gl">The record itself</span>
+          <div class="seg">
+            <button class="b bad wide" id="delState" type="button">Delete the state file</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Run it</h2>
+      <div class="body">
+        <div class="seg">
+          <button class="b go" id="planBtn" type="button">Plan</button>
+          <button class="b go" id="applyBtn" type="button">Apply</button>
+        </div>
+        <div class="grp" style="margin-top:11px">
+          <span class="gl">Make the apply fail</span>
+          <div class="seg" id="failSeg"></div>
+          <div class="hint">Stops mid-walk, the way a real provider error does. There is no rollback.</div>
+        </div>
+        <div class="seg" style="margin-top:11px">
+          <button class="b" id="backBtn" type="button">&#9664; Undo step</button>
+          <button class="b" id="resetBtn" type="button">Reset</button>
+        </div>
+        <div class="hint" id="serialHint"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ CENTRE: THE THREE STATES ============ -->
+  <div>
+    <section class="panel">
+      <h2>The three states</h2>
+      <div class="body">
+        <div class="triWrap">
+          <div class="tri" id="tri"></div>
+        </div>
+        <div class="legend">
+          <span class="lg"><i class="sw a"></i> all three agree</span>
+          <span class="lg"><i class="sw p"></i> you changed the config</span>
+          <span class="lg"><i class="sw d"></i> reality moved &mdash; drift, or gone</span>
+          <span class="lg"><i class="sw u"></i> in the cloud, not in the record &mdash; Terraform ignores it</span>
+        </div>
+        <div class="hint" style="margin-top:8px">Click any address to see its three values side by side and why they differ.</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Plan output</h2>
+      <div class="body">
+        <div class="term" id="planOut">Run <b>Plan</b> to compute the difference.</div>
+        <div class="applyRow" id="applyRow"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ RIGHT: INSPECTOR + LOG ============ -->
+  <div>
+    <section class="panel">
+      <h2>Inspector</h2>
+      <div class="body insp" id="insp"><div class="empty">Click an address in the table.</div></div>
+    </section>
+    <section class="panel">
+      <h2>What just happened</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+</div>
+
+<section class="panel" style="margin-top:15px">
+  <h2>Guided scenarios &mdash; predict, then run</h2>
+  <div class="body" style="padding:0" id="scens"></div>
+</section>
+
+<footer class="foot">
+  A teaching simulation, not Terraform. Real plans have more attributes, providers have far richer schemas, and
+  the apply walks a real dependency graph in parallel rather than one step at a time. What is faithful is the part that matters:
+  the three-way comparison, the fact that the record is keyed by address, and what each of those implies when they disagree.
+  Read <span class="mono">README.md</span> alongside it &mdash; every control maps to a numbered section there.
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   SCHEMA - which attributes a provider can change in place.
+   `imm: true` means changing it forces destroy-and-create.
+   ========================================================= */
+var SCHEMA = {
+  aws_vpc:            { attrs:{ cidr_block:{imm:true} } },
+  aws_subnet:         { attrs:{ cidr_block:{imm:true} } },
+  aws_security_group: { attrs:{ ingress_cidr:{imm:false} } },
+  aws_lb:             { attrs:{ idle_timeout:{imm:false} } },
+  aws_db_instance:    { attrs:{ instance_class:{imm:false}, availability_zone:{imm:true} } },
+  aws_s3_bucket:      { attrs:{ versioning:{imm:false} } }
+};
+
+var S = null, HIST = [], selected = null, prevRows = {}, cloudSeq = 1;
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function hex(n){ return ("0000000" + n.toString(16)).slice(-8); }
+function newCloudId(prefix){ return prefix + "-0" + hex(cloudSeq++).slice(-7); }
+
+/* =========================================================
+   CONFIG - the desired state, built from an editable source
+   ========================================================= */
+function freshSource(){
+  return {
+    idm: "count",
+    subnets: [
+      { key:"app_a", cidr:"10.0.1.0/24" },
+      { key:"app_b", cidr:"10.0.2.0/24" },
+      { key:"app_c", cidr:"10.0.3.0/24" },
+      { key:"app_d", cidr:"10.0.4.0/24" },
+      { key:"app_e", cidr:"10.0.5.0/24" }
+    ],
+    vpcCidr:"10.0.0.0/16",
+    sgCidr:"10.0.0.0/16",
+    lbTimeout:60,
+    dbClass:"db.t3.medium",
+    dbAz:"ap-south-1a",
+    dbPrevent:false,
+    bucket:true
+  };
+}
+
+function subnetAddr(src, i){
+  return src.idm === "count"
+    ? 'aws_subnet.private[' + i + ']'
+    : 'aws_subnet.private["' + src.subnets[i].key + '"]';
+}
+
+/* Returns an ordered list - the order IS the dependency order the apply walks. */
+function buildConfig(src){
+  var out = [];
+  out.push({ addr:"aws_vpc.main", type:"aws_vpc", attrs:{ cidr_block: src.vpcCidr } });
+  for (var i=0;i<src.subnets.length;i++){
+    out.push({ addr: subnetAddr(src, i), type:"aws_subnet", attrs:{ cidr_block: src.subnets[i].cidr } });
+  }
+  out.push({ addr:"aws_security_group.app", type:"aws_security_group", attrs:{ ingress_cidr: src.sgCidr } });
+  out.push({ addr:"aws_lb.app", type:"aws_lb", attrs:{ idle_timeout: src.lbTimeout } });
+  out.push({ addr:"aws_db_instance.main", type:"aws_db_instance",
+             attrs:{ instance_class: src.dbClass, availability_zone: src.dbAz },
+             prevent_destroy: src.dbPrevent });
+  if (src.bucket) out.push({ addr:"aws_s3_bucket.logs", type:"aws_s3_bucket", attrs:{ versioning:"enabled" } });
+  return out;
+}
+function configMap(src){
+  var m = {}; buildConfig(src).forEach(function(c){ m[c.addr] = c; }); return m;
+}
+
+/* =========================================================
+   INITIAL STATE - config, record and cloud all in agreement
+   ========================================================= */
+function freshState(){
+  cloudSeq = 1;
+  var src = freshSource();
+  var st = {
+    src: src,
+    record: {},          /* addr -> { type, cloudId, attrs } */
+    cloud: {},           /* cloudId -> { type, attrs } */
+    serial: 1,
+    lock: true,
+    failAt: 0,           /* 1-based step to fail at; 0 = never */
+    applying: null,      /* { actions, cursor } */
+    plan: null,
+    log: []
+  };
+  buildConfig(src).forEach(function(c){
+    var pre = c.type.replace("aws_","").replace("_instance","").slice(0,6);
+    var cid = newCloudId(pre);
+    st.cloud[cid] = { type:c.type, attrs: clone(c.attrs) };
+    st.record[c.addr] = { type:c.type, cloudId:cid, attrs: clone(c.attrs) };
+  });
+  logEvent(st, "Starting from a converged system.",
+    Object.keys(st.record).length + " resources; config, state file and cloud all agree.", "add");
+  return st;
+}
+
+function logEvent(st, msg, note, kind){
+  st.log.unshift({ msg:msg, note:note||"", kind:kind||"" });
+  if (st.log.length > 60) st.log.pop();
+}
+
+/* =========================================================
+   THE RECONCILER
+   ========================================================= */
+function attrsEqual(a, b){
+  var ka = Object.keys(a), kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (var i=0;i<ka.length;i++){ if (String(a[ka[i]]) !== String(b[ka[i]])) return false; }
+  return true;
+}
+
+/* Step 1 of a plan: read the cloud and update the record. Returns notes. */
+function refresh(st){
+  var notes = [];
+  Object.keys(st.record).forEach(function(addr){
+    var r = st.record[addr], obj = st.cloud[r.cloudId];
+    if (!obj){
+      notes.push({ addr:addr, kind:"gone", text:"has been deleted outside Terraform" });
+      delete st.record[addr];
+      return;
+    }
+    if (!attrsEqual(r.attrs, obj.attrs)){
+      var before = clone(r.attrs);
+      r.attrs = clone(obj.attrs);
+      notes.push({ addr:addr, kind:"drift", text:"changed outside Terraform", from:before, to:clone(obj.attrs) });
+    }
+  });
+  return notes;
+}
+
+/* The three-way diff. Pure: pass a cloned state to preview without mutating. */
+function computePlan(st){
+  var notes = refresh(st);
+  var cfgList = buildConfig(st.src), cfg = configMap(st.src);
+  var actions = [], errors = [];
+
+  cfgList.forEach(function(c){
+    var r = st.record[c.addr];
+    if (!r){ actions.push({ addr:c.addr, type:c.type, action:"create", to:clone(c.attrs), changes:[] }); return; }
+    var changes = [], forces = false;
+    Object.keys(c.attrs).forEach(function(k){
+      if (String(c.attrs[k]) !== String(r.attrs[k])){
+        var imm = SCHEMA[c.type] && SCHEMA[c.type].attrs[k] && SCHEMA[c.type].attrs[k].imm;
+        changes.push({ attr:k, from:r.attrs[k], to:c.attrs[k], forces: !!imm });
+        if (imm) forces = true;
+      }
+    });
+    if (!changes.length) return;
+    if (forces && c.prevent_destroy){
+      errors.push("Instance cannot be destroyed: " + c.addr + " has lifecycle.prevent_destroy set. " +
+                  "To proceed, remove it and run again.");
+      return;
+    }
+    actions.push({ addr:c.addr, type:c.type, action: forces ? "replace" : "update", changes:changes, to:clone(c.attrs) });
+  });
+
+  Object.keys(st.record).forEach(function(addr){
+    if (cfg[addr]) return;
+    actions.push({ addr:addr, type:st.record[addr].type, action:"destroy", changes:[] });
+  });
+
+  var add = 0, chg = 0, del = 0;
+  actions.forEach(function(a){
+    if (a.action === "create") add++;
+    else if (a.action === "update") chg++;
+    else if (a.action === "destroy") del++;
+    else if (a.action === "replace"){ add++; del++; }
+  });
+  return { actions:actions, notes:notes, errors:errors, add:add, change:chg, destroy:del };
+}
+
+/* Preview without touching the live state - used by the verdict bar. */
+function previewPlan(st){ return computePlan(clone(st)); }
+
+/* =========================================================
+   APPLY - one action at a time, writing the record as it goes
+   ========================================================= */
+function applyOne(st, a){
+  var cfg = configMap(st.src)[a.addr];
+  var pre = a.type.replace("aws_","").replace("_instance","").slice(0,6);
+  if (a.action === "create"){
+    var cid = newCloudId(pre);
+    st.cloud[cid] = { type:a.type, attrs: clone(a.to) };
+    st.record[a.addr] = { type:a.type, cloudId:cid, attrs: clone(a.to) };
+    logEvent(st, "Created " + a.addr + ".", cid + " — written to the state file immediately.", "add");
+  } else if (a.action === "update"){
+    var r = st.record[a.addr];
+    st.cloud[r.cloudId].attrs = clone(a.to);
+    r.attrs = clone(a.to);
+    logEvent(st, "Updated " + a.addr + " in place.", describeChanges(a.changes), "chg");
+  } else if (a.action === "replace"){
+    var r2 = st.record[a.addr], old = r2.cloudId;
+    delete st.cloud[old];
+    var nid = newCloudId(pre);
+    st.cloud[nid] = { type:a.type, attrs: clone(a.to) };
+    st.record[a.addr] = { type:a.type, cloudId:nid, attrs: clone(a.to) };
+    logEvent(st, "REPLACED " + a.addr + " — the old object was destroyed.",
+      old + " destroyed, " + nid + " created. Anything that was inside it is gone.", "del");
+  } else if (a.action === "destroy"){
+    var r3 = st.record[a.addr];
+    if (r3){ delete st.cloud[r3.cloudId]; delete st.record[a.addr]; }
+    logEvent(st, "Destroyed " + a.addr + ".", "Removed from the cloud and from the state file.", "del");
+  }
+  st.serial++;
+}
+function describeChanges(ch){
+  return ch.map(function(c){ return c.attr + ": " + c.from + " -> " + c.to; }).join(", ");
+}
+
+/* =========================================================
+   ROW STATUS - what each address looks like across the three
+   ========================================================= */
+function rows(st){
+  var cfg = configMap(st.src);
+  var out = [], seen = {}, usedCloud = {};
+  var order = buildConfig(st.src).map(function(c){ return c.addr; });
+  Object.keys(st.record).forEach(function(a){ if (order.indexOf(a) < 0) order.push(a); });
+
+  order.forEach(function(addr){
+    if (seen[addr]) return; seen[addr] = 1;
+    var c = cfg[addr] || null, r = st.record[addr] || null;
+    var obj = r ? st.cloud[r.cloudId] : null;
+    if (r) usedCloud[r.cloudId] = 1;
+    var status;
+    if (!r && c) status = "create";
+    else if (r && !c) status = "destroy";
+    else if (r && !obj) status = "gone";
+    else if (r && obj && !attrsEqual(r.attrs, obj.attrs)) status = "drift";
+    else if (c && r && !attrsEqual(c.attrs, r.attrs)) status = "pending";
+    else status = "agree";
+    out.push({
+      addr: addr, type: (c && c.type) || (r && r.type),
+      cfg: c ? fmt(c.attrs) : null,
+      rec: r ? fmt(r.attrs) + "  " + r.cloudId : null,
+      cloud: obj ? fmt(obj.attrs) : null,
+      status: status,
+      prevent: c && c.prevent_destroy
+    });
+  });
+
+  Object.keys(st.cloud).forEach(function(cid){
+    if (usedCloud[cid]) return;
+    out.push({ addr:"(not managed)  " + cid, type:st.cloud[cid].type, cfg:null, rec:null,
+               cloud: fmt(st.cloud[cid].attrs), status:"unmanaged", unmanagedId:cid });
+  });
+  return out;
+}
+function fmt(attrs){
+  return Object.keys(attrs).map(function(k){ return k + "=" + attrs[k]; }).join(" ");
+}
+
+/* =========================================================
+   VERDICT - one sentence about what the next plan would say
+   ========================================================= */
+function verdict(st){
+  var p = previewPlan(st);
+  var recCount = Object.keys(st.record).length;
+  var cfgCount = buildConfig(st.src).length;
+
+  if (p.errors.length){
+    return { kind:"del", tag:"Error: plan refused",
+      text: p.errors[0],
+      sub:"prevent_destroy stops this at plan time, in CI, before anything happens — which is exactly where you want it." };
+  }
+  if (recCount === 0 && cfgCount > 0){
+    return { kind:"del", tag:"Plan: " + p.add + " to add, 0 to change, 0 to destroy",
+      text:"The state file is empty, so Terraform believes it owns nothing and proposes to build all " + p.add +
+           " resources from scratch — alongside the ones that already exist and are still serving traffic.",
+      sub:"Your infrastructure is fine and your config is fine. What is lost is the mapping between them. Do not apply this plan." };
+  }
+  var rep = p.actions.filter(function(a){ return a.action === "replace"; });
+  if (rep.length){
+    return { kind:"del", tag:"Plan: " + p.add + " to add, " + p.change + " to change, " + p.destroy + " to destroy",
+      text: rep.length + " resource(s) will be DESTROYED AND RECREATED: " + rep.map(function(a){return a.addr;}).join(", ") +
+            ". An attribute changed that the provider cannot change in place.",
+      sub:"This is the -/+ line. Anything stored inside those objects does not survive it." };
+  }
+  var drift = p.notes.filter(function(n){ return n.kind === "drift" || n.kind === "gone"; });
+  if (drift.length){
+    return { kind:"chg", tag:"Plan: " + p.add + " to add, " + p.change + " to change, " + p.destroy + " to destroy",
+      text:"Terraform found " + drift.length + " resource(s) changed outside of it (" +
+           drift.map(function(n){return n.addr;}).join(", ") + ") and will change them back, because your configuration is the definition of correct.",
+      sub:"Nobody asked for that. It is mixed into the same plan as whatever you actually wanted to do." };
+  }
+  if (!p.actions.length){
+    return { kind:"add", tag:"No changes",
+      text:"Everything agrees. Your configuration, Terraform's record and the cloud all say the same thing.",
+      sub:"A plan still made one read call per managed resource to find that out — " + recCount + " of them." };
+  }
+  return { kind:"chg", tag:"Plan: " + p.add + " to add, " + p.change + " to change, " + p.destroy + " to destroy",
+    text:"There are " + p.actions.length + " action(s) queued. Read the plan output below before applying.",
+    sub:"Green + creates, amber ~ updates in place, red - destroys." };
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function $(id){ return document.getElementById(id); }
+function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function render(){
+  var st = S;
+
+  /* verdict */
+  var v = verdict(st);
+  $("verdict").className = "verdict k-" + v.kind;
+  $("vTag").textContent = v.tag;
+  $("vText").textContent = v.text;
+  $("vSub").textContent = v.sub;
+
+  /* the four-column table */
+  var tri = $("tri"); tri.innerHTML = "";
+  [["Address","the name you chose"],["Config","desired — what you want"],
+   ["State file","recorded — what Terraform remembers"],["Cloud","actual — what really exists"]]
+   .forEach(function(h){
+     var d = el("div","th",h[0]); d.appendChild(el("span","sub",h[1])); tri.appendChild(d);
+   });
+
+  var rs = rows(st), nowRows = {};
+  rs.forEach(function(r){
+    nowRows[r.addr] = r.status;
+    var changed = prevRows[r.addr] && prevRows[r.addr] !== r.status;
+    var wrapCls = "st-" + r.status + (selected === r.addr ? " rowsel" : "");
+    function cell(text, extraCls){
+      var c = el("div","cell " + wrapCls + (text==null?" none":"") + (extraCls||"") + (changed?" flash":""));
+      c.textContent = text == null ? "—" : text;
+      return c;
+    }
+    var a = el("div","cell addr " + wrapCls + (changed?" flash":""));
+    a.appendChild(document.createTextNode(r.addr));
+    var badge = { agree:["agree","bg-agree"], pending:["config changed","bg-pending"],
+                  drift:["drift","bg-drift"], gone:["deleted","bg-drift"],
+                  create:["to create","bg-agree"], destroy:["to destroy","bg-drift"],
+                  unmanaged:["not managed","bg-unmanaged"] }[r.status];
+    if (badge) a.appendChild(el("span","badge " + badge[1], badge[0]));
+    if (r.prevent) a.appendChild(el("span","badge bg-agree","prevent_destroy"));
+    a.onclick = function(){ selected = (selected === r.addr ? null : r.addr); render(); };
+    tri.appendChild(a);
+    tri.appendChild(cell(r.cfg));
+    tri.appendChild(cell(r.rec));
+    tri.appendChild(cell(r.cloud));
+  });
+  prevRows = nowRows;
+
+  /* plan output */
+  renderPlan();
+
+  /* controls */
+  renderControls();
+
+  /* inspector */
+  renderInspector();
+
+  /* log */
+  var lg = $("log"); lg.innerHTML = "";
+  st.log.slice(0,30).forEach(function(e){
+    var d = el("div","ev" + (e.kind ? " k-"+e.kind : ""));
+    d.appendChild(el("div","em", e.msg));
+    if (e.note) d.appendChild(el("div","en", e.note));
+    lg.appendChild(d);
+  });
+}
+
+function renderPlan(){
+  var st = S, out = $("planOut"), row = $("applyRow");
+  row.innerHTML = "";
+  if (!st.plan){
+    out.innerHTML = '<span class="dim">Run <b>Plan</b> to compute the difference between the three states.</span>';
+    return;
+  }
+  var p = st.plan, lines = [];
+  if (p.notes.length){
+    lines.push('<span class="warnline">Note: objects have changed outside of Terraform</span>');
+    p.notes.forEach(function(n){
+      lines.push('  <span class="dim">' + esc(n.addr) + " — " + esc(n.text) + "</span>");
+    });
+    lines.push("");
+  }
+  if (p.errors.length){
+    p.errors.forEach(function(e){ lines.push('<span class="warnline">Error: ' + esc(e) + "</span>"); });
+    lines.push("");
+  }
+  if (!p.actions.length && !p.errors.length){
+    lines.push('<span class="a-add">No changes. Your infrastructure matches the configuration.</span>');
+  }
+  p.actions.forEach(function(a, i){
+    var mark = { create:'  <span class="a-add">+</span>', update:'  <span class="a-chg">~</span>',
+                 destroy:'  <span class="a-del">-</span>', replace:'<span class="a-rep">-/+</span>' }[a.action];
+    var suffix = a.action === "replace" ? ' <span class="a-rep">(forces replacement)</span>' : "";
+    var done = st.applying && i < st.applying.cursor ? '  <span class="dim">[done]</span>' : "";
+    var failed = st.applying && st.applying.failedAt === i ? '  <span class="warnline">[FAILED]</span>' : "";
+    lines.push(mark + " " + esc(a.addr) + suffix + done + failed);
+    a.changes.forEach(function(c){
+      lines.push('      <span class="a-chg">~</span> ' + esc(c.attr) + ': "' + esc(c.from) + '" -> "' + esc(c.to) + '"' +
+        (c.forces ? ' <span class="a-rep"># forces replacement</span>' : ""));
+    });
+    if (a.action === "create"){
+      lines.push('      <span class="dim">+ id = (known after apply)</span>');
+    }
+  });
+  if (p.actions.length){
+    lines.push("");
+    lines.push('<span class="sum">Plan: ' + p.add + " to add, " + p.change + " to change, " + p.destroy + " to destroy.</span>");
+  }
+  out.innerHTML = lines.join("\n");
+
+  if (st.applying){
+    var A = st.applying;
+    var done = A.failedAt != null;
+    row.appendChild(mkBtn("Step ▶", "b" + (done ? "" : " go"), function(){ pushHistory(); stepApply(); render(); }, done || A.cursor >= A.actions.length));
+    row.appendChild(mkBtn("Run to end", "b", function(){
+      pushHistory();
+      while (S.applying && S.applying.failedAt == null && S.applying.cursor < S.applying.actions.length) stepApply();
+      render();
+    }, done || A.cursor >= A.actions.length));
+    var pill = el("span","stepPill",
+      done ? "halted at step " + (A.failedAt+1) + " of " + A.actions.length + " — no rollback"
+           : "step " + A.cursor + " of " + A.actions.length + " complete");
+    row.appendChild(pill);
+    if (A.cursor >= A.actions.length && !done){
+      row.appendChild(el("span","stepPill","Apply complete."));
+    }
+  }
+}
+function mkBtn(label, cls, fn, disabled){
+  var b = el("button", cls, label); b.type = "button"; b.onclick = fn; if (disabled) b.disabled = true; return b;
+}
+
+function renderInspector(){
+  var box = $("insp"); box.innerHTML = "";
+  var st = S;
+  if (!selected){ box.appendChild(el("div","empty","Click an address in the table.")); return; }
+  var r = rows(st).filter(function(x){ return x.addr === selected; })[0];
+  if (!r){ box.appendChild(el("div","empty","That address no longer exists.")); return; }
+  var dl = el("dl");
+  function add(k,v){ dl.appendChild(el("dt",null,k)); dl.appendChild(el("dd",null,v)); }
+  add("address", r.addr);
+  add("type", r.type || "—");
+  add("desired", r.cfg == null ? "not in config" : r.cfg);
+  add("recorded", r.rec == null ? "not in state file" : r.rec);
+  add("actual", r.cloud == null ? "not in cloud" : r.cloud);
+  add("status", r.status);
+  box.appendChild(dl);
+
+  var why = {
+    agree:"All three agree, so a plan proposes nothing for this resource. It still costs one read API call to find that out.",
+    pending:"You changed the configuration. The record and the cloud still hold the old value, and they agree with each other — so this is intent moving, not reality moving.",
+    drift:"The cloud no longer matches the record, and nothing in your config caused it. Somebody changed this outside Terraform. The next plan will change it back, because the configuration is the definition of correct.",
+    gone:"The record claims this exists and the cloud says it does not. The refresh drops it from the record, and the plan then proposes to create it again.",
+    create:"In the config, not in the record. Either it is new, or the record lost track of it — and those two situations produce an identical plan, which is why a lost state file is dangerous.",
+    destroy:"In the record, not in the config. You removed the block, so Terraform will destroy the object it made. This is only safe because the record contains nothing Terraform did not create.",
+    unmanaged:"This exists in the cloud and is not in the record, so Terraform ignores it completely — forever. That protection is what stops it deleting other teams' infrastructure. The cost is that it is invisible, unmanaged and still billed. Bring it in with an import block."
+  }[r.status];
+  if (r.addr.indexOf("aws_db_instance") === 0){
+    why += " (Note: this resource's attributes — including any generated password — are stored in the state file in plain text.)";
+  }
+  box.appendChild(el("div","why", why));
+}
+
+function renderControls(){
+  var st = S;
+  $("lockBtn").textContent = "State lock: " + (st.lock ? "on" : "off");
+  $("lockBtn").className = "b" + (st.lock ? " on" : " bad");
+  $("lockHint").textContent = st.lock
+    ? "A second apply will be refused with 'Error acquiring the state lock' — a fast, loud failure."
+    : "Two applies can now interleave. Nothing will error, which is the dangerous part.";
+  $("pdBtn").textContent = "prevent_destroy: " + (st.src.dbPrevent ? "on" : "off");
+  $("pdBtn").className = "b" + (st.src.dbPrevent ? " on" : "");
+  $("pdHint").textContent = st.src.dbPrevent
+    ? "Any plan that would destroy the database is now refused before it runs."
+    : "Moving the database to another zone is an immutable change — it forces a replacement.";
+  document.querySelectorAll("[data-idm]").forEach(function(b){
+    b.className = "b" + (st.src.idm === b.getAttribute("data-idm") ? " on" : "");
+  });
+  $("idmHint").textContent = st.src.idm === "count"
+    ? "count: addresses are aws_subnet.private[0..4] — identity is position in the list."
+    : 'for_each: addresses are aws_subnet.private["app_a"…] — identity is a key you chose.';
+  $("cfgTimeout").textContent = "Set idle_timeout → " + (st.src.lbTimeout === 60 ? "90" : "60");
+  $("cfgClass").textContent = st.src.dbClass === "db.t3.medium" ? "Bigger instance class" : "Back to db.t3.medium";
+  $("cfgAz").textContent = st.src.dbAz === "ap-south-1a" ? "Move to another zone" : "Move back to 1a";
+  $("cfgDropBucket").textContent = st.src.bucket ? "Delete the logs bucket block" : "Restore the logs bucket block";
+  $("backBtn").disabled = !HIST.length;
+  $("applyBtn").disabled = !st.plan || !st.plan.actions.length || (st.applying && st.applying.cursor > 0);
+
+  var fs = $("failSeg"); fs.innerHTML = "";
+  [[0,"never"],[2,"at step 2"],[3,"at step 3"],[5,"at step 5"]].forEach(function(o){
+    var b = el("button","b" + (st.failAt === o[0] ? " on" : ""), o[1]); b.type = "button";
+    b.onclick = function(){ pushHistory(); S.failAt = o[0];
+      logEvent(S, "The next apply will fail " + (o[0] ? "at step " + o[0] + "." : "nowhere."), "", ""); render(); };
+    fs.appendChild(b);
+  });
+  $("serialHint").textContent = "State serial: " + st.serial +
+    " — it increments on every write, and a saved plan built against an older serial is refused as stale.";
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+function pushHistory(){ HIST.push(clone(S)); if (HIST.length > 200) HIST.shift(); }
+
+function doPlan(){
+  pushHistory();
+  S.plan = computePlan(S);          /* note: this refreshes the record, as a real plan does */
+  S.applying = null;
+  var p = S.plan;
+  logEvent(S, "Plan computed: " + p.add + " to add, " + p.change + " to change, " + p.destroy + " to destroy.",
+    "Refreshed " + (Object.keys(S.record).length) + " resources first, then compared config against the record.",
+    p.destroy ? "del" : p.change ? "chg" : "add");
+  render();
+}
+
+function doApply(){
+  if (!S.plan || !S.plan.actions.length) return;
+  pushHistory();
+  S.applying = { actions: S.plan.actions, cursor:0, failedAt:null };
+  logEvent(S, "Apply started.", "Walking " + S.plan.actions.length + " actions in dependency order.", "acc");
+  render();
+}
+
+function stepApply(){
+  var A = S.applying;
+  if (!A || A.failedAt != null || A.cursor >= A.actions.length) return;
+  if (S.failAt && A.cursor === S.failAt - 1){
+    A.failedAt = A.cursor;
+    logEvent(S, "Apply FAILED at step " + (A.cursor+1) + ": " + A.actions[A.cursor].addr + ".",
+      "InvalidParameterValue. Everything before this point is done and recorded. Nothing after it was attempted. There is no rollback.", "del");
+    return;
+  }
+  applyOne(S, A.actions[A.cursor]);
+  A.cursor++;
+  if (A.cursor >= A.actions.length){
+    logEvent(S, "Apply complete.", A.actions.length + " resources changed. State serial is now " + S.serial + ".", "add");
+  }
+}
+
+/* ---- config edits ---- */
+/* (rekeySubnets is a function declaration below, so it is hoisted and usable here.) */
+function edit(fn, msg, note, kind){
+  pushHistory(); fn(S.src); S.plan = null; S.applying = null;
+  logEvent(S, msg, note || "", kind || "");
+  render();
+}
+$("cfgTimeout").onclick = function(){
+  edit(function(s){ s.lbTimeout = s.lbTimeout === 60 ? 90 : 60; },
+    "Config edited: aws_lb.app idle_timeout.", "An updatable attribute — this will be a ~ update in place.", "chg"); };
+$("cfgClass").onclick = function(){
+  edit(function(s){ s.dbClass = s.dbClass === "db.t3.medium" ? "db.r6g.large" : "db.t3.medium"; },
+    "Config edited: aws_db_instance.main instance_class.", "Updatable in place — the database survives.", "chg"); };
+$("cfgAz").onclick = function(){
+  edit(function(s){ s.dbAz = s.dbAz === "ap-south-1a" ? "ap-south-1b" : "ap-south-1a"; },
+    "Config edited: aws_db_instance.main availability_zone.",
+    "An availability zone cannot be changed in place. Plan and read what this produces.", "del"); };
+$("cfgDropBucket").onclick = function(){
+  edit(function(s){ s.bucket = !s.bucket; },
+    "Config edited: the logs bucket block was " + (S.src.bucket ? "removed" : "restored") + ".",
+    "Removing a block is how you delete something — the record remembers what the config used to contain.", "del"); };
+$("pdBtn").onclick = function(){
+  edit(function(s){ s.dbPrevent = !s.dbPrevent; },
+    "lifecycle.prevent_destroy turned " + (S.src.dbPrevent ? "on" : "off") + " on the database.",
+    S.src.dbPrevent ? "" : "The fence is down.", "acc"); };
+
+document.querySelectorAll("[data-idm]").forEach(function(b){
+  b.onclick = function(){
+    var mode = b.getAttribute("data-idm");
+    if (S.src.idm === mode) return;
+    pushHistory();
+    rekeySubnets(mode);          /* re-key the record too, as `moved` blocks would */
+    S.plan = null; S.applying = null;
+    logEvent(S, "Switched the subnets to " + mode + ".",
+      "The record was re-keyed at the same time, the way a set of `moved` blocks would do it — so this switch itself destroys nothing.", "acc");
+    render();
+  };
+});
+
+$("rmMiddle").onclick = function(){
+  if (S.src.subnets.length < 2) return;
+  edit(function(s){ s.subnets.splice(1,1); },
+    "Config edited: the 2nd subnet was removed from the list.",
+    "Four subnets remain, unchanged in value. Predict the plan before you run it.", "del"); };
+$("swapMid").onclick = function(){
+  if (S.src.subnets.length < 3) return;
+  edit(function(s){ var t = s.subnets[1]; s.subnets[1] = s.subnets[2]; s.subnets[2] = t; },
+    "Config edited: the 2nd and 3rd subnets swapped places in the list.",
+    "Same five subnets, same five values. Only the order changed.", "chg"); };
+
+/* ---- somebody else acts ---- */
+$("conEdit").onclick = function(){
+  pushHistory();
+  var r = S.record["aws_security_group.app"];
+  if (!r || !S.cloud[r.cloudId]){ logEvent(S,"There is no security group to edit.","","del"); render(); return; }
+  S.cloud[r.cloudId].attrs.ingress_cidr = "0.0.0.0/0";
+  S.plan = null; S.applying = null;
+  logEvent(S, "An on-call engineer widened the security group in the console at 2am.",
+    "The cloud now says 0.0.0.0/0. The config and the state file still say 10.0.0.0/16. Nobody wrote this down.", "chg");
+  render();
+};
+$("conDelete").onclick = function(){
+  pushHistory();
+  var r = S.record["aws_lb.app"];
+  if (!r){ logEvent(S,"There is no load balancer recorded.","","del"); render(); return; }
+  delete S.cloud[r.cloudId];
+  S.plan = null; S.applying = null;
+  logEvent(S, "Someone deleted the load balancer in the console.",
+    "The state file still claims it exists. The next refresh will discover that it does not.", "del");
+  render();
+};
+$("conCreate").onclick = function(){
+  pushHistory();
+  var cid = newCloudId("sg");
+  S.cloud[cid] = { type:"aws_security_group", attrs:{ ingress_cidr:"172.16.0.0/12" } };
+  S.plan = null;
+  logEvent(S, "Someone created a security group by hand: " + cid + ".",
+    "It is in the cloud and not in the state file, so Terraform will ignore it forever — and it is billed forever.", "chg");
+  render();
+};
+$("lockBtn").onclick = function(){
+  pushHistory(); S.lock = !S.lock;
+  logEvent(S, "State locking turned " + (S.lock ? "on" : "off") + ".",
+    S.lock ? "" : "Two applies can now write the record without seeing each other.", "acc");
+  render();
+};
+$("otherApply").onclick = function(){
+  pushHistory();
+  if (S.lock){
+    logEvent(S, "Ravi's apply was refused: Error acquiring the state lock.",
+      "Lock held by asha@marigold since 14:32. This is the good kind of failure — fast, loud, and nothing was damaged.", "acc");
+    S.plan = null; render(); return;
+  }
+  /* No lock: the classic lost update. Ravi adds a subnet; your stale write erases it from the record. */
+  var snapshot = clone(S.record);
+  var key = "app_f";
+  S.src.subnets.push({ key:key, cidr:"10.0.6.0/24" });
+  var addr = subnetAddr(S.src, S.src.subnets.length - 1);
+  var cid = newCloudId("subnet");
+  S.cloud[cid] = { type:"aws_subnet", attrs:{ cidr_block:"10.0.6.0/24" } };
+  S.record[addr] = { type:"aws_subnet", cloudId:cid, attrs:{ cidr_block:"10.0.6.0/24" } };
+  S.serial++;
+  /* now your apply, which read `snapshot` before Ravi wrote, saves its version */
+  S.src.lbTimeout = 90;
+  var lb = snapshot["aws_lb.app"];
+  if (lb) lb.attrs.idle_timeout = 90;
+  var lbRec = S.record["aws_lb.app"];
+  if (lbRec && S.cloud[lbRec.cloudId]) S.cloud[lbRec.cloudId].attrs.idle_timeout = 90;
+  S.record = snapshot;
+  S.serial++;
+  S.plan = null; S.applying = null;
+  logEvent(S, "Ravi and you applied at the same time, with no lock. Both said 'Apply complete'.",
+    "Ravi added " + addr + " and wrote the record. Your apply had read the record BEFORE he wrote it, so your save " +
+    "overwrote his — the subnet exists in the cloud and in the config, and is missing from the state file.", "del");
+  render();
+};
+$("delState").onclick = function(){
+  pushHistory();
+  S.record = {}; S.serial = 0; S.plan = null; S.applying = null;
+  logEvent(S, "The state file was deleted.",
+    "Nothing in the cloud has been touched. What is gone is the mapping — the only thing that knew which objects are yours.", "del");
+  render();
+};
+
+/* ---- run controls ---- */
+$("planBtn").onclick = doPlan;
+$("applyBtn").onclick = doApply;
+$("backBtn").onclick = function(){ if (!HIST.length) return; S = HIST.pop(); render(); };
+$("resetBtn").onclick = function(){ HIST = []; selected = null; prevRows = {}; S = freshState(); render(); };
+$("themeBtn").onclick = function(){
+  var r = document.documentElement, cur = r.getAttribute("data-theme");
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  r.setAttribute("data-theme", cur ? (cur === "dark" ? "light" : "dark") : (dark ? "light" : "dark"));
+};
+
+/* =========================================================
+   SCENARIOS
+   ========================================================= */
+var SCENARIOS = [
+  { id:"s1", tag:"§10.1", title:"Nothing to do",
+    q:"Everything currently agrees: config, state file and cloud all say the same thing. You run Plan. What happens, and what does it cost?",
+    opts:[ {t:"No changes — and it does no work, because nothing changed.", ok:false},
+           {t:"No changes — but it still makes one read call per managed resource first.", ok:true},
+           {t:"It reports drift, because the cloud always differs slightly.", ok:false} ],
+    reveal:"<b>No changes — after reading every single resource.</b> A plan always begins with a refresh (§10.4): it asks the provider for the current state of every object in the record, so that the comparison is against reality rather than against a possibly-stale memory. That is why a plan on an 800-resource root module is slow even when the answer is 'nothing', and it is one of the two arguments in §13.3 for splitting root modules — the other being the lock.",
+    run:function(){ doPlan(); } },
+
+  { id:"s2", tag:"F1", title:"The 2am fix",
+    q:"An on-call engineer widened a security rule by hand during an incident and never wrote it down. Six weeks later you change a load balancer timeout and run Plan. What does the plan contain?",
+    opts:[ {t:"Just the timeout. Terraform does not know about console changes.", ok:false},
+           {t:"The timeout, plus a change narrowing the rule back — the fix is about to be undone.", ok:true},
+           {t:"An error, because the cloud does not match the state file.", ok:false} ],
+    reveal:"<b>Both — and the security fix is being reverted by a plan about a timeout.</b> The refresh pulls the widened rule into the record, then the diff against your configuration finds it too wide, so it proposes to narrow it. Terraform is doing exactly its job: <b>the configuration is the definition of correct</b>, and anything else is something to be corrected. It has no notion of 'this difference was deliberate'. The three habits that address it are in F1 — read the whole plan, run <code>-refresh-only</code> on a schedule, and treat an incident as unresolved until the fix is in the config.",
+    run:function(){ $("conEdit").onclick(); S.src.lbTimeout = 90; doPlan(); } },
+
+  { id:"s3", tag:"§10.7", title:"Remove the middle one — with count",
+    q:"Five subnets, addressed with count. You delete the second entry from the list; the other four keep exactly the values they had. How many resources does Terraform destroy, and how many does it create?",
+    opts:[ {t:"1 destroyed, 0 created — you removed one thing.", ok:false},
+           {t:"4 destroyed, 3 created.", ok:true},
+           {t:"5 destroyed, 4 created — the whole list is rebuilt.", ok:false} ],
+    reveal:"<b>4 destroyed, 3 created.</b> One deletion you asked for, and three subnets destroyed and recreated for nothing. With <code>count</code>, an address is a <i>position in a list</i>, so removing element 1 renumbers 2→1, 3→2, 4→3 — and each renumbered address now points at a record whose <code>cidr_block</code> no longer matches, which is immutable, so each one is a replacement.<br><br>You have met this bug before. In the <b>consistent-hashing</b> lab, <code>hash(key) % n</code> made a key's location a function of a global property, so changing the machine count moved 99% of keys where 1% had to. <code>count</code> is <code>% n</code>. Here it is 80% of resources disturbed where 20% had to be — and these are subnets, not cache entries. Now run the next scenario.",
+    run:function(){ rekeySubnets("count"); $("rmMiddle").onclick(); doPlan(); } },
+
+  { id:"s4", tag:"§10.7", title:"Remove the middle one — with for_each",
+    q:"Identical change, identical five subnets — but addressed by a stable key instead of by position. Predict the plan.",
+    opts:[ {t:"The same: 4 destroyed, 3 created. The addressing is cosmetic.", ok:false},
+           {t:"1 destroyed, 0 created. Nothing else moves.", ok:true},
+           {t:"0 destroyed — for_each never deletes.", ok:false} ],
+    reveal:"<b>1 destroyed, nothing else touched.</b> A key does not care where it sits, so removing <code>app_b</code> from the map leaves every other address exactly where it was. That is the same guarantee consistent hashing bought — <b>monotonicity</b>: a change moves only what must move and never shuffles the rest sideways. <code>for_each</code> is monotone under insertion, deletion <i>and</i> reordering; <code>count</code> is monotone under none of them.<br><br>The rule: use <code>count</code> only when instances are genuinely interchangeable and the number is the only thing that ever changes. Use <code>for_each</code> whenever they have identities — which is nearly always, because 'the subnet in zone b' is an identity even when it looks like item 2 of a list.",
+    run:function(){ rekeySubnets("for_each"); $("rmMiddle").onclick(); doPlan(); } },
+
+  { id:"s5", tag:"F6", title:"The change that replaces the database",
+    q:"You move the database to a different availability zone — a one-line config change. What does the plan say?",
+    opts:[ {t:"~ update in place. AWS moves it for you.", ok:false},
+           {t:"-/+ replace. The production database is destroyed and a new empty one created.", ok:true},
+           {t:"An error — you cannot change a zone.", ok:false} ],
+    reveal:"<b><code>-/+ aws_db_instance.main (forces replacement)</code>.</b> An availability zone is immutable in the AWS API, so the provider has no option but to destroy and recreate — and Terraform will do exactly that, without a second prompt, because it told you in the plan.<br><br>Notice where the decision was made: <b>in the provider</b>, not in Terraform and not in your change. That is why 'it's only a tag change' is never a safe sentence — a resource that has not been in a plan for a year can carry a latent replacement that surfaces the moment anything touches it. Now turn on <b>prevent_destroy</b> and plan again: the failure moves from your production database to your CI pipeline, which is where you want it.",
+    run:function(){ S.src.dbPrevent = false; S.src.dbAz = "ap-south-1b"; doPlan(); } },
+
+  { id:"s6", tag:"F4", title:"The apply that stopped halfway",
+    q:"An apply of several resources hits a provider error at step 3. What is in the cloud and in the state file one second later?",
+    opts:[ {t:"Nothing — Terraform rolls back everything it did.", ok:false},
+           {t:"Steps 1–2 exist and are recorded; step 3 failed; the rest were never attempted.", ok:true},
+           {t:"Steps 1–2 exist but are unrecorded, so they are now orphans.", ok:false} ],
+    reveal:"<b>Steps 1–2 exist in the cloud AND in the record. Nothing is rolled back, and nothing is orphaned.</b><br><br>The record is written as each resource completes, which is the important half — it is what makes re-running safe. Terraform has <b>no rollback</b>, deliberately: rolling back means destroying things it just made, which for a database is data loss, and a rollback can itself fail. So recovery is <b>forward-only</b> — fix the problem, run again, and the reconciler converges from wherever it actually is.<br><br>This works only because the desired state is absolute rather than relative. A script saying 'create three subnets' cannot resume from the middle; a description saying 'there should be three subnets' can be re-run from anywhere. Compare <b>saga</b>: same shape, with compensations instead of forward recovery.",
+    run:function(){ S.failAt = 3; S.src.lbTimeout = 90; S.src.dbClass = "db.r6g.large"; S.src.bucket = false;
+                    S.src.subnets.push({key:"app_g", cidr:"10.0.7.0/24"}); doPlan(); doApply();
+                    while (S.applying && S.applying.failedAt == null && S.applying.cursor < S.applying.actions.length) stepApply();
+                    render(); } },
+
+  { id:"s7", tag:"F2", title:"Two engineers, no lock",
+    q:"State locking is off. You and Ravi apply at the same moment — he adds a subnet, you change a timeout. Both applies print 'Apply complete'. What is wrong afterwards?",
+    opts:[ {t:"Nothing. Both changes are in the cloud and both are correct.", ok:false},
+           {t:"The cloud has both changes; the state file has lost one of them.", ok:true},
+           {t:"The second apply overwrote the first in the cloud, so one change is gone.", ok:false} ],
+    reveal:"<b>Reality is right and the bookkeeping is wrong.</b> Both changes really happened in AWS. But your apply read the record <i>before</i> Ravi wrote his, so your save was computed from a superseded copy and erased his subnet from the record. The subnet now exists in the cloud and in the merged config, and is missing from the state file — so the next plan proposes <code>+ create</code> for something that already exists.<br><br>This is the <b>lost update</b> from your optimistic-vs-pessimistic-locking lab, and that lab's central trap applies unchanged: <b>nothing errored.</b> Turn the lock on and try again — the second apply is refused with <code>Error acquiring the state lock</code>, which is a fast, loud, harmless failure.",
+    run:function(){ S.lock = false; $("otherApply").onclick(); doPlan(); } },
+
+  { id:"s8", tag:"F3", title:"The state file is gone",
+    q:"A misconfigured lifecycle rule deleted the state file. Versioning was not enabled. 47 resources are running and serving production. You run Plan. What does it say, and what have you lost?",
+    opts:[ {t:"An error — Terraform refuses to run without state.", ok:false},
+           {t:"'N to add' — it proposes to build a second copy of everything, alongside the running one.", ok:true},
+           {t:"'N to import' — it rediscovers what it owns from the cloud.", ok:false} ],
+    reveal:"<b><code>Plan: N to add, 0 to change, 0 to destroy.</code></b> Terraform manages exactly what is in the record and is blind to everything else, so with an empty record it owns nothing and every config block is something that does not exist yet. <b>Applying this plan is how a bad day becomes a catastrophe</b> — stop the pipelines first.<br><br>Say both halves of what happened: your infrastructure is <i>untouched</i> and your configuration is <i>intact</i>. What is lost is the mapping between them. Recovery is importing 47 resources by hand, layer by layer, and is measured in days. Prevention is about ten minutes: remote state in a bucket with <b>versioning</b> switched on.",
+    run:function(){ $("delState").onclick(); doPlan(); } }
+];
+
+/* Re-key the record from whatever addressing it currently uses to `mode`.
+   This is what a set of `moved` blocks does: it edits the ledger's keys and
+   touches no infrastructure. Addresses that do not match either scheme keep
+   their key, so calling this when already in `mode` is a safe no-op. */
+function rekeySubnets(mode){
+  var was = S.src.idm;
+  if (was === mode) return;
+  var fromAddrs = S.src.subnets.map(function(_, i){ return subnetAddr(S.src, i); });
+  S.src.idm = mode;
+  var toAddrs = S.src.subnets.map(function(_, i){ return subnetAddr(S.src, i); });
+  var rec = {};
+  Object.keys(S.record).forEach(function(a){
+    var i = fromAddrs.indexOf(a);
+    rec[i >= 0 ? toAddrs[i] : a] = S.record[a];
+  });
+  S.record = rec;
+}
+
+function renderScenarios(){
+  var wrap = $("scens"); wrap.innerHTML = "";
+  SCENARIOS.forEach(function(sc, idx){
+    var d = el("div","scen");
+    var t = el("div","scenTitle");
+    t.appendChild(el("span","pill", sc.tag));
+    t.appendChild(el("span", null, (idx+1) + ". " + sc.title));
+    d.appendChild(t);
+    d.appendChild(el("div","scenQ", sc.q));
+    var opts = el("div","opts");
+    sc.opts.forEach(function(o){
+      var b = el("button","opt", o.t); b.type = "button";
+      b.onclick = function(){
+        Array.prototype.forEach.call(opts.children, function(c, ci){
+          c.className = "opt" + (sc.opts[ci].ok ? " right" : (c === b ? " wrong" : ""));
+          c.disabled = true;
+        });
+        var rv = d.querySelector(".reveal");
+        if (!rv){ rv = el("div","reveal"); d.appendChild(rv); }
+        rv.innerHTML = (o.ok ? "<b>Correct.</b> " : "<b>Not quite.</b> ") + sc.reveal +
+          "<br><br><span style='color:var(--ink-3)'>The simulator has been set up for this scenario — scroll up and read the plan output and the three columns.</span>";
+        HIST = []; selected = null; prevRows = {};
+        S = freshState();
+        sc.run();
+        render();
+      };
+      opts.appendChild(b);
+    });
+    d.appendChild(opts);
+    wrap.appendChild(d);
+  });
+}
+
+/* go */
+S = freshState();
+renderScenarios();
+render();
+})();
+</script>

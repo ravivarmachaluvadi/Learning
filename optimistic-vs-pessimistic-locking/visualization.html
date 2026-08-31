@@ -1,0 +1,911 @@
+<title>The Second Save</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg:#F6F7F5; --panel:#FFFFFF; --panel2:#EFF2EF; --ink:#1B2420; --muted:#5B6862;
+  --line:#D9DFDB; --go:#0E7D66; --go-soft:#E0F0EB; --lock:#A66A1E; --lock-soft:#F5EBDC;
+  --bad:#BC4238; --bad-soft:#F6E4E2; --info:#33628F; --info-soft:#E3EBF3;
+  --shadow:0 1px 3px rgba(27,36,32,.08);
+}
+:root:not([data-theme="light"]) { }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0F1513; --panel:#161F1B; --panel2:#1D2823; --ink:#E6ECE8; --muted:#94A39B;
+    --line:#2A362F; --go:#3BB894; --go-soft:#173229; --lock:#D79A4A; --lock-soft:#332815;
+    --bad:#E0736A; --bad-soft:#3A1F1C; --info:#7FAAD2; --info-soft:#1B2A38;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0F1513; --panel:#161F1B; --panel2:#1D2823; --ink:#E6ECE8; --muted:#94A39B;
+  --line:#2A362F; --go:#3BB894; --go-soft:#173229; --lock:#D79A4A; --lock-soft:#332815;
+  --bad:#E0736A; --bad-soft:#3A1F1C; --info:#7FAAD2; --info-soft:#1B2A38;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.55 "Public Sans", system-ui, sans-serif;
+}
+h1,h2,h3 { font-family:"Bricolage Grotesque","Public Sans",sans-serif; text-wrap:balance; margin:0; }
+.mono { font-family:"IBM Plex Mono", ui-monospace, monospace; }
+header { padding:20px 22px 0; max-width:1240px; margin:0 auto; }
+header h1 { font-size:30px; font-weight:700; }
+header .sub { color:var(--muted); max-width:68ch; margin:6px 0 14px; }
+.tabs { display:flex; gap:8px; }
+.tab {
+  border:1px solid var(--line); border-bottom:none; background:var(--panel2); color:var(--muted);
+  padding:8px 16px; border-radius:9px 9px 0 0; cursor:pointer; font:600 14px "Public Sans",sans-serif;
+}
+.tab.on { background:var(--panel); color:var(--ink); box-shadow:var(--shadow); }
+.wrap {
+  max-width:1240px; margin:0 auto; padding:0 22px 40px;
+  display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start;
+}
+.stage { border:1px solid var(--line); background:var(--panel); border-radius:0 10px 10px 10px; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.rail { display:flex; flex-direction:column; gap:12px; }
+.card { border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:12px 14px; box-shadow:var(--shadow); }
+.card h3 { font-size:14px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:8px; }
+/* clients */
+.clients { display:flex; flex-wrap:wrap; gap:10px; }
+.client {
+  --hue:#888; flex:1 1 170px; min-width:170px; border:1.5px solid var(--hue); border-radius:10px;
+  background:var(--panel); padding:8px 10px; position:relative;
+}
+.client .who { display:flex; align-items:baseline; gap:8px; }
+.client .name { font-weight:700; color:var(--hue); }
+.client .st { font-size:12px; color:var(--muted); margin-left:auto; }
+.client .st.warn { color:var(--lock); font-weight:600; }
+.client .st.err { color:var(--bad); font-weight:600; }
+.client .st.ok { color:var(--go); font-weight:600; }
+.copy { margin-top:6px; font-size:12.5px; border-top:1px dashed var(--line); padding-top:6px; }
+.copy .v { font-family:"IBM Plex Mono",monospace; }
+.copy.stale { color:var(--muted); }
+.stale-flag { display:inline-block; font-size:11px; font-weight:700; color:var(--bad); border:1px solid var(--bad); border-radius:4px; padding:0 5px; margin-left:6px; }
+.intent { margin-top:5px; font-size:12.5px; color:var(--muted); }
+.knobs { display:flex; gap:8px; margin-top:7px; align-items:center; flex-wrap:wrap; }
+.knobs label { font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+.knobs input[type=number] { width:44px; font:12px "IBM Plex Mono",monospace; background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:2px 4px; }
+.pausebtn { font-size:11.5px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:6px; padding:2px 8px; cursor:pointer; }
+.pausebtn:hover { border-color:var(--lock); color:var(--lock); }
+/* the row */
+.dbrow { border:1.5px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px 16px; }
+.dbrow .hd { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.dbrow .hd .t { font-weight:700; }
+.vbadge { font-family:"IBM Plex Mono",monospace; font-weight:600; background:var(--info-soft); color:var(--info); border-radius:6px; padding:1px 9px; }
+.lockchip { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--lock); background:var(--lock-soft); border-radius:6px; padding:2px 10px; }
+.lockchip svg { display:block; }
+.qchips { display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--muted); }
+.qchip { border:1px dashed var(--lock); color:var(--lock); border-radius:6px; padding:0 8px; font-weight:600; }
+.fields { display:flex; gap:22px; margin-top:8px; flex-wrap:wrap; }
+.fields .f .k { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.fields .f .val { font-family:"IBM Plex Mono",monospace; font-size:14.5px; }
+/* jobs board */
+.jobs { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; }
+.job { border:1.5px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12px; background:var(--panel); }
+.job .jid { font-family:"IBM Plex Mono",monospace; font-weight:600; }
+.job.PENDING { }
+.job.RUNNING { border-color:var(--hue,var(--go)); }
+.job.DONE { opacity:.45; }
+.job .jst { color:var(--muted); }
+/* verdict + log */
+.verdict { border-left:4px solid var(--info); background:var(--info-soft); border-radius:8px; padding:10px 14px; font-size:14.5px; }
+.verdict.good { border-left-color:var(--go); background:var(--go-soft); }
+.verdict.badv { border-left-color:var(--bad); background:var(--bad-soft); }
+.verdict b { font-weight:700; }
+.log { max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:2px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--panel); }
+.ev { font-size:13px; padding:3px 6px; border-radius:6px; }
+.ev .tk { font-family:"IBM Plex Mono",monospace; color:var(--muted); font-size:11.5px; margin-right:6px; }
+.ev .det { display:block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); margin:1px 0 0 34px; }
+.ev.bad { background:var(--bad-soft); }
+.ev.good { background:var(--go-soft); }
+.ev.warn { background:var(--lock-soft); }
+.ev.new { animation:pulse .7s ease-out; }
+@keyframes pulse { from { outline:2px solid var(--info); } to { outline:2px solid transparent; } }
+@media (prefers-reduced-motion: reduce) { .ev.new { animation:none; } }
+/* transport + controls */
+.transport { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.transport button {
+  font:600 13px "Public Sans",sans-serif; border:1px solid var(--line); background:var(--panel2);
+  color:var(--ink); border-radius:7px; padding:6px 11px; cursor:pointer;
+}
+.transport button:hover { border-color:var(--go); }
+.transport button:focus-visible, .tab:focus-visible, .opt:focus-visible, .pausebtn:focus-visible { outline:2px solid var(--go); outline-offset:1px; }
+.transport button[disabled] { opacity:.4; cursor:default; }
+.tickbox { font-family:"IBM Plex Mono",monospace; font-size:13px; margin-left:auto; color:var(--muted); }
+.ctl { display:flex; flex-direction:column; gap:9px; font-size:13.5px; }
+.ctl label { display:flex; align-items:center; gap:8px; justify-content:space-between; }
+.ctl select, .ctl input[type=number] { font:13px "Public Sans",sans-serif; background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:4px 6px; max-width:180px; }
+.ctl .hint { font-size:12px; color:var(--muted); margin-top:-6px; }
+.ctl input[type=checkbox] { accent-color:var(--go); }
+/* scenarios */
+.scen { border:1px solid var(--line); border-radius:8px; padding:9px 11px; margin-bottom:8px; background:var(--panel); }
+.scen .t { font-weight:700; font-size:13.5px; }
+.scen .q { font-size:13px; color:var(--muted); margin:3px 0 7px; }
+.opt { display:block; width:100%; text-align:left; font:13px "Public Sans",sans-serif; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:6px; padding:5px 9px; margin-top:4px; cursor:pointer; }
+.opt:hover { border-color:var(--info); }
+.predict-note { font-size:12px; color:var(--muted); margin-top:5px; }
+/* metrics + legend */
+.mets { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; font-size:13px; }
+.mets .m b { font-family:"IBM Plex Mono",monospace; font-size:15px; font-variant-numeric:tabular-nums; }
+.mets .m span { color:var(--muted); display:block; font-size:11.5px; }
+.legend { font-size:12.5px; color:var(--muted); display:flex; flex-direction:column; gap:5px; }
+.legend .li { display:flex; align-items:center; gap:8px; }
+.sw { width:14px; height:14px; border-radius:4px; flex:none; }
+@media (max-width: 900px) { .wrap { grid-template-columns:1fr; } .stage { border-radius:10px; } }
+</style>
+
+<header>
+  <h1>The Second Save</h1>
+  <p class="sub">Two people load the same database row, edit, and save. The second save decides
+  everything. Watch three strategies handle it: <b>last save wins</b> (nothing checked),
+  <b>optimistic</b> (a version number rides along and is checked at write time), and
+  <b>pessimistic</b> (the row is locked at read time). Time moves in ticks — step it, or let a
+  scenario ask you a question first.</p>
+  <div class="tabs">
+    <button class="tab on" id="tabEditor">The edit page</button>
+    <button class="tab" id="tabQueue">The job board</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="transport card" style="box-shadow:none">
+      <button id="bPlay">▶ Play</button>
+      <button id="bStep">Step ▸</button>
+      <button id="bBack">◂ Back</button>
+      <button id="bReset">Reset</button>
+      <label style="font-size:12.5px;color:var(--muted)">speed
+        <input id="speed" type="range" min="120" max="1100" value="620" style="width:80px;vertical-align:middle"></label>
+      <span class="tickbox" id="tickbox">tick 0</span>
+    </div>
+    <div id="clientsBox"></div>
+    <div id="rowBox"></div>
+    <div class="verdict" id="verdict">Pick a scenario on the right — or press Play and watch the default story.</div>
+    <div>
+      <h3 style="font:700 12px 'Public Sans';letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 6px">What just happened (newest first)</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card"><h3>Predict, then run</h3><div id="scenBox"></div></div>
+    <div class="card"><h3>Rules of this world</h3><div class="ctl" id="ctlBox"></div></div>
+    <div class="card"><h3>Costs so far</h3><div class="mets" id="metsBox"></div></div>
+    <div class="card"><h3>Legend</h3><div class="legend" id="legendBox"></div></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================ sim core
+   Pure state + tick(state) reducer. No DOM in this section, so the same
+   code runs headless under Node for validation. Deterministic: clients
+   are processed in id order; there is no randomness anywhere. */
+
+const DESC0 = "Steel water bottle, 500ml";
+const PRICE0 = 1500;
+
+const CLIENT_DEFS = [
+  { name:"Meera", hue:"#8A63D2", edit:{field:"desc",  value:"Steel bottle, BPA-free"}, startAt:0, think:4 },
+  { name:"Sam",   hue:"#4C8AC9", edit:{field:"price", value:1200}, startAt:1, think:6 },
+  { name:"Ana",   hue:"#C46A92", edit:{field:"price", value:1350}, startAt:2, think:2 },
+  { name:"Raj",   hue:"#3D9DB3", edit:{field:"desc",  value:"Steel bottle, 1L"}, startAt:3, think:3 },
+  { name:"Lena",  hue:"#7E8C3A", edit:{field:"price", value:1490}, startAt:4, think:2 },
+  { name:"Omar",  hue:"#B07A4C", edit:{field:"price", value:1180}, startAt:5, think:1 },
+];
+
+function freshEditor(cfg) {
+  cfg = cfg || {};
+  const roster = cfg.roster || null;         // which CLIENT_DEFS take part
+  const n = roster ? roster.length : (cfg.nClients || 2);
+  const clients = [];
+  for (let i = 0; i < n; i++) {
+    const d = CLIENT_DEFS[roster ? roster[i] : i];
+    const o = (cfg.clients && cfg.clients[i]) || {};
+    clients.push({
+      id:i, name:d.name, hue:d.hue,
+      edit: o.edit || d.edit,
+      startAt: o.startAt != null ? o.startAt : d.startAt,
+      think: o.think != null ? o.think : d.think,
+      savesTarget: o.saves || 1, savesDone:0,
+      phase:"idle", left:0, copy:null, waitBudget:0,
+      waited:0, redone:0, conflicts:0, timedout:false, believesSaved:false,
+      pauseAsk:false, firstSaveTick:null, lastSaveTick:null,
+    });
+  }
+  return {
+    mode:"editor", tick:0, finished:false, maxTicks: cfg.maxTicks || 200,
+    strategy: cfg.strategy || "naive",           // naive | optimistic | pessimistic
+    autoRetry: cfg.autoRetry !== undefined ? cfg.autoRetry : false,
+    bugNoCheck: !!cfg.bugNoCheck,
+    lockTimeout: cfg.lockTimeout != null ? cfg.lockTimeout : 8,
+    row: { desc:DESC0, price:PRICE0, version:0, lockHolder:null, queue:[] },
+    clients,
+    landed: [],                                   // {clientId,name,field,value,destroyed}
+    metrics: { saves:0, lost:0, conflicts:0, silent:0, waited:0, redone:0, timeouts:0 },
+    log: [],
+  };
+}
+
+function freshQueue(cfg) {
+  cfg = cfg || {};
+  const jobs = [], nJobs = cfg.nJobs || 12;
+  for (let i = 0; i < nJobs; i++) jobs.push({ id:i, status:"PENDING", owner:null, lockedBy:null });
+  const workers = [];
+  const wn = cfg.nWorkers || 3;
+  for (let i = 0; i < wn; i++) workers.push({
+    id:i, name:"W"+(i+1), hue:CLIENT_DEFS[i].hue,
+    phase:"idle", jobId:null, left:0, waitingOn:null, misses:0, waited:0,
+  });
+  return {
+    mode:"queue", tick:0, finished:false, maxTicks: cfg.maxTicks || 200,
+    claimMode: cfg.claimMode || "lock",           // lock | skiplock | optimistic
+    procTicks: cfg.procTicks || 2,
+    jobs, workers,
+    metrics: { done:0, waited:0, misses:0 },
+    log: [],
+  };
+}
+
+function ev(st, text, kind, detail) {
+  st.log.push({ tick: st.tick, text, kind: kind || "", detail: detail || null });
+}
+function snapshotRow(row) { return { desc: row.desc, price: row.price, version: row.version }; }
+function applyEdit(copy, edit) {
+  return {
+    desc:  edit.field === "desc"  ? edit.value : copy.desc,
+    price: edit.field === "price" ? edit.value : copy.price,
+  };
+}
+
+/* commit a full-row write; report any earlier landed edit it silently destroys */
+function commitRow(st, c, values, sql) {
+  const row = st.row;
+  for (const li of st.landed) {
+    if (li.destroyed || li.superseded) continue;
+    if (li.field === c.edit.field) { li.superseded = true; continue; } // a deliberate later decision on the same field
+    if (values[li.field] !== li.value && li.clientId !== c.id) {
+      li.destroyed = true;
+      st.metrics.lost++;
+      ev(st, `${li.name}'s ${li.field} change is GONE — ${c.name}'s save wrote the whole row from a stale copy. Nobody was told.`, "bad");
+    }
+  }
+  row.desc = values.desc; row.price = values.price;
+  st.landed.push({ clientId:c.id, name:c.name, field:c.edit.field, value:c.edit.value, destroyed:false });
+  st.metrics.saves++;
+  c.savesDone++;
+  if (c.firstSaveTick === null) c.firstSaveTick = st.tick;
+  c.lastSaveTick = st.tick;
+  ev(st, `${c.name}'s save landed: ${c.edit.field} → ${JSON.stringify(c.edit.value)}.`, "good", sql);
+}
+
+function releaseLock(st, id) {
+  const row = st.row;
+  if (row.lockHolder === id) {
+    row.lockHolder = null;
+    if (row.queue.length > 0) {
+      const nxt = row.queue.shift();
+      row.lockHolder = nxt;
+      const c = st.clients[nxt];
+      c.phase = "reading"; c.left = 1;
+      ev(st, `${c.name} was next in the queue — the lock is now ${c.name}'s, and their SELECT finally returns.`, "warn");
+    }
+  }
+}
+
+function afterSave(st, c) {
+  if (c.savesDone >= c.savesTarget) { c.phase = "done"; }
+  else { c.phase = "startread"; }   // loop for another save
+}
+
+function tickEditor(st) {
+  if (st.finished) return st;
+  st.tick++;
+  const row = st.row, S = st.strategy;
+
+  for (const c of st.clients) {
+    if (c.phase === "done" || c.phase === "conflicted" || c.phase === "timedout") continue;
+
+    if (c.phase === "idle" && st.tick >= c.startAt + 1) c.phase = "startread";
+
+    if (c.phase === "startread") {
+      if (S === "pessimistic") {
+        if (row.lockHolder === null && row.queue.length === 0) {
+          row.lockHolder = c.id;
+          c.phase = "reading"; c.left = 1;
+          ev(st, `${c.name} runs SELECT … FOR UPDATE — the row lock is theirs until they commit.`, "warn",
+             "SELECT * FROM product WHERE id=42 FOR UPDATE");
+        } else if (row.lockHolder === c.id) {
+          c.phase = "reading"; c.left = 1;
+        } else {
+          if (!row.queue.includes(c.id)) {
+            row.queue.push(c.id);
+            c.waitBudget = st.lockTimeout;
+            const holder = st.clients[row.lockHolder].name;
+            ev(st, `${c.name} wants the row but ${holder} holds the lock — ${c.name} joins the queue (patience: ${st.lockTimeout} ticks).`, "warn");
+          }
+          c.phase = "waiting";
+        }
+      } else {
+        c.phase = "reading"; c.left = 1;
+      }
+    }
+    else if (c.phase === "waiting") {
+      c.waited++; st.metrics.waited++;
+      c.waitBudget--;
+      if (c.waitBudget <= 0) {
+        row.queue = row.queue.filter(x => x !== c.id);
+        c.phase = "timedout"; c.timedout = true; st.metrics.timeouts++;
+        ev(st, `${c.name} gave up: lock wait timeout. Their user sees an ERROR — and never got to type anything.`, "bad",
+           "SQLState HYT00 / error 50200: timeout trying to lock row");
+      }
+      continue;
+    }
+    else if (c.phase === "reading") {
+      c.left--;
+      if (c.left <= 0) {
+        c.copy = snapshotRow(row);
+        c.phase = "thinking"; c.left = c.think;
+        ev(st, `${c.name} reads the row (version ${c.copy.version}) and starts editing — think time ${c.think} tick${c.think===1?"":"s"}.`, "",
+           `SELECT desc, price, version FROM product WHERE id=42  → version=${c.copy.version}`);
+      }
+      continue;
+    }
+    else if (c.phase === "thinking") {
+      if (c.pauseAsk) { c.pauseAsk = false; c.left += 6;
+        ev(st, `${c.name}'s phone rings — thinking 6 ticks longer${S==="pessimistic" ? " WHILE HOLDING THE LOCK" : " (no lock held — nobody is affected)"}.`,
+           S==="pessimistic" ? "bad" : "");
+      }
+      c.left--;
+      if (c.left <= 0) c.phase = "writing", c.left = 1;
+      continue;
+    }
+    else if (c.phase === "writing") {
+      c.left--;
+      if (c.left > 0) continue;
+      if (S === "naive") {
+        commitRow(st, c, applyEdit(c.copy, c.edit),
+          `UPDATE product SET desc='…', price=… WHERE id=42  → 1 row`);
+        ev(st, `${c.name} sees “Saved successfully.”`, "good");
+        afterSave(st, c);
+      }
+      else if (S === "optimistic") {
+        if (c.copy.version === row.version) {
+          const vals = applyEdit(c.copy, c.edit);
+          commitRow(st, c, vals,
+            `UPDATE … SET version=${row.version+1} WHERE id=42 AND version=${c.copy.version}  → 1 row`);
+          row.version++;
+          afterSave(st, c);
+        } else {
+          const sql = `UPDATE … WHERE id=42 AND version=${c.copy.version}  → 0 rows (row is at v${row.version})`;
+          if (st.bugNoCheck) {
+            c.believesSaved = true; st.metrics.silent++;
+            ev(st, `${c.name}'s UPDATE matched 0 rows — but the code never checks the count. ${c.name} sees “Saved successfully.” Nothing was saved.`, "bad", sql);
+            c.phase = "done";
+          } else if (st.autoRetry) {
+            c.conflicts++; st.metrics.conflicts++;
+            st.metrics.redone += c.think; c.redone += c.think;
+            ev(st, `${c.name}'s save is REJECTED — version ${c.copy.version} is stale. The retry re-reads and re-decides (${c.think} ticks of work redone).`, "warn", sql);
+            c.phase = "startread";
+          } else {
+            c.conflicts++; st.metrics.conflicts++;
+            c.phase = "conflicted";
+            ev(st, `${c.name}'s save is REJECTED — the row moved from v${c.copy.version} to v${st.row.version} since their read. The app shows the conflict instead of losing data.`, "warn", sql);
+          }
+        }
+      }
+      else { // pessimistic — we hold the lock, our copy is guaranteed current
+        commitRow(st, c, applyEdit(c.copy, c.edit),
+          `UPDATE product SET … WHERE id=42; COMMIT  → lock released`);
+        releaseLock(st, c.id);
+        afterSave(st, c);
+        if (c.phase === "startread") { /* will re-queue next tick */ }
+      }
+      continue;
+    }
+  }
+
+  const allDone = st.clients.every(c => ["done","conflicted","timedout"].includes(c.phase));
+  if (allDone || st.tick >= st.maxTicks) {
+    st.finished = true;
+    if (st.tick >= st.maxTicks && !allDone)
+      ev(st, `Stopped at tick ${st.maxTicks} — someone is still not finished. That, itself, is a finding.`, "bad");
+  }
+  return st;
+}
+
+function tickQueue(st) {
+  if (st.finished) return st;
+  st.tick++;
+  const firstPending = (pred) => st.jobs.find(j => j.status === "PENDING" && (!pred || pred(j)));
+
+  for (const w of st.workers) {
+    if (w.phase === "processing") {
+      w.left--;
+      if (w.left <= 0) {
+        const j = st.jobs[w.jobId];
+        j.status = "DONE"; j.owner = w.name;
+        if (j.lockedBy === w.id) j.lockedBy = null;
+        st.metrics.done++;
+        ev(st, `${w.name} finished job #${j.id}${st.claimMode!=="optimistic" ? " and committed — its lock is released" : ""}.`, "good");
+        w.phase = "idle"; w.jobId = null;
+      }
+      continue;
+    }
+    if (w.phase === "blocked") {
+      const j = st.jobs[w.waitingOn];
+      w.waited++; st.metrics.waited++;
+      if (j.lockedBy === null) {
+        ev(st, `${w.name} unblocks — job #${j.id}'s lock was released, so ${w.name}'s claim query re-runs.`, "warn");
+        w.phase = "idle"; w.waitingOn = null;
+      } else continue;
+    }
+    if (w.phase === "idle") {
+      if (st.claimMode === "lock") {
+        const j = firstPending();
+        if (!j) continue;
+        if (j.lockedBy === null) {
+          j.lockedBy = w.id;
+          w.phase = "processing"; w.jobId = j.id; w.left = st.procTicks;
+          ev(st, `${w.name} claims job #${j.id} with FOR UPDATE and starts processing — the lock is held the whole time.`, "");
+        } else {
+          w.phase = "blocked"; w.waitingOn = j.id;
+          ev(st, `${w.name}'s claim query found job #${j.id} first — but ${st.workers[j.lockedBy].name} holds its lock. ${w.name} BLOCKS on the same row.`, "warn");
+        }
+      }
+      else if (st.claimMode === "skiplock") {
+        const j = firstPending(x => x.lockedBy === null);
+        if (!j) continue;
+        j.lockedBy = w.id;
+        w.phase = "processing"; w.jobId = j.id; w.left = st.procTicks;
+        ev(st, `${w.name} claims job #${j.id} — SKIP LOCKED made the locked rows invisible, so nobody queues.`, "");
+      }
+      else { // optimistic claim
+        const j = firstPending();
+        if (!j) continue;
+        if (j.claimAskBy == null) {
+          j.claimAskBy = w.id;
+          j.status = "RUNNING"; j.owner = w.name;
+          w.phase = "processing"; w.jobId = j.id; w.left = st.procTicks;
+          ev(st, `${w.name} claims job #${j.id}: UPDATE … SET status='RUNNING' WHERE status='PENDING' → 1 row. Processing happens outside any lock.`, "");
+        } else {
+          w.misses++; st.metrics.misses++;
+          ev(st, `${w.name} raced ${st.workers[j.claimAskBy].name} for job #${j.id} and lost: the same UPDATE matched 0 rows. Cost: one wasted query.`, "warn");
+        }
+      }
+    }
+  }
+  for (const j of st.jobs) j.claimAskBy = null;
+
+  if (st.jobs.every(j => j.status === "DONE") || st.tick >= st.maxTicks) st.finished = true;
+  return st;
+}
+
+function tick(st) { return st.mode === "editor" ? tickEditor(st) : tickQueue(st); }
+
+/* ============================================================ scenarios */
+const SCENARIOS = [
+  {
+    id:"naive", mode:"editor", title:"1 · The second save",
+    q:"Meera (fixing the description) and Sam (changing the price) both loaded the row. Both will click Save and see “Saved successfully.” What will the row hold at the end?",
+    opts:["Both changes — they edited different fields",
+          "Only Sam's price — Meera's edit silently gone",
+          "Only Meera's description — Sam saves later and fails"],
+    correct:1,
+    cfg:{ strategy:"naive", nClients:2 },
+    evaluate(st){ const m = st.landed.find(l=>l.name==="Meera");
+      return { happened: m && m.destroyed,
+        why:"Sam's form posted EVERY field from his stale copy — including the old description. His save was a legal, successful UPDATE. That is 'last save wins': the loss produces no error anywhere." }; },
+  },
+  {
+    id:"detect", mode:"editor", title:"2 · The version check",
+    q:"Same two edits, but saves now carry the version they read: UPDATE … WHERE version=0. Meera saves first. What happens to Sam's save?",
+    opts:["It waits until Meera is done, then applies",
+          "It's rejected — his UPDATE matches 0 rows",
+          "It still overwrites — UPDATEs don't read versions"],
+    correct:1,
+    cfg:{ strategy:"optimistic", nClients:2, autoRetry:false },
+    evaluate(st){ const sam = st.clients[1];
+      return { happened: sam.phase==="conflicted" && st.row.desc.includes("BPA"),
+        why:"Meera's save bumped the row to version 1, so Sam's WHERE … version=0 found nothing. Not an error — an update count of 0. The app checked the count and told Sam, and Meera's edit survived." }; },
+  },
+  {
+    id:"merge", mode:"editor", title:"3 · The retry that merges",
+    q:"Same conflict, but now Sam's code reacts to the rejection by RE-READING the row and re-applying only his own price change. Final row?",
+    opts:["Both changes survive",
+          "Sam's retry overwrites Meera again",
+          "Sam retries forever"],
+    correct:0,
+    cfg:{ strategy:"optimistic", nClients:2, autoRetry:true },
+    evaluate(st){ return { happened: st.row.desc.includes("BPA") && st.row.price===1200 && st.metrics.lost===0,
+        why:"The retry re-decided on FRESH data: it took Meera's new description as the base and changed only the price. Re-read-and-re-decide is the whole difference between a retry and a re-send." }; },
+  },
+  {
+    id:"lunch", mode:"editor", title:"4 · The lunch break",
+    q:"Pessimistic locking. Meera takes the lock, then her phone rings — 10 ticks of thinking. Ana, Raj and Lena arrive meanwhile, each willing to wait 4 ticks. How many of their saves land while Meera holds the lock?",
+    opts:["All three — they queue and proceed in turn",
+          "None — all three time out waiting",
+          "One — the first in the queue"],
+    correct:1,
+    cfg:{ strategy:"pessimistic", roster:[0,2,3,4], lockTimeout:4,
+          clients:[{think:10},{startAt:1,think:1},{startAt:2,think:1},{startAt:3,think:1}] },
+    evaluate(st){ const outs = st.clients.filter(c=>c.timedout).length;
+      return { happened: outs===3 && st.metrics.saves===1,
+        why:"A held lock converts one person's pause into everyone's failure: all three queued behind Meera, exhausted their 4-tick patience, and errored. Under the optimistic strategy the same pause would cost only Meera a conflict — try it: switch the strategy and replay." }; },
+  },
+  {
+    id:"starve", mode:"editor", title:"5 · The slow thinker",
+    q:"Optimistic, with auto-retry. Omar needs 6 ticks per decision; Ana, Raj and Lena need 1–3 and are saving repeatedly (4 saves each). When does Omar's save land?",
+    opts:["Early — retries make everyone equal",
+          "Only after the fast writers STOP",
+          "Never — conflicts crash the app"],
+    correct:1,
+    cfg:{ strategy:"optimistic", autoRetry:true, roster:[2,3,4,5], maxTicks:160,
+          clients:[{startAt:0,think:2,saves:4},{startAt:1,think:3,saves:4},{startAt:2,think:2,saves:4},{startAt:0,think:6,saves:1}] },
+    evaluate(st){ const omar = st.clients[3];
+      const lastFast = Math.max(...st.clients.slice(0,3).map(c=>c.lastSaveTick||0));
+      return { happened: omar.savesDone===1 && omar.firstSaveTick > lastFast,
+        why:`Every 6-tick decision window contained someone else's commit, so Omar lost race after race (${omar.conflicts} conflicts) — no queue means no turn. He finished only at tick ${omar.firstSaveTick}, after the last fast save (tick ${lastFast}). In a system where fast writers never stop, he never finishes: starvation. The fix is escalation — after N losses, take the lock; the lock's queue is exactly the fairness optimism lacks.` }; },
+  },
+  {
+    id:"bug", mode:"editor", title:"6 · The forgotten check",
+    q:"Optimistic — but a refactor deleted the “if (updateCount == 0)” check. Sam's save conflicts as in scenario 2. What does Sam see?",
+    opts:["An exception — the database raises the conflict",
+          "“Saved successfully” — and nothing was saved",
+          "The row is corrupted"],
+    correct:1,
+    cfg:{ strategy:"optimistic", nClients:2, bugNoCheck:true },
+    evaluate(st){ const sam = st.clients[1];
+      return { happened: sam.believesSaved && st.row.price===PRICE0,
+        why:"An UPDATE matching 0 rows is not an error to SQL — the update COUNT is the only witness of the conflict, and the code stopped listening. Sam's edit became a silent no-op. This bug ships easily: with one user, the count is always 1." }; },
+  },
+  {
+    id:"convoy", mode:"queue", title:"7 · The job board convoy",
+    q:"12 jobs × 2 ticks of work, 3 workers, each claiming “the first PENDING job … FOR UPDATE”. Perfect splitting would take ~8 ticks. Roughly how long will this take?",
+    opts:["~8 ticks — three workers, three lanes",
+          "~24 ticks — they process one at a time",
+          "It deadlocks"],
+    correct:1,
+    cfg:{ claimMode:"lock" },
+    evaluate(st){ return { happened: st.tick >= 20,
+        why:`All three workers' queries chose the SAME first row; two blocked behind one — a convoy. Took ${st.tick} ticks, essentially serial. Now switch the claim rule to SKIP LOCKED and replay: locked rows become invisible, claims become disjoint, and the same board clears in ~a third of the time.` }; },
+  },
+];
+
+/* ============================================================ headless self-test */
+function runToEnd(cfg, mode) {
+  let st = mode === "queue" ? freshQueue(cfg) : freshEditor(cfg);
+  while (!st.finished) tick(st);
+  return st;
+}
+function selfTest() {
+  const out = [];
+  const okc = (name, cond) => out.push((cond ? "PASS " : "FAIL ") + name);
+  for (const sc of SCENARIOS) {
+    const st = runToEnd(sc.cfg, sc.mode);
+    okc("scenario " + sc.id, sc.evaluate(st).happened);
+  }
+  // determinism: same config twice -> identical states
+  const a = JSON.stringify(runToEnd(SCENARIOS[4].cfg, "editor"));
+  const b = JSON.stringify(runToEnd(SCENARIOS[4].cfg, "editor"));
+  okc("deterministic", a === b);
+  // skip-locked clears the same board much faster than the convoy
+  const slow = runToEnd({ claimMode:"lock" }, "queue");
+  const fast = runToEnd({ claimMode:"skiplock" }, "queue");
+  const opt  = runToEnd({ claimMode:"optimistic" }, "queue");
+  okc("skiplock beats convoy (" + fast.tick + " vs " + slow.tick + ")", fast.tick * 2 < slow.tick);
+  okc("optimistic claim also parallel (" + opt.tick + ", misses " + opt.metrics.misses + ")", opt.tick * 2 < slow.tick);
+  // pessimistic never conflicts; all saves land when patience is high
+  const pes = runToEnd({ strategy:"pessimistic", nClients:4, lockTimeout:50 }, "editor");
+  okc("pessimistic with patience: 4/4 land, 0 lost", pes.metrics.saves===4 && pes.metrics.lost===0 && pes.metrics.conflicts===0);
+  return out;
+}
+if (typeof document === "undefined") {
+  // headless (node / jsc / osascript): run the scenario self-tests
+  const res = selfTest();
+  res.forEach(r => console.log(r));
+  if (res.some(r => r.startsWith("FAIL"))) {
+    if (typeof process !== "undefined") process.exit(1);
+    throw new Error("self-test failed");
+  }
+} else {
+/* ============================================================ UI */
+
+let state = freshEditor({ strategy:"naive", nClients:2 });
+let history = [];
+let playing = null;
+let renderedLog = 0;
+let activeScenario = null;   // {sc, chosen}
+let uiMode = "editor";
+let userCfg = { strategy:"naive", nClients:2, autoRetry:false, bugNoCheck:false, lockTimeout:8,
+                claimMode:"lock", perClient:{} };
+
+const $ = (id) => document.getElementById(id);
+
+function cloneState(s) { return JSON.parse(JSON.stringify(s)); }
+
+function buildFromUser() {
+  if (uiMode === "editor") {
+    const clients = [];
+    for (let i = 0; i < userCfg.nClients; i++) clients.push(userCfg.perClient[i] || {});
+    return freshEditor({ strategy:userCfg.strategy, nClients:userCfg.nClients,
+      autoRetry:userCfg.autoRetry, bugNoCheck:userCfg.bugNoCheck, lockTimeout:userCfg.lockTimeout, clients });
+  }
+  return freshQueue({ claimMode:userCfg.claimMode });
+}
+
+function resetSim(st) {
+  stopPlay();
+  state = st || buildFromUser();
+  history = [];
+  renderedLog = 0;
+  render(true);
+}
+
+function doStep() {
+  if (state.finished) return;
+  history.push(cloneState(state));
+  tick(state);
+  render();
+  if (state.finished) { stopPlay(); showVerdict(); }
+}
+function doBack() {
+  if (history.length === 0) return;
+  stopPlay();
+  state = history.pop();
+  renderedLog = state.log.length;
+  render(true);
+}
+function stopPlay() { if (playing) { clearInterval(playing); playing = null; $("bPlay").textContent = "▶ Play"; } }
+function togglePlay() {
+  if (playing) { stopPlay(); return; }
+  if (state.finished) return;
+  $("bPlay").textContent = "❚❚ Pause";
+  playing = setInterval(doStep, 1220 - Number($("speed").value));
+}
+
+/* ---------- rendering ---------- */
+function lockSvg(color) {
+  return `<svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1" y="5.5" width="10" height="7" rx="1.6" fill="${color}"/><path d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+
+function phaseLabel(c, st) {
+  switch (c.phase) {
+    case "idle": return ["arrives at tick " + (c.startAt+1), ""];
+    case "startread": case "reading": return ["reading…", ""];
+    case "waiting": return ["WAITING in lock queue (" + c.waitBudget + " patience left)", "warn"];
+    case "thinking": return ["thinking… " + c.left + " tick" + (c.left===1?"":"s") + " left", ""];
+    case "writing": return ["saving…", ""];
+    case "done": return [c.believesSaved ? "believes it saved ⚠" : (c.savesDone + " save" + (c.savesDone===1?"":"s") + " landed ✓"), c.believesSaved ? "err" : "ok"];
+    case "conflicted": return ["conflict shown to user", "warn"];
+    case "timedout": return ["ERROR: lock timeout", "err"];
+  }
+  return [c.phase, ""];
+}
+
+function renderClients() {
+  const box = $("clientsBox");
+  if (state.mode === "queue") {
+    box.innerHTML = `<div class="clients">` + state.workers.map(w => {
+      let st = w.phase === "processing" ? `working on #${w.jobId} (${w.left} left)` :
+               w.phase === "blocked" ? `BLOCKED on #${w.waitingOn}'s lock` : "looking for a job";
+      let cls = w.phase === "blocked" ? "warn" : "";
+      return `<div class="client" style="--hue:${w.hue}"><div class="who"><span class="name">${w.name}</span>
+        <span class="st ${cls}">${st}</span></div>
+        <div class="intent">waited ${w.waited} · lost claims ${w.misses}</div></div>`;
+    }).join("") + `</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="clients">` + state.clients.map(c => {
+    const [lab, cls] = phaseLabel(c, state);
+    const stale = c.copy && c.copy.version < state.row.version && state.strategy !== "pessimistic";
+    const holds = state.row.lockHolder === c.id;
+    const copyHtml = c.copy
+      ? `<div class="copy ${stale?"stale":""}">their copy: “${c.copy.desc}” · ${c.copy.price}
+           <span class="v">v${c.copy.version}</span>${stale?'<span class="stale-flag">STALE</span>':""}${holds?` <span style="color:var(--lock)">${lockSvg("currentColor")}</span>`:""}</div>`
+      : `<div class="copy" style="color:var(--muted)">hasn't read the row yet</div>`;
+    const intent = `wants: ${c.edit.field} → ${JSON.stringify(c.edit.value)}` + (c.savesTarget>1 ? ` ×${c.savesTarget}` : "");
+    const canPause = c.phase === "thinking";
+    return `<div class="client" style="--hue:${c.hue}">
+      <div class="who"><span class="name">${c.name}</span><span class="st ${cls}">${lab}</span></div>
+      ${copyHtml}<div class="intent">${intent}${c.conflicts?` · conflicts ${c.conflicts}`:""}${c.waited?` · waited ${c.waited}`:""}</div>
+      <div class="knobs">
+        <label>starts <input type="number" min="0" max="30" value="${c.startAt}" data-k="startAt" data-i="${c.id}"></label>
+        <label>thinks <input type="number" min="1" max="20" value="${c.think}" data-k="think" data-i="${c.id}"></label>
+        <button class="pausebtn" data-pause="${c.id}" ${canPause?"":"disabled"} title="add 6 ticks of thinking mid-edit">phone rings</button>
+      </div></div>`;
+  }).join("") + `</div>`;
+  box.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("change", () => {
+    const i = Number(inp.dataset.i);
+    userCfg.perClient[i] = userCfg.perClient[i] || {};
+    userCfg.perClient[i][inp.dataset.k] = Number(inp.value);
+    activeScenario = null; resetSim();
+  }));
+  box.querySelectorAll("button[data-pause]").forEach(b => b.addEventListener("click", () => {
+    state.clients[Number(b.dataset.pause)].pauseAsk = true; doStep();
+  }));
+}
+
+function renderRow() {
+  const box = $("rowBox");
+  if (state.mode === "queue") {
+    box.innerHTML = `<div class="dbrow"><div class="hd"><span class="t">job table</span>
+      <span class="qchips">${state.claimMode==="lock" ? "claim: FOR UPDATE (waiters block)" : state.claimMode==="skiplock" ? "claim: FOR UPDATE SKIP LOCKED" : "claim: optimistic (status='PENDING' → 'RUNNING')"}</span></div>
+      <div class="jobs" style="margin-top:8px">` + state.jobs.map(j => {
+        const w = j.lockedBy != null ? state.workers[j.lockedBy] : null;
+        const hue = w ? w.hue : (j.owner ? state.workers.find(x=>x.name===j.owner)?.hue : null);
+        return `<div class="job ${j.status}" style="${hue?`--hue:${hue};border-color:${j.status!=="DONE"?hue:"var(--line)"}`:""}">
+          <span class="jid">#${j.id}</span> ${j.lockedBy!=null?lockSvg(w.hue):""}<br>
+          <span class="jst">${j.status}${j.owner?" · "+j.owner:""}</span></div>`;
+      }).join("") + `</div></div>`;
+    return;
+  }
+  const r = state.row;
+  const holder = r.lockHolder != null ? state.clients[r.lockHolder] : null;
+  box.innerHTML = `<div class="dbrow">
+    <div class="hd"><span class="t">product #42 — the one true row</span>
+      <span class="vbadge">version ${r.version}</span>
+      ${holder ? `<span class="lockchip">${lockSvg("currentColor")} locked by ${holder.name}</span>` : ""}
+      ${r.queue.length ? `<span class="qchips">queue: ${r.queue.map(q=>`<span class="qchip">${state.clients[q].name}</span>`).join("")}</span>` : ""}
+    </div>
+    <div class="fields">
+      <div class="f"><div class="k">description</div><div class="val">“${r.desc}”</div></div>
+      <div class="f"><div class="k">price</div><div class="val">${r.price}</div></div>
+    </div></div>`;
+}
+
+function renderLog() {
+  const box = $("log");
+  const items = state.log.slice(-80);
+  box.innerHTML = items.map((e, i) => {
+    const isNew = state.log.length - (items.length - i) >= renderedLog;
+    return `<div class="ev ${e.kind} ${isNew?"new":""}"><span class="tk">t${String(e.tick).padStart(2,"0")}</span>${e.text}${e.detail?`<span class="det">${e.detail}</span>`:""}</div>`;
+  }).reverse().join("");
+  renderedLog = state.log.length;
+}
+
+function renderMets() {
+  const m = state.metrics;
+  const rows = state.mode === "editor" ? [
+    ["saves landed", m.saves], ["edits silently lost", m.lost, m.lost>0],
+    ["conflicts surfaced", m.conflicts], ["silent no-ops (bug)", m.silent, m.silent>0],
+    ["ticks spent waiting", m.waited], ["work ticks redone", m.redone],
+    ["lock timeouts", m.timeouts, m.timeouts>0],
+  ] : [
+    ["jobs done", m.done], ["ticks spent blocked", m.waited], ["claim races lost", m.misses],
+  ];
+  $("metsBox").innerHTML = rows.map(([k,v,bad]) =>
+    `<div class="m"><b style="${bad?"color:var(--bad)":""}">${v}</b><span>${k}</span></div>`).join("");
+}
+
+function showVerdict() {
+  const v = $("verdict");
+  if (activeScenario) {
+    const { sc, chosen } = activeScenario;
+    const res = sc.evaluate(state);
+    const right = chosen === sc.correct;
+    v.className = "verdict " + (right ? "good" : "badv");
+    v.innerHTML = `<b>${right ? "Your prediction held." : "Not what you predicted."}</b> ` +
+      `You chose “${sc.opts[chosen]}”; what happened: <b>${sc.opts[sc.correct]}</b>. ${res.why}` +
+      (res.happened ? "" : " <i>(unexpected sim outcome — please reset)</i>");
+    return;
+  }
+  const m = state.metrics;
+  if (state.mode === "queue") {
+    v.className = "verdict good";
+    v.innerHTML = `Board cleared in <b>${state.tick} ticks</b> (${state.jobs.length} jobs × ${state.procTicks}, ${state.workers.length} workers — perfect split ≈ ${Math.ceil(state.jobs.length/state.workers.length)*state.procTicks}, serial ≈ ${state.jobs.length*state.procTicks}). Blocked ticks: ${m.waited}, claim races lost: ${m.misses}. Change the claim rule and replay.`;
+    return;
+  }
+  const lost = m.lost + m.silent;
+  v.className = "verdict " + (lost > 0 ? "badv" : "good");
+  let s = `Run finished at tick ${state.tick}: <b>${m.saves} saves landed</b>`;
+  if (m.lost) s += `, <b>${m.lost} edit${m.lost===1?"":"s"} silently destroyed</b>`;
+  if (m.silent) s += `, <b>${m.silent} save${m.silent===1?"":"s"} silently did nothing</b> (the bug)`;
+  if (m.conflicts) s += `, ${m.conflicts} conflict${m.conflicts===1?"":"s"} surfaced honestly`;
+  if (m.timeouts) s += `, ${m.timeouts} user${m.timeouts===1?"":"s"} got lock-timeout errors`;
+  s += m.waited ? `, ${m.waited} ticks spent waiting` : "";
+  s += m.redone ? `, ${m.redone} ticks of work redone` : "";
+  s += lost > 0 ? ". <b>Silent loss is the one outcome nothing can repair — nobody knows it happened.</b>"
+                : ". Nothing was lost silently — the strategies differ only in who paid, and how.";
+  v.innerHTML = s;
+}
+
+function render(full) {
+  $("tickbox").textContent = "tick " + state.tick + (state.finished ? " · finished" : "");
+  renderClients(); renderRow(); renderLog(); renderMets();
+  if (!state.finished && !activeScenario) {
+    const v = $("verdict"); v.className = "verdict";
+    v.textContent = state.tick === 0
+      ? "Press Play — or pick a scenario on the right and commit to a prediction first."
+      : "Running… the log below narrates every step. Step ◂ back any time.";
+  }
+  if (!state.finished && activeScenario) {
+    const v = $("verdict"); v.className = "verdict";
+    v.textContent = "Scenario running — your prediction is locked in…";
+  }
+  $("bBack").disabled = history.length === 0;
+}
+
+/* ---------- rail: scenarios, controls, legend ---------- */
+function renderScenarios() {
+  $("scenBox").innerHTML = SCENARIOS.filter(s => s.mode === uiMode).map(sc =>
+    `<div class="scen"><div class="t">${sc.title}</div><div class="q">${sc.q}</div>` +
+    sc.opts.map((o,i)=>`<button class="opt" data-sc="${sc.id}" data-i="${i}">${o}</button>`).join("") +
+    `</div>`).join("") +
+    `<div class="predict-note">Committing to a guess before running is the point — being wrong here is where the learning is.</div>`;
+  document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+    const sc = SCENARIOS.find(s => s.id === b.dataset.sc);
+    activeScenario = { sc, chosen: Number(b.dataset.i) };
+    resetSim(sc.mode === "queue" ? freshQueue(sc.cfg) : freshEditor(sc.cfg));
+    togglePlay();
+  }));
+}
+
+function renderControls() {
+  const c = $("ctlBox");
+  if (uiMode === "editor") {
+    c.innerHTML = `
+      <label>How people save
+        <select id="cStrat">
+          <option value="naive">last save wins (no check)</option>
+          <option value="optimistic">optimistic — version check</option>
+          <option value="pessimistic">pessimistic — lock first</option>
+        </select></label>
+      <label>People editing <input id="cN" type="number" min="2" max="6" value="${userCfg.nClients}"></label>
+      <label><span>On conflict, re-read &amp; merge automatically</span><input id="cRetry" type="checkbox" ${userCfg.autoRetry?"checked":""}></label>
+      <label><span>Bug: forget to check the update count</span><input id="cBug" type="checkbox" ${userCfg.bugNoCheck?"checked":""}></label>
+      <label>Lock patience (ticks) <input id="cTo" type="number" min="1" max="40" value="${userCfg.lockTimeout}"></label>
+      <div class="hint">Start times and think times are on each person's card — nothing here is hardcoded. Any change resets the run.</div>`;
+    $("cStrat").value = userCfg.strategy;
+    $("cStrat").onchange = () => { userCfg.strategy = $("cStrat").value; activeScenario=null; resetSim(); };
+    $("cN").onchange = () => { userCfg.nClients = Math.max(2, Math.min(6, Number($("cN").value))); activeScenario=null; resetSim(); };
+    $("cRetry").onchange = () => { userCfg.autoRetry = $("cRetry").checked; activeScenario=null; resetSim(); };
+    $("cBug").onchange = () => { userCfg.bugNoCheck = $("cBug").checked; activeScenario=null; resetSim(); };
+    $("cTo").onchange = () => { userCfg.lockTimeout = Number($("cTo").value); activeScenario=null; resetSim(); };
+  } else {
+    c.innerHTML = `
+      <label>How workers claim jobs
+        <select id="cClaim">
+          <option value="lock">FOR UPDATE (waiters block)</option>
+          <option value="skiplock">FOR UPDATE SKIP LOCKED</option>
+          <option value="optimistic">optimistic claim (status check)</option>
+        </select></label>
+      <div class="hint">12 jobs × 2 ticks each, 3 workers. Watch who blocks, who skips, who races.</div>`;
+    $("cClaim").value = userCfg.claimMode;
+    $("cClaim").onchange = () => { userCfg.claimMode = $("cClaim").value; activeScenario=null; resetSim(); };
+  }
+}
+
+function renderLegend() {
+  $("legendBox").innerHTML = `
+    <div class="li"><span class="sw" style="background:#8A63D2"></span>each person keeps one colour everywhere</div>
+    <div class="li"><span style="color:var(--lock)">${lockSvg("currentColor")}</span>&nbsp;row lock — held from read to commit</div>
+    <div class="li"><span class="sw" style="background:var(--info-soft);border:1px solid var(--info)"></span><span class="mono" style="font-size:11px">v3</span>&nbsp;version — proof of which state a read saw</div>
+    <div class="li"><span class="stale-flag" style="margin:0">STALE</span>&nbsp;a copy whose row has moved on (its holder can't tell!)</div>
+    <div class="li"><span class="sw" style="background:var(--go-soft);border-left:3px solid var(--go)"></span>green log line — a save landed</div>
+    <div class="li"><span class="sw" style="background:var(--lock-soft);border-left:3px solid var(--lock)"></span>amber — waiting, conflict surfaced, retry</div>
+    <div class="li"><span class="sw" style="background:var(--bad-soft);border-left:3px solid var(--bad)"></span>red — data lost or a user shown an error</div>`;
+}
+
+/* ---------- wiring ---------- */
+$("bPlay").addEventListener("click", togglePlay);
+$("bStep").addEventListener("click", () => { stopPlay(); doStep(); });
+$("bBack").addEventListener("click", doBack);
+$("bReset").addEventListener("click", () => { activeScenario = null; resetSim(); });
+$("speed").addEventListener("input", () => { if (playing) { stopPlay(); togglePlay(); } });
+$("tabEditor").addEventListener("click", () => setMode("editor"));
+$("tabQueue").addEventListener("click", () => setMode("queue"));
+function setMode(m) {
+  uiMode = m; activeScenario = null;
+  $("tabEditor").classList.toggle("on", m === "editor");
+  $("tabQueue").classList.toggle("on", m === "queue");
+  renderScenarios(); renderControls();
+  resetSim();
+}
+
+renderScenarios(); renderControls(); renderLegend();
+resetSim();
+}
+</script>

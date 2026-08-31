@@ -1,0 +1,855 @@
+<title>Paxos Message Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@600;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F2F4F7; --surface: #FFFFFF; --surface-2: #E8ECF2;
+    --ink: #16202B; --muted: #5C6B7E; --line: #D2DAE3;
+    --accent: #3B5BDB;        /* asking / phase 1 */
+    --teal: #0E7C7B;          /* written down / phase 2 */
+    --amber: #B0740A;         /* promise carrying an old value */
+    --crimson: #B3352E;       /* refused */
+    --green: #17724A;         /* decided */
+    --accent-ink: #FFFFFF;
+    --tint-accent: rgba(59, 91, 219, 0.09);
+    --tint-teal: rgba(14, 124, 123, 0.10);
+    --tint-amber: rgba(176, 116, 10, 0.12);
+    --tint-crimson: rgba(179, 53, 46, 0.10);
+    --tint-green: rgba(23, 114, 74, 0.11);
+    --shadow: 0 1px 3px rgba(22, 32, 43, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F151C; --surface: #18212B; --surface-2: #202B37;
+      --ink: #E6EBF1; --muted: #8A98A8; --line: #2F3D4C;
+      --accent: #7C93F0; --teal: #3FB5B0; --amber: #DDA23C;
+      --crimson: #E4665C; --green: #46B884; --accent-ink: #0F151C;
+      --tint-accent: rgba(124, 147, 240, 0.13);
+      --tint-teal: rgba(63, 181, 176, 0.13);
+      --tint-amber: rgba(221, 162, 60, 0.15);
+      --tint-crimson: rgba(228, 102, 92, 0.14);
+      --tint-green: rgba(70, 184, 132, 0.14);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F151C; --surface: #18212B; --surface-2: #202B37;
+    --ink: #E6EBF1; --muted: #8A98A8; --line: #2F3D4C;
+    --accent: #7C93F0; --teal: #3FB5B0; --amber: #DDA23C;
+    --crimson: #E4665C; --green: #46B884; --accent-ink: #0F151C;
+    --tint-accent: rgba(124, 147, 240, 0.13);
+    --tint-teal: rgba(63, 181, 176, 0.13);
+    --tint-amber: rgba(221, 162, 60, 0.15);
+    --tint-crimson: rgba(228, 102, 92, 0.14);
+    --tint-green: rgba(70, 184, 132, 0.14);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 26px 20px 60px; display: flex; flex-direction: column; gap: 15px; }
+  h1 { font-family: "Spectral", Georgia, serif; font-size: 1.8rem; font-weight: 700; margin: 0 0 6px; text-wrap: balance; }
+  h2 { font-family: "Spectral", Georgia, serif; font-size: 1rem; font-weight: 600; margin: 0 0 9px; }
+  h3 { font-family: "Spectral", Georgia, serif; font-size: 0.92rem; font-weight: 600; margin: 0; }
+  p { margin: 0 0 9px; }
+  .lede { color: var(--muted); max-width: 74ch; }
+  .lede b { color: var(--ink); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 15px; box-shadow: var(--shadow); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 15px; align-items: start; }
+  @media (max-width: 940px) { .grid { grid-template-columns: 1fr; } }
+
+  .story { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .story { grid-template-columns: 1fr; } }
+  .story div { font-size: 0.87rem; color: var(--muted); }
+  .story b { color: var(--ink); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 9px 14px; align-items: center; }
+  .ctl { display: flex; align-items: center; gap: 6px; }
+  .ctl-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 600; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--surface); color: var(--ink); padding: 6px 11px;
+  }
+  button:hover:not(:disabled) { background: var(--surface-2); }
+  button:disabled { opacity: 0.42; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.tiny { padding: 3px 8px; font-size: 0.76rem; font-weight: 500; }
+  label.check { display: flex; align-items: center; gap: 6px; font-size: 0.84rem; color: var(--muted); }
+  input[type="checkbox"] { accent-color: var(--accent); }
+
+  .verdict { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 12px 14px; background: var(--surface); }
+  .verdict.ask { border-left-color: var(--accent); background: var(--tint-accent); }
+  .verdict.write { border-left-color: var(--teal); background: var(--tint-teal); }
+  .verdict.adopt { border-left-color: var(--amber); background: var(--tint-amber); }
+  .verdict.refuse { border-left-color: var(--crimson); background: var(--tint-crimson); }
+  .verdict.decided { border-left-color: var(--green); background: var(--tint-green); }
+  .verdict.broken { border-left-color: var(--crimson); background: var(--tint-crimson); }
+  .verdict.note { border-left-color: var(--muted); }
+  .verdict-head { font-family: "Spectral", Georgia, serif; font-weight: 700; font-size: 1.02rem; margin-bottom: 2px; }
+  .verdict-body { font-size: 0.9rem; color: var(--muted); }
+  .expect[hidden] { display: none; }
+  .predictops { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .verdict-body b { color: var(--ink); }
+
+  svg { display: block; width: 100%; height: auto; }
+  .pbox { fill: var(--surface); stroke: var(--accent); stroke-width: 1.6; }
+  .abox { fill: var(--surface); stroke: var(--line); stroke-width: 1.6; cursor: pointer; }
+  .abox.down { fill: var(--surface-2); stroke: var(--muted); stroke-dasharray: 4 4; }
+  .abox.inquorum { stroke: var(--green); stroke-width: 3; }
+  .abox.witness { stroke: var(--amber); stroke-width: 3.5; }
+  .abox.flash { stroke: var(--teal); stroke-width: 3.5; }
+  .nname { font-family: "Spectral", Georgia, serif; font-weight: 700; font-size: 15px; fill: var(--ink); }
+  .nsub { font-size: 9.5px; fill: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .nline { font-family: "JetBrains Mono", monospace; font-size: 11px; fill: var(--ink); }
+  .nline.dim { fill: var(--muted); }
+  .nline.val { fill: var(--teal); font-weight: 500; }
+  .wire { stroke: var(--line); stroke-width: 1; }
+  .pending { fill: var(--accent); }
+  .pending-txt { font-size: 9px; fill: var(--accent-ink); font-weight: 700; font-family: "Public Sans", sans-serif; }
+  .caption { font-size: 10px; fill: var(--muted); text-transform: uppercase; letter-spacing: 0.09em; }
+  .msg-dot { fill: var(--accent); }
+  .star { font-size: 13px; fill: var(--green); }
+
+  .queue { display: flex; flex-direction: column; gap: 5px; max-height: 210px; overflow-y: auto; }
+  .qrow { display: flex; align-items: center; gap: 7px; font-family: "JetBrains Mono", monospace; font-size: 0.76rem; padding: 3px 5px; border-radius: 5px; background: var(--surface-2); }
+  .qrow .qk { font-weight: 500; }
+  .qrow.PREPARE .qk, .qrow.PROMISE .qk { color: var(--accent); }
+  .qrow.ACCEPT .qk, .qrow.ACCEPTED .qk { color: var(--teal); }
+  .qrow.NACK .qk { color: var(--crimson); }
+  .qrow .spacer { flex: 1; }
+  .empty { color: var(--muted); font-size: 0.84rem; font-style: italic; }
+
+  .log { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; }
+  .lrow { display: flex; gap: 8px; align-items: flex-start; font-size: 0.85rem; }
+  .badge { flex: none; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-top: 2px; }
+  .badge.ask { background: var(--accent); color: var(--accent-ink); }
+  .badge.write { background: var(--teal); color: #fff; }
+  .badge.adopt { background: var(--amber); color: #fff; }
+  .badge.refuse { background: var(--crimson); color: #fff; }
+  .badge.decided { background: var(--green); color: #fff; }
+  .badge.broken { background: var(--crimson); color: #fff; }
+  .badge.note { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+  .ltech { font-family: "JetBrains Mono", monospace; font-size: 0.71rem; color: var(--muted); margin-top: 1px; }
+  .lrow.dim > div:not(.badge) { color: var(--muted); }
+
+  .status { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface-2); }
+  .stat .v { font-family: "Spectral", Georgia, serif; font-size: 1.05rem; font-weight: 700; }
+  .stat .l { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+  .stat.good .v { color: var(--green); }
+  .stat.bad .v { color: var(--crimson); }
+
+  .experiments ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 13px; }
+  .experiments li { max-width: 80ch; }
+  .exp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .expect { color: var(--muted); font-size: 0.86rem; margin-top: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.82rem; color: var(--muted); }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .footnote { font-size: 0.82rem; color: var(--muted); max-width: 80ch; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Paxos Message Lab</h1>
+    <p class="lede">
+      Five teachers must agree on <b>one</b> destination for the school trip. They
+      never speak to each other — you can only leave notes in their mailboxes, and
+      notes can be delayed, lost or duplicated. Two class reps are both trying to
+      book, and they want different places. <b>You decide which note gets delivered
+      next</b>, so you can build the exact disaster you want and check whether the
+      rules still hold.
+    </p>
+  </header>
+
+  <div class="card story">
+    <div><b>Class reps</b> (Paxos calls them <em>proposers</em>) want a destination booked. Rep 1 wants the Zoo, Rep 2 the Museum.</div>
+    <div><b>Teachers</b> (<em>acceptors</em>) each keep two facts: the highest slot number they promised, and what they last wrote down.</div>
+    <div><b>A decision is made</b> when <b>3 of the 5</b> teachers have written the same thing. After that it must never change.</div>
+  </div>
+
+  <div class="card controls">
+    <div class="ctl">
+      <span class="ctl-label">Rep 1 · Zoo</span>
+      <button class="primary" id="btn-p1">Start a proposal</button>
+    </div>
+    <div class="ctl">
+      <span class="ctl-label">Rep 2 · Museum</span>
+      <button class="primary" id="btn-p2">Start a proposal</button>
+    </div>
+    <div class="ctl">
+      <span class="ctl-label">Notes</span>
+      <button id="btn-step">Deliver oldest</button>
+      <button id="btn-all">Deliver all</button>
+    </div>
+    <label class="check" title="Off = teachers keep their promises in memory only and forget them on reboot">
+      <input type="checkbox" id="chk-durable" checked> teachers write promises down (survive a reboot)
+    </label>
+    <div class="ctl" style="margin-left:auto">
+      <button id="btn-reset">Reset</button>
+      <button id="btn-undo" disabled title="Take back the last action — one delivered note, one drop, one crash, one proposal">&#9664; Undo</button>
+    </div>
+  </div>
+
+  <div class="verdict note" id="verdict">
+    <div class="verdict-head" id="v-head">Nothing has happened yet</div>
+    <div class="verdict-body" id="v-body">Press <b>Start a proposal</b> for a rep, then deliver the notes one at a time — or run a guided experiment at the bottom.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <svg id="stage" viewBox="0 0 660 372" role="img" aria-label="Two class reps and five teachers exchanging notes">
+        <text class="caption" x="330" y="14" text-anchor="middle">a decision needs 3 of the 5 teachers</text>
+        <g id="wires"></g>
+        <g id="prop-P1"></g>
+        <g id="prop-P2"></g>
+        <g id="acceptors"></g>
+      </svg>
+      <p class="footnote" style="margin-top:8px">
+        Click any teacher to knock them out or bring them back. A slot number's last
+        digit says <em>which rep</em> asked for it (…1 = Rep 1, …2 = Rep 2), so two reps
+        can never claim the same slot.
+      </p>
+      <div class="legend" style="margin-top:8px">
+        <span><b>Phase 1</b> — ask for a slot, hear what was already written</span>
+        <span><b>Phase 2</b> — tell them what to write</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="status">
+        <div class="stat" id="stat-dec"><div class="v" id="v-dec">none</div><div class="l">decision</div></div>
+        <div class="stat good" id="stat-safe"><div class="v" id="v-safe">holds</div><div class="l">one decision only?</div></div>
+      </div>
+      <h2>Notes in flight</h2>
+      <div class="queue" id="queue"></div>
+      <h2 style="margin-top:14px">What happened</h2>
+      <div class="log" id="log" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="card experiments">
+    <h2>Guided experiments — predict first, then run</h2>
+    <ol>
+      <li>
+        <div class="exp-head"><h3>A clean run</h3><button class="tiny" id="run-1">Predict &amp; run</button></div>
+        One rep, no failures, notes all arrive.
+        <div class="expect" id="exp-1" hidden>Watch for: no teacher had written anything, so Rep 1 gets to use its own choice. Two phases, six notes, done.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>A decision can never be changed</h3><button class="tiny" id="run-2">Predict &amp; run</button></div>
+        Rep 1 gets the Zoo decided by teachers A, B, C. Rep 2 then tries the Museum with a <em>different</em> majority, C, D, E.
+        <div class="expect" id="exp-2" hidden>Watch for: teacher <b>C is in both majorities</b>. C reports the Zoo, and Rep 2 is forced to abandon the Museum and campaign for the Zoo instead. That overlap is the whole reason Paxos is safe — two groups of 3 out of 5 can never miss each other.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>"Some wrote it down" is not "decided"</h3><button class="tiny" id="run-3">Predict &amp; run</button></div>
+        Rep 1's write-it-down notes reach only 2 of 5 teachers; the rest are lost.
+        <div class="expect" id="exp-3" hidden>Watch for: the Museum wins — and that is <em>correct</em>, not a bug. Two out of five was never a decision, so nothing was overturned. Telling these two situations apart is the single most common Paxos misunderstanding.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>Two reps, endless duel</h3><button class="tiny" id="run-4">Predict &amp; run</button></div>
+        Each rep keeps claiming a higher slot number just before the other can finish.
+        <div class="expect" id="exp-4" hidden>Watch for: four rounds, nothing decided, nobody at fault, no messages lost. Paxos never decides <em>wrongly</em>, but it can fail to decide <em>at all</em>. Real systems fix this by picking one leader — not by changing the rules.</div>
+      </li>
+      <li>
+        <div class="exp-head"><h3>The teacher who forgets</h3><button class="tiny" id="run-5">Predict &amp; run</button></div>
+        Turn off "teachers write promises down", decide the Zoo, then reboot A, B and C.
+        <div class="expect" id="exp-5" hidden>Watch for: <b>two different decisions</b>, and the safety light turning red. Every teacher followed the rules — but a teacher who forgets its own past is effectively lying about it. This is why real acceptors must flush their state to disk <em>before</em> replying.</div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var A_IDS = ["A", "B", "C", "D", "E"];
+  var QUORUM = 3;
+  var POS = { A: 70, B: 200, C: 330, D: 460, E: 590 };
+  var AY = 236, PY = 60;
+  var PPOS = { P1: 120, P2: 540 };
+  var NAMES = { P1: "Rep 1", P2: "Rep 2" };
+  var WANT = { P1: "Zoo", P2: "Museum" };
+
+  var state, seq = 0, busy = false;
+  var history = [], pendingPredict = null;
+  function snapshot() {
+    history.push({ s: JSON.parse(JSON.stringify(state)), q: seq,
+                   log: $("log").innerHTML, vc: $("verdict").className,
+                   vh: $("v-head").innerHTML, vb: $("v-body").innerHTML });
+    if (history.length > 500) history.shift();
+    syncUndo();
+  }
+  function undo() {
+    if (busy || !history.length) return;
+    var h = history.pop();
+    state = h.s; seq = h.q;
+    $("log").innerHTML = h.log; $("verdict").className = h.vc;
+    $("v-head").innerHTML = h.vh; $("v-body").innerHTML = h.vb;
+    $("chk-durable").checked = state.durable;
+    syncUndo(); render();
+  }
+  function syncUndo() { var b = $("btn-undo"); if (b) b.disabled = busy || !history.length; }
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(id) { return document.getElementById(id); }
+
+  function fresh() {
+    var acc = {};
+    A_IDS.forEach(function (id) {
+      acc[id] = { id: id, alive: true, promised: 0, acceptedN: 0, acceptedV: null };
+    });
+    return {
+      acceptors: acc,
+      proposers: {
+        P1: mkProposer("P1", 1), P2: mkProposer("P2", 2)
+      },
+      queue: [], acceptedBy: {}, chosen: [], chosenQuorum: null,
+      durable: true, witness: null
+    };
+  }
+  function mkProposer(id, rank) {
+    return { id: id, rank: rank, round: 0, n: 0, phase: "idle",
+             promises: {}, accepts: {}, proposed: null, adoptedFrom: null };
+  }
+
+  /* ---------------- protocol ---------------- */
+  function send(list) {
+    list.forEach(function (m) { m.id = ++seq; state.queue.push(m); });
+  }
+  function startProposal(pid, n) {
+    snapshot();
+    var p = state.proposers[pid];
+    if (n == null) { p.round++; n = p.round * 10 + p.rank; }
+    p.n = n; p.phase = "asking"; p.promises = {}; p.accepts = {};
+    p.proposed = null; p.adoptedFrom = null;
+    send(A_IDS.map(function (a) { return { src: pid, dst: a, kind: "PREPARE", n: n }; }));
+    say("ask", NAMES[pid] + " asks all five teachers for slot #" + n,
+        NAMES[pid] + " wants to book <b>" + WANT[pid] + "</b>, but first it has to claim a slot number and find out what has already been written down. Five notes are now in flight.",
+        "PREPARE(n=" + n + ") -> A,B,C,D,E");
+    render();
+  }
+
+  function acceptorReceive(a, m) {
+    if (m.kind === "PREPARE") {
+      if (m.n > a.promised) {
+        a.promised = m.n;
+        return [{ src: a.id, dst: m.src, kind: "PROMISE", n: m.n,
+                  lastN: a.acceptedN, lastValue: a.acceptedV }];
+      }
+      return [{ src: a.id, dst: m.src, kind: "NACK", n: m.n, lastN: a.promised }];
+    }
+    if (m.kind === "ACCEPT") {
+      if (m.n >= a.promised) {
+        a.promised = m.n; a.acceptedN = m.n; a.acceptedV = m.value;
+        return [{ src: a.id, dst: m.src, kind: "ACCEPTED", n: m.n, value: m.value }];
+      }
+      return [{ src: a.id, dst: m.src, kind: "NACK", n: m.n, lastN: a.promised }];
+    }
+    return [];
+  }
+
+  function proposerReceive(p, m) {
+    if (m.kind === "PROMISE" && m.n === p.n && p.phase === "asking") {
+      p.promises[m.src] = m;
+      if (Object.keys(p.promises).length === QUORUM) {
+        var bestN = 0, bestV = null;
+        Object.keys(p.promises).forEach(function (k) {
+          var pr = p.promises[k];
+          if (pr.lastValue !== null && pr.lastN > bestN) { bestN = pr.lastN; bestV = pr.lastValue; }
+        });
+        p.proposed = bestV === null ? WANT[p.id] : bestV;
+        p.adoptedFrom = bestV === null ? null : bestN;
+        p.phase = "telling";
+        return A_IDS.map(function (a) {
+          return { src: p.id, dst: a, kind: "ACCEPT", n: p.n, value: p.proposed };
+        });
+      }
+    } else if (m.kind === "ACCEPTED" && m.n === p.n) {
+      p.accepts[m.src] = true;
+      if (Object.keys(p.accepts).length >= QUORUM) p.phase = "done";
+    }
+    return [];
+  }
+
+  function recordAccept(aid, n, value) {
+    var key = n + "|" + value;
+    var set = state.acceptedBy[key] || (state.acceptedBy[key] = {});
+    set[aid] = true;
+    var members = Object.keys(set);
+    if (members.length === QUORUM) {
+      state.chosen.push({ n: n, value: value });
+      if (!state.chosenQuorum) state.chosenQuorum = members.slice();
+      var vals = decidedValues();
+      if (vals.length > 1) {
+        say("broken", "Two different decisions now exist — consensus is broken",
+            "The trip is booked for <b>" + vals.join("</b> and <b>") + "</b> at the same time. Every teacher followed the rules; the damage was done by the ones who forgot their own past after rebooting. A promise that is not written down is not a promise.",
+            "SAFETY VIOLATED: chosen = {" + vals.join(", ") + "}");
+      } else {
+        say("decided", "Decided: " + value,
+            "<b>" + members.join(", ") + "</b> have all written down <b>" + value + "</b>. That is 3 of 5 — a majority — so the trip is booked. Any future majority must contain at least one of these three, so no later rep can ever change it.",
+            "CHOSEN value=" + value + " n=" + n + " by {" + members.join(",") + "}");
+      }
+    }
+  }
+
+  function deliverMsg(m) {
+    var acc = state.acceptors[m.dst];
+    if (acc) {
+      if (!acc.alive) {
+        say("refuse", "Teacher " + m.dst + " is away, so the note is lost",
+            "Nobody retries automatically here. A note sent to a teacher who is not there simply never gets read — exactly what a real network does when a machine is down.",
+            m.kind + "(n=" + m.n + ") -> " + m.dst + " [node down]");
+        render(); return;
+      }
+      var out = acceptorReceive(acc, m);
+      narrateToAcceptor(m, acc, out[0]);
+      out.forEach(function (r) { if (r.kind === "ACCEPTED") recordAccept(r.src, r.n, r.value); });
+      send(out);
+      if (out[0] && out[0].kind === "ACCEPTED") flash(m.dst);
+    } else {
+      var p = state.proposers[m.dst];
+      if (!p) return;
+      var before = p.phase;
+      var out2 = proposerReceive(p, m);
+      narrateToProposer(m, p, before, out2);
+      send(out2);
+    }
+    render();
+  }
+
+  function narrateToAcceptor(m, acc, reply) {
+    var t = NAMES[m.src];
+    if (m.kind === "PREPARE") {
+      if (reply.kind === "PROMISE") {
+        if (reply.lastValue === null) {
+          say("ask", "Teacher " + acc.id + " grants slot #" + m.n + " to " + t,
+              "Teacher " + acc.id + " has written nothing down yet, so it replies: <b>slot #" + m.n + " is yours, and I have no news for you</b>. It also promises to ignore any lower slot number from now on.",
+              "PROMISE(n=" + m.n + ", accepted=none) from " + acc.id);
+        } else {
+          say("adopt", "Teacher " + acc.id + " grants slot #" + m.n + " — but reports old news",
+              "Teacher " + acc.id + " replies: <b>slot #" + m.n + " is yours, but I already wrote down '" + reply.lastValue + "'</b> under slot #" + reply.lastN + ". That single sentence is what stops history being rewritten.",
+              "PROMISE(n=" + m.n + ", accepted=(" + reply.lastN + ", " + reply.lastValue + ")) from " + acc.id);
+        }
+      } else {
+        say("refuse", "Teacher " + acc.id + " refuses " + t + "'s slot #" + m.n,
+            "Teacher " + acc.id + " has already promised slot #<b>" + reply.lastN + "</b> to somebody else, and a promise means refusing everything numbered lower. " + t + " must try again with a bigger number.",
+            "NACK(n=" + m.n + "; promised " + reply.lastN + ") from " + acc.id);
+      }
+    } else if (m.kind === "ACCEPT") {
+      if (reply.kind === "ACCEPTED") {
+        say("write", "Teacher " + acc.id + " writes down '" + m.value + "'",
+            "Teacher " + acc.id + " honours slot #" + m.n + " and records <b>" + m.value + "</b>. One teacher writing it down is not a decision — a majority is.",
+            "ACCEPTED(n=" + m.n + ", " + m.value + ") from " + acc.id);
+      } else {
+        say("refuse", "Teacher " + acc.id + " refuses to write '" + m.value + "'",
+            "This note is for slot #" + m.n + ", but teacher " + acc.id + " has since promised slot #<b>" + reply.lastN + "</b> to another rep. The note arrived too late and is thrown away.",
+            "NACK on ACCEPT(n=" + m.n + "); promised " + reply.lastN);
+      }
+    }
+  }
+
+  function narrateToProposer(m, p, beforePhase, out) {
+    var t = NAMES[p.id];
+    if (m.kind === "PROMISE" && beforePhase === "asking") {
+      var got = Object.keys(p.promises).length;
+      if (out.length) {
+        // Which teacher actually reported the old entry? That one is the witness --
+        // not whichever promise happened to arrive last.
+        var witnessId = null;
+        Object.keys(p.promises).forEach(function (k) {
+          if (p.promises[k].lastN === p.adoptedFrom && p.promises[k].lastValue === p.proposed) {
+            witnessId = k;
+          }
+        });
+        var inChosen = witnessId !== null && state.chosenQuorum &&
+                       state.chosenQuorum.indexOf(witnessId) >= 0;
+        if (p.adoptedFrom !== null) {
+          state.witness = witnessId;
+          say("adopt", t + " must give up on " + WANT[p.id] + " and carry '" + p.proposed + "' instead",
+              (inChosen
+                ? "Teacher <b>" + witnessId + "</b> is in the majority that already decided <b>and</b> in the majority " + t + " just asked. Two groups of three out of five <em>always</em> share someone — so the old decision cannot hide. "
+                : "Teacher <b>" + witnessId + "</b>, one of the three " + t + " asked, had already written something down. ") +
+              "The rule is absolute: if anyone reports an existing entry, the rep abandons its own idea and re-proposes the newest one it heard, <b>" + p.proposed + "</b>.",
+              "quorum reached (" + got + "/" + QUORUM + "); adopting value from n=" + p.adoptedFrom);
+        } else {
+          say("ask", t + " has " + QUORUM + " slots and is free to choose",
+              "All three teachers replied <b>nothing written down yet</b>, so " + t + " may use its own choice, <b>" + p.proposed + "</b>. Phase 2 begins: it now tells them what to write.",
+              "quorum reached (" + got + "/" + QUORUM + "); proposing own value");
+        }
+      } else {
+        say("ask", t + " has " + got + " of " + QUORUM + " slots",
+            "Not enough yet. A rep must hear back from a majority before it may tell anyone what to write — otherwise it could be talking to a group that missed an earlier decision.",
+            "PROMISE " + got + "/" + QUORUM, true);
+      }
+    } else if (m.kind === "ACCEPTED") {
+      var n = Object.keys(p.accepts).length;
+      if (n < QUORUM) {
+        say("write", t + " has " + n + " of " + QUORUM + " confirmations",
+            "Still short of a majority, so nothing is decided yet.",
+            "ACCEPTED " + n + "/" + QUORUM, true);
+      }
+    } else if (m.kind === "NACK") {
+      say("refuse", t + " is told its slot is stale",
+          "Somebody has claimed a higher slot number. " + t + " has to start again with a bigger one — and if the other rep keeps doing the same, neither ever finishes.",
+          "NACK; highest promise seen = " + m.lastN, true);
+    }
+  }
+
+  /* ---------------- helpers ---------------- */
+  function decidedValues() {
+    var out = [];
+    state.chosen.forEach(function (c) { if (out.indexOf(c.value) < 0) out.push(c.value); });
+    return out;
+  }
+  function deliverById(id) {
+    var i = state.queue.findIndex(function (m) { return m.id === id; });
+    if (i < 0) return;
+    snapshot();
+    var m = state.queue.splice(i, 1)[0];
+    animate(m);
+    deliverMsg(m);
+  }
+  function dropById(id) {
+    var i = state.queue.findIndex(function (m) { return m.id === id; });
+    if (i < 0) return;
+    snapshot();
+    var m = state.queue.splice(i, 1)[0];
+    say("refuse", "You lost the note " + m.src + " → " + m.dst,
+        "The note never arrives. Nothing detects this and nothing retries it — losing messages is normal, and the protocol has to stay correct anyway.",
+        "DROPPED " + m.kind + "(n=" + m.n + ") " + m.src + "->" + m.dst, true);
+    render();
+  }
+  function findMsg(dst, kind, n) {
+    return state.queue.find(function (m) {
+      return m.dst === dst && m.kind === kind && (n == null || m.n === n);
+    });
+  }
+  function stepDeliver(dst, kind, n) { var m = findMsg(dst, kind, n); if (m) deliverById(m.id); }
+  function stepDrop(dst, kind, n) { var m = findMsg(dst, kind, n); if (m) dropById(m.id); }
+
+  function toggleAcceptor(id) {
+    snapshot();
+    var a = state.acceptors[id];
+    a.alive = !a.alive;
+    if (!a.alive) {
+      if (!state.durable) { a.promised = 0; a.acceptedN = 0; a.acceptedV = null; }
+      say("refuse", "Teacher " + id + " is knocked out",
+          state.durable
+            ? "Teacher " + id + " stops answering, but its notebook is safe — everything comes back on return. Losing a minority of teachers costs progress, never correctness."
+            : "Teacher " + id + " stops answering <b>and forgets everything</b>, because its promises were only ever held in its head. Watch what that allows.",
+          "CRASH " + id + (state.durable ? " (state persisted)" : " (STATE LOST)"));
+    } else {
+      say("note", "Teacher " + id + " is back",
+          state.durable ? "Its notebook is exactly as it was." : "It remembers nothing at all — as far as it knows, it has never promised anybody anything.",
+          "RECOVER " + id);
+    }
+    render();
+  }
+
+  /* ---------------- rendering ---------------- */
+  function pendingFor(id) {
+    return state.queue.filter(function (m) { return m.dst === id; }).length;
+  }
+  function renderStage() {
+    var wires = "";
+    A_IDS.forEach(function (a) {
+      wires += '<line class="wire" x1="' + PPOS.P1 + '" y1="' + (PY + 38) + '" x2="' + POS[a] + '" y2="' + (AY - 34) + '"></line>';
+      wires += '<line class="wire" x1="' + PPOS.P2 + '" y1="' + (PY + 38) + '" x2="' + POS[a] + '" y2="' + (AY - 34) + '"></line>';
+    });
+    $("wires").innerHTML = wires;
+
+    ["P1", "P2"].forEach(function (pid) {
+      var p = state.proposers[pid], x = PPOS[pid];
+      var phase = { idle: "waiting", asking: "phase 1 · asking", telling: "phase 2 · telling", done: "finished" }[p.phase];
+      var line2 = p.phase === "idle" ? "no proposal yet" : "slot #" + p.n +
+        " · " + Object.keys(p.promises).length + "/" + QUORUM + " slots, " +
+        Object.keys(p.accepts).length + "/" + QUORUM + " written";
+      var line3 = p.proposed ? "pushing: " + p.proposed : "wants: " + WANT[pid];
+      var pend = pendingFor(pid);
+      $("prop-" + pid).innerHTML =
+        '<rect class="pbox" x="' + (x - 88) + '" y="' + (PY - 34) + '" width="176" height="76" rx="8"></rect>' +
+        '<text class="nname" x="' + (x - 74) + '" y="' + (PY - 14) + '">' + NAMES[pid] + "</text>" +
+        '<text class="nsub" x="' + (x - 74 + 52) + '" y="' + (PY - 14) + '">' + phase + "</text>" +
+        '<text class="nline dim" x="' + (x - 74) + '" y="' + (PY + 5) + '">' + line2 + "</text>" +
+        '<text class="nline' + (p.adoptedFrom !== null ? " val" : "") + '" x="' + (x - 74) + '" y="' + (PY + 24) + '">' + line3 +
+        (p.adoptedFrom !== null ? "  (adopted)" : "") + "</text>" +
+        (pend ? '<circle class="pending" cx="' + (x + 78) + '" cy="' + (PY - 24) + '" r="9"></circle>' +
+                '<text class="pending-txt" x="' + (x + 78) + '" y="' + (PY - 21) + '" text-anchor="middle">' + pend + "</text>" : "");
+    });
+
+    var out = "";
+    A_IDS.forEach(function (id) {
+      var a = state.acceptors[id], x = POS[id];
+      var cls = "abox" + (a.alive ? "" : " down") +
+        (state.chosenQuorum && state.chosenQuorum.indexOf(id) >= 0 ? " inquorum" : "") +
+        (state.witness === id ? " witness" : "");
+      var wrote = a.acceptedV === null ? "wrote: nothing" : "wrote: " + a.acceptedV;
+      var pend = pendingFor(id);
+      out += '<g data-id="' + id + '">' +
+        '<rect class="' + cls + '" id="box-' + id + '" x="' + (x - 56) + '" y="' + (AY - 34) + '" width="112" height="94" rx="8"></rect>' +
+        '<text class="nname" x="' + (x - 44) + '" y="' + (AY - 13) + '">' + id + "</text>" +
+        '<text class="nsub" x="' + (x - 44 + 18) + '" y="' + (AY - 13) + '">' + (a.alive ? "teacher" : "away") + "</text>" +
+        '<text class="nline dim" x="' + (x - 44) + '" y="' + (AY + 8) + '">promised #' + a.promised + "</text>" +
+        '<text class="nline' + (a.acceptedV ? " val" : " dim") + '" x="' + (x - 44) + '" y="' + (AY + 27) + '">' + wrote + "</text>" +
+        (a.acceptedV ? '<text class="nline dim" x="' + (x - 44) + '" y="' + (AY + 45) + '">under slot #' + a.acceptedN + "</text>" : "") +
+        (state.chosenQuorum && state.chosenQuorum.indexOf(id) >= 0 ? '<text class="star" x="' + (x + 34) + '" y="' + (AY - 13) + '">★</text>' : "") +
+        (pend ? '<circle class="pending" cx="' + (x + 48) + '" cy="' + (AY - 26) + '" r="9"></circle>' +
+                '<text class="pending-txt" x="' + (x + 48) + '" y="' + (AY - 23) + '" text-anchor="middle">' + pend + "</text>" : "") +
+        "</g>";
+    });
+    $("acceptors").innerHTML = out;
+    A_IDS.forEach(function (id) {
+      var box = $("box-" + id);
+      if (box) box.addEventListener("click", function () { toggleAcceptor(id); });
+    });
+  }
+
+  function renderQueue() {
+    var q = $("queue");
+    if (!state.queue.length) {
+      q.innerHTML = '<div class="empty">No notes in flight. Start a proposal to create some.</div>';
+      return;
+    }
+    q.innerHTML = "";
+    state.queue.forEach(function (m) {
+      var row = document.createElement("div");
+      row.className = "qrow " + m.kind;
+      var label = document.createElement("span");
+      label.innerHTML = m.src + " &rarr; " + m.dst + ' <span class="qk">' + m.kind + "</span> #" + m.n +
+        (m.value ? " " + m.value : "");
+      var sp = document.createElement("span"); sp.className = "spacer";
+      var d = document.createElement("button"); d.className = "tiny"; d.textContent = "deliver";
+      d.addEventListener("click", function () { deliverById(m.id); });
+      var x = document.createElement("button"); x.className = "tiny"; x.textContent = "lose";
+      x.addEventListener("click", function () { dropById(m.id); });
+      row.appendChild(label); row.appendChild(sp); row.appendChild(d); row.appendChild(x);
+      q.appendChild(row);
+    });
+  }
+
+  function render() {
+    renderStage(); renderQueue();
+    var vals = decidedValues();
+    $("v-dec").textContent = vals.length ? vals.join(" + ") : "none";
+    $("stat-dec").className = "stat" + (vals.length === 1 ? " good" : vals.length > 1 ? " bad" : "");
+    var safe = vals.length <= 1;
+    $("v-safe").textContent = safe ? "holds" : "BROKEN";
+    $("stat-safe").className = "stat " + (safe ? "good" : "bad");
+    $("btn-step").disabled = !state.queue.length;
+    $("btn-all").disabled = !state.queue.length;
+  }
+
+  function flash(id) {
+    var box = $("box-" + id);
+    if (!box) return;
+    box.classList.add("flash");
+    setTimeout(function () { var b = $("box-" + id); if (b) b.classList.remove("flash"); }, 600);
+  }
+  function animate(m) {
+    if (reduce) return;
+    var from = state.acceptors[m.src] ? { x: POS[m.src], y: AY - 34 } : { x: PPOS[m.src], y: PY + 38 };
+    var to = state.acceptors[m.dst] ? { x: POS[m.dst], y: AY - 34 } : { x: PPOS[m.dst], y: PY + 38 };
+    var dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("class", "msg-dot"); dot.setAttribute("r", "5");
+    dot.setAttribute("cx", from.x); dot.setAttribute("cy", from.y);
+    $("stage").appendChild(dot);
+    var a = dot.animate([{ transform: "translate(0,0)" },
+      { transform: "translate(" + (to.x - from.x) + "px," + (to.y - from.y) + "px)" }],
+      { duration: 380, easing: "ease-in-out" });
+    a.onfinish = function () { dot.remove(); };
+  }
+
+  function say(kind, head, body, tech, dim) {
+    $("verdict").className = "verdict " + kind;
+    $("v-head").textContent = head;
+    $("v-body").innerHTML = body;
+    var row = document.createElement("div");
+    row.className = "lrow" + (dim ? " dim" : "");
+    var b = document.createElement("span");
+    b.className = "badge " + kind;
+    b.textContent = kind === "note" ? "info" : kind;
+    var wrapEl = document.createElement("div");
+    var main = document.createElement("div"); main.innerHTML = body;
+    wrapEl.appendChild(main);
+    if (tech) { var t = document.createElement("div"); t.className = "ltech"; t.textContent = tech; wrapEl.appendChild(t); }
+    row.appendChild(b); row.appendChild(wrapEl);
+    $("log").prepend(row);
+  }
+
+  /* ---------------- guided experiments ---------------- */
+  var BTNS = ["btn-p1", "btn-p2", "btn-step", "btn-all", "btn-reset",
+              "run-1", "run-2", "run-3", "run-4", "run-5", "btn-undo"];
+  function setBusy(v) { busy = v; BTNS.forEach(function (i) { $(i).disabled = v; }); syncUndo(); render(); }
+  function play(steps, done) {
+    if (busy) return;
+    setBusy(true);
+    var d = reduce ? 40 : 620, i = 0;
+    (function next() {
+      if (i >= steps.length) { setBusy(false); if (done) done(); return; }
+      steps[i++]();
+      setTimeout(next, d);
+    })();
+  }
+  function fullRound(pid, n, ids) {
+    var s = [function () { startProposal(pid, n); }];
+    ids.split("").forEach(function (a) { s.push(function () { stepDeliver(a, "PREPARE", n); }); });
+    ids.split("").forEach(function () { s.push(function () { stepDeliver(pid, "PROMISE", n); }); });
+    ids.split("").forEach(function (a) { s.push(function () { stepDeliver(a, "ACCEPT", n); }); });
+    ids.split("").forEach(function () { s.push(function () { stepDeliver(pid, "ACCEPTED", n); }); });
+    return s;
+  }
+  function resetAll() {
+    state = fresh();
+    state.durable = $("chk-durable").checked;
+    history.length = 0; syncUndo();
+    $("log").innerHTML = "";
+    say("note", "Fresh start", "Five teachers, nothing written down, no notes in flight. A decision needs <b>3 of 5</b>.", null, true);
+    render();
+  }
+
+  $("btn-p1").addEventListener("click", function () { startProposal("P1", null); });
+  $("btn-p2").addEventListener("click", function () { startProposal("P2", null); });
+  $("btn-step").addEventListener("click", function () { if (state.queue.length) deliverById(state.queue[0].id); });
+  $("btn-all").addEventListener("click", function () {
+    var guard = 0;
+    while (state.queue.length && guard++ < 200) deliverById(state.queue[0].id);
+  });
+  $("btn-reset").addEventListener("click", function () { pendingPredict = null; resetAll(); });
+  $("chk-durable").addEventListener("change", function (e) {
+    snapshot();
+    state.durable = e.target.checked;
+    say("note", e.target.checked ? "Teachers now write their promises down" : "Teachers now only keep promises in their head",
+        e.target.checked
+          ? "A reboot no longer costs a teacher its memory. This is what a real acceptor must do: flush to disk before replying."
+          : "A teacher who is knocked out will forget every promise and every entry. Run experiment 5 to see what that allows.",
+        "durable = " + e.target.checked, true);
+  });
+
+  /* ---------------- predict-then-run ---------------- */
+  var EXPRUN = {
+    1: function (done) { play([resetAll].concat(fullRound("P1", 1, "ABC")), done); },
+    2: function (done) { play([resetAll].concat(fullRound("P1", 1, "ABC")).concat(fullRound("P2", 2, "CDE")), done); },
+    3: function (done) {
+      var s = [resetAll, function () { startProposal("P1", 1); }];
+      "ABC".split("").forEach(function (a) { s.push(function () { stepDeliver(a, "PREPARE", 1); }); });
+      "ABC".split("").forEach(function () { s.push(function () { stepDeliver("P1", "PROMISE", 1); }); });
+      s.push(function () { stepDeliver("A", "ACCEPT", 1); });
+      s.push(function () { stepDeliver("B", "ACCEPT", 1); });
+      "CDE".split("").forEach(function (a) { s.push(function () { stepDrop(a, "ACCEPT", 1); }); });
+      play(s.concat(fullRound("P2", 2, "CDE")), done);
+    },
+    4: function (done) {
+      var s = [resetAll], n = 1;
+    for (var r = 0; r < 4; r++) {
+      (function (k) {
+        s.push(function () { startProposal("P1", k); });
+        "ABC".split("").forEach(function (a) { s.push(function () { stepDeliver(a, "PREPARE", k); }); });
+        "ABC".split("").forEach(function () { s.push(function () { stepDeliver("P1", "PROMISE", k); }); });
+        s.push(function () { startProposal("P2", k + 1); });
+        "ABC".split("").forEach(function (a) { s.push(function () { stepDeliver(a, "PREPARE", k + 1); }); });
+        "ABC".split("").forEach(function () { s.push(function () { stepDeliver("P2", "PROMISE", k + 1); }); });
+        "ABC".split("").forEach(function (a) { s.push(function () { stepDeliver(a, "ACCEPT", k); }); });
+      })(n);
+      n += 2;
+    }
+    s.push(function () {
+      say("note", "Four rounds, nothing decided",
+          "No note was lost and no teacher failed — the two reps simply kept invalidating each other. Paxos stayed <b>safe</b> (nothing wrong was decided) while failing to be <b>live</b> (nothing was decided at all). The fix is to elect one leader, not to change the rules.",
+          "livelock: 4 rounds, chosen = none");
+    });
+    play(s, done);
+    },
+    5: function (done) {
+      var s = [function () { $("chk-durable").checked = false; resetAll(); }];
+      s = s.concat(fullRound("P1", 1, "ABC"));
+      ["A", "B", "C", "A", "B", "C"].forEach(function (id) { s.push(function () { toggleAcceptor(id); }); });
+      play(s.concat(fullRound("P2", 2, "ABC")), done);
+    }
+  };
+  var PREDICT = {
+    1: { q: "One rep, no failures, every note arrives. At what moment is the Zoo actually DECIDED?",
+         opts: [
+           { t: "When all 5 teachers have written it down", ok: false },
+           { t: "When any 3 teachers have written it under the same slot number", ok: true },
+           { t: "The moment the rep announces it", ok: false }],
+         why: "A majority — 3 of 5 — having written the same slot IS the decision. Not unanimity (that would stall on one sick teacher), and not an announcement (announcements can be lost). Nobody even needs to know it happened for it to be true." },
+    2: { q: "The Zoo is decided by A, B, C. Rep 2 now campaigns for the Museum using the OTHER majority, C, D, E. What does Rep 2 end up proposing?",
+         opts: [
+           { t: "Museum \u2014 D and E know nothing, so Rep 2 can outvote the past", ok: false },
+           { t: "Zoo \u2014 teacher C sits in both majorities and reports it", ok: true },
+           { t: "Nothing \u2014 the two runs deadlock", ok: false }],
+         why: "Any two majorities of five share at least one member. C answers Rep 2\u2019s asking-phase with \u201CI already wrote Zoo\u201D, and the adopt rule forces Rep 2 to abandon the Museum and carry the Zoo forward. That unavoidable overlap is the entire safety of Paxos." },
+    3: { q: "Rep 1\u2019s write-it-down notes reach only A and B \u2014 2 of 5 \u2014 and the rest are lost. Can Rep 2 still get the Museum decided?",
+         opts: [
+           { t: "No \u2014 teachers wrote the Zoo down, so it is protected forever", ok: false },
+           { t: "Yes \u2014 2 of 5 was never a decision, so nothing is overturned", ok: true }],
+         why: "\u201CAccepted by somebody\u201D is not \u201Cchosen\u201D. Only a majority on the same slot decides. Rep 2\u2019s majority C, D, E holds no witness of the Zoo \u2014 and that is correct, because the Zoo was never decided. This distinction is the most common Paxos misunderstanding." },
+    4: { q: "Two reps keep claiming higher slots just before the other can finish. Nothing crashes, no note is lost. What happens?",
+         opts: [
+           { t: "The higher slot number eventually wins", ok: false },
+           { t: "Two different values end up decided", ok: false },
+           { t: "Nothing is EVER decided \u2014 but nothing wrong is decided either", ok: true }],
+         why: "Each new asking-round invalidates the other rep\u2019s pending write. Safety holds perfectly \u2014 no wrong decision can appear \u2014 while liveness fails completely. This livelock is why every real deployment elects one leader instead of letting proposers duel." },
+    5: { q: "Teachers keep promises only in their heads. The Zoo gets decided by A, B, C \u2014 then those three reboot and forget. What can Rep 2 now cause?",
+         opts: [
+           { t: "Nothing bad \u2014 the slot-number rules still protect the Zoo", ok: false },
+           { t: "A SECOND, different decision \u2014 safety itself breaks", ok: true },
+           { t: "A permanent stall", ok: false }],
+         why: "The whole safety argument leans on acceptors remembering what they promised and accepted. Amnesia deletes the witness from the majority overlap: A, B, C come back blank, tell Rep 2 \u201Cnothing ever happened here\u201D, and the Museum gets decided alongside the Zoo. This is exactly why real acceptors flush to disk before replying." }
+  };
+  function askPredict(n) {
+    if (busy) return;
+    pendingPredict = null;
+    var p = PREDICT[n];
+    $("verdict").className = "verdict ask";
+    $("v-head").textContent = "Predict first \u2014 experiment " + n;
+    var body = $("v-body");
+    body.innerHTML = "";
+    var qEl = document.createElement("div");
+    qEl.innerHTML = "<b>" + p.q + "</b>";
+    var ops = document.createElement("div");
+    ops.className = "predictops";
+    p.opts.forEach(function (o, i) {
+      var b = document.createElement("button");
+      b.className = "tiny";
+      b.textContent = o.t;
+      b.addEventListener("click", function () {
+        if (busy) return;
+        pendingPredict = { n: n, pick: i };
+        say("note", "Your prediction is locked in",
+            "You predicted: <b>" + o.t + "</b>. Now watch the run \u2014 the verdict comes at the end.",
+            "experiment " + n, true);
+        EXPRUN[n](function () { settlePredict(); });
+      });
+      ops.appendChild(b);
+    });
+    body.appendChild(qEl);
+    body.appendChild(ops);
+  }
+  function settlePredict() {
+    if (!pendingPredict) return;
+    var p = PREDICT[pendingPredict.n], pick = p.opts[pendingPredict.pick];
+    var exp = $("exp-" + pendingPredict.n);
+    if (exp) exp.removeAttribute("hidden");
+    say(pick.ok ? "decided" : "adopt",
+        pick.ok ? "Prediction check: you were right" : "Prediction check: not quite",
+        (pick.ok ? "" : "You predicted \u201C" + pick.t + "\u201D. ") + p.why +
+        " <i>(The \u201Cwatch for\u201D note under this experiment is now revealed.)</i>",
+        "experiment " + pendingPredict.n + " settled");
+    pendingPredict = null;
+  }
+  [1, 2, 3, 4, 5].forEach(function (n) {
+    $("run-" + n).addEventListener("click", function () { askPredict(n); });
+  });
+  $("btn-undo").addEventListener("click", undo);
+
+  state = fresh();
+  say("note", "Fresh start", "Five teachers, nothing written down, no notes in flight. A decision needs <b>3 of 5</b>.", null, true);
+  render();
+})();
+</script>

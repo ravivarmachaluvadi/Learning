@@ -1,0 +1,1687 @@
+<title>The Overload Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#e9edf0; --card:#fbfcfd; --card2:#f2f5f7; --sunk:#e2e7eb;
+  --ink:#131a1f; --ink2:#3f4d58; --muted:#66737e; --rule:#d2d9df; --rule2:#c0c9d1;
+  --served:#00874f; --servedFill:rgba(0,135,79,.13);
+  --lost:#8e4585;   --lostFill:rgba(142,69,133,.13);
+  --shed:#7c8894;   --shedFill:rgba(124,136,148,.16);
+  --queue:#a2650b;
+  --accent:#00874f; --onAccent:#ffffff;
+  --shadow:0 1px 2px rgba(19,26,31,.06),0 6px 20px rgba(19,26,31,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+    --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+    --served:#26a877; --servedFill:rgba(38,168,119,.16);
+    --lost:#b271ae;   --lostFill:rgba(178,113,174,.16);
+    --shed:#8b98a5;   --shedFill:rgba(139,152,165,.18);
+    --queue:#bf8526;
+    --accent:#26a877; --onAccent:#0c1216;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+  --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+  --served:#26a877; --servedFill:rgba(38,168,119,.16);
+  --lost:#b271ae;   --lostFill:rgba(178,113,174,.16);
+  --shed:#8b98a5;   --shedFill:rgba(139,152,165,.18);
+  --queue:#bf8526;
+  --accent:#26a877; --onAccent:#0c1216;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 72px}
+
+/* ---------- header ---------- */
+header.top{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+h1{
+  font-family:Chivo,system-ui,sans-serif; font-weight:900; font-size:clamp(30px,4.4vw,46px);
+  line-height:.98; letter-spacing:-.025em; margin:0; text-wrap:balance;
+}
+h1 .sub{display:block;font-size:.38em;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5em}
+.lede{max-width:60ch;color:var(--ink2);margin:10px 0 0;font-size:15.5px}
+.themebtn{
+  font:600 12px/1 "Public Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--card);color:var(--ink2);border:1px solid var(--rule);border-radius:999px;
+  padding:9px 15px;cursor:pointer;white-space:nowrap;
+}
+.themebtn:hover{border-color:var(--rule2);color:var(--ink)}
+
+/* ---------- hero readout ---------- */
+.readout{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+  margin:0 0 8px;box-shadow:var(--shadow);
+}
+.cell{background:var(--card);padding:15px 17px 16px;min-width:0}
+.cell .lab{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.cell .val{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;
+  font-size:clamp(22px,3vw,31px);line-height:1.12;margin-top:7px;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+.cell .note{font-size:11.5px;color:var(--muted);margin-top:3px;min-height:1.3em}
+.cell.hero{background:var(--card2)}
+.swatch{width:9px;height:9px;border-radius:2px;flex:none}
+.v-served{color:var(--served)} .v-lost{color:var(--lost)} .v-shed{color:var(--shed)}
+.readnote{font-size:12.5px;color:var(--muted);margin:0 0 22px;max-width:70ch}
+
+/* ---------- tabs ---------- */
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--sunk);padding:4px;border-radius:12px;margin-bottom:20px;border:1px solid var(--rule)}
+nav.tabs button{
+  font:600 13px/1 "Public Sans",sans-serif;color:var(--ink2);background:transparent;
+  border:0;border-radius:9px;padding:10px 15px;cursor:pointer;white-space:nowrap;
+}
+nav.tabs button:hover{color:var(--ink);background:var(--card2)}
+nav.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+nav.tabs button .n{font-family:"IBM Plex Mono",monospace;color:var(--muted);margin-right:7px;font-weight:500}
+nav.tabs button[aria-selected="true"] .n{color:var(--accent)}
+
+/* ---------- panel layout ---------- */
+.panel{display:none}
+.panel.on{display:block}
+.grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:880px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card h2{font-family:Chivo,sans-serif;font-weight:700;font-size:17px;letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+.card h3{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:20px 0 10px}
+.card h3:first-child{margin-top:0}
+.card p{margin:0 0 12px;color:var(--ink2);font-size:14px}
+.card p.small{font-size:13px;color:var(--muted)}
+
+/* ---------- controls ---------- */
+.ctl{margin-bottom:16px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:600 12.5px/1.4 "Public Sans",sans-serif;color:var(--ink2);margin-bottom:7px}
+.ctl label b{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;font-size:13px}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px;cursor:pointer}
+select,.seg{width:100%}
+select{
+  font:500 13.5px/1 "Public Sans",sans-serif;color:var(--ink);background:var(--card2);
+  border:1px solid var(--rule);border-radius:9px;padding:10px 11px;cursor:pointer;
+}
+.seg{display:flex;gap:2px;background:var(--sunk);padding:3px;border-radius:9px;border:1px solid var(--rule)}
+.seg button{
+  flex:1;font:600 12.5px/1 "Public Sans",sans-serif;color:var(--ink2);background:transparent;
+  border:0;border-radius:7px;padding:8px 4px;cursor:pointer;
+}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--ink)}
+.check{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink2);margin-bottom:9px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+.btn{
+  font:600 13.5px/1 "Public Sans",sans-serif;background:var(--accent);color:var(--onAccent);
+  border:0;border-radius:10px;padding:12px 16px;cursor:pointer;width:100%;margin-top:4px;
+}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:var(--card2);color:var(--ink);border:1px solid var(--rule)}
+.btn.ghost:hover{border-color:var(--rule2);filter:none}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scen{display:flex;flex-direction:column;gap:7px}
+.scen button{
+  text-align:left;font:500 13.5px/1.35 "Public Sans",sans-serif;color:var(--ink);
+  background:var(--card2);border:1px solid var(--rule);border-radius:10px;padding:11px 13px;cursor:pointer;
+}
+.scen button:hover{border-color:var(--accent)}
+.scen button b{display:block;font-family:Chivo,sans-serif;font-weight:700;font-size:13.5px;margin-bottom:2px}
+.scen button span{color:var(--muted);font-size:12.5px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---------- chart ---------- */
+.chartwrap{position:relative;margin-bottom:6px}
+canvas{width:100%;display:block;border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 0;font-size:12.5px;color:var(--ink2)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:16px;height:3px;border-radius:2px;display:block;flex:none}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 8px);height:2px}
+.tip{
+  position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--rule2);
+  border-radius:9px;padding:9px 11px;font-size:12.5px;box-shadow:var(--shadow);opacity:0;
+  transition:opacity .1s;min-width:130px;z-index:5;
+}
+.tip .tt{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.tip .tr{display:flex;justify-content:space-between;gap:14px;font-family:"IBM Plex Mono",monospace;font-size:12px;font-variant-numeric:tabular-nums}
+.tip .tr b{font-weight:600}
+
+/* ---------- verdict ---------- */
+.verdict{
+  border-left:3px solid var(--accent);background:var(--card2);border-radius:0 10px 10px 0;
+  padding:14px 16px;margin-top:16px;font-size:14px;color:var(--ink2);
+}
+.verdict strong{color:var(--ink);font-weight:600}
+.verdict.bad{border-left-color:var(--lost)}
+.verdict.warn{border-left-color:var(--queue)}
+
+/* ---------- predict ---------- */
+details.predict{border:1px solid var(--rule);border-radius:11px;background:var(--card2);padding:0;margin:0 0 16px}
+details.predict summary{
+  cursor:pointer;padding:13px 16px;font:600 13.5px/1.4 "Public Sans",sans-serif;color:var(--ink);list-style:none;
+}
+details.predict summary::-webkit-details-marker{display:none}
+details.predict summary::before{content:"▸ ";color:var(--accent);font-weight:700}
+details.predict[open] summary::before{content:"▾ "}
+details.predict .body{padding:0 16px 15px;font-size:13.5px;color:var(--ink2)}
+details.predict .body p{margin:0 0 9px}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto;margin-top:14px;border:1px solid var(--rule);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:9px 13px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--card2)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tr.hi td{background:var(--servedFill)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font:600 11px/1.6 "Public Sans",sans-serif}
+.pill.ok{background:var(--servedFill);color:var(--served)}
+.pill.no{background:var(--lostFill);color:var(--lost)}
+
+/* ---------- bars ---------- */
+.bars{display:flex;flex-direction:column;gap:13px;margin-top:6px}
+.bar{display:grid;grid-template-columns:112px minmax(0,1fr) 62px;gap:12px;align-items:center;font-size:13.5px}
+.bar .track{height:22px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;border-radius:6px;transition:width .45s cubic-bezier(.2,.7,.3,1)}
+.bar .pc{font-family:"IBM Plex Mono",monospace;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:76ch}
+footer code{font-family:"IBM Plex Mono",monospace;font-size:11.5px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1><span class="sub">A load-shedding lab</span>The Overload Desk</h1>
+    <p class="lede">One service. Four workers, 80&nbsp;ms each — it can finish <b>50 requests a second</b>,
+      and clients give up after <b>1 second</b>. Push more than 50/s at it and watch which number
+      on your dashboard notices.</p>
+  </div>
+  <button class="themebtn" id="themebtn">Theme</button>
+</header>
+
+<div class="readout" id="readout">
+  <div class="cell"><div class="lab">Offered</div><div class="val" id="r-off">—</div><div class="note">requests arriving per second</div></div>
+  <div class="cell"><div class="lab"><i class="swatch" style="background:var(--shed)"></i>Throughput</div><div class="val v-shed" id="r-thru">—</div><div class="note">finished per second</div></div>
+  <div class="cell hero"><div class="lab"><i class="swatch" style="background:var(--served)"></i>Goodput</div><div class="val v-served" id="r-good">—</div><div class="note">finished <em>in time to matter</em></div></div>
+  <div class="cell hero"><div class="lab">Customers served</div><div class="val" id="r-succ">—</div><div class="note" id="r-ceil">—</div></div>
+  <div class="cell"><div class="lab"><i class="swatch" style="background:var(--queue)"></i>Queue depth</div><div class="val" id="r-q">—</div><div class="note" id="r-qn">at the end of the run</div></div>
+</div>
+<p class="readnote"><b>Throughput</b> and <b>goodput</b> start out identical. Everything in this lab
+lives in the gap that opens between them.</p>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-p="p1"><span class="n">1</span>The collapse</button>
+  <button role="tab" aria-selected="false" data-p="p2"><span class="n">2</span>Four shedders</button>
+  <button role="tab" aria-selected="false" data-p="p3"><span class="n">3</span>The queue itself</button>
+  <button role="tab" aria-selected="false" data-p="p4"><span class="n">4</span>Failure injection</button>
+  <button role="tab" aria-selected="false" data-p="p5"><span class="n">5</span>Priority</button>
+</nav>
+
+<!-- ============ 1. THE COLLAPSE ============ -->
+<section class="panel on" id="p1">
+<div class="grid">
+  <div class="card">
+    <h2>Push it past capacity</h2>
+    <p class="small">No protection of any kind: an unbounded queue served first-come-first-served,
+      exactly what you get from a default thread pool.</p>
+    <div class="ctl">
+      <label for="c1load">Offered load <b><span id="c1load-v">60</span> req/s</b></label>
+      <input type="range" id="c1load" min="20" max="200" step="5" value="60">
+      <p class="small" style="margin:6px 0 0">Capacity is 50/s. Anything above that is overload.</p>
+    </div>
+    <button class="btn" id="c1run">Run 10 minutes</button>
+    <h3>Or jump straight to</h3>
+    <div class="scen">
+      <button data-load="35"><b>A normal Tuesday</b><span>35/s — 70% busy</span></button>
+      <button data-load="50"><b>Exactly at capacity</b><span>50/s — where the answer stops existing</span></button>
+      <button data-load="60"><b>Twenty percent over</b><span>60/s — the one that surprises people</span></button>
+      <button data-load="150"><b>A promotion goes live</b><span>150/s — three times capacity</span></button>
+    </div>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict before you run: at 60/s against a capacity of 50/s, what share of customers get an answer?</summary>
+      <div class="body">
+        <p>The arithmetic seems easy: 50 of every 60 can be finished, so about <b>83%</b> should
+          succeed and 17% should fail.</p>
+        <p><b>The measured answer is 0.7%.</b> Not 83%. Under one in a hundred.</p>
+        <p>The queue grows by 10 requests every second and never shrinks. Within a minute
+          everyone joining it is already certain to time out before reaching a worker — but the
+          server never learns that, so it does all the work anyway. Run it and watch the two
+          counters at the top separate.</p>
+      </div>
+    </details>
+    <div class="card">
+      <h2>Work finished, and work finished in time</h2>
+      <p class="small">Both lines are requests per second. They are the same measurement,
+        one of them counting only the requests whose client was still waiting.</p>
+      <div class="chartwrap"><canvas id="c1chart" height="500"></canvas><div class="tip" id="c1tip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--muted)" class="dash"></i>Offered</span>
+        <span><i style="background:var(--shed)"></i>Throughput</span>
+        <span><i style="background:var(--served)"></i>Goodput</span>
+      </div>
+      <div class="verdict" id="c1verdict">Press <strong>Run</strong>, or pick a scenario.</div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h2>The whole curve, with and without a doorman</h2>
+      <p class="small">Success rate against offered load. The grey dashed line is the ceiling —
+        capacity divided by offered load — which nothing can beat.</p>
+      <div class="chartwrap"><canvas id="c1curve" height="440"></canvas><div class="tip" id="c1ctip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--muted)" class="dash"></i>Best possible</span>
+        <span><i style="background:var(--lost)"></i>No shedding</span>
+        <span><i style="background:var(--served)"></i>Queue capped at 20</span>
+      </div>
+      <div class="verdict">The two coloured lines are the same service. <strong>They separate at 50/s
+        and never come back together.</strong> The green one tracks the ceiling all the way out.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 2. FOUR SHEDDERS ============ -->
+<section class="panel" id="p2">
+<div class="grid">
+  <div class="card">
+    <h2>Choose a signal</h2>
+    <p class="small">Every shedder is a control loop. They differ only in what they measure.</p>
+    <div class="ctl">
+      <label for="c2shed">Admission control</label>
+      <select id="c2shed">
+        <option value="none">Nothing — let everyone in</option>
+        <option value="queueCap" selected>v1 · count the queue</option>
+        <option value="concurrency">v1b · count everything in flight</option>
+        <option value="queueTime">v2a · predicted queue delay</option>
+        <option value="codel">v2b · adaptive LIFO + CoDel</option>
+        <option value="aimd">v3 · adaptive limit, absolute threshold</option>
+        <option value="gradient">v3b · adaptive limit, relative signal</option>
+      </select>
+    </div>
+    <div class="ctl" id="c2paramwrap">
+      <label for="c2param"><span id="c2param-l">Queue cap</span> <b><span id="c2param-v">20</span></b></label>
+      <input type="range" id="c2param" min="1" max="200" step="1" value="20">
+    </div>
+    <div class="ctl">
+      <label for="c2load">Offered load <b><span id="c2load-v">150</span> req/s</b></label>
+      <input type="range" id="c2load" min="20" max="200" step="5" value="150">
+    </div>
+    <h3>The test that separates them</h3>
+    <label class="check"><input type="checkbox" id="c2step">
+      <span>Halfway through, a dependency slows down: 80&nbsp;ms → 400&nbsp;ms per request</span></label>
+    <p class="small">Nothing else changes. Capacity silently falls from 50/s to 10/s, and every
+      setting you tuned is now wrong by 5×.</p>
+    <button class="btn" id="c2run">Run</button>
+    <button class="btn ghost" id="c2all" style="margin-top:8px">Compare all seven</button>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: your queue cap of 20 is optimal today. A dependency gets 5× slower. What does it deliver?</summary>
+      <div class="body">
+        <p>The cap is still enforced. The config is unchanged and still looks right in code review.
+          The rejection metric still shows it shedding hard.</p>
+        <p><b>It delivers 0.1% against a 16.7% ceiling — the same as having no shedder at all.</b></p>
+        <p>Twenty requests at 400&nbsp;ms across four workers is 2,000&nbsp;ms of waiting, which is
+          twice the client's deadline. Every request it admits is already dead. Tick the box and run it,
+          then try the same thing with CoDel, which measures time rather than counting.</p>
+      </div>
+    </details>
+    <div class="card">
+      <h2>Goodput, and the limit the controller chose</h2>
+      <div class="chartwrap"><canvas id="c2chart" height="430"></canvas><div class="tip" id="c2tip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--muted)" class="dash"></i>Offered</span>
+        <span><i style="background:var(--served)"></i>Goodput</span>
+      </div>
+      <h3 style="margin-top:22px">How much work it allowed inside at once</h3>
+      <p class="small">A separate scale, because requests-per-second and requests-in-flight are
+        different quantities. A flat line is a constant you configured; a moving one is a
+        controller finding its own answer.</p>
+      <div class="chartwrap"><canvas id="c2limit" height="260"></canvas><div class="tip" id="c2ltip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--queue)"></i>Limit</span>
+        <span><i style="background:var(--shed)" class="dash"></i>Actually in flight</span>
+      </div>
+      <div class="verdict" id="c2verdict">Press <strong>Run</strong>.</div>
+      <div id="c2table"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 3. THE QUEUE ITSELF ============ -->
+<section class="panel" id="p3">
+<div class="grid">
+  <div class="card">
+    <h2>No admission control at all</h2>
+    <p class="small">Nothing is rejected here. The queue is unbounded. The only thing you are
+      changing is <b>what order work comes off it</b> and <b>who you give up on</b>.</p>
+    <h3>Order</h3>
+    <div class="seg" id="c3order">
+      <button data-v="fifo" aria-pressed="true">FIFO</button>
+      <button data-v="adaptiveLifo" aria-pressed="false">Adaptive</button>
+      <button data-v="lifo" aria-pressed="false">LIFO</button>
+    </div>
+    <h3>Give up on</h3>
+    <label class="check"><input type="checkbox" id="c3drop">
+      <span>Requests that cannot finish in time</span></label>
+    <div class="ctl" id="c3slackwrap" style="opacity:.45">
+      <label for="c3slack">Headroom before the deadline <b><span id="c3slack-v">0</span> ms</b></label>
+      <input type="range" id="c3slack" min="0" max="400" step="10" value="0" disabled>
+    </div>
+    <label class="check"><input type="checkbox" id="c3codel">
+      <span>CoDel — drop anything that waited too long</span></label>
+    <div class="ctl">
+      <label for="c3load">Offered load <b><span id="c3load-v">150</span> req/s</b></label>
+      <input type="range" id="c3load" min="50" max="200" step="5" value="150">
+    </div>
+    <button class="btn" id="c3run">Run</button>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: at 3× overload with nothing rejected, what does switching FIFO to LIFO do?</summary>
+      <div class="body">
+        <p>It changes one word in the code. It rejects nothing, configures nothing, and adds no
+          admission control. The baseline is <b>0.1%</b> and the ceiling is <b>33.3%</b>.</p>
+        <p><b>LIFO reaches 33.4% — the theoretical maximum.</b> Median latency drops from 532&nbsp;ms
+          to 66&nbsp;ms, and wasted work goes from 100% to zero.</p>
+        <p>The front of a backed-up FIFO queue is by definition the request that has been waiting
+          longest, which is the one most likely to be dead already. FIFO under overload serves the
+          corpses first.</p>
+        <p><b>But watch the queue-depth number.</b> LIFO fixed goodput and did nothing about memory —
+          the queue is still tens of thousands deep and still growing. That is why the real design
+          pairs it with CoDel. Tick both and compare.</p>
+      </div>
+    </details>
+    <div class="card">
+      <h2>Outcome of every request that arrived</h2>
+      <p class="small">Each second's arrivals, split by what happened to them.</p>
+      <div class="chartwrap"><canvas id="c3chart" height="460"></canvas><div class="tip" id="c3tip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--served)"></i>Answered in time</span>
+        <span><i style="background:var(--shed)"></i>Refused or dropped at once</span>
+        <span><i style="background:var(--lost)"></i>Waited, then got nothing</span>
+      </div>
+      <div class="verdict" id="c3verdict">Press <strong>Run</strong>.</div>
+      <div id="c3table"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 4. FAILURE INJECTION ============ -->
+<section class="panel" id="p4">
+<div class="grid">
+  <div class="card">
+    <h2>Four ways a working shedder still loses</h2>
+    <p class="small">Each of these runs a matched pair — the same overload with and without one
+      specific mistake — so you can see what the mistake costs on its own.</p>
+    <div class="scen" style="margin-top:16px">
+      <button data-f="retry"><b>Clients retry the 503</b><span>Your own rejections become your traffic</span></button>
+      <button data-f="cost"><b>Saying no is not free</b><span>2&nbsp;ms per rejection, and a load you cannot refuse</span></button>
+      <button data-f="slow"><b>A dependency slows down</b><span>Capacity falls 5× and nobody is told</span></button>
+      <button data-f="burst"><b>One burst, permanent outage</b><span>The trigger ends; the outage does not</span></button>
+    </div>
+    <h3>What you are looking at</h3>
+    <p class="small" id="c4hint">Pick a failure. Each one shows the same service twice — the
+      mistake, and the fix — with everything else held identical.</p>
+  </div>
+  <div>
+    <div class="card">
+      <h2 id="c4title">Failure injection</h2>
+      <p id="c4desc" class="small">Choose one on the left.</p>
+      <div class="chartwrap"><canvas id="c4chart" height="470"></canvas><div class="tip" id="c4tip"></div></div>
+      <div class="legend" id="c4legend"></div>
+      <div class="verdict" id="c4verdict">—</div>
+      <div id="c4table"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 5. PRIORITY ============ -->
+<section class="panel" id="p5">
+<div class="grid">
+  <div class="card">
+    <h2>Spend the same capacity differently</h2>
+    <p class="small">Priority cannot create capacity. Under overload the overall success rate barely
+      moves. What changes is <b>which</b> requests make up that number.</p>
+    <div class="ctl">
+      <label for="c5load">Offered load <b><span id="c5load-v">150</span> req/s</b></label>
+      <input type="range" id="c5load" min="35" max="300" step="5" value="150">
+    </div>
+    <h3>Share of the limit each class may use</h3>
+    <div class="ctl">
+      <label for="c5a">Checkout <span class="pill ok">20% of traffic</span> <b><span id="c5a-v">100</span>%</b></label>
+      <input type="range" id="c5a" min="10" max="100" step="5" value="100">
+    </div>
+    <div class="ctl">
+      <label for="c5b">Browse <span class="pill ok">30% of traffic</span> <b><span id="c5b-v">60</span>%</b></label>
+      <input type="range" id="c5b" min="5" max="100" step="5" value="60">
+    </div>
+    <div class="ctl">
+      <label for="c5c">Recommendations <span class="pill ok">50% of traffic</span> <b><span id="c5c-v">25</span>%</b></label>
+      <input type="range" id="c5c" min="5" max="100" step="5" value="25">
+    </div>
+    <h3>The limit these fractions apply to</h3>
+    <div class="seg" id="c5limit">
+      <button data-v="static" aria-pressed="true">Fixed</button>
+      <button data-v="adaptive" aria-pressed="false">Adaptive</button>
+    </div>
+    <button class="btn" id="c5run" style="margin-top:16px">Run</button>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: fractions of a <em>fixed</em> limit, at a perfectly healthy 35/s. What does it cost?</summary>
+      <div class="body">
+        <p>Nothing is wrong. The workers are 69% busy. There is capacity for every request.</p>
+        <p><b>It throws away 42% of the recommendation traffic anyway</b> — overall 79.0% instead of
+          100% — because a quarter of a fixed limit of 12 is a hard limit of 3, enforced at all times.</p>
+        <p>Switch the limit to <b>Adaptive</b> and the same fractions cost almost nothing when healthy
+          (95.3%) while protecting checkout exactly as well under overload. Set the load to 35 and
+          try both.</p>
+      </div>
+    </details>
+    <div class="card">
+      <h2>Who survives</h2>
+      <p class="small">Share of each class's requests that got an answer in time.</p>
+      <div class="bars" id="c5bars"></div>
+      <div class="verdict" id="c5verdict">Press <strong>Run</strong>.</div>
+      <h3 style="margin-top:22px">The same three classes across the whole load range</h3>
+      <p class="small">Each point is its own ten-minute run at these slider settings, so the curves
+        show where each class starts to be given up.</p>
+      <div class="chartwrap"><canvas id="c5chart" height="400"></canvas><div class="tip" id="c5tip"></div></div>
+      <div class="legend">
+        <span><i style="background:var(--served)"></i>Checkout</span>
+        <span><i style="background:var(--shed)"></i>Browse</span>
+        <span><i style="background:var(--lost)"></i>Recommendations</span>
+        <span><i style="background:var(--muted)" class="dash"></i>No priority at all</span>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>
+  <p>Every figure on this page is produced live by a discrete-event simulator running in your
+  browser — the same engine that produced every measured number in the lab's <code>README.md</code>.
+  Before it was used for teaching it was checked against Little's Law, M/M/1, M/D/1, D/D/1,
+  Erlang-C for M/M/4 and Kingman's approximation.</p>
+  <p>Runs are ten minutes of simulated time on a single fixed seed, so the same settings always give
+  the same answer. The <code>README.md</code> quotes the mean of five seeds, so a figure here will
+  usually sit within a point or two of the one written down rather than matching it exactly &mdash;
+  at loads close to capacity a single run genuinely scatters. This is a <em>model</em> of an overloaded service: it demonstrates the lesson's
+  mechanism, and it is not a claim about how any specific product behaves.</p>
+</footer>
+</div>
+
+<script>
+/* ===== simulation engine — the same source that produced the README numbers ===== */
+/* ============================================================================
+   LOAD-SHEDDING LAB — discrete-event simulation engine
+   Single copy of truth: this exact source is embedded in visualization.html
+   and is what produced every measured number in README.md.
+   Time unit inside the engine: milliseconds.
+   ========================================================================== */
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function Heap() { this.a = []; this.seq = 0; }
+Heap.prototype._less = function (x, y) { return x.t < y.t || (x.t === y.t && x.s < y.s); };
+Heap.prototype.push = function (ev) {
+  ev.s = this.seq++;
+  var a = this.a; a.push(ev); var i = a.length - 1;
+  while (i > 0) { var p = (i - 1) >> 1; if (this._less(a[p], a[i])) break; var tmp = a[p]; a[p] = a[i]; a[i] = tmp; i = p; }
+};
+Heap.prototype.pop = function () {
+  var a = this.a, top = a[0], last = a.pop();
+  if (a.length) {
+    a[0] = last; var i = 0;
+    for (;;) {
+      var l = 2 * i + 1, r = l + 1, m = i;
+      if (l < a.length && this._less(a[l], a[m])) m = l;
+      if (r < a.length && this._less(a[r], a[m])) m = r;
+      if (m === i) break;
+      var tmp = a[m]; a[m] = a[i]; a[i] = tmp; i = m;
+    }
+  }
+  return top;
+};
+Object.defineProperty(Heap.prototype, 'size', { get: function () { return this.a.length; } });
+
+/* ---------------------------------------------------------------- shedders */
+/* Every shedder answers one question: given the current state, admit this
+   request or reject it? They differ only in which signal they look at.       */
+
+function makeShedder(cfg, S_nominal) {
+  var t = (cfg && cfg.type) || 'none';
+
+  if (t === 'none') {
+    return { name: 'none', admit: function () { return true; }, limitNow: function () { return Infinity; } };
+  }
+
+  if (t === 'queueCap') {                       // v1: count the queue
+    var cap = cfg.cap;
+    return {
+      name: 'queueCap',
+      admit: function (st) { return st.queueLen < cap * (st.classAllow === undefined ? 1 : st.classAllow); },
+      limitNow: function () { return cap; }
+    };
+  }
+
+  if (t === 'concurrency') {                    // v3a: count everything in flight
+    var lim = cfg.limit;
+    return {
+      name: 'concurrency',
+      admit: function (st) { return st.inflight < lim * (st.classAllow === undefined ? 1 : st.classAllow); },
+      limitNow: function () { return lim; }
+    };
+  }
+
+  if (t === 'queueTime') {                      // v2a: predicted wait from a measured service time
+    var target = cfg.target, Sest = cfg.SestInit !== undefined ? cfg.SestInit : S_nominal, alpha = cfg.alpha || 0.05;
+    return {
+      name: 'queueTime',
+      admit: function (st) { return (st.queueLen * Sest / st.servers) < target * (st.classAllow === undefined ? 1 : st.classAllow); },
+      onService: function (dur) { Sest = (1 - alpha) * Sest + alpha * dur; },
+      limitNow: function (st) { return target * st.servers / Sest; },
+      probe: function () { return Sest; }
+    };
+  }
+
+  if (t === 'aimd') {                           // v3b: adaptive concurrency limit (TCP-shaped)
+    var limit = cfg.start !== undefined ? cfg.start : 10;
+    var minL = cfg.min || 1, maxL = cfg.max || 2000;
+    var beta = cfg.beta !== undefined ? cfg.beta : 0.85;
+    var latThresh = cfg.latencyThreshold;       // ms; a completion slower than this = congestion signal
+    var lastDrop = -1e9, cooldown = cfg.cooldown !== undefined ? cfg.cooldown : 0;
+    return {
+      name: 'aimd',
+      admit: function (st) { return st.inflight < Math.floor(limit) * (st.classAllow === undefined ? 1 : st.classAllow); },
+      onComplete: function (lat, ok, now) {
+        if (!ok || lat > latThresh) {
+          if (now - lastDrop >= cooldown) { limit = Math.max(minL, limit * beta); lastDrop = now; }
+        } else {
+          limit = Math.min(maxL, limit + 1 / limit);
+        }
+      },
+      limitNow: function () { return limit; },
+      probe: function () { return limit; }
+    };
+  }
+
+  if (t === 'gradient') {
+    // Netflix concurrency-limits, Gradient2 shape. Two signals, not one:
+    //  * a RELATIVE latency gradient (recent average vs this service's own
+    //    longer-run average) drives the limit up or gently down. A ratio of the
+    //    service against itself can tell "we are queueing" apart from "the work
+    //    itself got slower", which an absolute threshold cannot.
+    //  * an actual DROP (a completion the client had already given up on) is a
+    //    hard multiplicative decrease. Without it the long window slowly accepts
+    //    a sustained overload as the new normal and the limit runs away.
+    var limit = cfg.start !== undefined ? cfg.start : 10;
+    var minL = cfg.min || 1, maxL = cfg.max || 2000;
+    var smoothing = cfg.smoothing !== undefined ? cfg.smoothing : 0.2;
+    var backoff = cfg.backoff !== undefined ? cfg.backoff : 0.8;
+    var longAlpha = cfg.longAlpha || (1 / 600);
+    var updateEvery = cfg.updateEvery || 500;
+    var minSamples = cfg.minSamples || 10;
+    var longRTT = 0, n = 0, sum = 0, inflSum = 0, lastUpdate = 0;
+    return {
+      name: 'gradient',
+      admit: function (st) { return st.inflight < Math.floor(limit) * (st.classAllow === undefined ? 1 : st.classAllow); },
+      onComplete: function (lat, ok, now, st) {
+        if (!ok) { limit = Math.max(minL, limit * backoff); return; }   // hard drop signal
+        n += 1; sum += lat; inflSum += st.inflight;
+        longRTT = longRTT === 0 ? lat : (1 - longAlpha) * longRTT + longAlpha * lat;
+        if (now - lastUpdate < updateEvery || n < minSamples) return;
+        var shortRTT = sum / n, avgInflight = inflSum / n;
+        var grad = Math.max(0.5, Math.min(1.0, longRTT / shortRTT));
+        var target = limit * grad + Math.sqrt(limit);
+        // "app limited": never grow a limit we are not actually using
+        if (!(avgInflight < limit / 2 && target > limit)) {
+          limit = Math.max(minL, Math.min(maxL, limit * (1 - smoothing) + target * smoothing));
+        }
+        if (longRTT > shortRTT * 2) longRTT *= 0.95;
+        lastUpdate = now; n = 0; sum = 0; inflSum = 0;
+      },
+      limitNow: function () { return limit; },
+      probe: function () { return limit; }
+    };
+  }
+
+  throw new Error('unknown shedder ' + t);
+}
+
+/* ------------------------------------------------------------------ engine */
+
+function simulate(cfgIn) {
+  var C = {
+    seed: 1,
+    duration: 300000,          // ms of simulated time
+    warmup: 0,                 // ms discarded from aggregate stats
+    lambda: 10,                // USER requests per second (not attempts)
+    arrival: 'poisson',        // 'poisson' | 'det'
+    S: 80,                     // mean service time, ms
+    service: 'exp',            // 'exp' | 'det' | 'lognormal'
+    cv2: 4,                    // squared coeff. of variation, lognormal only
+    servers: 1,
+    timeout: 1000,             // per-attempt client timeout, ms
+    attempts: 1,               // total attempts per user request (1 = no retry)
+    backoff: 200,              // ms before a retry
+    jitter: false,
+    retryOnReject: true,
+    queueOrder: 'fifo',        // 'fifo' | 'lifo' | 'adaptiveLifo'
+    lifoThreshold: 5,          // adaptiveLifo: switch to LIFO once the queue is this deep
+    dropExpired: false,        // discard on dequeue if the answer can no longer arrive in time
+    dropSlack: 0,              // ms of headroom: drop if now + dropSlack > deadline
+    codel: null,               // {target, interval}  Facebook 'Fail at Scale' CoDel, a DEQUEUE rule
+    rejectCost: 0,             // ms of server time burned per rejection
+    shedder: { type: 'none' },
+    classes: null,             // [{name, share, allow}]  allow = fraction of limit
+    burstAt: null, burstSize: 0,
+    sampleEvery: 1000,         // ms per time-series bucket
+    steps: []                  // [{at: ms, set:{lambda: 150, S: 400}}]
+  };
+  for (var k in cfgIn) C[k] = cfgIn[k];
+
+  var rnd = mulberry32(C.seed);
+  var S = C.S, lambda = C.lambda;
+  var shed = makeShedder(C.shedder, C.S);
+
+  // --- random variate helpers -------------------------------------------
+  function expo(mean) { return -mean * Math.log(1 - rnd()); }
+  function normal() {
+    var u = 1 - rnd(), v = rnd();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function serviceTime() {
+    if (C.service === 'det') return S;
+    if (C.service === 'exp') return expo(S);
+    var s2 = Math.log(1 + C.cv2), mu = Math.log(S) - s2 / 2;
+    return Math.exp(mu + Math.sqrt(s2) * normal());
+  }
+  function interArrival() {
+    return C.arrival === 'det' ? 1000 / lambda : expo(1000 / lambda);
+  }
+  function pickClass() {
+    if (!C.classes) return null;
+    var r = rnd(), acc = 0;
+    for (var i = 0; i < C.classes.length; i++) { acc += C.classes[i].share; if (r < acc) return C.classes[i]; }
+    return C.classes[C.classes.length - 1];
+  }
+
+  // --- state -------------------------------------------------------------
+  var now = 0, ev = new Heap();
+  var mainQ = [], rejQ = 0, busy = 0, busyMain = 0, lastEmpty = 0;
+  var nextId = 1;
+
+  var st = {
+    get queueLen() { return mainQ.length; },
+    get inflight() { return mainQ.length + busyMain; },
+    servers: C.servers,
+    classAllow: undefined,
+    rnd: rnd
+  };
+
+  // --- statistics --------------------------------------------------------
+  var Z = {
+    offered: 0, success: 0, failTimeout: 0, failRejected: 0,
+    attemptsOffered: 0, admitted: 0, rejected: 0,
+    completed: 0, completedLate: 0, droppedExpired: 0, codelDropped: 0,
+    busyMs: 0, wastedMs: 0, rejectMs: 0,
+    userLat: [], attemptLat: [], byClass: {}
+  };
+  if (C.classes) C.classes.forEach(function (c) {
+    Z.byClass[c.name] = { offered: 0, success: 0, rejected: 0, failTimeout: 0 };
+  });
+  var series = [], bucket = null;
+
+  function newBucket(t) {
+    return { t: t / 1000, offered: 0, success: 0, rejected: 0, completed: 0, late: 0,
+             qlen: 0, qlenN: 0, inflight: 0, limit: 0, busy: 0, lat: [] };
+  }
+  bucket = newBucket(0);
+
+  function flushBucket(upTo) {
+    while (bucket && bucket.t * 1000 + C.sampleEvery <= upTo) {
+      var b = bucket;
+      b.lat.sort(function (x, y) { return x - y; });
+      series.push({
+        t: b.t,
+        offered: b.offered * 1000 / C.sampleEvery,
+        goodput: b.success * 1000 / C.sampleEvery,
+        rejected: b.rejected * 1000 / C.sampleEvery,
+        throughput: b.completed * 1000 / C.sampleEvery,
+        late: b.late * 1000 / C.sampleEvery,
+        qlen: b.qlenN ? b.qlen / b.qlenN : 0,
+        inflight: b.qlenN ? b.inflight / b.qlenN : 0,
+        limit: b.qlenN ? b.limit / b.qlenN : 0,
+        busy: b.qlenN ? b.busy / b.qlenN : 0,
+        p50: b.lat.length ? b.lat[Math.floor(b.lat.length * 0.5)] : 0,
+        p99: b.lat.length ? b.lat[Math.min(b.lat.length - 1, Math.floor(b.lat.length * 0.99))] : 0
+      });
+      bucket = newBucket((b.t * 1000) + C.sampleEvery);
+    }
+  }
+  function observeQueue() {
+    if (!bucket) return;
+    bucket.qlen += mainQ.length; bucket.qlenN += 1;
+    bucket.inflight += mainQ.length + busyMain;
+    bucket.busy += busy;
+    var L = shed.limitNow ? shed.limitNow(st) : Infinity;
+    bucket.limit += (isFinite(L) ? L : 0);
+  }
+
+  // --- dispatch ----------------------------------------------------------
+  function tryDispatch() {
+    while (busy < C.servers) {
+      if (rejQ > 0) {
+        rejQ -= 1; busy += 1;
+        ev.push({ t: now + C.rejectCost, kind: 'DONE_REJ' });
+        continue;
+      }
+      if (mainQ.length === 0) { lastEmpty = now; break; }
+      var lifo = C.queueOrder === 'lifo' ||
+                 (C.queueOrder === 'adaptiveLifo' && mainQ.length > C.lifoThreshold);
+      var att = lifo ? mainQ.pop() : mainQ.shift();
+      var soj = now - att.enqAt;
+      if (shed.onSojourn) shed.onSojourn(soj, now, mainQ.length === 0);
+
+      // -- CoDel (Facebook, 'Fail at Scale', ACM Queue 2015). The queue is
+      //    "standing" if it has not been empty for a whole interval; when it is,
+      //    the tolerated queue delay collapses from interval to target.
+      if (C.codel) {
+        var tol = (lastEmpty < now - C.codel.interval) ? C.codel.target : C.codel.interval;
+        if (soj > tol) { if (now >= C.warmup) Z.codelDropped += 1; if (mainQ.length === 0) lastEmpty = now; continue; }
+      }
+      // -- deadline-aware drop: no point starting work that cannot finish in time
+      if (C.dropExpired && now + C.dropSlack > att.aStart + C.timeout) {
+        if (now >= C.warmup) Z.droppedExpired += 1;   // free: the work was never started
+        if (mainQ.length === 0) lastEmpty = now;
+        continue;
+      }
+      var dur = serviceTime();
+      busy += 1; busyMain += 1;
+      att.dur = dur;
+      ev.push({ t: now + dur, kind: 'DONE', att: att });
+    }
+  }
+
+  function arrive(att) {
+    var job = att.job;
+    var counting = now >= C.warmup;
+    if (counting) Z.attemptsOffered += 1;
+    if (att.n === 1) {
+      if (counting) { Z.offered += 1; if (job.cls) Z.byClass[job.cls.name].offered += 1; }
+      if (bucket) bucket.offered += 1;
+    }
+    st.classAllow = job.cls ? job.cls.allow : undefined;
+    var ok = shed.admit(st, att);
+    if (ok) {
+      if (counting) Z.admitted += 1;
+      att.enqAt = now; att.aStart = now;
+      mainQ.push(att);
+      ev.push({ t: now + C.timeout, kind: 'TIMEOUT', att: att });
+      tryDispatch();
+    } else {
+      if (counting) { Z.rejected += 1; if (job.cls) Z.byClass[job.cls.name].rejected += 1; }
+      if (bucket) bucket.rejected += 1;
+      if (C.rejectCost > 0) { rejQ += 1; tryDispatch(); }
+      if (C.retryOnReject && att.n < C.attempts) {
+        retry(job, att.n + 1, now + C.backoff * (C.jitter ? (0.5 + rnd()) : 1));
+      } else if (!job.done) {
+        if (counting) Z.failRejected += 1;
+        job.settled = true;
+      }
+    }
+  }
+
+  function retry(job, n, at) {
+    ev.push({ t: at, kind: 'ARRIVE', att: { job: job, n: n, aStart: at, enqAt: at } });
+  }
+  function fresh(t) {
+    var job = { id: nextId++, cls: pickClass(), t0: t, done: false, settled: false };
+    return { job: job, n: 1, aStart: t, enqAt: t };
+  }
+
+  // --- seed the event list ----------------------------------------------
+  ev.push({ t: interArrival(), kind: 'GEN' });
+  if (C.burstAt !== null) ev.push({ t: C.burstAt, kind: 'BURST' });
+  for (var si = 0; si < C.steps.length; si++) ev.push({ t: C.steps[si].at, kind: 'STEP', i: si });
+
+  // --- main loop ---------------------------------------------------------
+  var lastObs = 0;
+  while (ev.size) {
+    var e = ev.pop();
+    if (e.t > C.duration) break;
+    while (lastObs + 50 <= e.t) {               // fixed observation grid -> unbiased time averages
+      lastObs += 50; now = lastObs; flushBucket(now); observeQueue();
+      if (shed.tick) shed.tick(now, mainQ.length);
+    }
+    now = e.t;
+    flushBucket(now);
+
+    if (e.kind === 'GEN') {
+      arrive(fresh(now));
+      ev.push({ t: now + interArrival(), kind: 'GEN' });
+    }
+
+    else if (e.kind === 'BURST') {
+      for (var bi = 0; bi < C.burstSize; bi++) arrive(fresh(now));
+    }
+
+    else if (e.kind === 'ARRIVE') { arrive(e.att); }
+
+    else if (e.kind === 'DONE_REJ') {
+      busy -= 1;
+      if (now >= C.warmup) { Z.busyMs += C.rejectCost; Z.rejectMs += C.rejectCost; }
+      tryDispatch();
+    }
+
+    else if (e.kind === 'DONE') {
+      busy -= 1; busyMain -= 1;
+      var att = e.att, job = att.job, lat = now - att.aStart;
+      if (now >= C.warmup) { Z.busyMs += att.dur; Z.completed += 1; Z.attemptLat.push(lat); }
+      if (bucket) bucket.completed += 1;
+      if (shed.onService) shed.onService(att.dur);
+      var inTime = lat <= C.timeout;
+      if (shed.onComplete) shed.onComplete(lat, inTime, now, st);
+      if (inTime && !job.done) {
+        job.done = true; job.settled = true;
+        if (now >= C.warmup) {
+          Z.success += 1; Z.userLat.push(now - job.t0);
+          if (job.cls) Z.byClass[job.cls.name].success += 1;
+        }
+        if (bucket) { bucket.success += 1; bucket.lat.push(now - job.t0); }
+      } else {
+        if (now >= C.warmup) { Z.completedLate += 1; Z.wastedMs += att.dur; }
+        if (bucket) bucket.late += 1;
+      }
+      tryDispatch();
+    }
+
+    else if (e.kind === 'TIMEOUT') {
+      var a2 = e.att, j2 = a2.job;
+      if (j2.done || j2.settled) continue;
+      if (a2.n < C.attempts) {
+        retry(j2, a2.n + 1, now + C.backoff * (C.jitter ? (0.5 + rnd()) : 1));
+      } else {
+        j2.settled = true;
+        if (now >= C.warmup) {
+          Z.failTimeout += 1;
+          if (j2.cls) Z.byClass[j2.cls.name].failTimeout += 1;
+        }
+      }
+    }
+
+    else if (e.kind === 'STEP') {
+      var set = C.steps[e.i].set;
+      for (var kk in set) { if (kk === 'S') S = set[kk]; else if (kk === 'lambda') lambda = set[kk]; else C[kk] = set[kk]; }
+    }
+  }
+  flushBucket(C.duration);
+
+  // --- summarise ---------------------------------------------------------
+  var secs = (C.duration - C.warmup) / 1000;
+  function pct(arr, p) {
+    if (!arr.length) return 0;
+    var a = arr.slice().sort(function (x, y) { return x - y; });
+    return a[Math.min(a.length - 1, Math.floor(a.length * p))];
+  }
+  return {
+    cfg: C,
+    offered: Z.offered, offeredRate: Z.offered / secs,
+    success: Z.success, goodput: Z.success / secs,
+    successRate: Z.offered ? Z.success / Z.offered : 0,
+    attempts: Z.attemptsOffered, attemptRate: Z.attemptsOffered / secs,
+    admitted: Z.admitted, rejected: Z.rejected,
+    shedRate: Z.attemptsOffered ? Z.rejected / Z.attemptsOffered : 0,
+    completed: Z.completed, throughput: Z.completed / secs,
+    completedLate: Z.completedLate, lateRate: Z.completedLate / secs,
+    droppedExpired: Z.droppedExpired, codelDropped: Z.codelDropped,
+    dropRate: Z.attemptsOffered ? (Z.droppedExpired + Z.codelDropped) / Z.attemptsOffered : 0,
+    failTimeout: Z.failTimeout, failRejected: Z.failRejected,
+    utilisation: Z.busyMs / (secs * 1000 * C.servers),
+    wastedFraction: Z.busyMs ? Z.wastedMs / Z.busyMs : 0,
+    rejectFraction: Z.busyMs ? Z.rejectMs / Z.busyMs : 0,
+    userP50: pct(Z.userLat, 0.5), userP99: pct(Z.userLat, 0.99),
+    attP50: pct(Z.attemptLat, 0.5), attP99: pct(Z.attemptLat, 0.99),
+    attMean: Z.attemptLat.length ? Z.attemptLat.reduce(function (a, b) { return a + b; }, 0) / Z.attemptLat.length : 0,
+    finalQueue: mainQ.length,
+    byClass: Z.byClass,
+    series: series,
+    limitFinal: shed.probe ? shed.probe() : null
+  };
+}
+
+if (typeof module !== 'undefined') module.exports = { simulate: simulate, mulberry32: mulberry32 };
+
+/* ============================ chart helper ============================ */
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+function Chart(canvasId, tipId){
+  this.cv = document.getElementById(canvasId);
+  this.tip = document.getElementById(tipId);
+  this.spec = null; this.hover = null;
+  var self = this;
+  this.cv.addEventListener('mousemove', function(e){ self.onMove(e); });
+  this.cv.addEventListener('mouseleave', function(){ self.hover = null; self.tip.style.opacity = 0; self.paint(); });
+  window.addEventListener('resize', function(){ self.paint(); });
+}
+Chart.prototype.draw = function(spec){ this.spec = spec; this.paint(); };
+Chart.prototype.geom = function(){
+  var w = this.cv.clientWidth, h = this.cv.height / (window.devicePixelRatio || 1);
+  return { w:w, h:h, l:52, r:14, t:16, b:34 };
+};
+Chart.prototype.paint = function(){
+  var self = this;
+  var s = this.spec; if (!s) return;
+  var dpr = window.devicePixelRatio || 1, g = this.geom();
+  var cssH = parseInt(this.cv.getAttribute('height'), 10) / 2;   /* height attr is in device-ish units */
+  g.h = cssH;
+  this.cv.style.height = cssH + 'px';
+  this.cv.width = Math.max(1, Math.round(g.w * dpr));
+  this.cv.height = Math.max(1, Math.round(cssH * dpr));
+  var c = this.cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, g.w, cssH);
+
+  var ink = cssv('--ink'), muted = cssv('--muted'), rule = cssv('--rule'), card = cssv('--card2');
+  var x0 = g.l, x1 = g.w - g.r, y0 = g.t, y1 = cssH - g.b;
+  var xmin = s.xmin, xmax = s.xmax, ymin = 0, ymax = s.ymax;
+  var X = function(v){ return x0 + (v - xmin) / (xmax - xmin || 1) * (x1 - x0); };
+  var Y = function(v){ return y1 - (v - ymin) / (ymax - ymin || 1) * (y1 - y0); };
+
+  /* grid + y axis */
+  c.font = '500 11px "IBM Plex Mono", monospace'; c.textAlign = 'right'; c.textBaseline = 'middle';
+  var ticks = 5;
+  for (var i = 0; i <= ticks; i++){
+    var v = ymin + (ymax - ymin) * i / ticks, y = Y(v);
+    c.strokeStyle = rule; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(x0, Math.round(y) + .5); c.lineTo(x1, Math.round(y) + .5); c.stroke();
+    c.fillStyle = muted; c.fillText(s.yfmt ? s.yfmt(v) : Math.round(v), x0 - 9, y);
+  }
+  /* x axis */
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  var xt = s.xticks || 6;
+  for (var j = 0; j <= xt; j++){
+    var xv = xmin + (xmax - xmin) * j / xt;
+    c.fillStyle = muted; c.fillText(s.xfmt ? s.xfmt(xv) : Math.round(xv), X(xv), y1 + 9);
+  }
+  c.fillStyle = muted; c.textAlign = 'left';
+  if (s.xlabel) c.fillText(s.xlabel, x0, y1 + 22);
+  if (s.ylabel){ c.save(); c.translate(13, y0); c.rotate(-Math.PI/2); c.textAlign='right'; c.fillText(s.ylabel, 0, 0); c.restore(); }
+
+  /* stacked areas first */
+  if (s.stack){
+    var acc = new Array(s.stack[0].data.length).fill(0);
+    for (var si = 0; si < s.stack.length; si++){
+      var sr = s.stack[si];
+      c.beginPath();
+      for (var k = 0; k < sr.data.length; k++){
+        var px = X(sr.data[k][0]), py = Y(acc[k] + sr.data[k][1]);
+        if (k === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      for (var k2 = sr.data.length - 1; k2 >= 0; k2--) c.lineTo(X(sr.data[k2][0]), Y(acc[k2]));
+      c.closePath(); c.fillStyle = sr.fill; c.fill();
+      c.lineWidth = 2; c.strokeStyle = sr.color; c.beginPath();
+      for (var k3 = 0; k3 < sr.data.length; k3++){
+        var qx = X(sr.data[k3][0]), qy = Y(acc[k3] + sr.data[k3][1]);
+        if (k3 === 0) c.moveTo(qx, qy); else c.lineTo(qx, qy);
+      }
+      c.stroke();
+      for (var k4 = 0; k4 < acc.length; k4++) acc[k4] += sr.data[k4][1];
+    }
+  }
+
+  /* lines */
+  (s.series || []).forEach(function(sr){
+    if (!sr.data.length) return;
+    c.save();
+    c.lineWidth = sr.width || 2; c.strokeStyle = sr.color;
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    if (sr.dash) c.setLineDash([5, 5]);
+    c.beginPath();
+    sr.data.forEach(function(d, i){ var px = X(d[0]), py = Y(Math.min(d[1], ymax));
+      if (i === 0) c.moveTo(px, py); else c.lineTo(px, py); });
+    c.stroke(); c.restore();
+  });
+
+  /* hover */
+  if (this.hover !== null){
+    var hx = X(this.hover);
+    c.strokeStyle = cssv('--rule2'); c.lineWidth = 1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(Math.round(hx)+.5, y0); c.lineTo(Math.round(hx)+.5, y1); c.stroke();
+    c.setLineDash([]);
+    var stackAcc = 0;
+    (s.series || []).forEach(function(sr){
+      var i = nearestIdx(sr.data, self.hover);
+      if (!sr.data[i]) return;
+      c.beginPath(); c.arc(X(sr.data[i][0]), Y(Math.min(sr.data[i][1], ymax)), 4, 0, 6.2832);
+      c.fillStyle = sr.color; c.fill();
+      c.lineWidth = 2; c.strokeStyle = card; c.stroke();
+    });
+  }
+  this.G = { X:X, Y:Y, g:g, cssH:cssH, x0:x0, x1:x1 };
+};
+function nearestIdx(data, x){
+  var best = 0, bd = Infinity;
+  for (var i = 0; i < data.length; i++){ var d = Math.abs(data[i][0] - x); if (d < bd){ bd = d; best = i; } }
+  return best;
+}
+Chart.prototype.onMove = function(e){
+  var s = this.spec; if (!s || !this.G) return;
+  var rect = this.cv.getBoundingClientRect();
+  var px = e.clientX - rect.left;
+  if (px < this.G.x0 || px > this.G.x1){ this.hover = null; this.tip.style.opacity = 0; this.paint(); return; }
+  var frac = (px - this.G.x0) / (this.G.x1 - this.G.x0);
+  var xv = s.xmin + frac * (s.xmax - s.xmin);
+  var all = (s.series || []).concat(s.stack || []);
+  if (!all.length) return;
+  var idx = nearestIdx(all[0].data, xv);
+  this.hover = all[0].data[idx][0];
+  var rows = all.filter(function(sr){ return !sr.noTip; }).map(function(sr){
+    var i = Math.min(idx, sr.data.length - 1);
+    return '<div class="tr"><span style="color:' + sr.color + '">' + sr.name + '</span><b>' +
+           (s.tfmt ? s.tfmt(sr.data[i][1]) : sr.data[i][1].toFixed(1)) + '</b></div>';
+  }).join('');
+  this.tip.innerHTML = '<div class="tt">' + (s.xfmt ? s.xfmt(this.hover) : this.hover) + '</div>' + rows;
+  this.tip.style.opacity = 1;
+  var tw = this.tip.offsetWidth;
+  this.tip.style.left = Math.max(0, Math.min(px + 14, rect.width - tw - 4)) + 'px';
+  this.tip.style.top = '14px';
+  this.paint();
+};
+
+/* ============================ shared setup ============================ */
+var BASE = { servers:4, S:80, service:'exp', timeout:1000, attempts:1, seed:3,
+             duration:600000, sampleEvery:5000 };
+var CAP = 50;                       /* 4 workers / 80 ms */
+function run(o){ var c = {}; for (var k in BASE) c[k] = BASE[k]; for (var k2 in o) c[k2] = o[k2]; return simulate(c); }
+function pc(x){ return (100 * x).toFixed(1) + '%'; }
+function ceiling(lam){ return Math.min(1, CAP / lam); }
+
+function setReadout(r, lam){
+  document.getElementById('r-off').textContent  = r.offeredRate.toFixed(1);
+  document.getElementById('r-thru').textContent = r.throughput.toFixed(1);
+  document.getElementById('r-good').textContent = r.goodput.toFixed(1);
+  document.getElementById('r-succ').textContent = pc(r.successRate);
+  document.getElementById('r-q').textContent    = r.finalQueue.toLocaleString();
+  var best = ceiling(lam === undefined ? r.offeredRate : lam);
+  document.getElementById('r-ceil').textContent = 'best possible ' + pc(best);
+  var qn = document.getElementById('r-qn');
+  qn.textContent = r.finalQueue > 5000 ? 'growing without bound — this ends in an OOM'
+                 : r.finalQueue > 200  ? 'large and still growing'
+                 : 'at the end of the run';
+}
+function tableHTML(cols, rows, hiIdx){
+  var h = '<div class="tblwrap"><table><thead><tr>' +
+    cols.map(function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+  rows.forEach(function(r, i){
+    h += '<tr' + (i === hiIdx ? ' class="hi"' : '') + '>' + r.map(function(cell, j){
+      return '<td' + (j ? ' class="num"' : '') + '>' + cell + '</td>'; }).join('') + '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+var MUTED = function(){ return cssv('--muted'); };
+
+/* ============================ tabs & theme ============================ */
+document.getElementById('tabs').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-p]'); if (!b) return;
+  [].forEach.call(this.querySelectorAll('button'), function(x){ x.setAttribute('aria-selected', x === b); });
+  [].forEach.call(document.querySelectorAll('.panel'), function(p){ p.classList.toggle('on', p.id === b.dataset.p); });
+  redrawAll();
+});
+document.getElementById('themebtn').addEventListener('click', function(){
+  var cur = document.documentElement.getAttribute('data-theme');
+  var dark = cur ? cur === 'dark'
+                 : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  redrawAll();
+});
+var CHARTS = [];
+function mkChart(a, b){ var c = new Chart(a, b); CHARTS.push(c); return c; }
+function redrawAll(){ CHARTS.forEach(function(c){ c.paint(); }); }
+
+/* ============================ 1. THE COLLAPSE ============================ */
+var c1chart = mkChart('c1chart', 'c1tip'), c1curve = mkChart('c1curve', 'c1ctip');
+var c1load = document.getElementById('c1load');
+c1load.addEventListener('input', function(){ document.getElementById('c1load-v').textContent = this.value; });
+
+function runC1(){
+  var lam = +c1load.value;
+  var r = run({ lambda: lam });
+  setReadout(r, lam);
+  var S = r.series;
+  c1chart.draw({
+    xmin: 0, xmax: 600, ymax: Math.max(60, lam * 1.15),
+    xlabel: 'seconds', ylabel: 'requests / second', xfmt: function(v){ return Math.round(v) + 's'; },
+    tfmt: function(v){ return v.toFixed(1) + '/s'; },
+    series: [
+      { name:'Offered',    color: MUTED(),        dash:true, data: S.map(function(p){ return [p.t, p.offered]; }) },
+      { name:'Throughput', color: cssv('--shed'),            data: S.map(function(p){ return [p.t, p.throughput]; }) },
+      { name:'Goodput',    color: cssv('--served'), width:2.5, data: S.map(function(p){ return [p.t, p.goodput]; }) }
+    ]
+  });
+  var v = document.getElementById('c1verdict'), best = ceiling(lam);
+  if (lam > CAP * 0.96 && lam < CAP * 1.04){
+    v.className = 'verdict warn';
+    v.innerHTML = 'Offered <strong>' + lam + '/s</strong> against a capacity of exactly 50/s — and this ' +
+      'is the one setting where a single run does not have an answer. This run served <strong>' +
+      pc(r.successRate) + '</strong>; twenty runs of these identical settings range from ' +
+      '<strong>1.1% to 70.6%</strong>, and the figure gets <em>worse</em> the longer you run ' +
+      '(28.6% over ten minutes, 11.7% over an hour). At exactly 100% utilisation the queue is a ' +
+      'random walk with nothing pulling it back down, so there is no steady state to settle into. ' +
+      '<strong>"Running at exactly capacity" is not an operating point — it is a coin toss that ' +
+      'gets worse with time.</strong> Nudge the slider either way and the behaviour becomes definite again.';
+  } else if (lam <= CAP * 0.95){
+    v.className = 'verdict';
+    v.innerHTML = 'At <strong>' + lam + '/s</strong> the service is inside its capacity of 50/s. ' +
+      'Throughput and goodput sit on top of each other — <strong>' + pc(r.successRate) +
+      '</strong> of customers get an answer. This is what every dashboard is calibrated for.';
+  } else {
+    var ratio = r.successRate > 0 ? (best / r.successRate) : Infinity;
+    v.className = 'verdict bad';
+    v.innerHTML = 'Offered <strong>' + lam + '/s</strong> against a capacity of 50/s. Throughput holds at <strong>' +
+      r.throughput.toFixed(1) + '/s</strong> — completely normal — while goodput is <strong>' +
+      r.goodput.toFixed(1) + '/s</strong>. Only <strong>' + pc(r.successRate) + '</strong> of customers were served ' +
+      'where <strong>' + pc(best) + '</strong> was achievable, so ' +
+      (isFinite(ratio) ? '<strong>' + ratio.toFixed(0) + '×</strong> more' : 'far more') +
+      ' were losable and lost. ' + Math.round(100 * r.wastedFraction) +
+      '% of all worker time went to requests whose client had already gone, and the queue reached <strong>' +
+      r.finalQueue.toLocaleString() + '</strong>.';
+  }
+}
+document.getElementById('c1run').addEventListener('click', runC1);
+[].forEach.call(document.querySelectorAll('#p1 .scen button'), function(b){
+  b.addEventListener('click', function(){
+    c1load.value = b.dataset.load;
+    document.getElementById('c1load-v').textContent = b.dataset.load;
+    runC1();
+  });
+});
+
+/* the load curve, computed in idle chunks so the page stays responsive */
+var CURVE_X = [30, 40, 45, 50, 55, 60, 70, 90, 120, 150, 200];
+var curveNone = [], curveCap = [], curveBest = [], ci = 0;
+function curveStep(){
+  if (ci >= CURVE_X.length){ drawCurve(); return; }
+  var lam = CURVE_X[ci++];
+  var a = run({ lambda: lam, duration: 300000 });
+  var b = run({ lambda: lam, duration: 300000, shedder: { type:'queueCap', cap:20 } });
+  curveNone.push([lam, 100 * a.successRate]);
+  curveCap.push([lam, 100 * b.successRate]);
+  curveBest.push([lam, 100 * ceiling(lam)]);
+  drawCurve();
+  requestAnimationFrame(curveStep);
+}
+function drawCurve(){
+  c1curve.draw({
+    xmin: 30, xmax: 200, ymax: 100, xticks: 5,
+    xlabel: 'offered load (requests / second)', ylabel: 'customers served',
+    xfmt: function(v){ return Math.round(v) + '/s'; }, yfmt: function(v){ return Math.round(v) + '%'; },
+    tfmt: function(v){ return v.toFixed(1) + '%'; },
+    series: [
+      { name:'Best possible', color: MUTED(), dash:true, data: curveBest },
+      { name:'No shedding',   color: cssv('--lost'),   data: curveNone },
+      { name:'Queue cap 20',  color: cssv('--served'), width:2.5, data: curveCap }
+    ]
+  });
+}
+
+/* ============================ 2. FOUR SHEDDERS ============================ */
+var c2chart = mkChart('c2chart', 'c2tip'), c2limit = mkChart('c2limit', 'c2ltip');
+var SHED_META = {
+  none:       { label:'—',                 min:1, max:1,   val:1,   fixed:true },
+  queueCap:   { label:'Queue cap',         min:1, max:200, val:20 },
+  concurrency:{ label:'In-flight limit',   min:1, max:200, val:12 },
+  queueTime:  { label:'Queue-delay target',min:20,max:900, val:300, unit:' ms', step:10 },
+  codel:      { label:'CoDel target',      min:5, max:400, val:50,  unit:' ms', step:5 },
+  aimd:       { label:'Latency threshold', min:100,max:900,val:400, unit:' ms', step:20 },
+  gradient:   { label:'Starting limit',    min:2, max:100, val:20 }
+};
+function c2cfg(){
+  var t = document.getElementById('c2shed').value, v = +document.getElementById('c2param').value;
+  var o = { lambda: +document.getElementById('c2load').value };
+  if (document.getElementById('c2step').checked) o.steps = [{ at:300000, set:{ S:400 } }];
+  if (t === 'queueCap')    o.shedder = { type:'queueCap', cap:v };
+  if (t === 'concurrency') o.shedder = { type:'concurrency', limit:v };
+  if (t === 'queueTime')   o.shedder = { type:'queueTime', target:v, SestInit:80, alpha:0.05 };
+  if (t === 'codel'){ o.queueOrder = 'adaptiveLifo'; o.lifoThreshold = 5; o.codel = { target:v, interval:Math.max(100, v*4) }; }
+  if (t === 'aimd')     o.shedder = { type:'aimd', start:20, latencyThreshold:v, beta:0.85, min:2, max:400 };
+  if (t === 'gradient') o.shedder = { type:'gradient', start:v, min:2, max:400, smoothing:0.2, updateEvery:500 };
+  return o;
+}
+function syncC2Param(){
+  var m = SHED_META[document.getElementById('c2shed').value];
+  var wrap = document.getElementById('c2paramwrap'), inp = document.getElementById('c2param');
+  wrap.style.display = m.fixed ? 'none' : '';
+  document.getElementById('c2param-l').textContent = m.label;
+  inp.min = m.min; inp.max = m.max; inp.step = m.step || 1; inp.value = m.val;
+  document.getElementById('c2param-v').textContent = m.val + (m.unit || '');
+}
+document.getElementById('c2shed').addEventListener('change', function(){ syncC2Param(); runC2(); });
+document.getElementById('c2param').addEventListener('input', function(){
+  var m = SHED_META[document.getElementById('c2shed').value];
+  document.getElementById('c2param-v').textContent = this.value + (m.unit || '');
+});
+document.getElementById('c2load').addEventListener('input', function(){ document.getElementById('c2load-v').textContent = this.value; });
+document.getElementById('c2run').addEventListener('click', runC2);
+document.getElementById('c2step').addEventListener('change', runC2);
+
+function runC2(){
+  var o = c2cfg(), lam = o.lambda, stepped = !!o.steps;
+  var r = run(o);
+  setReadout(r, lam);
+  var S = r.series;
+  var ymax = Math.max(60, lam * 1.15);
+  c2chart.draw({
+    xmin:0, xmax:600, ymax:ymax, xlabel:'seconds', ylabel:'requests / second',
+    xfmt:function(v){ return Math.round(v) + 's'; }, tfmt:function(v){ return v.toFixed(1) + '/s'; },
+    series: [
+      { name:'Offered', color:MUTED(), dash:true, data:S.map(function(p){ return [p.t, p.offered]; }) },
+      { name:'Goodput', color:cssv('--served'), width:2.5, data:S.map(function(p){ return [p.t, p.goodput]; }) }
+    ]
+  });
+  var limMax = Math.max(4, S.reduce(function(a, p){ return Math.max(a, p.limit, p.inflight); }, 0) * 1.15);
+  c2limit.draw({
+    xmin:0, xmax:600, ymax:limMax, xlabel:'seconds', ylabel:'requests in flight',
+    xfmt:function(v){ return Math.round(v) + 's'; }, tfmt:function(v){ return v.toFixed(1); },
+    series: [
+      { name:'Limit',        color:cssv('--queue'), width:2.5, data:S.map(function(p){ return [p.t, p.limit]; }) },
+      { name:'In flight',    color:cssv('--shed'), dash:true,  data:S.map(function(p){ return [p.t, p.inflight]; }) }
+    ]
+  });
+  var best = stepped ? (ceiling(lam) + ceiling(lam * 5)) / 2 : ceiling(lam);
+  var v = document.getElementById('c2verdict');
+  var name = document.getElementById('c2shed').selectedOptions[0].textContent;
+  var frac = best > 0 ? r.successRate / best : 0;
+  v.className = 'verdict' + (frac > 0.85 ? '' : frac > 0.4 ? ' warn' : ' bad');
+  v.innerHTML = '<strong>' + name + '</strong> at ' + lam + '/s' +
+    (stepped ? ', through a 5× dependency slowdown halfway through' : '') + ': served <strong>' +
+    pc(r.successRate) + '</strong>, shed ' + Math.round(100 * r.shedRate) + '%, dropped ' +
+    Math.round(100 * r.dropRate) + '%, wasted ' + Math.round(100 * r.wastedFraction) +
+    '% of worker time, final queue <strong>' + r.finalQueue.toLocaleString() + '</strong>.' +
+    (stepped ? ' <em>A setting in units of work cannot survive a change in how long work takes; ' +
+      'a setting in units of time can.</em>' : '');
+  document.getElementById('c2table').innerHTML = '';
+}
+document.getElementById('c2all').addEventListener('click', function(){
+  var lam = +document.getElementById('c2load').value, stepped = document.getElementById('c2step').checked;
+  var defs = [
+    ['Nothing',                     {}],
+    ['v1 · queue cap 20',           { shedder:{type:'queueCap',cap:20} }],
+    ['v1b · in-flight limit 12',    { shedder:{type:'concurrency',limit:12} }],
+    ['v2a · queue delay 300 ms',    { shedder:{type:'queueTime',target:300,SestInit:80,alpha:0.05} }],
+    ['v2b · adaptive LIFO + CoDel', { queueOrder:'adaptiveLifo', lifoThreshold:5, codel:{target:50,interval:200} }],
+    ['v3 · AIMD, absolute',         { shedder:{type:'aimd',start:20,latencyThreshold:400,beta:0.85,min:2,max:400} }],
+    ['v3b · gradient, relative',    { shedder:{type:'gradient',start:20,min:2,max:400,smoothing:0.2,updateEvery:500} }]
+  ];
+  var best = 0, rows = defs.map(function(d){
+    var o = { lambda: lam }; for (var k in d[1]) o[k] = d[1][k];
+    if (stepped) o.steps = [{ at:300000, set:{ S:400 } }];
+    var r = run(o);
+    if (r.successRate > best) best = r.successRate;
+    return [d[0], pc(r.successRate), Math.round(100*r.shedRate)+'%', Math.round(100*r.wastedFraction)+'%',
+            r.finalQueue.toLocaleString()];
+  });
+  var hi = rows.reduce(function(a, r, i){ return parseFloat(r[1]) > parseFloat(rows[a][1]) ? i : a; }, 0);
+  document.getElementById('c2table').innerHTML =
+    tableHTML(['Design', 'Served', 'Shed', 'Wasted work', 'Final queue'], rows, hi);
+  var v = document.getElementById('c2verdict');
+  v.className = 'verdict';
+  v.innerHTML = 'All seven at <strong>' + lam + '/s</strong>' +
+    (stepped ? ' <strong>with the dependency slowdown</strong>. The rules that measure <em>time</em> ' +
+      'beat every rule that counts <em>requests</em> — including the one tuned by hand.'
+             : '. With service time stable, almost anything small wins; the differences are in the next column along.');
+});
+
+/* ============================ 3. THE QUEUE ITSELF ============================ */
+var c3chart = mkChart('c3chart', 'c3tip');
+var c3order = 'fifo';
+document.getElementById('c3order').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  c3order = b.dataset.v;
+  [].forEach.call(this.querySelectorAll('button'), function(x){ x.setAttribute('aria-pressed', x === b); });
+  runC3();
+});
+document.getElementById('c3drop').addEventListener('change', function(){
+  var on = this.checked;
+  document.getElementById('c3slack').disabled = !on;
+  document.getElementById('c3slackwrap').style.opacity = on ? 1 : .45;
+  runC3();
+});
+document.getElementById('c3slack').addEventListener('input', function(){
+  document.getElementById('c3slack-v').textContent = this.value;
+});
+document.getElementById('c3codel').addEventListener('change', runC3);
+document.getElementById('c3load').addEventListener('input', function(){ document.getElementById('c3load-v').textContent = this.value; });
+document.getElementById('c3run').addEventListener('click', runC3);
+
+function c3cfg(){
+  var o = { lambda:+document.getElementById('c3load').value, queueOrder:c3order, lifoThreshold:5 };
+  if (document.getElementById('c3drop').checked){ o.dropExpired = true; o.dropSlack = +document.getElementById('c3slack').value; }
+  if (document.getElementById('c3codel').checked) o.codel = { target:50, interval:200 };
+  return o;
+}
+function runC3(){
+  var o = c3cfg(), lam = o.lambda, r = run(o);
+  setReadout(r, lam);
+  var S = r.series;
+  c3chart.draw({
+    xmin:0, xmax:600, ymax:Math.max(60, lam*1.15), xlabel:'seconds', ylabel:'requests / second',
+    xfmt:function(v){ return Math.round(v)+'s'; }, tfmt:function(v){ return v.toFixed(1)+'/s'; },
+    stack: [
+      { name:'Answered in time', color:cssv('--served'), fill:cssv('--servedFill'),
+        data:S.map(function(p){ return [p.t, p.goodput]; }) },
+      { name:'Refused at once',  color:cssv('--shed'),   fill:cssv('--shedFill'),
+        data:S.map(function(p){ return [p.t, p.rejected]; }) },
+      { name:'Waited, got nothing', color:cssv('--lost'), fill:cssv('--lostFill'),
+        data:S.map(function(p){ return [p.t, Math.max(0, p.offered - p.goodput - p.rejected)]; }) }
+    ]
+  });
+  var ord = c3order === 'fifo' ? 'FIFO' : c3order === 'lifo' ? 'LIFO' : 'Adaptive LIFO';
+  var v = document.getElementById('c3verdict');
+  var big = r.finalQueue > 1000;
+  v.className = 'verdict' + (r.successRate > 0.9 * ceiling(lam) ? (big ? ' warn' : '') : ' bad');
+  v.innerHTML = '<strong>' + ord + '</strong>' +
+    (document.getElementById('c3drop').checked ? ', giving up ' + document.getElementById('c3slack').value + ' ms before the deadline' : '') +
+    (document.getElementById('c3codel').checked ? ', with CoDel' : '') +
+    ' — nothing rejected at the door. Served <strong>' + pc(r.successRate) + '</strong> of a possible ' +
+    pc(ceiling(lam)) + ', wasted ' + Math.round(100*r.wastedFraction) + '% of worker time, median ' +
+    r.userP50.toFixed(0) + ' ms. <strong>Queue: ' + r.finalQueue.toLocaleString() + '.</strong>' +
+    (big ? ' <em>Goodput may be fine, but that queue is your heap. Order fixes who you serve; only a drop rule or a cap fixes memory.</em>' : '');
+
+  var rows = [
+    ['FIFO',                       { queueOrder:'fifo' }],
+    ['FIFO + drop at deadline',    { queueOrder:'fifo', dropExpired:true, dropSlack:0 }],
+    ['FIFO + drop 250 ms early',   { queueOrder:'fifo', dropExpired:true, dropSlack:250 }],
+    ['LIFO',                       { queueOrder:'lifo' }],
+    ['Adaptive LIFO + CoDel',      { queueOrder:'adaptiveLifo', lifoThreshold:5, codel:{target:50,interval:200} }]
+  ].map(function(d){
+    var cfg = { lambda:lam }; for (var k in d[1]) cfg[k] = d[1][k];
+    var x = run(cfg);
+    return [d[0], pc(x.successRate), Math.round(100*x.wastedFraction)+'%', x.userP50.toFixed(0)+' ms',
+            x.finalQueue.toLocaleString()];
+  });
+  document.getElementById('c3table').innerHTML =
+    tableHTML(['Queue discipline', 'Served', 'Wasted work', 'Median', 'Final queue'], rows, 4);
+}
+
+/* ============================ 4. FAILURE INJECTION ============================ */
+var c4chart = mkChart('c4chart', 'c4tip');
+var FAILURES = {
+  retry: {
+    title: 'Clients retry the 503',
+    desc: 'A correct queue cap of 20, at 3× overload. The only difference between the two runs is ' +
+          'whether the client library retries a rejection.',
+    legend: [['Offered work, no retries','--shed'],['Offered work, 3 attempts','--lost']],
+    run: function(){
+      var a = run({ lambda:150, shedder:{type:'queueCap',cap:20} });
+      var b = run({ lambda:150, shedder:{type:'queueCap',cap:20}, attempts:3, backoff:200 });
+      var c = run({ lambda:150, shedder:{type:'queueCap',cap:20}, attempts:3, backoff:1000, jitter:true });
+      var d = run({ lambda:150, shedder:{type:'queueCap',cap:20}, attempts:3, backoff:1000, retryOnReject:false });
+      return {
+        chart: { ymax:520, ylabel:'admission decisions / second',
+          series:[
+            { name:'No retries', color:cssv('--shed'), data:a.series.map(function(p){ return [p.t, p.offered + p.rejected]; }) },
+            { name:'3 attempts', color:cssv('--lost'), width:2.5, data:b.series.map(function(p){ return [p.t, p.offered + p.rejected]; }) }
+          ] },
+        rows: [
+          ['1 attempt',                       a.attemptRate.toFixed(0)+'/s', pc(a.successRate), Math.round(100*a.shedRate)+'%'],
+          ['3 attempts, 200 ms backoff',      b.attemptRate.toFixed(0)+'/s', pc(b.successRate), Math.round(100*b.shedRate)+'%'],
+          ['3 attempts, 1 s backoff + jitter',c.attemptRate.toFixed(0)+'/s', pc(c.successRate), Math.round(100*c.shedRate)+'%'],
+          ['3 attempts, never retry a 503',   d.attemptRate.toFixed(0)+'/s', pc(d.successRate), Math.round(100*d.shedRate)+'%']
+        ],
+        cols: ['Client retry policy','Decisions/s','Served','Shed'], hi: 3,
+        verdict: 'Goodput is identical in all four rows — <strong>' + b.goodput.toFixed(1) +
+          '/s</strong> — so the retries bought nothing at all. What they changed is the work: ' +
+          '<strong>' + a.attemptRate.toFixed(0) + ' decisions per second became ' + b.attemptRate.toFixed(0) +
+          '</strong>. And note rows 2 and 3: <strong>backoff and jitter made no measurable difference.</strong> ' +
+          'They fix synchronisation, not volume — under sustained overload every client exhausts its attempts ' +
+          'whenever you space them. Only the last row reduced the load, by not retrying the one error that ' +
+          'guarantees both that the work did not happen and that trying again cannot help.',
+        cls: 'bad'
+      };
+    }
+  },
+  cost: {
+    title: 'Saying no is not free',
+    desc: 'The shedder works perfectly throughout. Each rejection costs 2 ms of a worker — a TCP accept, ' +
+          'a TLS handshake, header parsing, a log line. Four workers give 4 ms of work per ms of clock.',
+    legend: [['Goodput, free rejections','--shed'],['Goodput, 2 ms per rejection','--lost']],
+    run: function(){
+      var loads = [150,300,600,1000,1500,1800,2400,3000];
+      var free = [], cost = [], rows = [];
+      loads.forEach(function(l){
+        var a = run({ lambda:l, duration:300000, shedder:{type:'concurrency',limit:12} });
+        var b = run({ lambda:l, duration:300000, rejectCost:2, shedder:{type:'concurrency',limit:12} });
+        free.push([l, a.goodput]); cost.push([l, b.goodput]);
+        rows.push([l+'/s', a.goodput.toFixed(1)+'/s', b.goodput.toFixed(1)+'/s',
+                   Math.round(100*b.rejectFraction)+'%']);
+      });
+      return {
+        chart: { xmin:150, xmax:3000, ymax:60, xticks:5, xlabel:'offered load (requests / second)',
+          ylabel:'goodput / second', xfmt:function(v){ return Math.round(v)+'/s'; },
+          series:[
+            { name:'Free rejections', color:cssv('--shed'), data:free },
+            { name:'2 ms rejections', color:cssv('--lost'), width:2.5, data:cost }
+          ] },
+        rows: rows, cols:['Offered','Goodput if free','Goodput at 2 ms','CPU spent refusing'], hi: 5,
+        verdict: 'Four workers ÷ 2 ms per rejection = <strong>2,000 rejections per second</strong>, and that ' +
+          'is exactly where the measured line reaches zero. Past it the service is perfectly protected and ' +
+          'completely useless — every cycle goes on explaining that it is too busy to do anything. ' +
+          '<strong>Your capacity to shed is a real capacity with a computable ceiling.</strong> Halve the cost ' +
+          'of a rejection and you double the load you survive.',
+        cls: 'bad'
+      };
+    }
+  },
+  slow: {
+    title: 'A dependency slows down',
+    desc: 'Traffic never changes — a steady 60/s all the way through. At the halfway mark a downstream ' +
+          'database goes from 80 ms to 400 ms, so capacity silently falls from 50/s to 10/s.',
+    legend: [['Static queue cap of 20','--lost'],['Adaptive LIFO + CoDel','--served']],
+    run: function(){
+      var st = [{ at:300000, set:{ S:400 } }];
+      var a = run({ lambda:60, steps:st, shedder:{type:'queueCap',cap:20} });
+      var b = run({ lambda:60, steps:st, queueOrder:'adaptiveLifo', lifoThreshold:5, codel:{target:50,interval:200} });
+      var c = run({ lambda:60, steps:st, shedder:{type:'queueTime',target:300,SestInit:80,alpha:0.05} });
+      var d = run({ lambda:60, steps:st });
+      function after(r){ var s = r.series.filter(function(p){ return p.t > 340; });
+        return s.reduce(function(x,p){ return x + p.goodput; }, 0) / s.length; }
+      return {
+        chart: { ymax:65, ylabel:'goodput / second',
+          series:[
+            { name:'Offered', color:MUTED(), dash:true, data:a.series.map(function(p){ return [p.t, p.offered]; }) },
+            { name:'Static cap 20', color:cssv('--lost'), width:2.5, data:a.series.map(function(p){ return [p.t, p.goodput]; }) },
+            { name:'Adaptive LIFO + CoDel', color:cssv('--served'), width:2.5, data:b.series.map(function(p){ return [p.t, p.goodput]; }) }
+          ] },
+        rows: [
+          ['Nothing at all',            after(d).toFixed(1)+'/s'],
+          ['Static queue cap 20',       after(a).toFixed(1)+'/s'],
+          ['Queue-delay target 300 ms', after(c).toFixed(1)+'/s'],
+          ['Adaptive LIFO + CoDel',     after(b).toFixed(1)+'/s']
+        ],
+        cols: ['Design','Goodput after the slowdown'], hi: 3,
+        verdict: 'The cap of 20 was optimal for 80 ms work and is <strong>worth almost nothing</strong> at 400 ms — ' +
+          'twenty requests at 400 ms across four workers is 2,000 ms of waiting, twice the client deadline, so ' +
+          'every request it admits is already dead. Nothing alerted; the config never changed. ' +
+          '<strong>Any threshold counted in requests secretly encodes how long a request takes.</strong> ' +
+          'The rules denominated in time re-tuned themselves with nobody touching anything.',
+        cls: 'warn'
+      };
+    }
+  },
+  burst: {
+    title: 'One burst, permanent outage',
+    desc: 'A comfortable service at 35/s — 69% busy. At the two-minute mark, one instant: 3,000 extra ' +
+          'requests arrive at once. The traffic rate never changes again.',
+    legend: [['No shedding, clients retry','--lost'],['No shedding, no retries','--shed'],['Queue cap 20','--served']],
+    run: function(){
+      var B = { lambda:35, duration:900000, sampleEvery:10000, burstAt:120000, burstSize:3000,
+                attempts:3, backoff:500, jitter:true };
+      function m(o){ var c = {}; for (var k in B) c[k] = B[k]; for (var k2 in o) c[k2] = o[k2]; return run(c); }
+      var a = m({});
+      var b = m({ attempts:1 });
+      var c = m({ shedder:{type:'queueCap',cap:20} });
+      return {
+        chart: { xmax:900, ymax:40000, ylabel:'requests waiting in the queue',
+          xfmt:function(v){ return Math.round(v)+'s'; }, tfmt:function(v){ return Math.round(v).toLocaleString(); },
+          yfmt:function(v){ return v >= 1000 ? (v/1000).toFixed(0)+'k' : Math.round(v); },
+          series:[
+            { name:'Retries on', color:cssv('--lost'), width:2.5, data:a.series.map(function(p){ return [p.t, p.qlen]; }) },
+            { name:'Retries off', color:cssv('--shed'), data:b.series.map(function(p){ return [p.t, p.qlen]; }) },
+            { name:'Queue cap 20', color:cssv('--served'), width:2.5, data:c.series.map(function(p){ return [p.t, p.qlen]; }) }
+          ] },
+        rows: [
+          ['No shedding, clients retry 3×', a.finalQueue.toLocaleString(), pc(a.successRate)],
+          ['No shedding, no retries',       b.finalQueue.toLocaleString(), pc(b.successRate)],
+          ['Queue cap 20',                  c.finalQueue.toLocaleString(), pc(c.successRate)]
+        ],
+        cols: ['Design','Queue 13 minutes later','Served overall'], hi: 2,
+        verdict: 'Same burst, same service, same load. <strong>Without retries the system swallows it in about ' +
+          'four minutes.</strong> With retries the burst becomes permanent — thirteen minutes later the queue ' +
+          'is <strong>' + a.finalQueue.toLocaleString() + '</strong> and still growing, and the event that ' +
+          'caused it ended twelve and a half minutes ago. That is a metastable failure: the trigger is gone ' +
+          'and the outage is not, which is why "we removed the cause and it is still down" is such a common ' +
+          'incident report. <strong>With admission control the burst never becomes an event at all</strong> — ' +
+          'the queue never exceeds ' + c.finalQueue + '.',
+        cls: 'bad'
+      };
+    }
+  }
+};
+[].forEach.call(document.querySelectorAll('#p4 .scen button'), function(b){
+  b.addEventListener('click', function(){
+    var f = FAILURES[b.dataset.f], out = f.run();
+    document.getElementById('c4title').textContent = f.title;
+    document.getElementById('c4desc').textContent = f.desc;
+    document.getElementById('c4legend').innerHTML = (out.chart.series || []).map(function(s){
+      return '<span><i style="background:' + s.color + (s.dash ? ';height:2px' : '') + '"></i>' + s.name + '</span>';
+    }).join('');
+    var spec = { xmin:0, xmax:600, xlabel:'seconds', xfmt:function(v){ return Math.round(v)+'s'; },
+                 tfmt:function(v){ return v.toFixed(1); } };
+    for (var k in out.chart) spec[k] = out.chart[k];
+    c4chart.draw(spec);
+    var v = document.getElementById('c4verdict');
+    v.className = 'verdict ' + (out.cls || '');
+    v.innerHTML = out.verdict;
+    document.getElementById('c4table').innerHTML = tableHTML(out.cols, out.rows, out.hi);
+  });
+});
+
+/* ============================ 5. PRIORITY ============================ */
+var c5chart = mkChart('c5chart', 'c5tip');
+var c5limit = 'static';
+document.getElementById('c5limit').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  c5limit = b.dataset.v;
+  [].forEach.call(this.querySelectorAll('button'), function(x){ x.setAttribute('aria-pressed', x === b); });
+  runC5();
+});
+['c5load','c5a','c5b','c5c'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    document.getElementById(id + '-v').textContent = this.value;
+  });
+});
+document.getElementById('c5run').addEventListener('click', runC5);
+
+function runC5(){
+  var lam = +document.getElementById('c5load').value;
+  var classes = [
+    { name:'checkout',  share:0.20, allow:+document.getElementById('c5a').value / 100 },
+    { name:'browse',    share:0.30, allow:+document.getElementById('c5b').value / 100 },
+    { name:'recommend', share:0.50, allow:+document.getElementById('c5c').value / 100 }
+  ];
+  var shedder = c5limit === 'static'
+    ? { type:'concurrency', limit:12 }
+    : { type:'aimd', start:20, latencyThreshold:400, beta:0.85, min:2, max:400 };
+  var r    = run({ lambda:lam, classes:classes, shedder:shedder });
+  var flat = run({ lambda:lam, shedder:shedder });
+  setReadout(r, lam);
+
+  var COLS = { checkout:cssv('--served'), browse:cssv('--shed'), recommend:cssv('--lost') };
+  var LABEL = { checkout:'Checkout', browse:'Browse', recommend:'Recommendations' };
+  document.getElementById('c5bars').innerHTML = classes.map(function(c){
+    var b = r.byClass[c.name], s = b.offered ? b.success / b.offered : 0;
+    return '<div class="bar"><span>' + LABEL[c.name] + '</span>' +
+           '<span class="track"><span class="fill" style="width:' + (100*s).toFixed(1) + '%;background:' + COLS[c.name] + '"></span></span>' +
+           '<span class="pc" style="color:' + COLS[c.name] + '">' + (100*s).toFixed(0) + '%</span></div>';
+  }).join('') +
+  '<div class="bar" style="margin-top:4px;border-top:1px solid var(--rule);padding-top:12px">' +
+  '<span style="color:var(--muted)">No priority</span><span class="track">' +
+  '<span class="fill" style="width:' + (100*flat.successRate).toFixed(1) + '%;background:var(--rule2)"></span></span>' +
+  '<span class="pc" style="color:var(--muted)">' + (100*flat.successRate).toFixed(0) + '%</span></div>';
+
+  var LOADS = [35, 45, 60, 90, 150, 220, 300];
+  var byName = { checkout:[], browse:[], recommend:[] }, flatCurve = [];
+  LOADS.forEach(function(L){
+    var x = run({ lambda:L, classes:classes, shedder:shedder });
+    var f = run({ lambda:L, shedder:shedder });
+    ['checkout','browse','recommend'].forEach(function(n){
+      var b = x.byClass[n];
+      byName[n].push([L, 100 * (b.offered ? b.success / b.offered : 0)]);
+    });
+    flatCurve.push([L, 100 * f.successRate]);
+  });
+  c5chart.draw({
+    xmin:35, xmax:300, ymax:100, xticks:5,
+    xlabel:'offered load (requests / second)', ylabel:'served',
+    xfmt:function(v){ return Math.round(v)+'/s'; }, yfmt:function(v){ return Math.round(v)+'%'; },
+    tfmt:function(v){ return v.toFixed(0)+'%'; },
+    series: [
+      { name:'No priority',     color:MUTED(), dash:true, data:flatCurve },
+      { name:'Checkout',        color:COLS.checkout,  width:2.5, data:byName.checkout },
+      { name:'Browse',          color:COLS.browse,               data:byName.browse },
+      { name:'Recommendations', color:COLS.recommend,            data:byName.recommend }
+    ]
+  });
+
+  var ck = r.byClass.checkout, cks = ck.offered ? ck.success / ck.offered : 0;
+  var v = document.getElementById('c5verdict');
+  var over = lam > CAP;
+  v.className = 'verdict' + (over ? '' : (r.successRate < 0.95 ? ' warn' : ''));
+  if (over){
+    v.innerHTML = 'At <strong>' + lam + '/s</strong> the overall rate is <strong>' + pc(r.successRate) +
+      '</strong> against <strong>' + pc(flat.successRate) + '</strong> with no priority — barely moved, because ' +
+      '<strong>priority does not create capacity.</strong> What moved is who spent it: checkout went from ' +
+      pc(flat.successRate) + ' to <strong>' + pc(cks) + '</strong>. The numbers in those three sliders are ' +
+      'a statement about what your business is for, and they should not be chosen by whoever is on call.';
+  } else {
+    v.innerHTML = 'At <strong>' + lam + '/s</strong> there is capacity for everything — the workers are not ' +
+      'even busy. Priority still cost you <strong>' + pc(flat.successRate - r.successRate) + '</strong> of your ' +
+      'traffic' + (c5limit === 'static'
+        ? ', because a fraction of a <em>fixed</em> limit is a hard limit enforced at all times, including when nothing is wrong. Switch the limit to <strong>Adaptive</strong> and run it again.'
+        : '. On an adaptive limit the healthy-time cost nearly disappears, because when the service is fast the limit is large and a quarter of it is still plenty.');
+  }
+}
+
+/* ============================ boot ============================ */
+syncC2Param();
+runC1();
+runC2();
+runC3();
+runC5();
+document.querySelector('#p4 .scen button').click();
+requestAnimationFrame(curveStep);
+</script>

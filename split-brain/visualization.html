@@ -1,0 +1,1404 @@
+<title>Two Signal Boxes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Public+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#e7ecee; --card:#fafcfc; --card2:#f1f5f6; --ink:#16252a; --muted:#57696f; --line:#cbd7da;
+  --brass:#8d6116; --brass-soft:#f2e8d2;
+  --danger:#a5262d; --danger-soft:#f7e0e1;
+  --clear:#26714f; --clear-soft:#dcefe5;
+  --caution:#a97612; --caution-soft:#f7ecd3;
+  --siteA:#255770; --siteA-soft:#e0ebf0; --siteB:#743a62; --siteB-soft:#f2e5ef;
+  --siteW:#456434; --siteW-soft:#e6eede;
+  --wire:#8fa4aa; --chip:#e7eef0; --dead:#8c9aa0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1618; --card:#172225; --card2:#1d2a2e; --ink:#dde7e9; --muted:#8ea0a6; --line:#27353a;
+    --brass:#d3a552; --brass-soft:#33280f;
+    --danger:#e2666c; --danger-soft:#3a1a1c;
+    --clear:#56b389; --clear-soft:#122e22;
+    --caution:#d6ab48; --caution-soft:#33290f;
+    --siteA:#5b9dbd; --siteA-soft:#132c37; --siteB:#bd7fab; --siteB-soft:#2f1c2a;
+    --siteW:#8cb173; --siteW-soft:#1c2a17;
+    --wire:#47585d; --chip:#223034; --dead:#5a6a70;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1618; --card:#172225; --card2:#1d2a2e; --ink:#dde7e9; --muted:#8ea0a6; --line:#27353a;
+  --brass:#d3a552; --brass-soft:#33280f;
+  --danger:#e2666c; --danger-soft:#3a1a1c;
+  --clear:#56b389; --clear-soft:#122e22;
+  --caution:#d6ab48; --caution-soft:#33290f;
+  --siteA:#5b9dbd; --siteA-soft:#132c37; --siteB:#bd7fab; --siteB-soft:#2f1c2a;
+  --siteW:#8cb173; --siteW-soft:#1c2a17;
+  --wire:#47585d; --chip:#223034; --dead:#5a6a70;
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); margin:0; padding:20px 20px 70px;
+  font:15px/1.55 "Public Sans",system-ui,-apple-system,sans-serif;}
+.wrap{max-width:1280px; margin:0 auto;}
+h1{font-family:"Archivo Narrow",Arial Narrow,sans-serif; font-weight:700; font-size:38px; margin:0;
+  letter-spacing:.4px; text-wrap:balance; text-transform:uppercase;}
+h2{font-family:"Archivo Narrow",Arial Narrow,sans-serif; font-weight:700; font-size:20px; margin:0 0 6px;}
+.lede{color:var(--muted); max-width:74ch; margin:8px 0 4px;}
+.lede b{color:var(--ink); font-weight:600;}
+.mono{font-family:"Roboto Mono",ui-monospace,monospace;}
+.cols{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:18px;}
+.stagecol{flex:1 1 660px; min-width:520px; display:flex; flex-direction:column; gap:14px;}
+.rail{flex:1 1 336px; min-width:320px; display:flex; flex-direction:column; gap:14px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:4px; padding:14px 15px;}
+.card > h3{margin:0 0 10px; font-family:"Archivo Narrow",Arial Narrow,sans-serif; font-size:13px;
+  text-transform:uppercase; letter-spacing:.11em; color:var(--muted); font-weight:700;
+  border-bottom:1px solid var(--line); padding-bottom:7px;}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.spread{justify-content:space-between;}
+button{font:inherit; font-weight:500; color:var(--ink); background:var(--card2);
+  border:1px solid var(--line); border-radius:3px; padding:6px 11px; cursor:pointer;}
+button:hover:not(:disabled){border-color:var(--brass); color:var(--brass);}
+button:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
+button.primary{background:var(--brass); border-color:var(--brass); color:#fff; font-weight:600;}
+button.primary:hover:not(:disabled){color:#fff; border-color:var(--brass); filter:brightness(1.08);}
+button:disabled{opacity:.4; cursor:default;}
+button.tiny{padding:3px 8px; font-size:13px;}
+.seg{display:flex; flex-direction:column; gap:4px;}
+.seg button{text-align:left; padding:7px 10px; font-size:13.5px; line-height:1.3;}
+.seg button.on{background:var(--brass-soft); border-color:var(--brass); color:var(--brass); font-weight:600;}
+.seg button .hint{display:block; font-weight:400; font-size:12px; color:var(--muted); margin-top:2px;}
+.seg button.on .hint{color:var(--brass); opacity:.85;}
+.clock{font-family:"Roboto Mono",ui-monospace,monospace; font-size:15px; padding:5px 9px;
+  background:var(--chip); border-radius:3px; font-variant-numeric:tabular-nums; color:var(--muted);}
+label.f{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.06em; font-weight:600; flex:1 1 130px;}
+select,input[type=range]{font:inherit; width:100%;}
+select{padding:5px 7px; border:1px solid var(--line); border-radius:3px; background:var(--card2);
+  color:var(--ink); font-size:13.5px; text-transform:none; letter-spacing:0; font-weight:400;}
+input[type=range]{accent-color:var(--brass); padding:0; margin:4px 0 0;}
+.sw{display:flex; align-items:center; gap:8px; font-size:13.5px; text-transform:none;
+  letter-spacing:0; font-weight:400; color:var(--ink); cursor:pointer;}
+.sw input{accent-color:var(--brass); width:16px; height:16px;}
+/* verdict */
+.verdict{border-radius:4px; padding:12px 13px; border:1px solid var(--line); background:var(--card2);
+  display:flex; gap:11px; align-items:flex-start;}
+.verdict.good{background:var(--clear-soft); border-color:var(--clear);}
+.verdict.warn{background:var(--caution-soft); border-color:var(--caution);}
+.verdict.bad{background:var(--danger-soft); border-color:var(--danger);}
+.lamp{width:19px; height:19px; border-radius:50%; flex:0 0 19px; margin-top:2px;
+  border:2px solid rgba(0,0,0,.25); background:var(--dead);}
+.verdict.good .lamp{background:var(--clear);} .verdict.warn .lamp{background:var(--caution);}
+.verdict.bad .lamp{background:var(--danger);}
+.verdict .vt{font-weight:600; font-size:14.5px; line-height:1.4;}
+.verdict .vs{font-size:13px; color:var(--muted); margin-top:4px; line-height:1.45;}
+.verdict.good .vs,.verdict.warn .vs,.verdict.bad .vs{color:inherit; opacity:.82;}
+.tiles{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:11px;}
+.tile{border:1px solid var(--line); border-radius:4px; padding:9px 10px; background:var(--card2);}
+.tile .n{font-family:"Archivo Narrow",Arial Narrow,sans-serif; font-size:33px; font-weight:700;
+  line-height:1; font-variant-numeric:tabular-nums;}
+.tile .k{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;
+  font-weight:600; margin-top:5px; line-height:1.3;}
+.tile.hot{background:var(--danger-soft); border-color:var(--danger);}
+.tile.hot .n{color:var(--danger);} .tile.hot .k{color:var(--danger);}
+.tile.mid{background:var(--caution-soft); border-color:var(--caution);}
+.tile.mid .n{color:var(--caution);} .tile.mid .k{color:var(--caution);}
+.tile.ok .n{color:var(--clear);}
+/* stage */
+.stagebox{overflow-x:auto;}
+svg{display:block; max-width:100%; height:auto;}
+svg text{font-family:"Public Sans",system-ui,sans-serif;}
+svg text.m{font-family:"Roboto Mono",ui-monospace,monospace;}
+/* legend */
+.legend{display:flex; gap:7px 15px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-top:10px;}
+.legend span{display:flex; align-items:center; gap:5px;}
+.dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+.bar{width:16px; height:3px; display:inline-block; border-radius:2px;}
+/* ledger */
+.ledger{display:flex; gap:3px; flex-wrap:wrap; margin-top:9px; min-height:22px;}
+.lg{width:15px; height:20px; border-radius:2px; border:1px solid var(--line); position:relative;}
+.lg.acc{background:var(--clear); border-color:var(--clear);}
+.lg.ref{background:var(--card2); border-color:var(--wire);}
+.lg.div{background:var(--danger); border-color:var(--danger);}
+.resline{display:flex; gap:16px; flex-wrap:wrap; align-items:baseline; font-size:13.5px;}
+.resline b{font-family:"Roboto Mono",ui-monospace,monospace; font-weight:500;}
+.pill{display:inline-block; padding:2px 8px; border-radius:11px; font-size:12px; font-weight:600;
+  border:1px solid var(--line); background:var(--chip); color:var(--muted);}
+.pill.on{background:var(--clear-soft); border-color:var(--clear); color:var(--clear);}
+.pill.off{background:var(--danger-soft); border-color:var(--danger); color:var(--danger);}
+/* log */
+.log{max-height:240px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:0;}
+.ev{padding:7px 2px; border-bottom:1px solid var(--line); font-size:13.5px; line-height:1.45;}
+.ev:first-child{border-bottom:none;}
+.ev .tt{color:var(--muted); font-family:"Roboto Mono",ui-monospace,monospace; font-size:11.5px;
+  margin-right:6px; font-variant-numeric:tabular-nums;}
+.ev .tech{display:block; font-family:"Roboto Mono",ui-monospace,monospace; font-size:11.5px;
+  color:var(--muted); margin-top:2px;}
+.ev.warnrow{background:var(--caution-soft);} .ev.badrow{background:var(--danger-soft);}
+.ev.goodrow{background:var(--clear-soft);}
+.ev.fresh{animation:flash .9s ease-out;}
+@keyframes flash{from{background:var(--brass-soft)} to{}}
+/* inspector */
+.kv{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:13.5px; margin-top:4px;}
+.kv dt{color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:.06em;
+  font-weight:600; align-self:center;}
+.kv dd{margin:0; font-family:"Roboto Mono",ui-monospace,monospace; font-size:13px;}
+/* scenarios */
+.scen{border:1px solid var(--line); border-radius:4px; padding:10px 11px; margin-bottom:9px;
+  background:var(--card2);}
+.scen .q{font-weight:600; font-size:13.5px; line-height:1.4;}
+.scen .setup{font-size:12.5px; color:var(--muted); margin:5px 0 8px;}
+.scen .opts{display:flex; flex-direction:column; gap:5px;}
+.scen .opts button{font-size:13px; padding:6px 9px;}
+.scen .opts button.picked{border-color:var(--brass); background:var(--brass-soft); color:var(--brass);}
+.scen .res{margin-top:9px; font-size:13px; line-height:1.5; padding:9px 10px; border-radius:3px;}
+.scen .res.right{background:var(--clear-soft); border:1px solid var(--clear);}
+.scen .res.wrong{background:var(--danger-soft); border:1px solid var(--danger);}
+.scen .res b{display:block; margin-bottom:3px;}
+.note{font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:9px;}
+.nodebtns{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;}
+details.help{margin-top:10px; font-size:13px; color:var(--muted);}
+details.help summary{cursor:pointer; color:var(--brass); font-weight:600;}
+details.help p{margin:7px 0 0; line-height:1.5;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+<h1>Two Signal Boxes</h1>
+<p class="lede">One stretch of single track. Two signal boxes, one at each end, joined by a telephone
+line. Only one box may let a train onto the track. When the phone line goes quiet, each signalman has
+to decide the one question he cannot answer: <b>is the other box destroyed, or is the line simply
+down?</b> Guess wrong in the cautious direction and no trains run. Guess wrong in the confident
+direction and two trains enter the same track from opposite ends.</p>
+<p class="lede">Below, the signal boxes are servers, the telephone line is the network, and the single
+track is a shared database. Watch the two numbers on the right. They are not the same number, and
+confusing them is the whole subject.</p>
+
+<div class="cols">
+  <div class="stagecol">
+
+    <div class="card">
+      <h3>The cluster &mdash; click any server to crash, pause or inspect it</h3>
+      <div class="stagebox"><svg id="stage" viewBox="0 0 700 372" role="img"
+        aria-label="Cluster diagram showing servers in two sites, the link between them, and messages in flight"></svg></div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--clear)"></span>believes it is in charge</span>
+        <span><span class="dot" style="background:var(--caution)"></span>trying to take charge</span>
+        <span><span class="dot" style="background:var(--wire)"></span>following someone else</span>
+        <span><span class="dot" style="background:var(--dead)"></span>crashed or frozen</span>
+        <span><span class="bar" style="background:var(--wire)"></span>link up</span>
+        <span><span class="bar" style="background:var(--danger)"></span>link cut</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>The single track &mdash; the shared database everyone writes to</h3>
+      <div class="resline">
+        <span>Refuses anything older than: <b id="floor">&mdash;</b></span>
+        <span id="checkpill" class="pill">&mdash;</span>
+        <span>Current value: <b id="resval">&mdash;</b></span>
+      </div>
+      <div class="ledger" id="ledger"></div>
+      <div class="note" id="ledgernote">Each square is one write reaching the database, oldest on the
+        left.</div>
+    </div>
+
+    <div class="card">
+      <h3>What just happened</h3>
+      <div class="log" id="log"></div>
+    </div>
+
+  </div>
+
+  <div class="rail">
+
+    <div class="card">
+      <h3>Right now</h3>
+      <div class="verdict" id="verdict">
+        <span class="lamp"></span>
+        <div><div class="vt" id="vt">Press <b>Play</b> or <b>Step</b> to start the clock.</div>
+        <div class="vs" id="vs">Nothing has happened yet.</div></div>
+      </div>
+      <div class="tiles">
+        <div class="tile" id="tileA"><div class="n" id="nLeaders">0</div>
+          <div class="k">servers that believe they are in charge</div></div>
+        <div class="tile" id="tileB"><div class="n" id="nDiv">0</div>
+          <div class="k">writes accepted from a stale authority</div></div>
+      </div>
+      <div class="note">The left number is cheap and routine. The right number is the damage. A good
+        design lets the left one rise and holds the right one at zero.</div>
+    </div>
+
+    <div class="card">
+      <h3>Clock</h3>
+      <div class="row spread">
+        <div class="row">
+          <button id="back" title="Step backward">&#8592; Back</button>
+          <button id="step">Step &#8594;</button>
+          <button id="play" class="primary">Play</button>
+          <button id="reset">Reset</button>
+        </div>
+        <span class="clock" id="clock">t = 0</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="f">Speed
+          <input type="range" id="speed" min="20" max="320" step="20" value="150">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>The defence in force</h3>
+      <div class="seg" id="defseg"></div>
+      <div class="row" style="margin-top:11px">
+        <label class="sw"><input type="checkbox" id="checks" checked>
+          The database can check tokens</label>
+      </div>
+      <div class="note" id="checknote"></div>
+    </div>
+
+    <div class="card">
+      <h3>The cluster</h3>
+      <div class="row">
+        <label class="f">Servers and where they sit
+          <select id="shape">
+            <option value="2">2 servers &mdash; 1 London, 1 Manchester</option>
+            <option value="3">3 servers &mdash; 2 London, 1 Manchester</option>
+            <option value="4">4 servers &mdash; 2 London, 2 Manchester</option>
+            <option value="5" selected>5 servers &mdash; 3 London, 2 Manchester</option>
+            <option value="w">4 + witness &mdash; 2 London, 2 Manchester, 1 Bristol</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="f">London&rsquo;s app writes to
+          <select id="c1"></select></label>
+        <label class="f">Manchester&rsquo;s app writes to
+          <select id="c2"></select></label>
+      </div>
+      <div class="note">Which server an app talks to is a choice somebody made, not a law. Change it
+        and watch how much the outcome depends on it.</div>
+    </div>
+
+    <div class="card">
+      <h3>Break something</h3>
+      <div class="row">
+        <label class="f">Cut the network
+          <select id="cut">
+            <option value="none">Nothing cut</option>
+            <option value="sites">The London&ndash;Manchester line only</option>
+            <option value="siteout">Manchester loses all connectivity</option>
+            <option value="iso0">Isolate S1 from everyone</option>
+            <option value="iso1">Isolate S2 from everyone</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="sw"><input type="checkbox" id="oneway">
+          Cut only one direction (they hear us, we can&rsquo;t hear them)</label>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="f">Freeze length when you pause a server
+          <input type="range" id="pauselen" min="10" max="160" step="10" value="70">
+          <span class="note" style="margin:2px 0 0" id="pauselbl"></span>
+        </label>
+      </div>
+      <div class="nodebtns" id="quickacts"></div>
+      <div class="note">A freeze is a garbage-collection pause or a virtual machine being suspended.
+        The server is perfectly healthy and the network is perfectly fine &mdash; it simply stops
+        existing for a while, and comes back believing nothing has changed.</div>
+    </div>
+
+    <div class="card">
+      <h3>Timing</h3>
+      <div class="row">
+        <label class="f">Silence before a takeover
+          <input type="range" id="detect" min="15" max="90" step="5" value="40">
+          <span class="note" style="margin:2px 0 0" id="detectlbl"></span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="f">Lease length
+          <input type="range" id="lease" min="10" max="120" step="10" value="50">
+          <span class="note" style="margin:2px 0 0" id="leaselbl"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 id="inspt">Inspect a server</h3>
+      <div id="inspect"><p class="note" style="margin-top:0">Click a server in the diagram above to
+        see exactly what it believes.</p></div>
+    </div>
+
+    <div class="card">
+      <h3>The operator override</h3>
+      <div class="row">
+        <button id="ovr">Force Manchester to act alone</button>
+      </div>
+      <div class="note">The button every runbook has and every post-mortem regrets. It tells the
+        minority site to stop requiring a majority. If London really is dead, it saves you. If London
+        is merely unreachable, you have just built two independent clusters on one database.</div>
+    </div>
+
+    <div class="card">
+      <h3>Predict, then run</h3>
+      <div id="scens"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3>What this simulator is and is not</h3>
+  <p class="note" style="margin-top:0">The election here is Raft-shaped but deliberately simplified:
+  a server that times out raises its epoch and asks for votes, and a vote is granted to any higher
+  epoch. Real Raft also refuses to vote for a candidate whose log is behind, which is what protects
+  already-committed entries &mdash; that check is not modelled, because this page is about authority
+  and side effects rather than log repair. Message delivery is instant-ish (a fixed few ticks) and
+  never lost; the only faults are the ones you can press. Everything you see here is produced by the
+  rules on this page, not by a recording.</p>
+</div>
+</div>
+
+<script>
+"use strict";
+(function(){
+
+/* ------------------------------------------------------------------ */
+/* Deterministic randomness so a replay is always the same run.        */
+/* ------------------------------------------------------------------ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ------------------------------------------------------------------ */
+/* Configuration                                                       */
+/* ------------------------------------------------------------------ */
+var SHAPES = {
+  "2": {sites:["A","B"]},
+  "3": {sites:["A","A","B"]},
+  "4": {sites:["A","A","B","B"]},
+  "5": {sites:["A","A","A","B","B"]},
+  "w": {sites:["A","A","B","B","W"]}
+};
+var SITE = {A:{name:"London", col:"--siteA", soft:"--siteA-soft"},
+            B:{name:"Manchester", col:"--siteB", soft:"--siteB-soft"},
+            W:{name:"Bristol", col:"--siteW", soft:"--siteW-soft"}};
+
+/* The four defences are INDEPENDENT switches, not a ladder. Real systems ship them
+   in every combination — etcd's mod_revision is a fencing token with no lease
+   anywhere near it — and you cannot see what any one of them is worth until you can
+   turn the others off. */
+var DEFENCES = [
+  {id:"quorum", label:"Majority quorum to win",
+   hint:"A server may only take charge with votes from more than half of ALL servers. Off = “if the others go quiet, take over”."},
+  {id:"lease", label:"Authority expires on a lease",
+   hint:"A leader that stops hearing from a majority stands itself down. A new leader waits out the old lease before acting."},
+  {id:"fence", label:"Fencing token on every write",
+   hint:"Each write carries its epoch, and the database refuses anything older than it has already served."},
+  {id:"stonith", label:"Shoot the loser",
+   hint:"On winning, the new leader powers off any server it believes is dead, turning suspicion into fact."}
+];
+function on(k){ return !!cfg.def[k]; }
+
+var cfg = {
+  shape:"5", def:{quorum:false, lease:false, fence:false, stonith:false},
+  checksTokens:true, cut:"none", oneWay:false,
+  detect:40, lease:50, pauseLen:70, latency:3, hbEvery:8, writeEvery:5,
+  c1:0, c2:4, initialLeader:0, overrideSite:null, seed:12345
+};
+
+/* ------------------------------------------------------------------ */
+/* State                                                               */
+/* ------------------------------------------------------------------ */
+var S = null, HIST = [], playing = false, timer = null, selected = null, evSeq = 0;
+
+function makeNode(id, site, rnd){
+  return {id:id, name:"S"+(id+1), site:site, alive:true, frozenUntil:0,
+    role:"follower", epoch:0, votedEpoch:-1, votes:[], leaderIs:null,
+    lastHeard:0, timeout: cfg.detect + Math.floor(rnd()*cfg.detect*0.7),
+    leaseUntil:0, mayActFrom:0, ackFrom:{}, dead:false, killedBy:null};
+}
+
+function init(){
+  var rnd = mulberry32(cfg.seed);
+  var sites = SHAPES[cfg.shape].sites;
+  var nodes = sites.map(function(s,i){return makeNode(i,s,rnd);});
+  // Everyone starts following one server, which starts as leader in epoch 1.
+  var L0 = Math.min(cfg.initialLeader, nodes.length-1);
+  nodes.forEach(function(n){ n.leaderIs=L0; n.epoch=1; n.votedEpoch=1; });
+  nodes[L0].role="leader"; nodes[L0].leaseUntil=cfg.lease; nodes[L0].mayActFrom=0;
+  S = {
+    t:0, rndState:cfg.seed*7+1, nodes:nodes, msgs:[], writeSeq:0,
+    res:{floor:0, lastAcceptedEpoch:0, value:"(empty)", ledger:[], accepted:0,
+         refused:0, divergent:0, authorities:[]},
+    log:[], everSplit:false, peakLeaders:1, overrideSite:cfg.overrideSite
+  };
+  say("The cluster starts healthy. S"+(L0+1)+" ("+SITE[nodes[L0].site].name+") is in charge in "+
+      "epoch 1; everyone else is following it.", "epoch=1 leader=S"+(L0+1), "good");
+  HIST=[]; selected=null;
+  render();
+}
+function rnd(){ S.rndState = (S.rndState*1664525 + 1013904223) & 0x7fffffff;
+  return S.rndState / 0x7fffffff; }
+
+function majority(){ return Math.floor(S.nodes.length/2)+1; }
+function localMajority(site){
+  var c=S.nodes.filter(function(n){return n.site===site;}).length;
+  return Math.floor(c/2)+1;
+}
+function needVotes(n){
+  if(!on("quorum")) return 1;                 // heartbeat-only: nobody asks permission
+  if(S.overrideSite && n.site===S.overrideSite) return localMajority(n.site);
+  return majority();
+}
+function linkUp(a,b){
+  var na=S.nodes[a], nb=S.nodes[b];
+  if(cfg.cut==="siteout"){
+    // Manchester loses ALL connectivity — the shape a real site outage takes, and the
+    // only shape in which a witness in a third place can break the tie.
+    if((na.site==="B") !== (nb.site==="B")){
+      if(cfg.oneWay) return na.site!=="B";
+      return false;
+    }
+  }
+  if(cfg.cut==="sites"){
+    if(na.site!==nb.site){
+      // Bristol (witness) keeps its own links unless it is one of the two cut sites.
+      var pair = [na.site, nb.site];
+      if(pair.indexOf("A")>=0 && pair.indexOf("B")>=0){
+        if(cfg.oneWay) return !(na.site==="B" && nb.site==="A") ? true : false;
+        return false;
+      }
+    }
+  }
+  if(cfg.cut==="iso0" || cfg.cut==="iso1"){
+    var iso = cfg.cut==="iso0" ? 0 : 1;
+    if(a===iso || b===iso){
+      if(cfg.oneWay) return !(a===iso);   // isolated node can send, cannot receive
+      return false;
+    }
+  }
+  return true;
+}
+function usable(n){ return n.alive && S.t >= n.frozenUntil; }
+
+function say(text, tech, tone){
+  S.log.push({t:S.t, text:text, tech:tech||"", tone:tone||"", id:++evSeq});
+  if(S.log.length>140) S.log.shift();
+}
+function send(from,to,kind,extra){
+  var m = {from:from, to:to, kind:kind, at:S.t+cfg.latency, sentAt:S.t};
+  if(extra) for(var k in extra) m[k]=extra[k];
+  S.msgs.push(m);
+}
+
+/* ------------------------------------------------------------------ */
+/* One tick                                                            */
+/* ------------------------------------------------------------------ */
+function tick(){
+  HIST.push(JSON.stringify({S:S, cfg:cfg}));
+  if(HIST.length>500) HIST.shift();
+  S.t++;
+
+  /* 1. deliver messages */
+  var still=[];
+  for(var i=0;i<S.msgs.length;i++){
+    var m=S.msgs[i];
+    if(m.at>S.t){ still.push(m); continue; }
+    if(m.to==="RES"){ deliverWrite(m); continue; }  // the database is reachable from everywhere
+    if(!linkUp(m.from,m.to)){ continue; }           // link went down while in flight
+    var n=S.nodes[m.to];
+    if(!usable(n)) continue;                       // dead or frozen: message is lost on the floor
+    deliver(n,m);
+  }
+  S.msgs=still;
+
+  /* 2. node behaviour */
+  for(var j=0;j<S.nodes.length;j++){
+    var nd=S.nodes[j];
+    if(!nd.alive) continue;
+    if(S.t < nd.frozenUntil) continue;
+    if(nd.frozenUntil && S.t===nd.frozenUntil){
+      nd.frozenUntil=0;
+      say(nd.name+" wakes up from its freeze. Nothing tells it that time has passed, so it carries "+
+          "on exactly as before"+(nd.role==="leader"?" — still believing it is in charge.":"."),
+          nd.name+" resumes role="+nd.role+" epoch="+nd.epoch, nd.role==="leader"?"warn":"");
+    }
+    if(nd.role==="leader"){
+      if(S.t % cfg.hbEvery === 0){
+        for(var k=0;k<S.nodes.length;k++) if(k!==nd.id) send(nd.id,k,"HB",{epoch:nd.epoch});
+      }
+      if(on("lease")){
+        var fresh=0;
+        for(var p in nd.ackFrom) if(nd.ackFrom[p] > S.t - cfg.lease) fresh++;
+        if(fresh+1 >= majority()) nd.leaseUntil = S.t + cfg.lease;
+        if(S.t >= nd.leaseUntil && nd.leaseUntil>0){
+          nd.role="follower"; nd.leaderIs=null; nd.lastHeard=S.t;
+          say(nd.name+" gives up. Its lease ran out because it stopped hearing from a majority, so "+
+              "it stands down on its own — nobody had to tell it.",
+              nd.name+": lease expired at t="+nd.leaseUntil+", role→follower", "good");
+        }
+      }
+    } else {
+      if(S.t - nd.lastHeard > nd.timeout){
+        startElection(nd);
+      }
+    }
+  }
+
+  /* 3. clients write */
+  if(S.t % cfg.writeEvery === 0 && S.t>0){
+    attemptWrite(cfg.c1, "LON");
+    attemptWrite(cfg.c2, "MAN");
+  }
+
+  /* 4. bookkeeping */
+  var lead = S.nodes.filter(function(n){return n.alive && n.role==="leader";}).length;
+  if(lead>S.peakLeaders) S.peakLeaders=lead;
+  if(lead>1) S.everSplit=true;
+}
+
+function startElection(nd){
+  nd.epoch++; nd.role="candidate"; nd.votedEpoch=nd.epoch; nd.votes=[nd.id];
+  nd.lastHeard=S.t; nd.leaderIs=null;
+  nd.timeout = cfg.detect + Math.floor(rnd()*cfg.detect*0.7);
+  var need = needVotes(nd);
+  if(need<=1){
+    win(nd, "no permission was required — the only rule in force is “if the others go quiet, "+
+      "take over”");
+    return;
+  }
+  say(nd.name+" has heard nothing from a leader for "+nd.timeout+" ticks, so it asks the others to "+
+      "make it the new one. It needs "+need+" votes.",
+      nd.name+" → candidate, epoch="+nd.epoch+", needs "+need+"/"+S.nodes.length, "warn");
+  for(var k=0;k<S.nodes.length;k++) if(k!==nd.id) send(nd.id,k,"VOTE_REQ",{epoch:nd.epoch});
+}
+
+function win(nd, why){
+  nd.role="leader"; nd.leaderIs=nd.id; nd.ackFrom={};
+  nd.leaseUntil = on("lease") ? S.t + cfg.lease : 0;
+  nd.mayActFrom = on("lease") ? S.t + cfg.lease : S.t;
+  var others = S.nodes.filter(function(n){return n.alive && n.role==="leader" && n.id!==nd.id;});
+  var tone = others.length ? "bad" : "good";
+  say(nd.name+" declares itself in charge in epoch "+nd.epoch+", because "+why+"."+
+      (others.length? " "+others.map(function(o){return o.name;}).join(" and ")+
+       " still believe the same thing about "+(others.length>1?"themselves":"itself")+
+       ". That is split brain: two servers, both certain, neither wrong from where it is standing."
+       : ""),
+      nd.name+" → LEADER epoch="+nd.epoch+
+      (nd.mayActFrom>S.t?", may act from t="+nd.mayActFrom:""), tone);
+  if(on("lease") && nd.mayActFrom>S.t){
+    say(nd.name+" will not touch the database yet. It waits out the old leader’s lease first, "+
+        "so that whatever the old one still thinks, its time has provably run out.",
+        nd.name+" quiet period until t="+nd.mayActFrom+" (lease="+cfg.lease+")", "");
+  }
+  if(on("stonith")){
+    for(var k=0;k<S.nodes.length;k++){
+      if(k===nd.id) continue;
+      if(nd.votes.indexOf(k)>=0) continue;                 // it voted for me, it is fine
+      send(nd.id,k,"KILL",{epoch:nd.epoch});
+    }
+    say(nd.name+" sends a kill signal to every server that did not vote for it, to turn “I think "+
+        "you are dead” into “you are dead”.",
+        nd.name+" STONITH → non-voters", "warn");
+  }
+  for(var m=0;m<S.nodes.length;m++) if(m!==nd.id) send(nd.id,m,"HB",{epoch:nd.epoch});
+}
+
+function deliver(n,m){
+  if(m.kind==="HB"){
+    if(m.epoch >= n.epoch){
+      var wasLeader = n.role==="leader";
+      n.epoch=m.epoch; n.lastHeard=S.t; n.leaderIs=m.from;
+      if(wasLeader && m.from!==n.id){
+        n.role="follower";
+        say(n.name+" hears from S"+(m.from+1)+" in epoch "+m.epoch+", which is at least as new as its "+
+            "own. It steps down immediately — this is how a split brain heals the moment the "+
+            "network comes back.",
+            n.name+" leader→follower on HB(epoch="+m.epoch+")", "good");
+      } else if(n.role!=="leader"){ n.role="follower"; }
+      send(n.id,m.from,"HB_ACK",{epoch:m.epoch});
+    } else {
+      // A follower that has already moved on tells the stale leader so. This is the
+      // reply that ends most split brains in a real system — long before any timeout.
+      send(n.id,m.from,"HB_NACK",{epoch:n.epoch});
+    }
+    return;
+  }
+  if(m.kind==="HB_ACK"){
+    if(n.role==="leader" && m.epoch===n.epoch) n.ackFrom[m.from]=S.t;
+    return;
+  }
+  if(m.kind==="HB_NACK"){
+    if(m.epoch > n.epoch){
+      var was = n.role;
+      n.epoch=m.epoch; n.role="follower"; n.leaderIs=null; n.lastHeard=S.t;
+      if(was==="leader")
+        say(n.name+" is told by S"+(m.from+1)+" that the cluster has moved on to epoch "+m.epoch+
+            ". It stands down at once. Notice that no timer was involved — one server simply "+
+            "answered another, which is why most split brains end in milliseconds rather than "+
+            "at the end of a lease.",
+            n.name+" leader→follower on NACK(epoch="+m.epoch+")", "good");
+    }
+    return;
+  }
+  if(m.kind==="VOTE_REQ"){
+    if(m.epoch > n.votedEpoch){
+      n.votedEpoch=m.epoch;
+      if(m.epoch>n.epoch){ n.epoch=m.epoch; if(n.role==="leader"){
+        n.role="follower";
+        say(n.name+" sees a newer epoch than its own and steps down before voting.",
+            n.name+" leader→follower, epoch→"+m.epoch, "");
+      } }
+      n.lastHeard=S.t;
+      send(n.id,m.from,"VOTE",{epoch:m.epoch});
+    }
+    return;
+  }
+  if(m.kind==="VOTE"){
+    if(n.role==="candidate" && m.epoch===n.epoch && n.votes.indexOf(m.from)<0){
+      n.votes.push(m.from);
+      if(n.votes.length >= needVotes(n)){
+        win(n, "it collected "+n.votes.length+" votes out of "+S.nodes.length+
+          (S.overrideSite===n.site? " — under the operator override, which lets its site decide alone"
+           : ", which is more than half"));
+      }
+    }
+    return;
+  }
+  if(m.kind==="KILL"){
+    n.alive=false; n.dead=true; n.killedBy=m.from; n.role="follower";
+    say("S"+(m.from+1)+" has powered off "+n.name+". "+n.name+" is now genuinely dead rather than "+
+        "merely suspected, which is the entire point of the manoeuvre.",
+        n.name+" killed by S"+(m.from+1), "warn");
+    return;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Writes                                                              */
+/* ------------------------------------------------------------------ */
+/* An app does not write to a follower; it gets redirected to whoever that follower
+   currently believes is in charge. That single hop is what lets an app on the losing
+   side of a partition keep writing perfectly happily to the wrong leader. */
+function attemptWrite(target, who){
+  var n = S.nodes[target];
+  if(!n || !n.alive || S.t < n.frozenUntil) return;
+  var l = n;
+  if(n.role!=="leader"){
+    if(n.leaderIs===null || n.leaderIs===undefined) return;
+    var c = S.nodes[n.leaderIs];
+    if(!c || !c.alive || S.t < c.frozenUntil) return;
+    if(c.id!==n.id && !linkUp(n.id,c.id)) return;
+    if(c.role!=="leader") return;
+    l = c;
+  }
+  if(on("lease") && S.t < l.mayActFrom) return;
+  if(on("lease") && l.leaseUntil>0 && S.t >= l.leaseUntil) return;
+  S.writeSeq++;
+  send(l.id,"RES","WRITE",{epoch:l.epoch, value:who+"-"+S.writeSeq, from:l.id});
+}
+function deliverWrite(m){
+  var r=S.res, nm="S"+(m.from+1);
+  var fencing = on("fence") && cfg.checksTokens;
+  if(fencing && m.epoch < r.floor){
+    r.refused++; r.ledger.push({k:"ref", e:m.epoch, by:nm});
+    say("The database refuses a write from "+nm+". It carries epoch "+m.epoch+", and the database has "+
+        "already served epoch "+r.floor+". "+nm+" still believes it is in charge — it is simply "+
+        "no longer able to do anything about it.",
+        "REFUSE "+m.value+" epoch="+m.epoch+" < floor="+r.floor, "good");
+    trim(r); return;
+  }
+  var stale = m.epoch < r.lastAcceptedEpoch;
+  r.accepted++; r.value=m.value;
+  if(fencing) r.floor = Math.max(r.floor, m.epoch);
+  if(r.authorities.indexOf(m.epoch)<0) r.authorities.push(m.epoch);
+  if(stale){
+    r.divergent++;
+    r.ledger.push({k:"div", e:m.epoch, by:nm});
+    say("DAMAGE: the database accepted “"+m.value+"” from "+nm+", whose authority is epoch "+
+        m.epoch+" — older than the epoch "+r.lastAcceptedEpoch+" it has already served. A server "+
+        "that lost its job has just overwritten the work of the server that replaced it.",
+        "ACCEPT(STALE) "+m.value+" epoch="+m.epoch+" < lastAccepted="+r.lastAcceptedEpoch, "bad");
+  } else {
+    r.lastAcceptedEpoch = Math.max(r.lastAcceptedEpoch, m.epoch);
+    r.ledger.push({k:"acc", e:m.epoch, by:nm});
+  }
+  trim(r);
+}
+function trim(r){ if(r.ledger.length>34) r.ledger.shift(); }
+
+/* ------------------------------------------------------------------ */
+/* Verdict                                                             */
+/* ------------------------------------------------------------------ */
+function verdict(){
+  var alive = S.nodes.filter(function(n){return n.alive;});
+  var leaders = alive.filter(function(n){return n.role==="leader";});
+  var acting = leaders.filter(function(n){
+    if(!on("lease")) return true;
+    return S.t>=n.mayActFrom && (n.leaseUntil===0 || S.t<n.leaseUntil);
+  });
+  var r=S.res, tone, t, s;
+
+  if(r.divergent>0){
+    tone="bad";
+    t = "The database has been corrupted by "+r.divergent+" write"+(r.divergent>1?"s":"")+
+        " from a server that had already been replaced.";
+    s = "This is the failure that costs money. No amount of agreement between the servers can undo "+
+        "it, because the damage is not in the cluster — it is in the thing the cluster was "+
+        "supposed to be protecting.";
+  } else if(leaders.length>1 && acting.length>1){
+    tone="bad";
+    t = leaders.length+" servers believe they are in charge, and "+acting.length+
+        " of them are allowed to write.";
+    s = "Nothing has broken yet only because their writes have not yet collided in an order that "+
+        "loses one. Keep stepping.";
+  } else if(leaders.length>1){
+    tone="warn";
+    t = leaders.length+" servers believe they are in charge — but only "+
+        (acting.length===1?"one is":acting.length+" are")+" able to act.";
+    s = "This is the healthy shape of split brain. The belief is duplicated; the authority is not. "+
+        "The loser will find out when its next write bounces, or when its lease runs out.";
+  } else if(leaders.length===1){
+    tone="good";
+    t = leaders[0].name+" is in charge, alone, in epoch "+leaders[0].epoch+".";
+    s = acting.length ? "Writes are flowing normally."
+      : leaders[0].name+" has won but is deliberately waiting out the old leader’s lease before "+
+        "it touches anything.";
+  } else if(alive.length===0){
+    tone="bad"; t="Every server is dead.";
+    s="If two nodes shot each other, this is the fence race: each was certain the other had failed, "+
+      "and both were right about the network and wrong about everything else.";
+  } else {
+    tone="warn";
+    t = "Nobody is in charge. The cluster is refusing to serve writes.";
+    s = "Safety is intact and availability is gone. That is the bill quorum sends you: no side can "+
+        "reach a majority, so no side is allowed to act. The data is fine; the service is down.";
+  }
+  return {tone:tone, t:t, s:s, leaders:leaders.length, acting:acting.length};
+}
+
+/* ------------------------------------------------------------------ */
+/* Rendering                                                           */
+/* ------------------------------------------------------------------ */
+var $ = function(id){ return document.getElementById(id); };
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function layout(){
+  var pos = {}, bySite = {A:[],B:[],W:[]};
+  S.nodes.forEach(function(n){ bySite[n.site].push(n); });
+  var boxes = {
+    A:{x:22, y:44, w:210, h:250},
+    B:{x:466, y:44, w:210, h:250},
+    W:{x:266, y:250, w:166, h:76}
+  };
+  ["A","B","W"].forEach(function(sk){
+    var list=bySite[sk], b=boxes[sk];
+    var h = sk==="W" ? 40 : 62;
+    var startY = b.y + (b.h - list.length*h)/2 + 8;
+    list.forEach(function(n,i){
+      pos[n.id] = {x:b.x+b.w/2, y:startY + i*h + h/2 - 6, site:sk};
+    });
+  });
+  return {pos:pos, boxes:boxes, bySite:bySite};
+}
+
+function render(){
+  var L = layout();
+  drawStage(L);
+  drawResource();
+  drawLog();
+  drawVerdict();
+  drawInspector(L);
+  $("clock").textContent = "t = "+S.t;
+  $("back").disabled = HIST.length===0;
+}
+
+function drawStage(L){
+  var svg=$("stage"), o=[];
+  var st = {A:css("--siteA"), B:css("--siteB"), W:css("--siteW")};
+  var sf = {A:css("--siteA-soft"), B:css("--siteB-soft"), W:css("--siteW-soft")};
+  var line=css("--line"), wire=css("--wire"), muted=css("--muted"), ink=css("--ink");
+  var clear=css("--clear"), caution=css("--caution"), danger=css("--danger"), dead=css("--dead");
+  var card=css("--card");
+
+  // site boxes
+  ["A","B","W"].forEach(function(sk){
+    if(!L.bySite[sk].length) return;
+    var b=L.boxes[sk];
+    o.push('<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="4" fill="'+sf[sk]+
+      '" stroke="'+st[sk]+'" stroke-width="1.5"/>');
+    o.push('<text x="'+(b.x+10)+'" y="'+(b.y+19)+'" font-size="12.5" font-weight="700" fill="'+st[sk]+
+      '" letter-spacing="1.1">'+SITE[sk].name.toUpperCase()+'</text>');
+  });
+
+  // inter-site link
+  var cutSites = cfg.cut==="sites" || cfg.cut==="siteout";
+  var lc = cutSites ? danger : wire;
+  o.push('<line x1="232" y1="169" x2="466" y2="169" stroke="'+lc+'" stroke-width="3" '+
+    (cutSites?'stroke-dasharray="7 6"':'')+'/>');
+  if(cutSites){
+    o.push('<line x1="341" y1="149" x2="357" y2="189" stroke="'+danger+'" stroke-width="3.5"/>');
+    o.push('<line x1="357" y1="149" x2="341" y2="189" stroke="'+danger+'" stroke-width="3.5"/>');
+    o.push('<text x="349" y="139" text-anchor="middle" font-size="11.5" font-weight="700" fill="'+
+      danger+'" letter-spacing=".6">LINK CUT'+(cfg.oneWay?" (ONE WAY)":"")+'</text>');
+  } else {
+    o.push('<text x="349" y="160" text-anchor="middle" font-size="11.5" fill="'+muted+
+      '" letter-spacing=".6">the telephone line</text>');
+  }
+
+  // nodes
+  S.nodes.forEach(function(n){
+    var p=L.pos[n.id], w=150, h=44, x=p.x-w/2, y=p.y-h/2;
+    var frozen = S.t < n.frozenUntil;
+    var lamp = !n.alive||frozen ? dead : (n.role==="leader"?clear:(n.role==="candidate"?caution:wire));
+    var stroke = selected===n.id ? css("--brass") : (n.alive&&!frozen?st[n.site]:dead);
+    var sw = selected===n.id ? 2.6 : 1.4;
+    var op = n.alive ? 1 : 0.42;
+    o.push('<g class="node" data-id="'+n.id+'" style="cursor:pointer" opacity="'+op+'">');
+    o.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="3" fill="'+card+
+      '" stroke="'+stroke+'" stroke-width="'+sw+'"/>');
+    o.push('<circle cx="'+(x+16)+'" cy="'+(y+15)+'" r="6.5" fill="'+lamp+'" stroke="'+line+'"/>');
+    o.push('<text x="'+(x+29)+'" y="'+(y+19)+'" font-size="13.5" font-weight="700" fill="'+ink+'">'+
+      n.name+'</text>');
+    var stat = !n.alive ? (n.killedBy!=null?"shot dead":"crashed")
+      : frozen ? "frozen ("+(n.frozenUntil-S.t)+")"
+      : n.role==="leader" ? "IN CHARGE" : n.role==="candidate" ? "asking for votes" : "following";
+    o.push('<text x="'+(x+79)+'" y="'+(y+19)+'" font-size="11.5" fill="'+
+      (n.role==="leader"&&n.alive&&!frozen?clear:muted)+'" font-weight="'+
+      (n.role==="leader"?"700":"400")+'">'+stat+'</text>');
+    o.push('<text class="m" x="'+(x+29)+'" y="'+(y+35)+'" font-size="11" fill="'+muted+
+      '">epoch '+n.epoch+(n.role==="candidate"?"  votes "+n.votes.length+"/"+needVotes(n):"")+
+      (n.role==="leader"&&on("lease")&&n.leaseUntil>0?
+        "  lease→"+n.leaseUntil : "")+'</text>');
+    o.push('</g>');
+  });
+
+  // clients
+  [{c:cfg.c1, lab:"London app", sk:"A", x:127, y:322},
+   {c:cfg.c2, lab:"Manchester app", sk:"B", x:571, y:322}].forEach(function(cl){
+    var p=L.pos[cl.c]; if(!p) return;
+    o.push('<rect x="'+(cl.x-72)+'" y="'+(cl.y-14)+'" width="144" height="26" rx="13" fill="'+
+      css("--chip")+'" stroke="'+line+'"/>');
+    o.push('<text x="'+cl.x+'" y="'+(cl.y+4)+'" text-anchor="middle" font-size="11.5" fill="'+muted+
+      '">'+cl.lab+' → S'+(cl.c+1)+'</text>');
+    o.push('<line x1="'+cl.x+'" y1="'+(cl.y-14)+'" x2="'+p.x+'" y2="'+(p.y+22)+'" stroke="'+wire+
+      '" stroke-width="1" stroke-dasharray="3 3"/>');
+  });
+
+  // messages in flight
+  S.msgs.forEach(function(m){
+    var a=L.pos[m.from]; if(!a) return;
+    var b = m.to==="RES" ? {x:349, y:352} : L.pos[m.to];
+    if(!b) return;
+    var prog = 1 - (m.at - S.t)/cfg.latency;
+    prog = Math.max(0,Math.min(1,prog));
+    var x=a.x+(b.x-a.x)*prog, y=a.y+(b.y-a.y)*prog;
+    var col = m.kind==="WRITE" ? css("--brass") : m.kind==="KILL" ? danger :
+      (m.kind==="VOTE_REQ"||m.kind==="VOTE") ? caution : wire;
+    var rr = m.kind==="WRITE"||m.kind==="KILL" ? 5.5 : 4;
+    o.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+rr+'" fill="'+col+
+      '" stroke="'+card+'" stroke-width="1.2"/>');
+  });
+
+  // resource anchor
+  o.push('<rect x="269" y="338" width="160" height="26" rx="3" fill="'+css("--brass-soft")+
+    '" stroke="'+css("--brass")+'"/>');
+  o.push('<text x="349" y="355" text-anchor="middle" font-size="11.5" font-weight="600" fill="'+
+    css("--brass")+'">the shared database</text>');
+
+  svg.innerHTML=o.join("");
+  Array.prototype.forEach.call(svg.querySelectorAll(".node"), function(g){
+    g.addEventListener("click", function(){ selected=+g.getAttribute("data-id"); render(); });
+  });
+}
+
+function drawResource(){
+  var r=S.res, fencing = on("fence");
+  $("floor").textContent = (fencing && cfg.checksTokens) ? ("epoch "+r.floor) : "— nothing";
+  var pp=$("checkpill");
+  if(!fencing){ pp.className="pill"; pp.textContent="no token is being sent"; }
+  else if(!cfg.checksTokens){ pp.className="pill off"; pp.textContent="cannot check tokens"; }
+  else { pp.className="pill on"; pp.textContent="checking every write"; }
+  $("resval").textContent = r.value;
+  var o=[];
+  r.ledger.forEach(function(e){
+    var title = e.k==="acc" ? "accepted from "+e.by+" (epoch "+e.e+")"
+      : e.k==="ref" ? "REFUSED — "+e.by+" presented stale epoch "+e.e
+      : "ACCEPTED FROM A STALE AUTHORITY — "+e.by+", epoch "+e.e;
+    o.push('<div class="lg '+e.k+'" title="'+esc(title)+'"></div>');
+  });
+  $("ledger").innerHTML = o.join("") || '<span class="note" style="margin:0">no writes yet</span>';
+  $("ledgernote").innerHTML = 'Oldest on the left. <b style="color:'+css("--clear")+
+    '">Solid green</b> = accepted from the current authority. <b>Hollow</b> = refused because its '+
+    'token was stale. <b style="color:'+css("--danger")+
+    '">Solid red</b> = accepted from an authority that had already been superseded &mdash; each red '+
+    'square is a real overwrite of newer data. Accepted '+r.accepted+', refused '+r.refused+
+    ', damaged '+r.divergent+'.';
+}
+
+function drawLog(){
+  var o=[];
+  S.log.slice(-70).forEach(function(e){
+    var cls = e.tone==="bad"?"badrow":e.tone==="warn"?"warnrow":e.tone==="good"?"goodrow":"";
+    o.push('<div class="ev '+cls+'"><span class="tt">t='+e.t+'</span>'+esc(e.text)+
+      (e.tech?'<span class="tech">'+esc(e.tech)+'</span>':'')+'</div>');
+  });
+  $("log").innerHTML=o.join("");
+}
+
+function drawVerdict(){
+  var v=verdict();
+  var el=$("verdict");
+  el.className="verdict "+(v.tone==="bad"?"bad":v.tone==="warn"?"warn":"good");
+  $("vt").textContent=v.t; $("vs").textContent=v.s;
+  $("nLeaders").textContent=v.leaders;
+  $("nDiv").textContent=S.res.divergent;
+  $("tileA").className="tile "+(v.leaders>1?"mid":"ok");
+  $("tileB").className="tile "+(S.res.divergent>0?"hot":"ok");
+}
+
+function drawInspector(L){
+  if(selected===null || !S.nodes[selected]){
+    $("inspt").textContent="Inspect a server";
+    $("inspect").innerHTML='<p class="note" style="margin-top:0">Click a server in the diagram above '+
+      'to see exactly what it believes.</p>'; return;
+  }
+  var n=S.nodes[selected];
+  $("inspt").textContent="Inside "+n.name+" ("+SITE[n.site].name+")";
+  var frozen=S.t<n.frozenUntil;
+  var believes = n.role==="leader" ? "that it is in charge"
+    : n.role==="candidate" ? "that it should be in charge and is counting votes"
+    : n.leaderIs!=null ? "that S"+(n.leaderIs+1)+" is in charge"
+    : "that nobody is in charge";
+  var rows=[
+    ["state", !n.alive?(n.killedBy!=null?"shot dead by S"+(n.killedBy+1):"crashed"):
+      frozen?"frozen for "+(n.frozenUntil-S.t)+" more ticks":"running"],
+    ["role", n.role],
+    ["epoch", n.epoch],
+    ["believes", believes],
+    ["last heard from a leader", "t="+n.lastHeard+"  ("+(S.t-n.lastHeard)+" ticks ago)"],
+    ["gives up after", n.timeout+" ticks of silence"]
+  ];
+  if(n.role==="candidate") rows.push(["votes", n.votes.length+" of "+needVotes(n)+" needed"]);
+  if(n.role==="leader" && on("lease")){
+    rows.push(["lease valid until", n.leaseUntil]);
+    rows.push(["may write from", n.mayActFrom+(S.t<n.mayActFrom?"  (waiting)":"")]);
+  }
+  var h='<dl class="kv">';
+  rows.forEach(function(r){ h+='<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'; });
+  h+='</dl><div class="nodebtns">';
+  h+= n.alive ? '<button class="tiny" data-a="crash">Crash '+n.name+'</button>'+
+      '<button class="tiny" data-a="freeze">Freeze '+n.name+'</button>'
+    : '<button class="tiny" data-a="revive">Restart '+n.name+'</button>';
+  h+='</div>';
+  $("inspect").innerHTML=h;
+  Array.prototype.forEach.call($("inspect").querySelectorAll("button"), function(b){
+    b.addEventListener("click", function(){ act(selected, b.getAttribute("data-a")); });
+  });
+}
+
+function act(id,a){
+  HIST.push(JSON.stringify({S:S, cfg:cfg}));
+  var n=S.nodes[id];
+  if(a==="crash"){ n.alive=false; n.role="follower"; n.killedBy=null;
+    say(n.name+" has crashed. From every other server’s point of view this looks exactly like "+
+        "the network going down — silence, and no way to tell which.",
+        n.name+" alive=false", "warn"); }
+  if(a==="freeze"){ n.frozenUntil=S.t+cfg.pauseLen;
+    say(n.name+" freezes for "+cfg.pauseLen+" ticks. It is not crashed and the network is fine; it "+
+        "has simply stopped running. It will wake up believing everything it believed a moment ago.",
+        n.name+" frozen until t="+(S.t+cfg.pauseLen), "warn"); }
+  if(a==="revive"){ n.alive=true; n.dead=false; n.killedBy=null; n.role="follower";
+    n.lastHeard=S.t; n.leaderIs=null;
+    say(n.name+" restarts and starts listening again.", n.name+" alive=true", ""); }
+  render();
+}
+
+/* ------------------------------------------------------------------ */
+/* Controls                                                            */
+/* ------------------------------------------------------------------ */
+function buildDefence(){
+  var o=[];
+  DEFENCES.forEach(function(d){
+    o.push('<button data-d="'+d.id+'"'+(on(d.id)?' class="on"':'')+'>'+
+      (on(d.id)?"&#10003; ":"&nbsp;&nbsp;&nbsp;")+d.label+
+      '<span class="hint">'+d.hint+'</span></button>');
+  });
+  $("defseg").innerHTML=o.join("");
+  Array.prototype.forEach.call($("defseg").querySelectorAll("button"), function(b){
+    b.addEventListener("click", function(){
+      var k=b.getAttribute("data-d");
+      cfg.def[k] = !cfg.def[k];
+      buildDefence(); updateNotes(); init();
+    });
+  });
+}
+function updateNotes(){
+  $("checks").disabled = !on("fence");
+  $("checknote").innerHTML = !on("fence")
+    ? "A token check only matters once writes actually carry a token. Turn on fencing to use this."
+    : (cfg.checksTokens
+      ? "The database is a real database: it can compare numbers and refuse. Turn this off to see what "+
+        "fencing is worth against something that cannot &mdash; a payment gateway, an email server, a "+
+        "printer."
+      : "<b>The database now accepts anything.</b> The tokens are still being sent and are still "+
+        "correct; there is simply nobody checking them. Watch how much protection that buys you.");
+  $("pauselbl").textContent = cfg.pauseLen+" ticks (silence limit is "+cfg.detect+")";
+  $("detectlbl").textContent = cfg.detect+" ticks before a server tries to take over";
+  $("leaselbl").textContent = cfg.lease+" ticks"+(!on("lease")?" — not in force yet":"");
+}
+function buildClients(){
+  ["c1","c2"].forEach(function(k){
+    var s=$(k), o=[];
+    S.nodes.forEach(function(n){
+      o.push('<option value="'+n.id+'"'+(cfg[k]===n.id?" selected":"")+'>'+n.name+" ("+
+        SITE[n.site].name+")</option>");
+    });
+    s.innerHTML=o.join("");
+  });
+}
+function buildQuick(){
+  var o=[];
+  S.nodes.forEach(function(n){
+    o.push('<button class="tiny" data-q="f'+n.id+'">Freeze '+n.name+'</button>');
+  });
+  S.nodes.forEach(function(n){
+    o.push('<button class="tiny" data-q="c'+n.id+'">'+(n.alive?"Crash ":"Restart ")+n.name+'</button>');
+  });
+  $("quickacts").innerHTML=o.join("");
+  Array.prototype.forEach.call($("quickacts").querySelectorAll("button"), function(b){
+    b.addEventListener("click", function(){
+      var q=b.getAttribute("data-q"), id=+q.slice(1);
+      act(id, q[0]==="f" ? "freeze" : (S.nodes[id].alive?"crash":"revive"));
+      buildQuick();
+    });
+  });
+}
+function reshape(){
+  cfg.c1 = 0;
+  cfg.c2 = SHAPES[cfg.shape].sites.lastIndexOf("B");
+  if(cfg.c2<0) cfg.c2 = SHAPES[cfg.shape].sites.length-1;
+  cfg.overrideSite=null;
+  init(); buildClients(); buildQuick(); updateNotes();
+}
+
+function stepOnce(){ tick(); render(); buildQuick(); }
+function stepBack(){
+  if(!HIST.length) return;
+  var snap=JSON.parse(HIST.pop());
+  S=snap.S; for(var k in snap.cfg) cfg[k]=snap.cfg[k];
+  render(); buildQuick(); syncInputs();
+}
+function syncInputs(){
+  $("checks").checked=cfg.checksTokens; $("oneway").checked=cfg.oneWay;
+  $("cut").value=cfg.cut; $("detect").value=cfg.detect; $("lease").value=cfg.lease;
+  $("pauselen").value=cfg.pauseLen; $("shape").value=cfg.shape;
+  buildDefence(); updateNotes();
+}
+function setPlay(on){
+  playing=on; $("play").textContent = on ? "Pause" : "Play";
+  if(timer){ clearInterval(timer); timer=null; }
+  if(on) timer=setInterval(stepOnce, +$("speed").value);
+}
+
+$("step").addEventListener("click", function(){ setPlay(false); stepOnce(); });
+$("back").addEventListener("click", function(){ setPlay(false); stepBack(); });
+$("play").addEventListener("click", function(){ setPlay(!playing); });
+$("reset").addEventListener("click", function(){ setPlay(false); cfg.cut="none"; cfg.oneWay=false;
+  reshape(); syncInputs(); });
+$("speed").addEventListener("input", function(){ if(playing) setPlay(true); });
+$("shape").addEventListener("change", function(){ cfg.shape=$("shape").value; setPlay(false); reshape(); });
+$("c1").addEventListener("change", function(){ cfg.c1=+$("c1").value; render(); });
+$("c2").addEventListener("change", function(){ cfg.c2=+$("c2").value; render(); });
+$("cut").addEventListener("change", function(){
+  cfg.cut=$("cut").value;
+  say(cfg.cut==="none" ? "The network is whole again. Messages start getting through."
+    : cfg.cut==="sites" ? "The line between London and Manchester is cut"+
+        (cfg.oneWay?", in one direction only":"")+". Neither site can hear the other, and neither "+
+        "can tell whether the other is dead or merely unreachable. Anything in a third site can "+
+        "still be reached by both — which is a stranger situation than a clean split."
+    : cfg.cut==="siteout" ? "Manchester has lost all connectivity — to London and to anywhere else. "+
+        "This is what a site outage actually looks like, and it is the only shape in which a small "+
+        "third voter can break the tie."
+    : "S"+(cfg.cut==="iso0"?1:2)+" is now cut off from everyone. It can still run; it simply cannot "+
+      "be heard.", "cut="+cfg.cut+" oneWay="+cfg.oneWay, "warn");
+  render();
+});
+$("oneway").addEventListener("change", function(){ cfg.oneWay=$("oneway").checked; render(); });
+$("checks").addEventListener("change", function(){
+  cfg.checksTokens=$("checks").checked; updateNotes();
+  say(cfg.checksTokens ? "The database will now check tokens on every write."
+    : "The database can no longer check tokens — it is something like a payment gateway or an "+
+      "email server, which will happily do whatever it is told by whoever asks.",
+    "resource.checksTokens="+cfg.checksTokens, cfg.checksTokens?"good":"warn");
+  render();
+});
+$("detect").addEventListener("input", function(){ cfg.detect=+$("detect").value; updateNotes(); });
+$("lease").addEventListener("input", function(){ cfg.lease=+$("lease").value; updateNotes(); });
+$("pauselen").addEventListener("input", function(){ cfg.pauseLen=+$("pauselen").value; updateNotes(); });
+$("ovr").addEventListener("click", function(){
+  HIST.push(JSON.stringify({S:S, cfg:cfg}));
+  S.overrideSite = S.overrideSite ? null : "B";
+  $("ovr").textContent = S.overrideSite ? "Cancel the override" : "Force Manchester to act alone";
+  say(S.overrideSite
+    ? "An operator has told Manchester to stop requiring a majority. If London is genuinely dead this "+
+      "restores service. If London is alive on the other side of a cut cable, there are now two "+
+      "clusters, each correctly following its own rules, writing to one database."
+    : "The override is cancelled. Manchester needs a real majority again.",
+    "overrideSite="+S.overrideSite, S.overrideSite?"bad":"good");
+  render();
+});
+
+/* ------------------------------------------------------------------ */
+/* Predict-then-run scenarios                                          */
+/* ------------------------------------------------------------------ */
+var SCENARIOS = [
+  {
+    q:"The cable between London and Manchester is cut. The only rule in force is “if the others go quiet, take over.” What happens?",
+    setup:"5 servers, 3 in London and 2 in Manchester. Defence: heartbeat only.",
+    opts:["Manchester waits, because it is the smaller side",
+          "Both sides end up with a server in charge",
+          "Nothing — nobody notices the cut"],
+    right:1,
+    why:"Manchester has no way to know it is the smaller side. All it can see is silence, and silence "+
+        "is the same shape whether London is dead or merely unreachable. Its rule says take over, so "+
+        "it takes over. Now two servers are in charge and both are writing to the same database, and "+
+        "the red squares in the ledger are writes from a superseded authority landing on top of newer "+
+        "data.",
+    cfg:{shape:"5", def:{}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:0}, run:120
+  },
+  {
+    q:"Same cut, same cluster — but now a server needs votes from more than half of all five before it may take charge. What happens?",
+    setup:"5 servers, 3 in London and 2 in Manchester. Defence: majority quorum.",
+    opts:["Both sides still elect, just more slowly",
+          "London keeps working, Manchester stops",
+          "Both sides stop, to be safe"],
+    right:1,
+    why:"Manchester can reach only two servers and needs three, so its candidate asks and asks and "+
+        "never wins. London has three and carries on. Notice what actually did the work: nobody told "+
+        "Manchester it had lost. It worked that out from its own vote count. Majority quorum is the "+
+        "one rule a partitioned node can apply correctly using only local information. But note "+
+        "carefully why London kept serving: its server was ALREADY in charge. Quorum did not grant "+
+        "it anything here. The next scenario moves the incumbent to Manchester and the picture "+
+        "changes completely.",
+    cfg:{shape:"5", def:{quorum:1}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:0}, run:130
+  },
+  {
+    q:"Same cut, majority quorum still on — but this time the server already in charge sits in Manchester, the smaller side. Does quorum stop it?",
+    setup:"5 servers, 3 in London and 2 in Manchester, and S4 (Manchester) is the incumbent leader. Defence: majority quorum.",
+    opts:["Yes — it loses its majority, so it stands down",
+          "No — it keeps writing, and London elects a second leader as well"],
+    right:1,
+    why:"This is the trap in the middle of the subject. A majority is required to WIN an election; "+
+        "nothing in that rule says anything about KEEPING the job. S4 was elected fairly long ago and "+
+        "simply never hears that it has lost anything — silence is not a resignation letter. Meanwhile "+
+        "London has three servers, elects its own leader in a higher epoch, and both write. Quorum "+
+        "alone gives you split brain with damage. The missing piece is a rule that makes authority "+
+        "expire by itself: switch the defence to Lease and run this again, and watch S4 stand itself "+
+        "down without anybody telling it to.",
+    cfg:{shape:"5", def:{quorum:1}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:3},
+    run:160
+  },
+  {
+    q:"Now an even split — two servers in each city, the cable is cut, and authority expires on a lease. Which side wins?",
+    setup:"4 servers, 2 in London and 2 in Manchester. Defence: lease.",
+    opts:["London, because the leader was already there",
+          "Whichever side times out first",
+          "Neither — the whole cluster stops"],
+    right:2,
+    why:"Three votes are needed and neither side can find more than two, and the old leader's lease "+
+        "runs out with nobody to renew it against. Both sides campaign forever and the service is "+
+        "down everywhere, even though four perfectly healthy servers are running. This is the bill "+
+        "quorum sends you, and it is why an even number of servers is a trap: four servers survive "+
+        "exactly as many failures as three do, while giving you one extra machine that can fail. If "+
+        "you must span two sites, put a small third voter in a third place — choose the witness "+
+        "option in the cluster selector and cut the cable again.",
+    cfg:{shape:"4", def:{quorum:1,lease:1}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:0},
+    run:190
+  },
+  {
+    q:"Add one tiny fifth server in Bristol that stores nothing and only votes. Manchester then loses all connectivity. Does the cluster survive?",
+    setup:"2 London + 2 Manchester + 1 witness in Bristol. Defence: quorum and lease.",
+    opts:["No — Bristol is too small to count",
+          "Yes — London plus Bristol is three votes out of five"],
+    right:1,
+    why:"A witness is a voter that holds no data and can never lead. It costs almost nothing to run "+
+        "and it exists for exactly one purpose: to make the total odd, so that a two-site cluster "+
+        "always has a side that can reach a majority. The placement is the whole trick — Bristol must "+
+        "be somewhere that can fail independently of both London and Manchester. Put the witness in "+
+        "London and you have not built a tiebreaker, you have built a rule that says London always "+
+        "wins, which is a different and much less useful thing.",
+    cfg:{shape:"w", def:{quorum:1,lease:1}, cut:"siteout", checksTokens:true, oneWay:false, initialLeader:0},
+    run:260
+  },
+  {
+    q:"Same witness cluster — but now only the London–Manchester line fails. Bristol can still reach both. What happens?",
+    setup:"2 London + 2 Manchester + 1 witness in Bristol. Only the site-to-site link is cut.",
+    opts:["Same as before — London plus Bristol wins cleanly",
+          "The two sites take turns winning, and the epoch number climbs and climbs"],
+    right:1,
+    why:"This is the partition nobody draws on a whiteboard, and it is common in real networks: not "+
+        "a clean break into two halves, but a shape where A cannot reach B while both can still reach "+
+        "C. Bristol will happily vote for whoever asks with a higher number, so London bids, wins, "+
+        "and is then unseated by Manchester bidding higher, forever. Watch the epoch numbers on the "+
+        "servers. Nothing here is broken and no rule is violated — the cluster simply cannot settle, "+
+        "and it burns its whole capacity on elections. This is why real Raft adds a pre-vote round: "+
+        "a server must first ask “would you vote for me?” without raising anybody's epoch, so a node "+
+        "that cannot actually win stops disrupting the ones that can.",
+    cfg:{shape:"w", def:{quorum:1,lease:1}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:0},
+    run:300
+  },
+  {
+    q:"Two servers, one in each city. London crashes. Does Manchester take over?",
+    setup:"2 servers. Defence: majority quorum.",
+    opts:["Yes — it is the only one left, so it must",
+          "No — it needs two votes and only has one"],
+    right:1,
+    why:"A majority of two is two. A two-server cluster tolerates zero failures: it has twice the "+
+        "hardware to fail and no more resilience than one machine. This is the exact moment engineers "+
+        "reach for the override switch — and the override is what turns the next unreachable peer "+
+        "into a live split brain. Two-node high availability is not a configuration, it is a decision "+
+        "to gamble.",
+    cfg:{shape:"2", def:{quorum:1}, cut:"none", checksTokens:true, oneWay:false, initialLeader:0},
+    run:110, crash:0
+  },
+  {
+    q:"Perfect network, nothing cut. The server in charge freezes for longer than the silence limit, then wakes up. Can split brain still happen?",
+    setup:"5 servers, majority quorum, no fencing. S1 freezes for 70 ticks; the limit is 40.",
+    opts:["No — the network is fine, so there is no partition",
+          "Yes — the others elect a new leader while S1 is frozen",
+          "Yes, but S1 will realise instantly on waking"],
+    right:1,
+    why:"There is no partition anywhere and it happens anyway. A frozen process cannot send heartbeats, "+
+        "and to everyone else a silent server and a dead server are the same server. They elect a "+
+        "replacement. S1 then wakes up with no idea that any time has passed and carries on writing "+
+        "in its old epoch — it will only find out when someone tells it, and under this defence "+
+        "nobody does before its next write lands. The cause of split brain is not the network. It is "+
+        "that silence has two meanings and you must act on one of them. Be honest about what you "+
+        "just watched, though: S1’s stale write and the new leader’s heartbeat were racing, and here "+
+        "the write won by a few ticks. Sometimes the heartbeat wins and nothing bad happens. That is "+
+        "exactly the problem — a defence that works most of the time is a defence you cannot reason "+
+        "about, and in production this race is decided in milliseconds you do not control.",
+    cfg:{shape:"5", def:{quorum:1}, cut:"none", checksTokens:true, oneWay:false, initialLeader:0},
+    run:130, freeze:0
+  },
+  {
+    q:"Exactly the same freeze — but now every write carries its epoch and the database refuses anything older than it has already served. What do the two counters say?",
+    setup:"5 servers, fencing token on. S1 freezes for 70 ticks.",
+    opts:["Both counters stay at 1 and 0 — split brain is prevented",
+          "Two servers believe they are in charge, and zero writes are damaged",
+          "Two servers believe they are in charge, and the damage continues"],
+    right:1,
+    why:"This is the sentence worth carrying out of the whole lab. Fencing does not prevent split "+
+        "brain — the left counter still reaches two, and it always will, because you cannot stop "+
+        "a machine from believing something. What fencing does is make the belief inert: the old "+
+        "leader’s write arrives carrying epoch 1 at a database that has already served epoch 2, "+
+        "and bounces. Look for the hollow squares in the ledger. Each one is a disaster that did not "+
+        "happen, and note that the check is pure arithmetic — no clock, no timeout, no guess.",
+    cfg:{shape:"5", def:{quorum:1,fence:1}, cut:"none", checksTokens:true, oneWay:false, initialLeader:0},
+    run:130, freeze:0
+  },
+  {
+    q:"Same again, fencing still on — but the thing being written to is a payment gateway, which has no idea what an epoch is. Does fencing still save you?",
+    setup:"5 servers, fencing on, but the database cannot check tokens.",
+    opts:["Yes — the token is still correct",
+          "No — the damage is exactly as bad as with no defence at all"],
+    right:1,
+    why:"The token was correct, was sent, and was ignored. Fencing is not a property of the sender; "+
+        "it is a property of the receiver. Quorum protects the servers, because the servers are the "+
+        "ones voting — but a payment gateway does not vote, was never asked, and has no idea a "+
+        "cluster exists. Anything outside the voting group gets no protection from consensus at all "+
+        "unless it independently refuses stale work. This is why the real defence for such systems is "+
+        "an idempotency key on the operation, not a lock on the caller.",
+    cfg:{shape:"5", def:{quorum:1,fence:1}, cut:"none", checksTokens:false, oneWay:false, initialLeader:0},
+    run:130, freeze:0
+  },
+  {
+    q:"The cable is cut, London has the majority and is working normally, and an operator forces Manchester to act alone. What is the result?",
+    setup:"5 servers, majority quorum, cable cut, then the override is pressed.",
+    opts:["Manchester takes over and London stands down",
+          "Two clusters, both following their rules correctly, on one database",
+          "Nothing — the override cannot beat a real majority"],
+    right:1,
+    why:"The override does not talk to London; it cannot, that is the whole problem. It only changes "+
+        "what Manchester requires of itself. London has no idea anything happened and keeps its "+
+        "majority. You now have two clusters, each internally consistent, each certain, both writing. "+
+        "Consensus protocols have no defence against this, because it is not a bug in the protocol "+
+        "— it is a human removing the protocol. It is why the override should require the "+
+        "operator to state, in writing, how they know the other site is dead.",
+    cfg:{shape:"5", def:{quorum:1}, cut:"sites", checksTokens:true, oneWay:false, initialLeader:0},
+    run:170, override:true
+  }
+];
+
+function buildScenarios(){
+  var o=[];
+  SCENARIOS.forEach(function(s,i){
+    o.push('<div class="scen" data-i="'+i+'"><div class="q">'+esc(s.q)+'</div>'+
+      '<div class="setup">'+esc(s.setup)+'</div><div class="opts">');
+    s.opts.forEach(function(op,j){
+      o.push('<button data-i="'+i+'" data-j="'+j+'">'+esc(op)+'</button>');
+    });
+    o.push('</div><div class="resbox"></div></div>');
+  });
+  $("scens").innerHTML=o.join("");
+  Array.prototype.forEach.call($("scens").querySelectorAll(".opts button"), function(b){
+    b.addEventListener("click", function(){
+      runScenario(+b.getAttribute("data-i"), +b.getAttribute("data-j"), b);
+    });
+  });
+}
+function runScenario(i,j,btn){
+  var s=SCENARIOS[i];
+  setPlay(false);
+  for(var k in s.cfg){
+    if(k==="def"){
+      cfg.def={quorum:false, lease:false, fence:false, stonith:false};
+      for(var d in s.cfg.def) cfg.def[d]=!!s.cfg.def[d];
+    } else cfg[k]=s.cfg[k];
+  }
+  reshape(); syncInputs();
+  if(s.override) S.overrideSite="B";
+  if(s.cut!=null) cfg.cut=s.cut;
+  var fired=false;
+  for(var t=0;t<s.run;t++){
+    if(!fired && t===30){
+      if(s.freeze!=null){ S.nodes[s.freeze].frozenUntil=S.t+cfg.pauseLen;
+        say("S"+(s.freeze+1)+" freezes for "+cfg.pauseLen+" ticks.",
+            "frozenUntil="+(S.t+cfg.pauseLen),"warn"); }
+      if(s.crash!=null){ S.nodes[s.crash].alive=false; S.nodes[s.crash].role="follower";
+        say("S"+(s.crash+1)+" has crashed.","alive=false","warn"); }
+      fired=true;
+    }
+    tick();
+  }
+  render(); buildQuick(); showResult(i,j);
+}
+function showResult(i,j){
+  var s=SCENARIOS[i];
+  var box=$("scens").querySelector('.scen[data-i="'+i+'"]');
+  if(!box) return;
+  Array.prototype.forEach.call(box.querySelectorAll(".opts button"), function(b){
+    b.className = (+b.getAttribute("data-j")===j) ? "picked" : "";
+  });
+  var ok = j===s.right;
+  box.querySelector(".resbox").innerHTML =
+    '<div class="res '+(ok?"right":"wrong")+'"><b>'+
+    (ok?"You had it.":"Not this time — the answer is: "+esc(s.opts[s.right]))+
+    '</b>'+esc(s.why)+'</div>';
+}
+
+/* ------------------------------------------------------------------ */
+buildDefence();
+init();
+buildClients(); buildQuick(); buildScenarios(); updateNotes(); syncInputs();
+render();
+
+/* Test hook: only wired up by the offline behavioural harness, never in a browser. */
+if(typeof globalThis!=="undefined" && globalThis.__HARNESS__){
+  globalThis.__T = {tick:tick, init:init, cfg:cfg, verdict:verdict, reshape:reshape,
+    runScenario:runScenario, SCENARIOS:SCENARIOS, act:act, linkUp:linkUp,
+    needVotes:needVotes, get S(){return S;}};
+}
+
+})();
+</script>

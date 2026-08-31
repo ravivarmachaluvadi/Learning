@@ -1,0 +1,900 @@
+<title>Rumour Mill</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=JetBrains+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#eaecf3; --surface:#ffffff; --surface-2:#f2f4f9; --line:#c9cede; --line-soft:#dee2ec;
+  --ink:#161a2b; --ink-2:#464e66; --ink-3:#6f7893;
+  --news:#6b4fd0;            /* the fact being spread */
+  --alive:#1f8a63; --suspect:#c07a1e; --dead:#b03f5c; --unknown:#9aa2ba;
+  --shadow:0 1px 2px rgba(22,26,43,.06),0 10px 28px rgba(22,26,43,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0d16; --surface:#141826; --surface-2:#1a1f30; --line:#2a3044; --line-soft:#222839;
+  --ink:#e6e9f4; --ink-2:#a8b0c8; --ink-3:#7d86a2;
+  --news:#a78bfa; --alive:#3fb98a; --suspect:#e0a13f; --dead:#e2708c; --unknown:#68718c;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 12px 32px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0b0d16; --surface:#141826; --surface-2:#1a1f30; --line:#2a3044; --line-soft:#222839;
+  --ink:#e6e9f4; --ink-2:#a8b0c8; --ink-3:#7d86a2;
+  --news:#a78bfa; --alive:#3fb98a; --suspect:#e0a13f; --dead:#e2708c; --unknown:#68718c;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 12px 32px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Public Sans",ui-sans-serif,system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:1280px;margin:0 auto;padding:26px 20px 70px}
+h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,4.4vw,46px);font-weight:700;letter-spacing:-.025em;line-height:1.02}
+h2{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3)}
+h3{font-size:17px;font-weight:600}
+p{margin:0}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:22px}
+header.top .lede{max-width:66ch;color:var(--ink-2);margin-top:12px;font-size:17px}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--news);margin-bottom:9px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(310px,.85fr);gap:18px;align-items:start}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow);padding:17px}
+.card + .card{margin-top:15px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+
+svg.ring{width:100%;height:auto;display:block}
+.edge{stroke:var(--line-soft);stroke-width:1}
+.msg{stroke:var(--news);stroke-width:2;opacity:.75;fill:none}
+.msg.plain{stroke:var(--ink-3);opacity:.35;stroke-width:1.2}
+.nd circle.body{stroke-width:3;transition:r .15s ease}
+.nd text{font-family:"JetBrains Mono",monospace;font-size:11px;fill:var(--ink-3)}
+.nd{cursor:pointer}
+.nd.sel circle.halo{fill:none;stroke:var(--ink);stroke-width:2}
+.flash{animation:flash 1s ease-out 1}
+@keyframes flash{0%{r:12;opacity:.6}100%{r:34;opacity:0}}
+@media(prefers-reduced-motion:reduce){.flash{display:none}}
+.partline{stroke:var(--dead);stroke-width:2;stroke-dasharray:8 6;opacity:.8}
+
+.legend{display:flex;flex-wrap:wrap;gap:7px 15px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.ringdot{width:11px;height:11px;border-radius:50%;display:inline-block;border:3px solid var(--news)}
+
+.verdict{border-left:4px solid var(--ink-3);padding:13px 15px;border-radius:0 9px 9px 0;
+  background:var(--surface-2);margin-top:14px}
+.verdict.good{border-left-color:var(--alive)}
+.verdict.bad{border-left-color:var(--dead)}
+.verdict.warn{border-left-color:var(--suspect)}
+.verdict .h{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:17px;margin-bottom:3px}
+.verdict .d{color:var(--ink-2);font-size:14.5px}
+
+button{font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer;
+  transition:background .12s,border-color .12s}
+button:hover:not(:disabled){background:var(--surface-2);border-color:var(--ink-3)}
+button:focus-visible{outline:2px solid var(--news);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+button.primary{background:var(--news);color:#fff;border-color:var(--news);font-weight:600}
+button.primary:hover:not(:disabled){filter:brightness(1.1);background:var(--news)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.rule{margin-bottom:13px}
+.rule .q{font-size:13.5px;font-weight:600;margin-bottom:1px}
+.rule .why{font-size:12.5px;color:var(--ink-3);margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--news)}
+
+.strip{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.cellbox{width:15px;height:15px;border-radius:3px;background:var(--unknown)}
+.cellbox.knows{background:var(--news)}
+
+table.matrix{border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:9px}
+table.matrix td{width:13px;height:13px;padding:0;border:1px solid var(--surface)}
+table.matrix th{color:var(--ink-3);font-weight:400;font-size:9px;padding:1px 3px;text-align:right}
+.mwrap{overflow-x:auto;margin-top:6px}
+
+.log{max-height:280px;overflow-y:auto;display:flex;flex-direction:column-reverse}
+.ev{padding:9px 0;border-bottom:1px dashed var(--line-soft)}
+.ev:first-child{border-bottom:none}
+.ev .t{font-size:14px}
+.ev .tech{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-3);margin-top:2px}
+.ev.now{background:linear-gradient(90deg,color-mix(in srgb,var(--news) 15%,transparent),transparent);
+  border-radius:6px;padding-left:8px}
+.tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  padding:1px 5px;border-radius:4px;border:1px solid currentColor;margin-right:6px;vertical-align:1px}
+.tag.bad{color:var(--dead)} .tag.good{color:var(--alive)} .tag.warn{color:var(--suspect)}
+.tag.info{color:var(--ink-3)} .tag.news{color:var(--news)}
+
+table.insp{width:100%;border-collapse:collapse;font-size:13.5px}
+table.insp td{padding:4px 0;border-bottom:1px solid var(--line-soft)}
+table.insp td:first-child{color:var(--ink-3)}
+table.insp td:last-child{font-family:"JetBrains Mono",monospace;text-align:right}
+.pill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:1px 7px;border-radius:20px;color:#fff}
+
+.scn{border:1px solid var(--line);border-radius:10px;padding:13px;background:var(--surface-2)}
+.scn + .scn{margin-top:11px}
+.scn .name{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:15.5px}
+.scn .ask{color:var(--ink-2);font-size:14px;margin:5px 0 9px}
+.answer{margin-top:10px;padding:10px 12px;border-radius:7px;background:var(--surface);
+  border:1px solid var(--line);font-size:14px}
+.answer .hd{font-weight:600;margin-bottom:3px}
+.hidden{display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:9px;margin-top:12px}
+.stat{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:9px;padding:9px 11px}
+.stat .v{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:500}
+.stat .k{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13.5px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">No coordinator · no broadcast · no retries</div>
+  <h1>Rumour Mill</h1>
+  <p class="lede">Twenty machines need to agree on two things: one shared fact, and
+  which of them are still alive. No machine is in charge, none of them can shout to
+  everyone, and messages get lost. Each one does the only thing it can — every second,
+  it picks a couple of others at random and tells them what it knows. Watch what that
+  is enough for, and where it isn't.</p>
+</header>
+
+<div class="layout">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h2>The cluster</h2>
+        <span class="mono" id="clock" style="font-size:12.5px;color:var(--ink-3)">round 0</span>
+      </div>
+      <svg class="ring" id="ring" viewBox="0 0 620 500" role="img"
+           aria-label="Twenty machines arranged in a circle, with the messages of the last round drawn between them"></svg>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--alive)"></i>believed alive</span>
+        <span><i class="dot" style="background:var(--suspect)"></i>suspected</span>
+        <span><i class="dot" style="background:var(--dead)"></i>written off as dead</span>
+        <span><i class="ringdot"></i>has heard the news</span>
+        <span style="color:var(--ink-3)">lines = messages sent this round</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="s-known">0/20</div><div class="k">have the news</div></div>
+        <div class="stat"><div class="v" id="s-msgs">0</div><div class="k">messages sent</div></div>
+        <div class="stat"><div class="v" id="s-lost">0</div><div class="k">messages lost</div></div>
+        <div class="stat"><div class="v" id="s-dis">0%</div><div class="k">nodes disagreeing</div></div>
+      </div>
+      <div class="verdict" id="verdict">
+        <div class="h">Nothing has happened yet.</div>
+        <div class="d">Press <strong>Tell n1 something new</strong> and then step the rounds, or run a situation on the right.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>What every node believes about every node</h2>
+        <span style="font-size:12.5px;color:var(--ink-3)">row = who believes it, column = who it is about</span>
+      </div>
+      <div class="mwrap"><table class="matrix" id="matrix"></table></div>
+      <p style="font-size:13px;color:var(--ink-3);margin-top:8px">A column in one colour means the
+      cluster agrees about that machine. A column of mixed colours is the cluster in two minds —
+      which is exactly the window in which two nodes send the same request to different places.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>What just happened</h2>
+        <div class="row">
+          <button id="back">← Step back</button>
+          <button id="reset">Reset</button>
+        </div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>Do something</h2></div>
+      <div class="row">
+        <button class="primary" id="step">Run one round</button>
+        <button id="play">Play</button>
+        <button id="publish">Tell n1 something new</button>
+        <button id="kill">Crash selected</button>
+        <button id="pause">Pause selected 5 rounds</button>
+        <button id="revive">Restart selected</button>
+        <button id="cut">Cut the n1-n5 cable</button>
+        <button id="part">Split the cluster</button>
+        <button id="heal">Repair the network</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>How they gossip</h2></div>
+      <div class="rule">
+        <div class="q">How many peers does each node contact per round?</div>
+        <div class="why">More is faster and costs more, every round, for ever.</div>
+        <div class="seg" id="fanout">
+          <button data-v="1">1</button><button data-v="2">2</button>
+          <button data-v="3">3</button><button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="rule">
+        <div class="q">Who talks?</div>
+        <div class="why">Telling, asking, or both.</div>
+        <div class="seg" id="mode">
+          <button data-v="push">I tell you</button>
+          <button data-v="pull">I ask you</button>
+          <button data-v="pushpull">We swap</button>
+        </div>
+      </div>
+      <div class="rule">
+        <div class="q">How many messages are lost?</div>
+        <div class="why">There are no retries anywhere in this protocol.</div>
+        <div class="seg" id="loss">
+          <button data-v="0">none</button><button data-v="0.3">30%</button>
+          <button data-v="0.6">60%</button><button data-v="0.9">90%</button>
+        </div>
+      </div>
+      <div class="rule">
+        <div class="q">What counts as proof a node is alive?</div>
+        <div class="why">"Is it up?" and "can I reach it?" are different questions.</div>
+        <div class="seg" id="detect">
+          <button data-v="hearsay">Anyone's word for it</button>
+          <button data-v="direct">Only hearing it myself</button>
+          <button data-v="probe">Myself, or via a helper</button>
+        </div>
+      </div>
+      <div class="rule">
+        <div class="q">How much silence before suspecting a node?</div>
+        <div class="why" id="susLabel">3 rounds</div>
+        <input type="range" id="suspect" min="1" max="8" value="3" aria-label="rounds of silence before suspicion">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Inspect</h2></div>
+      <div id="inspector"><p style="color:var(--ink-3);font-size:14px">Click a machine to see what
+        it knows, and what it believes about everyone else.</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Situations</h2></div>
+      <p style="font-size:13.5px;color:var(--ink-3);margin-bottom:11px">Guess first. Each one resets
+      the cluster and plays out.</p>
+      <div id="scenarios"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  A round here is one tick in which every node gossips once with what it knew when the round began.
+  Real gossip is asynchronous and a "round" is just each node's own timer firing — the shape of the
+  spread, and every failure on this page, are the same either way.
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   MODEL. Pure state + reducer, with the random seed inside the state, so
+   "step back" replays exactly and never invents a different history.
+   ======================================================================== */
+const N = 20, SUSPECT_DEFAULT = 3, DEAD_AFTER = 3;
+
+function rng(state){                       // small deterministic generator
+  state.seed = (state.seed * 1664525 + 1013904223) >>> 0;
+  return state.seed / 4294967296;
+}
+const pick = (state, arr) => arr[Math.floor(rng(state) * arr.length)];
+
+function initial(){
+  const nodes = [];
+  for (let i = 1; i <= N; i++) nodes.push({
+    id: "n" + i, up: true, pausedUntil: 0, side: 0,
+    hb: 0, inc: 1, cfg: 0,
+    view: {}                                  // peer id -> {inc, hb, status, seen}
+  });
+  for (const a of nodes) for (const b of nodes)
+    if (a.id !== b.id) a.view[b.id] = {inc: 1, hb: 0, status: "ALIVE", seen: 0};
+  return {
+    seed: 20260829, round: 0, nodes, blocked: [],
+    cfg: {fanout: 2, mode: "pushpull", loss: 0, detect: "hearsay", suspectAfter: SUSPECT_DEFAULT},
+    wires: [], selected: null, flash: [],
+    msgs: 0, lost: 0, published: false,
+    log: [{tag: "info", text: "Twenty machines are running. Each one keeps its own list of who else is alive, and nobody's list is the official one.", tech: "20 nodes, each holding 19 membership rows"}],
+    verdict: {kind: "", h: "Nothing has happened yet.",
+              d: "Press <strong>Tell n1 something new</strong> and then step the rounds, or run a situation on the right."}
+  };
+}
+const clone = s => JSON.parse(JSON.stringify(s));
+const node = (s, id) => s.nodes.find(n => n.id === id);
+const running = (s, n) => n.up && s.round >= n.pausedUntil;
+
+/* --- the merge rule: keep the larger of (incarnation, status, heartbeat) --- */
+const RANK = {ALIVE: 0, SUSPECT: 1, DEAD: 2};
+function mergeEntry(mine, theirs, round){
+  let cmp = theirs.inc - mine.inc;
+  if (cmp === 0) cmp = RANK[theirs.status] - RANK[mine.status];
+  if (cmp === 0) cmp = theirs.hb - mine.hb;
+  if (cmp <= 0) return false;
+  mine.inc = theirs.inc; mine.status = theirs.status; mine.hb = theirs.hb; mine.seen = round;
+  return true;
+}
+
+function say(s, tag, text, tech){ s.log.push({tag, text, tech}); }
+function verdict(s, kind, h, d){ s.verdict = {kind, h, d}; }
+
+function canDeliver(s, a, b){
+  const A = node(s, a), B = node(s, b);
+  if (!running(s, A) || !running(s, B)) return false;
+  if (A.side !== B.side) return false;
+  return !(s.blocked.includes(a + "|" + b) || s.blocked.includes(b + "|" + a));
+}
+
+/**
+ * How long silence must last before it counts as a symptom.
+ *
+ * With "anyone's word for it", news of a peer arrives on nearly every message,
+ * so the timeout is simply in rounds. With the stricter rules only a message
+ * FROM that peer counts, and a given peer only reaches me every few rounds, so
+ * the same number of rounds would accuse the whole cluster. The window is scaled
+ * by how often a particular peer is expected to call.
+ */
+function silenceWindow(s){
+  if (s.cfg.detect === "hearsay") return s.cfg.suspectAfter;
+  return s.cfg.suspectAfter * Math.ceil(N / (2 * s.cfg.fanout));
+}
+
+/** One node hands its frozen snapshot to another. */
+function deliver(s, snap, to, round){
+  let learned = 0;
+  // Under the stricter rules, remember every stopwatch before merging: news
+  // carried by a third party is allowed to change my belief but not to count as
+  // proof that I can reach that node.
+  const stopwatches = {};
+  if (s.cfg.detect !== "hearsay")
+    for (const pid in to.view) stopwatches[pid] = to.view[pid].seen;
+  for (const pid in snap.view){
+    if (pid === to.id){
+      const about = snap.view[pid];
+      if (about.status !== "ALIVE" && about.inc >= to.inc){
+        to.inc = about.inc + 1; to.hb++;
+        say(s, "good", to.id + " heard that it was being called " + about.status.toLowerCase() +
+            ", and said so: it is alive and this is version " + to.inc + " of it.",
+            to.id + ": incarnation " + (to.inc - 1) + " → " + to.inc + " (refutation)");
+        s.flash.push(to.id);
+      }
+      continue;
+    }
+    if (!to.view[pid]) { to.view[pid] = {...snap.view[pid]}; learned++; continue; }
+    if (mergeEntry(to.view[pid], snap.view[pid], round)) learned++;
+  }
+  // Direct contact: I heard from the sender myself.
+  const senderRow = to.view[snap.id];
+  if (senderRow && senderRow.status !== "DEAD"){
+    senderRow.hb = Math.max(senderRow.hb, snap.hb);
+    senderRow.seen = round;
+  }
+  for (const pid in stopwatches)
+    if (pid !== snap.id && to.view[pid]) to.view[pid].seen = stopwatches[pid];
+  if (snap.cfg > to.cfg){
+    to.cfg = snap.cfg;
+    say(s, "news", to.id + " has just heard the news, from " + snap.id + ".",
+        to.id + ": config v0 → v" + snap.cfg);
+    s.flash.push(to.id);
+  }
+  return learned;
+}
+
+function snapshot(s, n){
+  return {id: n.id, hb: n.hb, cfg: n.cfg, view: JSON.parse(JSON.stringify(n.view))};
+}
+
+/* ------------------------------------------------------------- the reducer */
+function act(prev, action){
+  const s = clone(prev);
+  s.flash = []; s.wires = [];
+
+  switch(action.type){
+
+  case "cfg": {
+    s.cfg[action.key] = action.value;
+    const words = {
+      fanout: "each node now contacts " + action.value + " peer(s) per round",
+      mode: {push: "nodes now only TELL: a node sends what it knows and expects nothing back",
+             pull: "nodes now only ASK: a node requests what a peer knows",
+             pushpull: "nodes now SWAP: both sides learn from one exchange"}[action.value],
+      loss: Math.round(action.value * 100) + "% of messages are now lost in the network",
+      detect: {hearsay: "a node counts as alive if ANYONE's message says its heartbeat moved",
+               direct: "a node counts as alive only if I heard from it MYSELF",
+               probe: "a node counts as alive if I heard from it, or a helper node could reach it"}[action.value],
+      suspectAfter: "a node is suspected after " + action.value + " quiet rounds"
+    };
+    say(s, "info", "Rule changed: " + words[action.key] + ".", "cfg." + action.key + " = " + action.value);
+    return s;
+  }
+
+  case "select": s.selected = action.id; return s;
+
+  case "publish": {
+    const n = node(s, action.id || "n1");
+    n.cfg = 1; s.published = true; s.flash.push(n.id);
+    say(s, "news", n.id + " has been told something the other 19 machines do not know yet: the cluster's write-leader has changed.",
+        n.id + ": config v1, held by 1 of 20 nodes");
+    verdict(s, "warn", "One machine knows. Nineteen do not.",
+      "Nobody is going to broadcast it. Step the rounds and watch it travel by ordinary conversation.");
+    return s;
+  }
+
+  case "kill": {
+    const n = node(s, action.id); n.up = false; s.flash.push(n.id);
+    say(s, "bad", n.id + " has crashed. It sends nothing and answers nothing — and crucially, it did not tell anyone it was going.",
+        n.id + ": process down at round " + s.round);
+    verdict(s, "warn", n.id + " is gone, and nobody knows yet.",
+      "Every other machine still lists it as alive. They will each work it out on their own, from silence.");
+    return s;
+  }
+
+  case "pause": {
+    const n = node(s, action.id); n.pausedUntil = s.round + 5; s.flash.push(n.id);
+    say(s, "warn", n.id + " has frozen for 5 rounds — a long garbage-collection pause. It is perfectly healthy and completely silent.",
+        n.id + ": unresponsive until round " + n.pausedUntil);
+    verdict(s, "warn", n.id + " is alive but silent.",
+      "Nothing in the world can tell its peers whether this is a pause or a crash. Watch them guess, and watch what happens when it comes back.");
+    return s;
+  }
+
+  case "revive": {
+    const n = node(s, action.id); n.up = true; n.pausedUntil = 0; s.flash.push(n.id);
+    say(s, "good", n.id + " is running again.", n.id + ": process up at round " + s.round);
+    return s;
+  }
+
+  case "cut": {
+    s.blocked.push("n1|n5");
+    say(s, "bad", "The cable between n1 and n5 is cut. Those two cannot exchange a single message — and the other 18 machines can still reach both of them perfectly well.",
+        "link n1<->n5 broken; all other links healthy");
+    verdict(s, "warn", "One broken link, between two healthy machines.",
+      "Nothing is wrong with n1 or n5. Whether anyone gets blamed for this depends entirely on what the cluster accepts as proof that a machine is alive.");
+    return s;
+  }
+
+  case "partition": {
+    s.nodes.forEach((n, i) => { n.side = i < N / 2 ? 0 : 1; });
+    say(s, "bad", "The network has split: n1-n10 can talk to each other, n11-n20 can talk to each other, and nothing crosses.",
+        "partition: {n1..n10} | {n11..n20}");
+    verdict(s, "bad", "Two clusters that both think they are the cluster.",
+      "Each half will keep gossiping happily among itself. Neither half can tell whether the other half is dead or unreachable.");
+    return s;
+  }
+
+  case "heal": {
+    s.nodes.forEach(n => n.side = 0);
+    s.blocked = [];
+    say(s, "good", "The network is repaired.", "partition cleared");
+    verdict(s, "good", "The link is back.",
+      "Nothing special happens at this moment — no resync, no leader deciding the truth. The next ordinary message carries a higher version number and the merge rule does the rest.");
+    return s;
+  }
+
+  case "step": {
+    s.round++;
+    // 1. every running node proves it is alive to itself
+    for (const n of s.nodes){
+      if (!running(s, n)) continue;
+      n.hb++;
+      n.view[n.id] = {inc: n.inc, hb: n.hb, status: "ALIVE", seen: s.round};
+    }
+    // 2. freeze: everyone gossips what they knew when the round began
+    const frozen = {};
+    for (const n of s.nodes) if (running(s, n)) frozen[n.id] = snapshot(s, n);
+
+    // 3. exchange
+    for (const n of s.nodes){
+      if (!running(s, n)) continue;
+      const targets = [];
+      const candidates = s.nodes.filter(o => o.id !== n.id &&
+          (!n.view[o.id] || n.view[o.id].status !== "DEAD")).map(o => o.id);
+      for (let i = 0; i < s.cfg.fanout * 6 && targets.length < s.cfg.fanout; i++){
+        const c = pick(s, candidates);
+        if (c && !targets.includes(c)) targets.push(c);
+      }
+      for (const t of targets){
+        const to = node(s, t);
+        const ok = canDeliver(s, n.id, t) && rng(s) >= s.cfg.loss;
+        s.msgs++;
+        if (!ok){ s.lost++; s.wires.push({a: n.id, b: t, kind: "lost"}); continue; }
+        if (s.cfg.mode === "push" || s.cfg.mode === "pushpull") deliver(s, frozen[n.id], to, s.round);
+        if (s.cfg.mode === "pull" || s.cfg.mode === "pushpull"){
+          s.msgs++;
+          if (rng(s) >= s.cfg.loss && frozen[t]) deliver(s, frozen[t], n, s.round);
+          else s.lost++;
+        }
+        s.wires.push({a: n.id, b: t, kind: (node(s, t).cfg > 0 || n.cfg > 0) ? "news" : "plain"});
+      }
+    }
+    // 4. everyone judges everyone, using only what they hold locally
+    detectAll(s);
+    describeRound(s);
+    return s;
+  }
+  }
+  return s;
+}
+
+function detectAll(s){
+  for (const n of s.nodes){
+    if (!running(s, n)) continue;
+    for (const pid in n.view){
+      if (pid === n.id) continue;
+      const p = n.view[pid];
+      let silence = s.round - p.seen;
+      const window = silenceWindow(s);
+
+      if (s.cfg.detect === "hearsay"){
+        // second-hand evidence counts: mergeEntry already refreshed `seen`
+      } else if (s.cfg.detect === "probe" && p.status === "ALIVE" && silence > window){
+        // ask up to 3 helpers to try the node for me
+        const helpers = s.nodes.filter(h => h.id !== n.id && h.id !== pid).map(h => h.id);
+        for (let i = 0; i < 3; i++){
+          const h = pick(s, helpers);
+          s.msgs += 2;
+          if (h && canDeliver(s, n.id, h) && canDeliver(s, h, pid)){
+            p.seen = s.round; silence = 0;
+            say(s, "good", n.id + " could not reach " + pid + " itself, but " + h +
+                " could — so it is not blaming " + pid + ".",
+                n.id + ": indirect probe of " + pid + " via " + h + " succeeded");
+            break;
+          }
+        }
+      }
+      if (p.status === "ALIVE" && silence > window){
+        p.status = "SUSPECT"; p.seen = s.round; s.flash.push(pid);
+        say(s, "warn", n.id + " has not heard from " + pid + " for " + window +
+            " rounds and now suspects it. It cannot tell whether " + pid + " is dead, busy, or simply unreachable from here.",
+            n.id + "'s view of " + pid + ": ALIVE → SUSPECT");
+      } else if (p.status === "SUSPECT" && silence > Math.max(DEAD_AFTER, window)){
+        p.status = "DEAD"; p.seen = s.round;
+        say(s, "bad", n.id + " has written " + pid + " off as dead and will not talk to it again.",
+            n.id + "'s view of " + pid + ": SUSPECT → DEAD");
+      }
+    }
+  }
+}
+
+/* Every round ends with a plain-English statement of where things stand. */
+function describeRound(s){
+  const live = s.nodes.filter(n => running(s, n));
+  const known = live.filter(n => n.cfg > 0).length;
+  if (s.published && known < live.length){
+    verdict(s, "warn", known + " of " + live.length + " machines have the news.",
+      "Nobody is coordinating this. Each machine that heard it is now also telling two others, which is why the number grows by a factor rather than by one.");
+  } else if (s.published && known === live.length){
+    verdict(s, "good", "Every running machine has the news.",
+      "It took " + s.round + " rounds and " + s.msgs + " messages, with no coordinator, no broadcast and no retries.");
+  }
+  const dis = disagreement(s);
+  if (dis > 0.02 && !s.published)
+    verdict(s, "warn", Math.round(dis * 100) + "% of machines disagree about who is alive.",
+      "This is the window that matters in production: while it is open, two machines will send the same request to different places.");
+}
+
+function disagreement(s){
+  const sigs = {};
+  let live = 0;
+  for (const n of s.nodes){
+    if (!running(s, n)) continue;
+    live++;
+    const sig = s.nodes.map(o => o.id === n.id ? "S" : (n.view[o.id] ? n.view[o.id].status[0] : "?")).join("");
+    sigs[sig] = (sigs[sig] || 0) + 1;
+  }
+  if (!live) return 0;
+  const top = Math.max(...Object.values(sigs));
+  return 1 - top / live;
+}
+
+/* ===========================================================================
+   HISTORY + RENDER
+   ======================================================================== */
+let history = [initial()], cursor = 0, timer = null;
+const S = () => history[cursor];
+function dispatch(a){
+  const next = act(S(), a);
+  history = history.slice(0, cursor + 1);
+  history.push(next); cursor = history.length - 1;
+  render();
+}
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, at = {}) => { const e = document.createElementNS(NS, n);
+  for (const k in at) e.setAttribute(k, at[k]); return e; };
+
+const CX = 310, CY = 240, R = 180;
+function pos(i){
+  const a = -Math.PI / 2 + i * 2 * Math.PI / N;
+  return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
+}
+/** Colour = what the CLUSTER mostly believes about that node (or the selected node's view). */
+function statusOf(s, target){
+  const observer = s.selected ? node(s, s.selected) : null;
+  if (observer && observer.id !== target.id && observer.view[target.id])
+    return observer.view[target.id].status;
+  const counts = {ALIVE: 0, SUSPECT: 0, DEAD: 0};
+  for (const n of s.nodes){
+    if (!running(s, n) || n.id === target.id) continue;
+    const v = n.view[target.id];
+    if (v) counts[v.status]++;
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+}
+const COLOR = {ALIVE: "var(--alive)", SUSPECT: "var(--suspect)", DEAD: "var(--dead)"};
+
+function drawRing(){
+  const s = S(), svg = $("ring");
+  svg.textContent = "";
+  if (s.nodes[0].side !== s.nodes[N - 1].side)
+    svg.appendChild(el("line", {x1: CX - 250, y1: CY, x2: CX + 250, y2: CY, class: "partline"}));
+  for (const w of s.wires){
+    if (w.kind === "lost") continue;
+    const [x1, y1] = pos(s.nodes.findIndex(n => n.id === w.a));
+    const [x2, y2] = pos(s.nodes.findIndex(n => n.id === w.b));
+    svg.appendChild(el("path", {
+      d: `M${x1},${y1} Q${CX},${CY} ${x2},${y2}`,
+      class: "msg" + (w.kind === "plain" ? " plain" : "")}));
+  }
+  s.nodes.forEach((n, i) => {
+    const [x, y] = pos(i);
+    const g = el("g", {class: "nd" + (s.selected === n.id ? " sel" : ""), tabindex: "0",
+      role: "button", "aria-label": "machine " + n.id});
+    if (s.flash.includes(n.id))
+      g.appendChild(el("circle", {cx: x, cy: y, r: 12, class: "flash", fill: "none",
+        stroke: "var(--news)", "stroke-width": 3}));
+    if (s.selected === n.id) g.appendChild(el("circle", {cx: x, cy: y, r: 17, class: "halo"}));
+    const st = statusOf(s, n);
+    const c = el("circle", {cx: x, cy: y, r: 11, class: "body",
+      fill: running(s, n) ? COLOR[st] : "var(--surface-2)",
+      stroke: n.cfg > 0 ? "var(--news)" : COLOR[st]});
+    if (!running(s, n)) c.setAttribute("stroke-dasharray", "3 3");
+    g.appendChild(c);
+    const [lx, ly] = [CX + (R + 26) * Math.cos(-Math.PI / 2 + i * 2 * Math.PI / N),
+                      CY + (R + 26) * Math.sin(-Math.PI / 2 + i * 2 * Math.PI / N)];
+    const t = el("text", {x: lx, y: ly + 4, "text-anchor": "middle"});
+    t.textContent = n.id;
+    g.appendChild(t);
+    g.addEventListener("click", () => dispatch({type: "select", id: s.selected === n.id ? null : n.id}));
+    g.addEventListener("keydown", e => { if (e.key === "Enter") dispatch({type: "select", id: n.id}); });
+    svg.appendChild(g);
+  });
+}
+
+function drawMatrix(){
+  const s = S(), tbl = $("matrix");
+  tbl.textContent = "";
+  const head = document.createElement("tr");
+  head.appendChild(document.createElement("th"));
+  for (const c of s.nodes){
+    const th = document.createElement("th");
+    th.textContent = c.id.slice(1);
+    head.appendChild(th);
+  }
+  tbl.appendChild(head);
+  for (const r of s.nodes){
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.textContent = r.id;
+    tr.appendChild(th);
+    for (const c of s.nodes){
+      const td = document.createElement("td");
+      if (!running(s, r)) td.style.background = "var(--surface-2)";
+      else if (r.id === c.id) td.style.background = "var(--ink-3)";
+      else td.style.background = COLOR[r.view[c.id] ? r.view[c.id].status : "ALIVE"];
+      td.title = r.id + " believes " + c.id + " is " +
+        (r.id === c.id ? "itself" : (r.view[c.id] ? r.view[c.id].status : "unknown"));
+      tr.appendChild(td);
+    }
+    tbl.appendChild(tr);
+  }
+}
+
+function drawLog(){
+  const s = S(), box = $("log");
+  box.textContent = "";
+  s.log.slice(-40).forEach((e, i, arr) => {
+    const d = document.createElement("div");
+    d.className = "ev" + (i === arr.length - 1 ? " now" : "");
+    const t = document.createElement("div"); t.className = "t";
+    const tag = document.createElement("span");
+    tag.className = "tag " + (e.tag || "info"); tag.textContent = e.tag || "info";
+    t.appendChild(tag); t.appendChild(document.createTextNode(e.text));
+    const tech = document.createElement("div"); tech.className = "tech"; tech.textContent = e.tech || "";
+    d.appendChild(t); d.appendChild(tech); box.appendChild(d);
+  });
+}
+
+function drawInspector(){
+  const s = S(), box = $("inspector");
+  if (!s.selected){
+    box.innerHTML = '<p style="color:var(--ink-3);font-size:14px">Click a machine to see what it knows, and what it believes about everyone else.</p>';
+    return;
+  }
+  const n = node(s, s.selected);
+  const counts = {ALIVE: 0, SUSPECT: 0, DEAD: 0};
+  for (const pid in n.view) if (pid !== n.id) counts[n.view[pid].status]++;
+  const rows = [
+    ["running", running(s, n) ? "yes" : (n.up ? "paused" : "crashed")],
+    ["has the news", n.cfg > 0 ? "yes (v" + n.cfg + ")" : "not yet"],
+    ["its heartbeat", n.hb],
+    ["its incarnation", n.inc],
+    ["it believes alive", counts.ALIVE],
+    ["it believes suspect", counts.SUSPECT],
+    ["it believes dead", counts.DEAD],
+  ];
+  box.innerHTML = "<h3 style='margin-bottom:9px'>" + n.id + "</h3><table class='insp'>" +
+    rows.map(r => "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>").join("") + "</table>" +
+    "<p style='font-size:13px;color:var(--ink-3);margin-top:9px'>While this machine is selected, the " +
+    "circle above shows <em>its</em> opinion of everyone — not the cluster's.</p>";
+}
+
+function drawControls(){
+  const s = S();
+  const seg = (id, key, val) => {
+    for (const b of $(id).querySelectorAll("button"))
+      b.setAttribute("aria-pressed", String(String(b.dataset.v) === String(val)));
+  };
+  seg("fanout", "fanout", s.cfg.fanout);
+  seg("mode", "mode", s.cfg.mode);
+  seg("loss", "loss", s.cfg.loss);
+  seg("detect", "detect", s.cfg.detect);
+  $("suspect").value = s.cfg.suspectAfter;
+  $("susLabel").textContent = s.cfg.suspectAfter + (s.cfg.suspectAfter === 1 ? " round" : " rounds");
+  $("back").disabled = cursor === 0;
+  for (const id of ["kill", "pause", "revive"]) $(id).disabled = !s.selected;
+  $("clock").textContent = "round " + s.round;
+  const live = s.nodes.filter(n => running(s, n));
+  $("s-known").textContent = live.filter(n => n.cfg > 0).length + "/" + live.length;
+  $("s-msgs").textContent = s.msgs;
+  $("s-lost").textContent = s.lost;
+  $("s-dis").textContent = Math.round(disagreement(s) * 100) + "%";
+  const v = s.verdict, box = $("verdict");
+  box.className = "verdict " + (v.kind || "");
+  box.innerHTML = '<div class="h">' + v.h + '</div><div class="d">' + v.d + '</div>';
+}
+function render(){ drawRing(); drawMatrix(); drawLog(); drawInspector(); drawControls(); }
+
+/* ===========================================================================
+   SITUATIONS
+   ======================================================================== */
+const SCENARIOS = [
+  {
+    name: "1 · One machine, one new fact",
+    ask: "n1 learns something the other 19 do not know. Each machine tells 2 others per round. How many rounds until all 20 have it?",
+    options: ["About 3", "About 10", "About 19"],
+    correct: 0,
+    why: "Each round roughly triples the number who know (each knower tells 2 more), so the count goes 1, 3, 9, 20 — not 1, 2, 3. That is why a 20-node cluster and a 20,000-node cluster differ by a few rounds and not by a thousand times.",
+    run(){ dispatch({type: "cfg", key: "fanout", value: 2});
+           dispatch({type: "publish", id: "n1"});
+           for (let i = 0; i < 5; i++) dispatch({type: "step"}); }
+  },
+  {
+    name: "2 · Three messages in five are lost",
+    ask: "The network drops 60% of everything, and this protocol has no retries, no acknowledgements and no sequence numbers. What happens to the news?",
+    options: ["It stops spreading", "It spreads, just slower", "Some nodes get a corrupted copy"],
+    correct: 1,
+    why: "Every node tries again every round, with different partners, whether or not the last attempt worked — so losing most messages costs rounds instead of breaking anything. There is no retry logic here at all: the redundancy IS the protocol, which is why gossip is normally run over UDP and why it degrades smoothly instead of collapsing. Now try situation 7, where it does collapse — for a different reason than you would expect.",
+    run(){ dispatch({type: "cfg", key: "loss", value: 0.6});
+           dispatch({type: "publish", id: "n1"});
+           for (let i = 0; i < 12; i++) dispatch({type: "step"}); }
+  },
+  {
+    name: "3 · A machine crashes and tells nobody",
+    ask: "n7's process dies silently. Nothing announces it. How do the other 19 find out?",
+    options: ["A monitoring system tells them", "Each one works it out from silence", "They never do"],
+    correct: 1,
+    why: "There is no announcement and no monitor. Every node is separately timing how long since it last had evidence of n7, and each crosses its own threshold at its own moment — which is why the ring goes amber a few nodes at a time rather than all at once.",
+    run(){ dispatch({type: "select", id: "n7"});
+           dispatch({type: "kill", id: "n7"});
+           for (let i = 0; i < 9; i++) dispatch({type: "step"});
+           dispatch({type: "select", id: null}); }
+  },
+  {
+    name: "4 · A machine was only busy",
+    ask: "n4 freezes for 5 rounds — a long garbage-collection pause — and its peers start suspecting it. When it wakes up, what settles the argument?",
+    options: ["A majority vote among the peers", "n4 says so itself, with a new version number", "n4 has to rejoin as a new machine"],
+    correct: 1,
+    why: "There is no vote, and rejoining as a new machine would lose everything the cluster knows about it. n4 raises its own incarnation number and says ALIVE. Everyone's merge rule prefers the higher incarnation, so the refutation overtakes the rumour wherever it goes — and a node is the only one allowed to raise its own number.",
+    run(){ dispatch({type: "cfg", key: "suspectAfter", value: 2});
+           dispatch({type: "select", id: "n4"});
+           dispatch({type: "pause", id: "n4"});
+           for (let i = 0; i < 12; i++) dispatch({type: "step"});
+           dispatch({type: "select", id: null}); }
+  },
+  {
+    name: "5 · The cluster splits in half",
+    ask: "The network tears: n1-n10 on one side, n11-n20 on the other. A new fact appears on the left. When the link is repaired, what has to happen?",
+    options: ["A leader decides whose data wins", "Nothing special — the next ordinary message fixes it", "An operator must trigger a resync"],
+    correct: 1,
+    why: "There is no repair step, because there is nothing to repair: the merge rule keeps the higher version, and it gives the same answer no matter which order news arrives in. The first message across the mended link carries the newer version and it spreads from there like any other rumour.",
+    run(){ dispatch({type: "partition"});
+           dispatch({type: "publish", id: "n1"});
+           for (let i = 0; i < 5; i++) dispatch({type: "step"});
+           dispatch({type: "heal"});
+           for (let i = 0; i < 4; i++) dispatch({type: "step"}); }
+  },
+  {
+    name: "7 · Now drop nine in ten",
+    ask: "Same healthy machines, but the network now loses 90% of messages. All 20 processes stay up the whole time. After 30 rounds, what does the cluster believe?",
+    options: ["The news arrives, very slowly", "Every machine has written every other machine off as dead", "Half the machines are suspected"],
+    correct: 1,
+    why: "Look at the matrix: it is entirely red, and not one process has crashed. Silence is the only symptom a failure detector has, and a bad enough network manufactures unlimited silence — so each node times out on every peer, writes it off, and stops gossiping to it. The cluster kills itself, and it cannot recover, because nobody talks to anyone they have written off. The spreading was never the fragile part; the JUDGING is. Real systems soften this with suspicion timeouts that scale with observed latency, a refutation path, and by never treating a node as permanently dead without an explicit removal.",
+    run(){ dispatch({type: "cfg", key: "loss", value: 0.9});
+           dispatch({type: "publish", id: "n1"});
+           for (let i = 0; i < 30; i++) dispatch({type: "step"}); }
+  },
+  {
+    name: "6 · One cable, between two machines",
+    ask: "Only the link between n1 and n5 breaks. The other 18 machines can reach both. With 'only hearing it myself' as the rule for proof of life, what does n1 conclude?",
+    options: ["Nothing — it hears about n5 from others", "That n5 is dead, and it tells everyone", "That the network is broken"],
+    correct: 1,
+    why: "n1 can only observe silence, and its rule says silence means dead. So a healthy machine gets declared dead by one node, and that verdict spreads to nodes for which it is plainly false. The fix is the third setting: before blaming n5, ask a few others to try it. 'Is n5 up?' is unanswerable; 'can anyone reach n5?' is not.",
+    run(){ dispatch({type: "cfg", key: "detect", value: "direct"});
+           dispatch({type: "cfg", key: "suspectAfter", value: 1});
+           dispatch({type: "cut"});
+           dispatch({type: "select", id: "n1"});
+           for (let i = 0; i < 16; i++) dispatch({type: "step"}); }
+  }
+];
+
+function buildScenarios(){
+  const box = $("scenarios");
+  SCENARIOS.forEach(sc => {
+    const card = document.createElement("div"); card.className = "scn";
+    const h = document.createElement("div"); h.className = "name"; h.textContent = sc.name;
+    const q = document.createElement("div"); q.className = "ask"; q.textContent = sc.ask;
+    const opts = document.createElement("div"); opts.className = "seg";
+    const ans = document.createElement("div"); ans.className = "answer hidden";
+    sc.options.forEach((o, oi) => {
+      const b = document.createElement("button");
+      b.textContent = o;
+      b.addEventListener("click", () => {
+        for (const x of opts.querySelectorAll("button")) x.setAttribute("aria-pressed", "false");
+        b.setAttribute("aria-pressed", "true");
+        ans.className = "answer";
+        ans.innerHTML = "<div class='hd'>" + (oi === sc.correct ? "That is what happens."
+          : "Not quite — watch the ring and the log.") + "</div>" + sc.why;
+        stopPlay();
+        history = [initial()]; cursor = 0;
+        sc.run();
+      });
+      opts.appendChild(b);
+    });
+    card.append(h, q, opts, ans);
+    box.appendChild(card);
+  });
+}
+
+/* ================================================================= wiring */
+function stopPlay(){ if (timer){ clearInterval(timer); timer = null; $("play").textContent = "Play"; } }
+$("step").addEventListener("click", () => dispatch({type: "step"}));
+$("play").addEventListener("click", () => {
+  if (timer) return stopPlay();
+  $("play").textContent = "Pause";
+  timer = setInterval(() => dispatch({type: "step"}), 900);
+});
+$("publish").addEventListener("click", () => dispatch({type: "publish", id: "n1"}));
+$("kill").addEventListener("click", () => dispatch({type: "kill", id: S().selected}));
+$("pause").addEventListener("click", () => dispatch({type: "pause", id: S().selected}));
+$("revive").addEventListener("click", () => dispatch({type: "revive", id: S().selected}));
+$("cut").addEventListener("click", () => dispatch({type: "cut"}));
+$("part").addEventListener("click", () => dispatch({type: "partition"}));
+$("heal").addEventListener("click", () => dispatch({type: "heal"}));
+$("back").addEventListener("click", () => { stopPlay(); if (cursor > 0){ cursor--; render(); } });
+$("reset").addEventListener("click", () => { stopPlay(); history = [initial()]; cursor = 0; render(); });
+$("suspect").addEventListener("input", e =>
+  dispatch({type: "cfg", key: "suspectAfter", value: Number(e.target.value)}));
+for (const [id, key, num] of [["fanout", "fanout", true], ["mode", "mode", false],
+                              ["loss", "loss", true], ["detect", "detect", false]]){
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    dispatch({type: "cfg", key, value: num ? Number(b.dataset.v) : b.dataset.v});
+  });
+}
+buildScenarios();
+render();
+</script>

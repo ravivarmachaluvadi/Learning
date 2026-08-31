@@ -1,0 +1,743 @@
+<title>The Freshness Bench</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F1F4F3; --panel: #FFFFFF; --panel2: #E5EAE8; --sunk: #DCE3E1;
+    --ink: #17211F; --ink-soft: #56655F; --line: #CFD8D5;
+    --fresh: #0F8F7A; --aging: #B87514; --stale: #B04A38;
+    --origin: #4557A0; --leak: #A3286B;
+    --fresh-bg: #E4F3EF; --stale-bg: #F8E9E6; --leak-bg: #F8E6F0; --note-bg: #FBF1DF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1614; --panel: #17201E; --panel2: #1F2A27; --sunk: #131B19;
+      --ink: #E3EAE7; --ink-soft: #93A29D; --line: #2C3A36;
+      --fresh: #35C2A6; --aging: #DBA04A; --stale: #E27C66;
+      --origin: #8395DE; --leak: #E183B6;
+      --fresh-bg: #10312B; --stale-bg: #351E1A; --leak-bg: #331228; --note-bg: #332810;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1614; --panel: #17201E; --panel2: #1F2A27; --sunk: #131B19;
+    --ink: #E3EAE7; --ink-soft: #93A29D; --line: #2C3A36;
+    --fresh: #35C2A6; --aging: #DBA04A; --stale: #E27C66;
+    --origin: #8395DE; --leak: #E183B6;
+    --fresh-bg: #10312B; --stale-bg: #351E1A; --leak-bg: #331228; --note-bg: #332810;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 Archivo, "Helvetica Neue", Arial, sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  header { max-width: 1280px; margin: 0 auto; padding: 20px 24px 0; }
+  header h1 { margin: 0 0 5px; font-size: 25px; font-weight: 700; letter-spacing: -.015em; text-wrap: balance; }
+  header p { margin: 0; color: var(--ink-soft); max-width: 74ch; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 16px 24px 44px;
+          display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .rail { flex: 0 0 330px; min-width: 290px; display: flex; flex-direction: column; gap: 13px; }
+  .stage { flex: 1 1 580px; min-width: 360px; display: flex; flex-direction: column; gap: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 13px 15px; }
+  .card h2 { margin: 0 0 9px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+             text-transform: uppercase; color: var(--ink-soft); }
+  button { font: 500 13px Archivo, sans-serif; padding: 7px 11px; border-radius: 6px;
+           border: 1px solid var(--line); background: var(--panel2); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--ink-soft); }
+  button:focus-visible { outline: 2px solid var(--fresh); outline-offset: 1px; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--fresh); border-color: var(--fresh); color: #fff; }
+  button.wide { width: 100%; text-align: left; margin-top: 5px; }
+  .row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .ctl { margin: 9px 0 3px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-soft); }
+  .ctl label b { color: var(--ink); font-weight: 600; font-family: "JetBrains Mono", monospace; }
+  input[type=range] { width: 100%; accent-color: var(--fresh); }
+  .seg { display: flex; gap: 4px; margin-top: 4px; }
+  .seg button { flex: 1; font-size: 12px; padding: 6px 4px; }
+  .seg button.on { background: var(--fresh); border-color: var(--fresh); color: #fff; }
+  .chk { display: flex; align-items: center; gap: 7px; font-size: 13px; margin-top: 7px; cursor: pointer; }
+  .chk input { accent-color: var(--fresh); }
+  #contract { background: var(--sunk); border-radius: 6px; padding: 8px 10px; margin-top: 10px;
+              font: 400 12px "JetBrains Mono", monospace; color: var(--ink); overflow-wrap: anywhere; }
+  #contract span { color: var(--ink-soft); }
+  .scen { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 11px; }
+  .scen:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .scen h3 { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
+  .scen .q { margin: 0 0 7px; font-size: 12.5px; color: var(--ink-soft); }
+  .choices { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+  .choices button { text-align: left; font-weight: 400; background: var(--panel); }
+  .choices button.picked { border-color: var(--fresh); background: var(--fresh-bg); font-weight: 600; }
+  svg#board { width: 100%; height: auto; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 11px; font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 16px; height: 8px; border-radius: 2px; display: inline-block; }
+  .counters { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 7px; }
+  .counter { background: var(--panel2); border-radius: 7px; padding: 7px 9px; }
+  .counter .v { font: 500 18px "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .counter .k { font-size: 11px; color: var(--ink-soft); line-height: 1.25; }
+  #verdict { border-left: 4px solid var(--fresh); font-size: 14px; }
+  #verdict.good { background: var(--fresh-bg); border-left-color: var(--fresh); }
+  #verdict.bad { background: var(--stale-bg); border-left-color: var(--stale); }
+  #verdict.leak { background: var(--leak-bg); border-left-color: var(--leak); }
+  #verdict.note { background: var(--note-bg); border-left-color: var(--aging); }
+  #log { max-height: 290px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 7px; }
+  .e { border-left: 3px solid var(--line); padding: 1px 9px; }
+  .e .t { font: 500 11px "JetBrains Mono", monospace; color: var(--ink-soft); }
+  .e .m { font-size: 13.5px; }
+  .e .w { font: 400 11.5px "JetBrains Mono", monospace; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .e.hit { border-left-color: var(--fresh); }
+  .e.miss { border-left-color: var(--origin); }
+  .e.stale { border-left-color: var(--aging); }
+  .e.bad { border-left-color: var(--stale); }
+  .e.leak { border-left-color: var(--leak); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header>
+  <h1>The Freshness Bench</h1>
+  <p>One menu, four places it can live. <b>Alice</b> and <b>Bob</b> each have a private cache in their
+  own browser; the <b>CDN node</b> in their city is one shared cache serving everybody; the
+  <b>origin</b> is the only machine that knows the truth. You write the reuse contract on the left,
+  then send requests and advance the clock — and watch which copies answer, which go stale, and
+  who ends up seeing something they shouldn't.</p>
+</header>
+
+<div class="wrap">
+  <div class="rail">
+    <div class="card">
+      <h2>1 · Write the reuse contract</h2>
+      <div class="ctl">
+        <label>reuse freely for <b id="maLbl">60 s</b></label>
+        <input type="range" id="maxAge" min="0" max="6" value="3" aria-label="max-age seconds">
+      </div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin-top:9px;">who may keep a copy</div>
+      <div class="seg" id="audSeg">
+        <button data-aud="public" class="on">anyone</button>
+        <button data-aud="private">that user only</button>
+        <button data-aud="no-store">nobody</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="etagChk" checked>
+        send a version fingerprint (<span class="mono">ETag</span>)</label>
+      <label class="chk"><input type="checkbox" id="varyChk">
+        answer depends on compression (<span class="mono">Vary: Accept-Encoding</span>)</label>
+      <label class="chk"><input type="checkbox" id="swrChk">
+        serve stale while refreshing (<span class="mono">stale-while-revalidate=30</span>)</label>
+      <div id="contract"></div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Send requests</h2>
+      <div class="row">
+        <button data-req="alice|/menu">Alice → /menu</button>
+        <button data-req="bob|/menu">Bob → /menu</button>
+      </div>
+      <div class="row" style="margin-top:5px">
+        <button data-req="alice|/account">Alice → /account</button>
+        <button data-req="bob|/account">Bob → /account</button>
+      </div>
+      <button class="wide" data-req="legacy|/menu">Old phone → /menu <span style="color:var(--ink-soft)">(can't decompress)</span></button>
+      <div class="row" style="margin-top:9px">
+        <button id="burst">10 people at once → /menu</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3 · Move time · break things</h2>
+      <div class="row">
+        <button id="play" class="primary">▶ Run clock</button>
+        <button id="step">Step</button>
+        <button id="back">⟲ Back</button>
+        <button id="reset">Reset</button>
+      </div>
+      <div class="row" style="margin-top:5px">
+        <button id="skip">⏩ Skip ahead 30 s</button>
+      </div>
+      <button class="wide" id="deploy">🚀 Deploy v2 at the origin <span style="color:var(--ink-soft)">(price ₹250 → ₹280)</span></button>
+      <button class="wide" id="purge">🧹 Purge the CDN copy <span style="color:var(--ink-soft)">(you own this cache)</span></button>
+      <button class="wide" id="narrate">🎬 Show me caching working (narrated)</button>
+    </div>
+
+    <div class="card" id="scenarios"><h2>4 · Predict, then run</h2></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div class="legend">
+        <span><span class="sw" style="background:var(--fresh)"></span> fresh — reuse, don't ask</span>
+        <span><span class="sw" style="background:var(--aging)"></span> nearly stale</span>
+        <span><span class="sw" style="background:var(--stale)"></span> stale — must check</span>
+        <span><span class="sw" style="background:var(--origin)"></span> request travelling</span>
+        <span><span class="sw" style="background:var(--leak)"></span> wrong person's data</span>
+      </div>
+      <svg id="board" viewBox="0 0 880 330" role="img" aria-label="caches along the path from browsers to origin"></svg>
+    </div>
+    <div class="card counters" id="counters"></div>
+    <div class="card" id="verdict"></div>
+    <div class="card">
+      <h2>What just happened — newest first</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   PURE SIMULATION — no DOM here, so it can be smoke-tested outside a browser.
+   1 tick = 0.1 simulated seconds. State in → state out.
+   ========================================================================== */
+const TICK = 0.1;                              // simulated seconds per tick
+const HOP = { browserCdn: 3, cdnOrigin: 12 };  // ticks of travel per leg
+
+const NODES = ["alice", "bob", "legacy", "cdn", "origin"];
+const BROWSERS = ["alice", "bob", "legacy"];
+
+function initState(cfg) {
+  return {
+    t: 0,
+    cfg: Object.assign({ maxAge: 60, audience: "public", etag: true,
+                         vary: false, swr: false }, cfg),
+    originVersion: 1,
+    entries: {},          // "node|url|enc" -> entry
+    msgs: [],
+    log: [],
+    nextId: 1,
+    stats: { requests: 0, browserHits: 0, cdnHits: 0, originHits: 0,
+             notModified: 0, bodyBytes: 0, leaks: 0, garbled: 0 },
+  };
+}
+
+/* ---------- helpers ---------- */
+const BODY_BYTES = 6400;
+function originBody(s, url, user) {
+  return url === "/account"
+    ? { text: `${user}'s account · ₹${s.originVersion === 1 ? 250 : 280} spent`, owner: user }
+    : { text: `menu v${s.originVersion} · biryani ₹${s.originVersion === 1 ? 250 : 280}`, owner: null };
+}
+function originEtag(s, url, user, gz) {
+  return `"${url === "/account" ? user : "menu"}-v${s.originVersion}${gz ? "-gz" : ""}"`;
+}
+// The cache key: method+URL, extended by Vary'd request headers (README §7).
+// When Vary is OFF the encoding is dropped from the key — that's the §11.3 bug.
+function keyOf(s, node, url, gz) { return `${node}|${url}|${s.cfg.vary ? (gz ? "gz" : "raw") : "*"}`; }
+function isShared(node) { return node === "cdn"; }
+function ageOf(s, e) { return (s.t - e.storedAt) * TICK; }
+function isFresh(s, e) { return ageOf(s, e) < e.lifetime; }
+function inSwr(s, e) { return e.swr > 0 && ageOf(s, e) < e.lifetime + e.swr; }
+
+function log(s, kind, m, w) {
+  s.log.push({ t: s.t, kind, m, w });
+  if (s.log.length > 140) s.log.shift();
+}
+
+function send(s, from, to, kind, extra) {
+  const legTicks = (from === "cdn" || to === "cdn") &&
+                   (from === "origin" || to === "origin") ? HOP.cdnOrigin : HOP.browserCdn;
+  s.msgs.push(Object.assign({
+    id: s.nextId++, from, to, kind, sentT: s.t, arriveT: s.t + legTicks,
+  }, extra));
+  if (s.msgs.length > 200) s.msgs.shift();
+}
+
+/* ---------- store a response, obeying the audience directive (README §10.3) ---------- */
+function maybeStore(s, node, msg) {
+  const c = s.cfg;
+  if (c.audience === "no-store") {
+    if (node === "alice") log(s, "miss", `Nobody wrote this answer down: the contract says no-store.`, "Cache-Control: no-store");
+    return;
+  }
+  // THE audience rule that prevents Bob seeing Alice's account (§11.2):
+  // a shared cache may not store a response marked `private`.
+  if (c.audience === "private" && isShared(node)) {
+    if (msg.url === "/account")
+      log(s, "hit", `The CDN refused to store ${msg.user}'s account page — the contract says private, and the CDN is shared.`,
+          "Cache-Control: private → shared caches must not store");
+    return;
+  }
+  if (c.maxAge === 0 && !c.swr) return;
+  s.entries[keyOf(s, node, msg.url, msg.gz)] = {
+    url: msg.url, body: msg.body, etag: msg.etag, gz: msg.gz,
+    storedAt: s.t, lifetime: c.maxAge, swr: c.swr ? 30 : 0,
+    audience: c.audience, madeFor: msg.forUser,
+  };
+}
+
+/* ---------- one tick ---------- */
+function step(s) {
+  s = structuredClone(s);
+  s.t++;
+  for (const m of s.msgs.slice()) if (m.arriveT === s.t) arrive(s, m);
+  for (const p of (s.pending || []).slice()) if (p.at === s.t) { startRequest(s, p.user, p.url); s.pending = s.pending.filter(x => x !== p); }
+  return s;
+}
+
+/* ---------- a client starts a request at its own browser cache ---------- */
+function startRequest(s, user, url) {
+  s.stats.requests++;
+  const gz = user !== "legacy";
+  log(s, "miss", `${label(user)} asks for ${url}.`, `GET ${url}${gz ? "  Accept-Encoding: gzip" : "  (no gzip)"}`);
+  consult(s, user, { user, url, gz, from: user, hops: [user, "cdn", "origin"] });
+}
+
+function label(u) { return u === "alice" ? "Alice" : u === "bob" ? "Bob" : u === "legacy" ? "The old phone" : u === "cdn" ? "The CDN" : "The origin"; }
+function nodeName(n) { return n === "cdn" ? "the CDN (shared)" : n === "origin" ? "the origin" : `${label(n)}'s browser cache`; }
+
+/* ---------- the cache decision procedure (README §8's flowchart) ---------- */
+function consult(s, node, req) {
+  const e = s.entries[keyOf(s, node, req.url, req.gz)];
+
+  if (e && isFresh(s, e)) {                                   // ---- HIT
+    hit(s, node, req, e, "fresh");
+    return;
+  }
+  if (e && s.cfg.swr && inSwr(s, e)) {                        // ---- stale, but SWR
+    hit(s, node, req, e, "swr");
+    log(s, "stale", `${label(node)} served a slightly stale copy instantly` +
+        (e.revalidating ? ` — a refresh is already on its way, so this request added no origin load at all.`
+                        : ` and is refreshing it in the background — nobody waited.`),
+        `stale-while-revalidate: age ${ageOf(s, e).toFixed(1)}s > max-age ${e.lifetime}s`);
+    // Only ONE background refresh per entry — otherwise every waiting request
+    // spawns its own and you have re-created the stampede invisibly (§11.4).
+    if (!e.revalidating) {
+      e.revalidating = true;
+      forward(s, node, Object.assign({}, req, { background: true, ifNoneMatch: e.etag }));
+    }
+    return;
+  }
+  if (e && e.etag) {                                          // ---- stale + validator
+    log(s, "stale", `${label(node)}'s copy is ${ageOf(s, e).toFixed(1)}s old — past its ${e.lifetime}s lifetime, so it must check before reusing it.`,
+        `If-None-Match: ${e.etag}`);
+    forward(s, node, Object.assign({}, req, { ifNoneMatch: e.etag }));
+    return;
+  }
+  if (e) {                                                    // ---- stale, no validator
+    log(s, "stale", `${label(node)}'s copy expired and there is no fingerprint to check it with, so the whole thing must be fetched again.`,
+        "no ETag stored → full refetch");
+  }
+  forward(s, node, req);                                      // ---- MISS
+}
+
+function hit(s, node, req, e, why) {
+  if (BROWSERS.includes(node)) s.stats.browserHits++; else s.stats.cdnHits++;
+  // Leak check: were these bytes made for somebody else? (README §11.2)
+  if (e.madeFor && e.madeFor !== req.user) {
+    s.stats.leaks++;
+    log(s, "leak", `⚠️ ${label(req.user)} was just shown ${label(e.madeFor)}'s ${e.url} — the shared cache had no idea this answer belonged to one person.`,
+        `cache key ${e.url} matched; nothing in the key identified the user`);
+  } else if (why === "fresh") {
+    log(s, "hit", `${nodeName(node)} answered from its own copy — the origin was never contacted. ${(e.lifetime - ageOf(s, e)).toFixed(1)}s of freshness left.`,
+        `HIT · Age: ${Math.floor(ageOf(s, e))} · max-age=${e.lifetime}`);
+  }
+  // Garbled check: compressed bytes handed to a client that can't decompress (§11.3)
+  if (e.gz && !req.gz) {
+    s.stats.garbled++;
+    log(s, "bad", `⚠️ The old phone received compressed bytes it cannot read — it renders binary garbage. The cache never recorded that this copy was only right for gzip-capable clients.`,
+        "no Vary: Accept-Encoding → one key, two different right answers");
+  }
+  respond(s, node, req, e.body, e.etag, false);
+}
+
+function forward(s, node, req) {
+  const next = req.hops[req.hops.indexOf(node) + 1];
+  if (!next) return;
+  send(s, node, next, "request", { req, url: req.url, user: req.user, gz: req.gz });
+}
+
+function respond(s, node, req, body, etag, notModified) {
+  const back = req.hops[req.hops.indexOf(node) - 1];
+  if (!back) { finish(s, req, body); return; }
+  send(s, node, back, "response", { req, url: req.url, user: req.user, gz: req.gz,
+                                    body, etag, notModified, forUser: req.url === "/account" ? req.user : null });
+}
+
+function finish(s, req, body) {
+  if (!req.background)
+    log(s, "hit", `${label(req.user)}'s screen now shows: “${body.text}”.`, `render ${req.url}`);
+}
+
+/* ---------- message arrival ---------- */
+function arrive(s, m) {
+  s.msgs = s.msgs.filter(x => x !== m);
+  if (m.kind === "request") {
+    if (m.to === "origin") {
+      s.stats.originHits++;
+      const gz = m.gz;
+      // No fingerprint in the contract means no cheap check is possible: the
+      // origin can only ever send the whole thing again. (§10.2)
+      const etag = s.cfg.etag ? originEtag(s, m.url, m.user, gz) : null;
+      // The validation check: same fingerprint → 304, no body at all (§10.2)
+      if (etag && m.req.ifNoneMatch && m.req.ifNoneMatch === etag) {
+        s.stats.notModified++;
+        log(s, "hit", `The origin compared fingerprints: unchanged. It replies “still good” and sends no content at all.`,
+            `304 Not Modified · ETag ${etag} · 0 body bytes`);
+        respond(s, "origin", m.req, null, etag, true);
+      } else {
+        s.stats.bodyBytes += BODY_BYTES;
+        log(s, "miss", `The origin did the real work and sent the full answer back.`,
+            `200 OK · ${BODY_BYTES} body bytes · ${contractLine(s.cfg)}`);
+        respond(s, "origin", m.req, originBody(s, m.url, m.user), etag, false);
+      }
+    } else {
+      consult(s, m.to, m.req);
+    }
+    return;
+  }
+  // response travelling home
+  const node = m.to;
+  if (m.notModified) {
+    const e = s.entries[keyOf(s, node, m.url, m.gz)];
+    if (e) {                       // 304 renews freshness of bytes already held
+      e.storedAt = s.t;
+      e.revalidating = false;
+      log(s, "hit", `${nodeName(node)} kept the copy it already had and reset its freshness clock — the check cost a round trip but almost no bytes.`,
+          `304 → Age reset to 0, fresh for ${e.lifetime}s again`);
+      if (m.req.background) return;          // nobody is waiting on an SWR refresh
+      // If the cache downstream of us also asked "still good?", pass the 304 on
+      // rather than re-sending bytes it already holds.
+      const askedTheSameQuestion = m.req.ifNoneMatch && m.req.ifNoneMatch === e.etag;
+      respond(s, node, m.req, e.body, e.etag, !!askedTheSameQuestion);
+      return;
+    }
+  }
+  if (m.body) maybeStore(s, node, m);
+  else { const old = s.entries[keyOf(s, node, m.url, m.gz)]; if (old) old.revalidating = false; }
+  if (m.req.background) return;    // SWR refresh: nobody is waiting for this
+  respond(s, node, m.req, m.body, m.etag, false);
+}
+
+function contractLine(c) {
+  const parts = [];
+  if (c.audience === "no-store") return "Cache-Control: no-store";
+  if (c.audience === "private") parts.push("private"); else parts.push("public");
+  parts.push(`max-age=${c.maxAge}`);
+  if (c.swr) parts.push("stale-while-revalidate=30");
+  let l = "Cache-Control: " + parts.join(", ");
+  if (c.etag) l += "  ·  ETag sent";
+  if (c.vary) l += "  ·  Vary: Accept-Encoding";
+  return l;
+}
+
+/* ---------- actions ---------- */
+function actRequest(s, user, url) { s = structuredClone(s); startRequest(s, user, url); return s; }
+function actBurst(s, n) {
+  s = structuredClone(s);
+  s.pending = s.pending || [];
+  log(s, "miss", `${n} people tapped the app at the same moment.`, "");
+  startRequest(s, "alice", "/menu");
+  for (let i = 1; i < n; i++) s.pending.push({ at: s.t + i, user: i % 2 ? "bob" : "alice", url: "/menu" });
+  return s;
+}
+function actDeploy(s) {
+  s = structuredClone(s);
+  s.originVersion = 2;
+  const live = Object.values(s.entries).filter(e => e.url === "/menu" && isFresh(s, e)).length;
+  log(s, "bad", `The origin now says ₹280. ${live === 0 ? "No cached copies are fresh, so everyone will see it immediately." :
+      `${live} cached copy(ies) are still fresh — those people keep seeing ₹250 until each copy's own clock runs out. Nothing can recall them.`}`,
+      "origin content changed → ETag changes → caches learn only when they next check");
+  return s;
+}
+function actPurge(s) {
+  s = structuredClone(s);
+  let n = 0;
+  for (const k of Object.keys(s.entries)) if (k.startsWith("cdn|")) { delete s.entries[k]; n++; }
+  log(s, "miss", `You purged ${n} copy(ies) from the CDN — you own that cache, so you can. Browser copies are untouched and unreachable.`,
+      "purge API · browsers have no equivalent");
+  return s;
+}
+function actSkip(s, seconds) {
+  for (let i = 0; i < seconds / TICK; i++) s = step(s);
+  s = structuredClone(s);
+  log(s, "stale", `${seconds} seconds passed. Copies aged; some may have gone stale.`, `t = ${(s.t * TICK).toFixed(0)}s`);
+  return s;
+}
+
+/* ---------- a plain-English statement of where things stand ---------- */
+function verdict(s) {
+  const rows = [];
+  for (const node of ["alice", "bob", "cdn"]) {
+    const menu = Object.entries(s.entries).find(([k, e]) => k.startsWith(node + "|") && e.url === "/menu");
+    if (!menu) { rows.push(`${nodeName(node)} holds no menu copy — its next request travels the whole way.`); continue; }
+    const e = menu[1];
+    rows.push(isFresh(s, e)
+      ? `${nodeName(node)} is fresh for ${(e.lifetime - ageOf(s, e)).toFixed(1)}s more — its next request touches no network at all, and shows “${e.body.text}”.`
+      : `${nodeName(node)} is stale (${ageOf(s, e).toFixed(1)}s old) — its next request must check with the origin first.`);
+  }
+  return rows.join(" ");
+}
+
+if (typeof module !== "undefined") module.exports = {
+  initState, step, actRequest, actBurst, actDeploy, actPurge, actSkip,
+  verdict, contractLine, keyOf, isFresh, ageOf, TICK,
+};
+</script>
+
+<script>
+/* ==========================================================================
+   UI LAYER
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const MAXAGES = [0, 5, 15, 60, 120, 300, 3600];
+const MA_LABEL = ["0 s (always check)", "5 s", "15 s", "60 s", "2 min", "5 min", "1 hour"];
+
+let cfg = { maxAge: 60, audience: "public", etag: true, vary: false, swr: false };
+let state = initState(cfg), history = [], timer = null, scenario = null, pick = null, holdVerdict = false;
+
+function reset(keepCfg) {
+  stopClock();
+  state = initState(cfg); history = []; scenario = null; pick = null; holdVerdict = false;
+  render();
+}
+function stopClock() { if (timer) { clearInterval(timer); timer = null; $("play").textContent = "▶ Run clock"; } }
+function tick() {
+  history.push(state); if (history.length > 900) history.shift();
+  state = step(state);
+  if (scenario) scenarioTick();
+  render();
+}
+function act(fn) { history.push(state); state = fn(state); holdVerdict = false; render(); }
+
+/* ---------- board ---------- */
+const POS = { alice: [120, 62], bob: [120, 158], legacy: [120, 254], cdn: [430, 158], origin: [745, 158] };
+const BOXW = 172, BOXH = 74;
+
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function drawBoard() {
+  const s = state;
+  const C = { fresh: css("--fresh"), aging: css("--aging"), stale: css("--stale"),
+              origin: css("--origin"), leak: css("--leak"), line: css("--line"),
+              ink: css("--ink"), soft: css("--ink-soft"), panel: css("--panel2"), sunk: css("--sunk") };
+  let g = "";
+  // connecting rails
+  for (const b of ["alice", "bob", "legacy"])
+    g += `<line x1="${POS[b][0] + BOXW / 2}" y1="${POS[b][1]}" x2="${POS.cdn[0] - BOXW / 2}" y2="${POS.cdn[1]}" stroke="${C.line}" stroke-width="2"/>`;
+  g += `<line x1="${POS.cdn[0] + BOXW / 2}" y1="${POS.cdn[1]}" x2="${POS.origin[0] - BOXW / 2}" y2="${POS.origin[1]}" stroke="${C.line}" stroke-width="2"/>`;
+  g += `<text x="${(POS.cdn[0] + POS.origin[0]) / 2}" y="${POS.cdn[1] - 8}" fill="${C.soft}" font-size="11" text-anchor="middle" font-family="JetBrains Mono,monospace">the long haul · ${(HOP.cdnOrigin * TICK).toFixed(1)}s</text>`;
+
+  // nodes
+  for (const n of NODES) {
+    const [cx, cy] = POS[n], x = cx - BOXW / 2, y = cy - BOXH / 2;
+    if (n === "origin") {
+      g += `<rect x="${x}" y="${y}" width="${BOXW}" height="${BOXH}" rx="8" fill="${C.panel}" stroke="${C.origin}" stroke-width="2"/>`;
+      g += `<text x="${cx}" y="${y + 20}" fill="${C.origin}" font-size="12" font-weight="600" text-anchor="middle">ORIGIN — the truth</text>`;
+      g += `<text x="${cx}" y="${y + 41}" fill="${C.ink}" font-size="13" text-anchor="middle" font-family="JetBrains Mono,monospace">menu v${s.originVersion} · ₹${s.originVersion === 1 ? 250 : 280}</text>`;
+      g += `<text x="${cx}" y="${y + 60}" fill="${C.soft}" font-size="11" text-anchor="middle" font-family="JetBrains Mono,monospace">served ${s.stats.originHits}×</text>`;
+      continue;
+    }
+    const shared = n === "cdn";
+    const entry = Object.entries(s.entries).find(([k, e]) => k.startsWith(n + "|") && e.url === "/menu");
+    const acct = Object.entries(s.entries).find(([k, e]) => k.startsWith(n + "|") && e.url === "/account");
+    const e = entry && entry[1];
+    let col = C.line, frac = 0, ageTxt = "empty";
+    if (e) {
+      const age = ageOf(s, e), life = Math.max(e.lifetime, 0.001);
+      frac = Math.max(0, Math.min(1, 1 - age / life));
+      col = frac > .5 ? C.fresh : frac > 0 ? C.aging : C.stale;
+      ageTxt = frac > 0 ? `fresh ${(e.lifetime - age).toFixed(1)}s more` : `stale (${age.toFixed(1)}s old)`;
+    }
+    g += `<rect x="${x}" y="${y}" width="${BOXW}" height="${BOXH}" rx="8" fill="${C.panel}" stroke="${e ? col : C.line}" stroke-width="2" ${shared ? "" : 'stroke-dasharray="0"'}/>`;
+    const title = shared ? "CDN NODE — shared by all" : `${label(n).toUpperCase()} — private`;
+    g += `<text x="${x + 11}" y="${y + 17}" fill="${shared ? C.ink : C.soft}" font-size="11" font-weight="600" font-family="Archivo,sans-serif">${title}</text>`;
+    if (e) {
+      g += `<text x="${x + 11}" y="${y + 36}" fill="${C.ink}" font-size="12" font-family="JetBrains Mono,monospace">${e.body.text.slice(0, 22)}</text>`;
+      g += `<rect x="${x + 11}" y="${y + 44}" width="${BOXW - 22}" height="6" rx="3" fill="${C.sunk}"/>`;
+      g += `<rect x="${x + 11}" y="${y + 44}" width="${(BOXW - 22) * frac}" height="6" rx="3" fill="${col}"/>`;
+      g += `<text x="${x + 11}" y="${y + 64}" fill="${col}" font-size="10.5" font-family="JetBrains Mono,monospace">${ageTxt}</text>`;
+    } else {
+      g += `<text x="${x + 11}" y="${y + 42}" fill="${C.soft}" font-size="12" font-family="JetBrains Mono,monospace">no copy stored</text>`;
+    }
+    if (acct) {
+      const owner = acct[1].madeFor;
+      const wrong = shared;
+      g += `<text x="${x + 11}" y="${y + BOXH - 2}" fill="${wrong ? C.leak : C.soft}" font-size="10" font-family="JetBrains Mono,monospace">+ /account of ${label(owner)}${wrong ? " ⚠ shared!" : ""}</text>`;
+    }
+  }
+
+  // messages in flight
+  for (const m of s.msgs) {
+    const a = POS[m.from], b = POS[m.to];
+    const f = Math.max(0, Math.min(1, (s.t - m.sentT) / (m.arriveT - m.sentT)));
+    const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
+    const col = m.kind === "request" ? C.origin : m.notModified ? C.fresh : C.ink;
+    g += `<circle cx="${x}" cy="${y}" r="6" fill="${m.kind === "request" ? "none" : col}" stroke="${col}" stroke-width="2"/>`;
+    const tag = m.kind === "request" ? (m.req.ifNoneMatch ? "still good?" : "give me it") : m.notModified ? "304 still good" : "200 + content";
+    g += `<text x="${x}" y="${y - 11}" fill="${col}" font-size="10" text-anchor="middle" font-family="JetBrains Mono,monospace">${tag}</text>`;
+  }
+  g += `<text x="866" y="322" fill="${C.soft}" font-size="11" text-anchor="end" font-family="JetBrains Mono,monospace">clock: ${(s.t * TICK).toFixed(1)}s</text>`;
+  $("board").innerHTML = g;
+}
+
+function drawCounters() {
+  const st = state.stats;
+  const served = st.browserHits + st.cdnHits + st.originHits;
+  const ratio = served ? Math.round(100 * (st.browserHits + st.cdnHits) / served) : 0;
+  const items = [
+    ["requests made", st.requests], ["answered by a cache", st.browserHits + st.cdnHits],
+    ["reached the origin", st.originHits], ["hit ratio", ratio + "%"],
+    ["“still good” replies", st.notModified], ["content bytes moved", (st.bodyBytes / 1024).toFixed(0) + " KB"],
+    ["privacy leaks", st.leaks], ["unreadable answers", st.garbled],
+  ];
+  $("counters").innerHTML = items.map(([k, v]) =>
+    `<div class="counter"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+}
+
+function drawLog() {
+  $("log").innerHTML = state.log.slice(-45).map(e =>
+    `<div class="e ${e.kind}"><span class="t">${(e.t * TICK).toFixed(1)}s</span>
+     <div class="m">${e.m}</div>${e.w ? `<div class="w">${e.w}</div>` : ""}</div>`).join("");
+}
+
+function render() {
+  drawBoard(); drawCounters(); drawLog();
+  $("contract").innerHTML = `<span>every response carries:</span><br>${contractLine(state.cfg)}`;
+  if (!holdVerdict) {
+    const v = $("verdict");
+    v.className = "card" + (state.stats.leaks ? " leak" : state.stats.garbled ? " bad" : "");
+    v.innerHTML = state.stats.leaks
+      ? `<b>A shared cache leaked personal data.</b> ${verdict(state)} Set the audience to <span class="mono">that user only</span> and reset to see the fix.`
+      : state.stats.garbled
+      ? `<b>A client got bytes it can't read.</b> ${verdict(state)} Turn on <span class="mono">Vary: Accept-Encoding</span> and reset.`
+      : `<b>Where things stand:</b> ${verdict(state)}`;
+  }
+}
+
+/* ---------- controls ---------- */
+$("maxAge").oninput = e => { cfg.maxAge = MAXAGES[+e.target.value]; $("maLbl").textContent = MA_LABEL[+e.target.value]; state.cfg.maxAge = cfg.maxAge; render(); };
+document.querySelectorAll("#audSeg button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#audSeg button").forEach(x => x.classList.toggle("on", x === b));
+  cfg.audience = b.dataset.aud; state.cfg.audience = cfg.audience; render();
+});
+for (const [id, key] of [["etagChk", "etag"], ["varyChk", "vary"], ["swrChk", "swr"]])
+  $(id).onchange = e => { cfg[key] = e.target.checked; state.cfg[key] = cfg[key]; render(); };
+
+document.querySelectorAll("[data-req]").forEach(b => b.onclick = () => {
+  const [user, url] = b.dataset.req.split("|");
+  act(s => actRequest(s, user, url));
+  if (!timer) runFor(20);
+});
+$("burst").onclick = () => { act(s => actBurst(s, 10)); if (!timer) runFor(30); };
+$("play").onclick = () => { if (timer) stopClock(); else { $("play").textContent = "⏸ Pause"; timer = setInterval(tick, 55); } };
+$("step").onclick = () => { stopClock(); tick(); };
+$("back").onclick = () => { stopClock(); if (history.length) { state = history.pop(); holdVerdict = false; render(); } };
+$("reset").onclick = () => reset();
+$("skip").onclick = () => { stopClock(); act(s => actSkip(s, 30)); };
+$("deploy").onclick = () => act(actDeploy);
+$("purge").onclick = () => act(actPurge);
+
+function runFor(ticks) {           // let animations play out after an action
+  let n = 0;
+  stopClock(); $("play").textContent = "⏸ Pause";
+  timer = setInterval(() => { tick(); if (++n >= ticks && state.msgs.length === 0) stopClock(); }, 55);
+}
+
+/* ---------- narrated walk-through ---------- */
+$("narrate").onclick = () => {
+  reset();
+  const steps = [
+    [0, s => { s = structuredClone(s); log(s, "miss", "Watch three things in order: a first request that goes all the way, a second that goes nowhere, and a third that only asks a question.", ""); return s; }],
+    [8, s => actRequest(s, "alice", "/menu")],
+    [45, s => actRequest(s, "alice", "/menu")],
+    [70, s => actSkip(s, 60)],
+    [78, s => actRequest(s, "alice", "/menu")],
+  ];
+  let i = 0, n = 0;
+  stopClock(); $("play").textContent = "⏸ Pause";
+  timer = setInterval(() => {
+    while (i < steps.length && steps[i][0] === n) { history.push(state); state = steps[i][1](state); i++; }
+    tick(); n++;
+    if (n > 130) { stopClock();
+      holdVerdict = true;
+      $("verdict").className = "card good";
+      $("verdict").innerHTML = `<b>That's the whole mechanism.</b> Request 1 travelled to the origin and back (slow, full content). Request 2 was answered by Alice's own copy — no network at all, the fastest possible request. Then time passed, the copy went stale, and request 3 only asked <span class="mono">“still good?”</span> — the origin answered <span class="mono">304</span> with no content, and the old copy was renewed. Freshness saves the trip; the fingerprint check saves the bytes.`;
+    }
+  }, 45);
+};
+
+/* ---------- scenarios ---------- */
+const SCENARIOS = [
+  { id: "deploy", title: "The deploy trap", cfg: { maxAge: 300, audience: "public", etag: true, vary: false, swr: false },
+    q: "Alice and Bob both loaded the menu, so fresh copies exist everywhere. You now deploy the new ₹280 price. When do they see it?",
+    choices: ["Immediately — the origin changed", "Not until each copy's own clock expires", "Never, until they clear their cache"],
+    correct: 1,
+    script: [[2, s => actRequest(s, "alice", "/menu")], [30, s => actRequest(s, "bob", "/menu")], [60, s => actDeploy(s)],
+             [70, s => actRequest(s, "alice", "/menu")], [95, s => actRequest(s, "bob", "/menu")]],
+    dur: 130,
+    why: "Both still see ₹250. A cached copy with max-age=300 is a promise you already made: reuse this for five minutes without asking me. Purging the CDN would help the NEXT visitor, but nothing can reach into Alice's browser — HTTP has no way to recall a copy. That is why production never updates a URL's content: it ships new URLs (app.9f3a2c.js) with immutable, and keeps the HTML shell on no-cache. (README §10.4, §11.1)" },
+
+  { id: "leak", title: "Bob sees Alice's account", cfg: { maxAge: 60, audience: "public", etag: true, vary: false, swr: false },
+    q: "The contract says anyone may keep a copy. Alice loads /account through the shared CDN. Then Bob loads /account. What does Bob see?",
+    choices: ["His own account — caches key on the user", "Alice's account", "An error, because the cache can't tell"],
+    correct: 1,
+    script: [[2, s => actRequest(s, "alice", "/account")], [40, s => actRequest(s, "bob", "/account")]],
+    dur: 75,
+    why: "Bob sees Alice's account. The cache key was the URL — nothing in it said whose answer this was, and the CDN is shared by the whole city. This is a data breach, not a performance bug, and it has hit real companies. The fix is one word in the contract: private (only that user's own browser may store it) or no-store for anything sensitive. Switch the audience control and run it again. (README §11.2)" },
+
+  { id: "gzip", title: "The compressed-garbage bug", cfg: { maxAge: 60, audience: "public", etag: true, vary: false, swr: false },
+    q: "Alice's phone accepts compressed responses, so the CDN stores the compressed menu. Now an old phone that cannot decompress asks for the same URL. What does it get?",
+    choices: ["A fresh uncompressed copy", "The compressed bytes — unreadable garbage", "A 304"],
+    correct: 1,
+    script: [[2, s => actRequest(s, "alice", "/menu")], [40, s => actRequest(s, "legacy", "/menu")]],
+    dur: 75,
+    why: "It gets compressed bytes it cannot read. One URL had two different right answers, and the cache key recorded only the URL. Vary: Accept-Encoding fixes it by making the encoding part of the key, so each variant is stored separately. Tick the Vary checkbox and re-run to watch the old phone get its own copy. The opposite mistake matters too: Vary on something per-user (like Cookie) gives every user their own variant and drops the hit ratio to nearly zero. (README §11.3)" },
+
+  { id: "stampede", title: "The expiry stampede", cfg: { maxAge: 5, audience: "public", etag: false, vary: false, swr: false },
+    q: "Ten people tap the app in the same second, just as the shared copy expires. How many of those requests reach the origin?",
+    choices: ["One — the cache refills once", "Several — they all miss together", "None — the copy is still there"],
+    correct: 1,
+    script: [[2, s => actRequest(s, "alice", "/menu")], [115, s => actBurst(s, 10)]],
+    dur: 210,
+    why: "Several requests miss simultaneously and pile onto the origin — a load spike shaped like your own TTL, arriving on schedule forever. Nothing in the cache is wrong; the bug is that many missers were allowed to miss independently. Three fixes: single-flight (one refill, the rest wait — see experiments/Exp03Stampede.java, which turns 30 origin hits into 1), stale-while-revalidate (tick that box and re-run: nobody waits at all), and jittered lifetimes so different keys don't expire in unison. (README §11.4)" },
+
+  { id: "revalidate", title: "The cheapest possible check", cfg: { maxAge: 5, audience: "public", etag: true, vary: false, swr: false },
+    q: "The copy is stale but the menu hasn't actually changed. What travels back from the origin?",
+    choices: ["The full menu again", "A tiny “still good” reply with no content", "Nothing — stale copies are discarded"],
+    correct: 1,
+    script: [[2, s => actRequest(s, "alice", "/menu")], [130, s => actRequest(s, "alice", "/menu")]],
+    dur: 200,
+    why: "A 304 Not Modified: headers only, no content at all — in experiment 02 that was 1.8% of a full response, a 98% byte saving — and it resets the copy's freshness clock so the next requests are hits again. But look at the clock: the round trip was still paid. That is exactly why max-age exists alongside fingerprints — freshness saves the whole trip, validation only saves the payload once the trip is unavoidable. (README §10.2)" },
+];
+
+for (const sc of SCENARIOS) {
+  const d = document.createElement("div"); d.className = "scen";
+  d.innerHTML = `<h3>${sc.title}</h3><p class="q">${sc.q}</p>
+    <div class="choices">${sc.choices.map((c, i) => `<button data-i="${i}">${c}</button>`).join("")}</div>
+    <button class="run">Run it ▶</button>`;
+  d.querySelectorAll(".choices button").forEach(b => b.onclick = () => {
+    d.querySelectorAll(".choices button").forEach(x => x.classList.remove("picked"));
+    b.classList.add("picked"); pick = { id: sc.id, i: +b.dataset.i };
+  });
+  d.querySelector(".run").onclick = () => startScenario(sc);
+  $("scenarios").appendChild(d);
+}
+
+function startScenario(sc) {
+  stopClock();
+  cfg = Object.assign({}, sc.cfg);
+  syncControls();
+  state = initState(cfg); history = []; holdVerdict = false;
+  scenario = { ...sc, i: 0 };
+  $("verdict").className = "card"; $("verdict").innerHTML = `<b>${sc.title}</b> — running. Watch the copies and the log.`;
+  $("play").textContent = "⏸ Pause"; timer = setInterval(tick, 45);
+}
+
+function scenarioTick() {
+  const sc = scenario;
+  while (sc.i < sc.script.length && sc.script[sc.i][0] <= state.t) { state = sc.script[sc.i][1](state); sc.i++; }
+  if (state.t >= sc.dur) {
+    stopClock(); scenario = null; holdVerdict = true;
+    const got = pick && pick.id === sc.id ? pick.i : null;
+    const right = got === sc.correct;
+    const v = $("verdict");
+    v.className = "card " + (got === null ? "note" : right ? "good" : "bad");
+    v.innerHTML = `<b>${got === null ? "You didn't predict —" : right ? "Your prediction held." : "Not quite."}</b>
+      The answer: <b>${sc.choices[sc.correct]}</b>. ${sc.why}`;
+  }
+}
+
+function syncControls() {
+  const idx = MAXAGES.indexOf(cfg.maxAge);
+  $("maxAge").value = idx < 0 ? 3 : idx; $("maLbl").textContent = MA_LABEL[idx < 0 ? 3 : idx];
+  document.querySelectorAll("#audSeg button").forEach(x => x.classList.toggle("on", x.dataset.aud === cfg.audience));
+  $("etagChk").checked = cfg.etag; $("varyChk").checked = cfg.vary; $("swrChk").checked = cfg.swr;
+}
+
+syncControls();
+render();
+</script>

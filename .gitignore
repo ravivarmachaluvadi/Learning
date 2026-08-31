@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Large jars — see lib/README.md for the Maven Central download commands.
+# Version pins in lib/H2-VERSION.txt and lib/DUCKDB-VERSION.txt stay tracked.
+lib/*.jar
+
+# Java build output
+out/
+*.class
+
+# Generated lab artifacts (recreated by each lab's setup script)
+ssh/lab/
+tls/pki/
+
+# Transient
+*.log
+*.pid

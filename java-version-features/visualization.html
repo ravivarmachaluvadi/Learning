@@ -1,0 +1,1251 @@
+<title>The Java Departure Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ============================ TOKENS ============================
+   Light = a printed timetable on paper. Dark = the illuminated board.
+   Every colour is defined on bare :root and only REDEFINED in the two
+   dark blocks, so the un-stamped (system) state always resolves. */
+:root {
+  --ink:        #12181f;
+  --ink-2:      #33404d;
+  --ink-3:      #5d6d7c;
+  --ink-4:      #8b9aa7;
+  --paper:      #f2f4f6;
+  --panel:      #ffffff;
+  --panel-2:    #e8ecef;
+  --rule:       #ccd4da;
+  --rule-soft:  #dfe5e9;
+
+  --amber:      #b46b06;   /* preview / in flight */
+  --amber-bg:   #fbeed6;
+  --teal:       #0e6f5c;   /* final / settled */
+  --teal-bg:    #d6ece6;
+  --blue:       #2b5f96;   /* incubator */
+  --blue-bg:    #d9e6f3;
+  --rust:       #a33b2e;   /* withdrawn / removed */
+  --rust-bg:    #f6dcd8;
+  --violet:     #6a4a8f;   /* experimental */
+  --violet-bg:  #e8dff3;
+
+  --accent:     #b46b06;
+  --lts:        #12181f;
+  --lts-bg:     #ffd66b;
+
+  --shadow:     0 1px 2px rgba(18,24,31,.07), 0 4px 14px rgba(18,24,31,.05);
+  --focus:      #2b5f96;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink:        #e6edf3;
+    --ink-2:      #b9c6d1;
+    --ink-3:      #8a9aa8;
+    --ink-4:      #63737f;
+    --paper:      #0d1319;
+    --panel:      #141c24;
+    --panel-2:    #1c2630;
+    --rule:       #2c3944;
+    --rule-soft:  #222d37;
+
+    --amber:      #f0aa42;
+    --amber-bg:   #392a12;
+    --teal:       #4fc2a5;
+    --teal-bg:    #10322b;
+    --blue:       #79aee2;
+    --blue-bg:    #14293c;
+    --rust:       #ee8072;
+    --rust-bg:    #3a1c18;
+    --violet:     #b79ae0;
+    --violet-bg:  #2a2038;
+
+    --accent:     #f0aa42;
+    --lts:        #0d1319;
+    --lts-bg:     #f0c34a;
+
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    --focus:      #79aee2;
+  }
+}
+:root[data-theme="dark"] {
+  --ink:#e6edf3; --ink-2:#b9c6d1; --ink-3:#8a9aa8; --ink-4:#63737f;
+  --paper:#0d1319; --panel:#141c24; --panel-2:#1c2630;
+  --rule:#2c3944; --rule-soft:#222d37;
+  --amber:#f0aa42; --amber-bg:#392a12;
+  --teal:#4fc2a5;  --teal-bg:#10322b;
+  --blue:#79aee2;  --blue-bg:#14293c;
+  --rust:#ee8072;  --rust-bg:#3a1c18;
+  --violet:#b79ae0;--violet-bg:#2a2038;
+  --accent:#f0aa42; --lts:#0d1319; --lts-bg:#f0c34a;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+  --focus:#79aee2;
+}
+
+/* ============================ BASE ============================ */
+*,*::before,*::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4 { font-family: Oswald, "Public Sans", sans-serif; font-weight: 500; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+code, kbd, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+button { font: inherit; color: inherit; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 72px; }
+
+/* ============================ MASTHEAD ============================ */
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding: 30px 0 0;
+  margin-bottom: 0;
+}
+.board-strip {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3);
+}
+.masthead h1 {
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 600; text-transform: uppercase; letter-spacing: .02em;
+  line-height: .98; margin: 4px 0 10px;
+}
+.masthead .standfirst {
+  max-width: 62ch; color: var(--ink-2); font-size: 17px; margin: 0 0 22px;
+}
+.masthead .standfirst b { color: var(--ink); font-weight: 600; }
+
+/* ============================ TABS ============================ */
+.tabs { display: flex; gap: 0; flex-wrap: wrap; margin-top: 4px; }
+.tab {
+  appearance: none; background: transparent; border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 12px 18px 11px; cursor: pointer;
+  font-family: Oswald, sans-serif; font-size: 15px; font-weight: 400;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+  display: flex; align-items: baseline; gap: 9px;
+  transition: color .15s, border-color .15s;
+}
+.tab:hover { color: var(--ink); }
+.tab .num {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600;
+  color: var(--ink-4);
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-selected="true"] .num { color: var(--accent); }
+
+.panel-body { padding-top: 30px; }
+.panel-body[hidden] { display: none !important; }
+
+.lede { max-width: 66ch; color: var(--ink-2); font-size: 16px; margin: 0 0 26px; }
+.lede b { color: var(--ink); font-weight: 600; }
+
+h2.sec {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .14em;
+  font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--ink-3);
+  padding-bottom: 7px; border-bottom: 1px solid var(--rule);
+  margin: 34px 0 16px;
+}
+h2.sec:first-of-type { margin-top: 0; }
+
+/* ============================ CARDS / CONTROLS ============================ */
+.card {
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 3px; padding: 18px 20px; box-shadow: var(--shadow);
+}
+.controls {
+  display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 3px; padding: 14px 16px; margin-bottom: 20px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 500;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+select, .btn {
+  font-family: "IBM Plex Mono", monospace; font-size: 13px;
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 2px;
+  padding: 7px 11px; cursor: pointer;
+}
+select { min-width: 128px; }
+.btn { transition: background .12s, border-color .12s; white-space: nowrap; }
+.btn:hover:not(:disabled) { background: var(--rule-soft); border-color: var(--ink-4); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+:root[data-theme="dark"] .btn.primary, :root:not([data-theme="light"]) .btn.primary { color: #1a1206; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .btn.primary { color: #fff; } }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.spacer { flex: 1 1 auto; }
+
+/* ============================ STATE CHIPS ============================ */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: .04em; padding: 2px 7px; border-radius: 2px;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.chip.final     { background: var(--teal-bg);   color: var(--teal);   border-color: var(--teal); }
+.chip.preview   { background: var(--amber-bg);  color: var(--amber);  border-color: var(--amber); }
+.chip.incubator { background: var(--blue-bg);   color: var(--blue);   border-color: var(--blue); }
+.chip.gone      { background: var(--rust-bg);   color: var(--rust);   border-color: var(--rust); }
+.chip.exp       { background: var(--violet-bg); color: var(--violet); border-color: var(--violet); }
+.chip.none      { background: var(--panel-2);   color: var(--ink-4);  border-color: var(--rule); }
+.chip.lts       { background: var(--lts-bg);    color: var(--lts);    border-color: var(--lts-bg); font-weight: 600; }
+
+/* ============================ TAB 1: TIMETABLE ============================ */
+.tt-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: var(--panel); }
+table.tt { border-collapse: collapse; width: 100%; min-width: 760px; font-variant-numeric: tabular-nums; }
+table.tt th {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+  text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--rule);
+  background: var(--panel-2); position: sticky; top: 0; z-index: 2;
+}
+table.tt td { padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); font-size: 14px; }
+table.tt tr:last-child td { border-bottom: 0; }
+table.tt tr.is-lts td { background: color-mix(in srgb, var(--lts-bg) 16%, transparent); }
+table.tt tr.in-range td { box-shadow: inset 3px 0 0 var(--accent); }
+table.tt tr.is-from td, table.tt tr.is-to td { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.v-cell { font-family: Oswald, sans-serif; font-size: 21px; font-weight: 500; letter-spacing: .02em; }
+.jepbar-wrap { display: flex; align-items: center; gap: 9px; }
+.jepbar { height: 9px; background: var(--ink-4); border-radius: 1px; min-width: 2px; opacity: .6; }
+tr.is-lts .jepbar { background: var(--accent); opacity: 1; }
+.jepnum { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-3); width: 2.4em; }
+.suppbar-wrap { position: relative; height: 12px; min-width: 190px; background: var(--rule-soft); border-radius: 1px; }
+.suppbar { position: absolute; top: 0; height: 12px; border-radius: 1px; }
+.suppbar.premier { background: var(--teal); }
+.suppbar.extended { background: var(--teal); opacity: .3; }
+
+.readout {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  border-radius: 3px; overflow: hidden; margin-bottom: 20px;
+}
+.stat { background: var(--panel); padding: 15px 17px; }
+.stat .k {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 5px;
+}
+.stat .v { font-family: Oswald, sans-serif; font-size: 30px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .v.hot { color: var(--rust); }
+.stat .v.warm { color: var(--amber); }
+.stat .v.cool { color: var(--teal); }
+.stat .sub { font-size: 12px; color: var(--ink-3); margin-top: 5px; }
+
+/* ============================ TAB 2: PIPELINE ============================ */
+.pipe-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: var(--panel); }
+table.pipe { border-collapse: collapse; min-width: 900px; width: 100%; }
+table.pipe th.rel {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600;
+  color: var(--ink-3); text-align: center; padding: 9px 0 8px; width: 40px;
+  border-bottom: 1px solid var(--rule); background: var(--panel-2);
+  position: sticky; top: 0; z-index: 2;
+}
+table.pipe th.rel.cur { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel-2)); }
+table.pipe th.rel.lts::after { content: "LTS"; display: block; font-size: 8px; letter-spacing: .1em; color: var(--accent); }
+table.pipe th.name {
+  text-align: left; padding: 9px 12px; width: 260px; min-width: 210px;
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 600;
+  border-bottom: 1px solid var(--rule); background: var(--panel-2);
+  position: sticky; left: 0; top: 0; z-index: 3;
+}
+table.pipe td.name {
+  padding: 0; border-bottom: 1px solid var(--rule-soft);
+  position: sticky; left: 0; background: var(--panel); z-index: 1;
+}
+table.pipe td.name button {
+  width: 100%; text-align: left; background: transparent; border: 0;
+  padding: 7px 12px; cursor: pointer; font-size: 13px; line-height: 1.25;
+  display: flex; flex-direction: column; gap: 1px;
+}
+table.pipe td.name button:hover { background: var(--panel-2); }
+table.pipe tr.sel td.name button { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+table.pipe td.name .proj { font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); }
+table.pipe td.cell { padding: 0; border-bottom: 1px solid var(--rule-soft); text-align: center; }
+table.pipe td.cell.curcol { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.dot {
+  width: 100%; height: 26px; display: flex; align-items: center; justify-content: center;
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600;
+}
+.dot.s-inc   { background: var(--blue-bg);   color: var(--blue); }
+.dot.s-prev  { background: var(--amber-bg);  color: var(--amber); }
+.dot.s-final { background: var(--teal-bg);   color: var(--teal); }
+.dot.s-gone  { background: var(--rust-bg);   color: var(--rust); }
+.dot.s-exp   { background: var(--violet-bg); color: var(--violet); }
+.dot.s-live  { background: color-mix(in srgb, var(--teal) 30%, transparent); color: var(--teal); }
+.dot.s-none  { background: transparent; }
+.dot.now { box-shadow: inset 0 0 0 2px var(--ink); }
+@keyframes flash { 0%{ box-shadow: inset 0 0 0 3px var(--accent);} 100%{ box-shadow: inset 0 0 0 0 transparent;} }
+.dot.changed { animation: flash 1.1s ease-out; }
+@media (prefers-reduced-motion: reduce) { .dot.changed { animation: none; box-shadow: inset 0 0 0 2px var(--accent); } }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0 0; font-size: 12px; color: var(--ink-3); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 15px; height: 15px; border-radius: 2px; display: inline-block; }
+
+.log {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 0; max-height: 260px; overflow-y: auto; margin-top: 18px;
+}
+.log-item { padding: 11px 16px; border-bottom: 1px solid var(--rule-soft); font-size: 14px; }
+.log-item:last-child { border-bottom: 0; }
+.log-item .head { font-weight: 600; }
+.log-item .tech {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-3);
+  margin-top: 3px; display: block;
+}
+.log-item.hi { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.detail { margin-top: 18px; }
+.detail h3 { font-size: 20px; margin-bottom: 3px; }
+.detail .ladder { display: flex; gap: 5px; flex-wrap: wrap; margin: 12px 0; }
+.rung {
+  border: 1px solid var(--rule); border-radius: 2px; padding: 5px 9px;
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.35;
+  display: flex; flex-direction: column; align-items: center; min-width: 52px;
+}
+.rung b { font-size: 13px; font-weight: 600; }
+.rung.r-inc   { border-color: var(--blue);   background: var(--blue-bg);   color: var(--blue); }
+.rung.r-prev  { border-color: var(--amber);  background: var(--amber-bg);  color: var(--amber); }
+.rung.r-final { border-color: var(--teal);   background: var(--teal-bg);   color: var(--teal); }
+.rung.r-gone  { border-color: var(--rust);   background: var(--rust-bg);   color: var(--rust); }
+.rung.r-exp   { border-color: var(--violet); background: var(--violet-bg); color: var(--violet); }
+.rung.r-live  { border-color: var(--teal);   background: transparent;     color: var(--teal); }
+
+/* ============================ TAB 3: CLASS FILE ============================ */
+.lock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 820px) { .lock-grid { grid-template-columns: 1fr; } }
+.bytes {
+  font-family: "IBM Plex Mono", monospace; font-size: clamp(15px, 3.6vw, 25px);
+  letter-spacing: .07em; padding: 20px 16px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--rule); border-radius: 3px;
+  overflow-x: auto; white-space: nowrap;
+}
+.bytes .b-magic { color: var(--ink-4); }
+.bytes .b-minor { font-weight: 600; padding: 1px 4px; border-radius: 2px; }
+.bytes .b-minor.ok   { color: var(--ink-3); }
+.bytes .b-minor.prev { color: var(--amber); background: var(--amber-bg); }
+.bytes .b-major { font-weight: 600; color: var(--blue); }
+.byte-key { display: flex; justify-content: center; gap: 22px; font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-top: 9px; flex-wrap: wrap; }
+.term {
+  font-family: "IBM Plex Mono", monospace; font-size: 12.5px; line-height: 1.6;
+  background: var(--panel-2); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 15px 17px; white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+}
+.term .p { color: var(--ink-4); }
+.term .err { color: var(--rust); }
+.term .ok { color: var(--teal); }
+.term .warn { color: var(--amber); }
+.verdict {
+  border-left: 4px solid var(--ink-4); padding: 15px 18px; margin-top: 18px;
+  background: var(--panel); border-radius: 0 3px 3px 0; border-top: 1px solid var(--rule);
+  border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.verdict.good { border-left-color: var(--teal); }
+.verdict.bad  { border-left-color: var(--rust); }
+.verdict h4 { font-size: 17px; margin-bottom: 5px; }
+.verdict.good h4 { color: var(--teal); }
+.verdict.bad h4  { color: var(--rust); }
+.verdict p { margin: 0; color: var(--ink-2); }
+
+/* ============================ TAB 4: HAZARDS ============================ */
+.hz { border: 1px solid var(--rule); border-radius: 3px; background: var(--panel); margin-bottom: 12px; overflow: hidden; }
+.hz-head { display: flex; gap: 12px; align-items: flex-start; padding: 14px 17px; }
+.hz-rel {
+  font-family: Oswald, sans-serif; font-size: 24px; font-weight: 500; line-height: 1;
+  min-width: 46px; padding-top: 1px; font-variant-numeric: tabular-nums;
+}
+.hz-main { flex: 1; min-width: 0; }
+.hz-main h4 { font-size: 17px; margin-bottom: 3px; }
+.hz-main .sym { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--rust); margin-top: 5px; word-break: break-word; }
+.hz-body { padding: 0 17px 15px 75px; color: var(--ink-2); font-size: 14px; }
+.hz-body p { margin: 0 0 9px; }
+.hz-body p:last-child { margin-bottom: 0; }
+.hz-body b { color: var(--ink); font-weight: 600; }
+.hz.silent { border-left: 4px solid var(--rust); }
+.hz.loud   { border-left: 4px solid var(--ink-4); }
+.hz .sev {
+  font-family: "IBM Plex Mono", monospace; font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; padding: 2px 6px; border-radius: 2px; white-space: nowrap;
+}
+.hz.silent .sev { background: var(--rust-bg); color: var(--rust); }
+.hz.loud   .sev { background: var(--panel-2); color: var(--ink-3); }
+
+/* ============================ PREDICT ============================ */
+.predict {
+  border: 1px solid var(--accent); border-radius: 3px; padding: 17px 19px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel)); margin: 22px 0;
+}
+.predict .q { font-weight: 600; margin-bottom: 4px; font-size: 16px; }
+.predict .hint { color: var(--ink-3); font-size: 13px; margin-bottom: 12px; }
+.predict .opts { display: flex; gap: 9px; flex-wrap: wrap; }
+.pbtn {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 2px;
+  padding: 9px 14px; cursor: pointer; font-size: 14px; text-align: left;
+  transition: border-color .12s, background .12s;
+}
+.pbtn:hover:not(:disabled) { border-color: var(--accent); }
+.pbtn:disabled { cursor: default; }
+.pbtn.right { border-color: var(--teal); background: var(--teal-bg); color: var(--teal); font-weight: 600; }
+.pbtn.wrong { border-color: var(--rust); background: var(--rust-bg); color: var(--rust); text-decoration: line-through; }
+.predict .ans { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--rule); color: var(--ink-2); }
+.predict .ans[hidden] { display: none !important; }
+.predict .ans b { color: var(--ink); }
+
+.note { font-size: 13px; color: var(--ink-3); margin-top: 12px; max-width: 72ch; }
+.note code { font-size: 12px; background: var(--panel-2); padding: 1px 5px; border-radius: 2px; }
+.foot { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-3); }
+.foot b { color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="board-strip">
+    <span class="eyebrow">Departures · March &amp; September</span>
+    <span class="eyebrow">JDK 9 → 25</span>
+  </div>
+  <h1>The Java Departure Board</h1>
+  <p class="standfirst">
+    Java 9 took three and a half years and arrived carrying <b>91 changes at once</b>.
+    Java 10 shipped six months later with <b>12</b>. Everything Java does now —
+    the six-month train, preview features, LTS — exists to make sure the first
+    number never happens again. This board lets you watch the machinery run.
+  </p>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><span class="num">01</span> The timetable</button>
+    <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false"><span class="num">02</span> The pipeline</button>
+    <button class="tab" role="tab" id="t3" aria-controls="p3" aria-selected="false"><span class="num">03</span> The class-file lock</button>
+    <button class="tab" role="tab" id="t4" aria-controls="p4" aria-selected="false"><span class="num">04</span> Hazard scanner</button>
+  </nav>
+</header>
+
+<!-- ================= TAB 1 ================= -->
+<section class="panel-body" role="tabpanel" id="p1" aria-labelledby="t1">
+  <p class="lede">
+    Every Java release since 2018 departs in March or September, ready or not.
+    <b>Set where you are and where you want to get to</b> — the numbers below
+    are the size of the crowd you have to get through the ticket barrier.
+  </p>
+
+  <div class="controls">
+    <div class="field"><label for="fromV">I am running</label>
+      <select id="fromV"></select></div>
+    <div class="field"><label for="toV">I want to reach</label>
+      <select id="toV"></select></div>
+    <div class="spacer"></div>
+    <button class="btn" id="rt8">Show 8 → 25</button>
+    <button class="btn" id="rt17">Show 17 → 25</button>
+    <button class="btn" id="rtlts">Only LTS stops</button>
+  </div>
+
+  <div class="readout" id="readout"></div>
+
+  <h2 class="sec">The schedule</h2>
+  <div class="tt-scroll">
+    <table class="tt">
+      <thead><tr>
+        <th style="width:74px">Release</th><th style="width:112px">Departs</th>
+        <th style="width:78px">Support</th><th style="width:190px">Changes shipped (JEPs)</th>
+        <th>Vendor support window (Oracle)</th><th style="width:78px">Class file</th>
+      </tr></thead>
+      <tbody id="ttBody"></tbody>
+    </table>
+  </div>
+  <p class="note">
+    Support dates are Oracle's published roadmap; Adoptium, Corretto, Azul and Red Hat
+    publish their own and some support non-LTS releases. Solid bar = premier, faded = extended.
+    JEP counts are from the OpenJDK release pages.
+  </p>
+
+  <div class="predict" id="pred1">
+    <div class="q">Java 9 shipped 91 changes. How many did Java 10 ship, six months later?</div>
+    <div class="hint">The answer is the whole argument for the release train.</div>
+    <div class="opts">
+      <button class="pbtn" data-i="0">About 80 — the pace continued</button>
+      <button class="pbtn" data-i="1">About 45 — roughly half</button>
+      <button class="pbtn" data-i="2">12</button>
+    </div>
+    <div class="ans" hidden>
+      <p><b>12.</b> And that is the point, not a disappointment. Java 9 was not big because
+      the team was productive; it was big because <b>41 finished features sat waiting on one
+      unfinished one</b> for three and a half years. Java 10 shipped what was ready on the day
+      it said it would, and 12 changes is a delta you can absorb in normal maintenance
+      rather than a project you have to schedule.</p>
+      <p>Scan the JEP column below. The only later release that approaches 9's size is
+      <b>24, with 24</b> — and even that is a quarter of 9.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAB 2 ================= -->
+<section class="panel-body" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+  <p class="lede">
+    A language feature cannot be un-shipped, so Java ships them <b>impermanently first</b>.
+    Step through the releases and watch features climb: blue while incubating, amber while
+    previewing, green when they go final. <b>Click any feature name</b> to see its full ladder.
+  </p>
+
+  <div class="controls">
+    <button class="btn" id="pStepB">◀ Back</button>
+    <button class="btn primary" id="pPlay">▶ Play all releases</button>
+    <button class="btn" id="pStepF">Forward ▶</button>
+    <button class="btn" id="pReset">Reset</button>
+    <div class="spacer"></div>
+    <div class="field"><label for="pJump">Jump to release</label><select id="pJump"></select></div>
+  </div>
+
+  <div class="readout" id="pReadout"></div>
+
+  <div class="pipe-scroll">
+    <table class="pipe">
+      <thead><tr id="pHead"><th class="name">Feature</th></tr></thead>
+      <tbody id="pBody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--blue-bg);border:1px solid var(--blue)"></i> Incubator — an API, gated by <code>--add-modules</code></span>
+    <span><i class="swatch" style="background:var(--amber-bg);border:1px solid var(--amber)"></i> Preview — language/VM, gated by <code>--enable-preview</code></span>
+    <span><i class="swatch" style="background:var(--violet-bg);border:1px solid var(--violet)"></i> Experimental — VM only</span>
+    <span><i class="swatch" style="background:var(--teal-bg);border:1px solid var(--teal)"></i> Final — permanent</span>
+    <span><i class="swatch" style="background:var(--rust-bg);border:1px solid var(--rust)"></i> Withdrawn — taken back</span>
+  </div>
+
+  <div class="detail card" id="pDetail"></div>
+
+  <h2 class="sec">What happened, in order</h2>
+  <div class="log" id="pLog"></div>
+
+  <div class="predict" id="pred2">
+    <div class="q">Pattern matching for <code>switch</code> needed five releases. The Vector API has been incubating for ten. What does a very long stay in the pipeline usually mean?</div>
+    <div class="hint">Step to release 25 and look at the Vector API row before answering.</div>
+    <div class="opts">
+      <button class="pbtn" data-i="0">The design keeps failing review</button>
+      <button class="pbtn" data-i="1">It is blocked on something else</button>
+      <button class="pbtn" data-i="2">Nobody is working on it</button>
+    </div>
+    <div class="ans" hidden>
+      <p><b>It is blocked on something else.</b> The Vector API's own proposal says it will
+      stay in incubation until <b>Project Valhalla</b> delivers value types, because the API is
+      designed around value semantics the language does not have yet. Finalising now would
+      freeze a design against a language about to change underneath it.</p>
+      <p>So a long stay is a signal about <b>dependencies, not quality</b>. Read the JEP text —
+      it usually says outright what it is waiting for. Compare with string templates, which
+      left the pipeline after two previews by being <b>withdrawn</b>: that is what a design
+      failure actually looks like, and it looks nothing like ten patient incubations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAB 3 ================= -->
+<section class="panel-body" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+  <p class="lede">
+    A compiler flag protects the compiler. It does nothing for the <b>jar</b>, which is the
+    thing that travels into repositories and containers long after everyone forgot the flag
+    was passed. So Java marks the compiled file itself. Change the settings and watch two
+    bytes decide whether your code runs.
+  </p>
+
+  <div class="controls">
+    <div class="field"><label for="cUses">My code uses</label>
+      <select id="cUses">
+        <option value="no">Only final features</option>
+        <option value="yes">A preview feature (e.g. StructuredTaskScope)</option>
+      </select></div>
+    <div class="field"><label for="cFlag">Compiled with</label>
+      <select id="cFlag">
+        <option value="off">javac (no flags)</option>
+        <option value="on">javac --enable-preview --release N</option>
+      </select></div>
+    <div class="field"><label for="cBuild">On JDK</label><select id="cBuild"></select></div>
+    <div class="field"><label for="cRun">Then run on JDK</label><select id="cRun"></select></div>
+    <div class="spacer"></div>
+    <div class="field"><label for="cRunFlag">Runtime flag</label>
+      <select id="cRunFlag">
+        <option value="off">java (no flags)</option>
+        <option value="on">java --enable-preview</option>
+      </select></div>
+  </div>
+
+  <div class="lock-grid">
+    <div>
+      <h2 class="sec">1 · Compile</h2>
+      <div class="term" id="cCompile"></div>
+      <h2 class="sec">2 · The first eight bytes of the class file</h2>
+      <div class="bytes" id="cBytes"></div>
+      <div class="byte-key">
+        <span>magic</span><span>minor</span><span>major</span>
+      </div>
+    </div>
+    <div>
+      <h2 class="sec">3 · Run</h2>
+      <div class="term" id="cRunOut"></div>
+      <div class="verdict" id="cVerdict"></div>
+    </div>
+  </div>
+
+  <p class="note">
+    Every byte string and error message on this page was produced on <b>OpenJDK 25.0.4</b>
+    while this lab was built. The cross-version cases are derived from the same two rules
+    the JVM applies: <code>minor == 65535</code> requires <code>--enable-preview</code>, and
+    a preview class file's major version must match the running JVM <em>exactly</em>.
+  </p>
+
+  <div class="predict" id="pred3">
+    <div class="q">You build a library on JDK 25 with <code>--enable-preview</code> and publish the jar. A colleague on JDK 26 adds it as a dependency. What happens?</div>
+    <div class="hint">Set the controls to build on 25 with the flag, then run on 26.</div>
+    <div class="opts">
+      <button class="pbtn" data-i="0">Works — newer JVMs run older class files</button>
+      <button class="pbtn" data-i="1">Works if they pass --enable-preview too</button>
+      <button class="pbtn" data-i="2">Refuses to load, flag or not</button>
+    </div>
+    <div class="ans" hidden>
+      <p><b>Refuses to load, flag or not.</b> Normal class files are forward compatible —
+      Java 8 bytecode still runs on JDK 25, and that is Java's strongest promise. A
+      <b>preview</b> class file is deliberately exempt: its major version must match the
+      running JVM exactly, so a file built on 25 runs on 25 and nowhere else.</p>
+      <p>That is not a bug to work around. It is the mechanism that makes preview features
+      safe to ship at all — it makes it <b>impossible</b> for an impermanent feature to
+      quietly become load-bearing infrastructure inside somebody else's dependency tree.
+      The practical rule: never publish preview-compiled artifacts, and only use preview
+      features in an application you rebuild on every JDK bump.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAB 4 ================= -->
+<section class="panel-body" role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+  <p class="lede">
+    Upgrade pain is not mysterious — it is a known list, and the platform warned you about
+    almost all of it years in advance. Pick your jump. <b>The ones with a red edge fail
+    silently</b>, and those are the ones that reach customers.
+  </p>
+
+  <div class="controls">
+    <div class="field"><label for="hFrom">Upgrading from</label><select id="hFrom"></select></div>
+    <div class="field"><label for="hTo">Upgrading to</label><select id="hTo"></select></div>
+    <div class="spacer"></div>
+    <div class="field"><label for="hFilter">Show</label>
+      <select id="hFilter">
+        <option value="all">Everything</option>
+        <option value="silent">Only the silent ones</option>
+        <option value="loud">Only the loud ones</option>
+      </select></div>
+  </div>
+
+  <div class="readout" id="hReadout"></div>
+  <div id="hList"></div>
+
+  <div class="predict" id="pred4">
+    <div class="q">You are moving from 8 to 25. Which single hazard is most likely to reach a customer?</div>
+    <div class="hint">Not the one that costs the most time — the one that gets past you.</div>
+    <div class="opts">
+      <button class="pbtn" data-i="0">Strong encapsulation (JDK 16/17)</button>
+      <button class="pbtn" data-i="1">The UTF-8 default charset (JDK 18)</button>
+      <button class="pbtn" data-i="2">Java EE modules removed (JDK 11)</button>
+    </div>
+    <div class="ans" hidden>
+      <p><b>The charset default.</b> The other two are painful and they are found by
+      <b>compiling and starting the application</b> — they cost you an afternoon and they
+      are impossible to miss.</p>
+      <p>JEP 400 throws nothing. Text that used to decode one way now decodes another way,
+      and the only thing that catches it is a test asserting on <b>output content</b>.
+      If no such test exists, it ships, and it surfaces two weeks later as corrupted names
+      in a report.</p>
+      <p>The implication for how you test an upgrade: <b>compiling and booting on the new
+      JDK proves almost nothing.</b> Run your full behavioural suite on the next JDK in a
+      non-blocking CI job, continuously, starting long before you plan to move.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <p><b>The Java Departure Board</b> — companion to the <code>java-version-features</code> lab.
+  JEP lists and counts from the OpenJDK release pages; support dates from Oracle's published
+  Java SE roadmap. Class-file bytes, error text and command output were measured on
+  <b>OpenJDK 25.0.4</b>. Cross-version behaviour is derived from JEP 12's stated rules, not executed.</p>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ======================= DATA ======================= */
+const RELEASES = [
+  { v: 8,  date: "March 2014",     lts: true,  jeps: null, cf: 52, prem: "Mar 2022", ext: "Dec 2030" },
+  { v: 9,  date: "September 2017", lts: false, jeps: 91,   cf: 53, prem: "Mar 2018", ext: null },
+  { v: 10, date: "March 2018",     lts: false, jeps: 12,   cf: 54, prem: "Sep 2018", ext: null },
+  { v: 11, date: "September 2018", lts: true,  jeps: 17,   cf: 55, prem: "Sep 2023", ext: "Jan 2032" },
+  { v: 12, date: "March 2019",     lts: false, jeps: 8,    cf: 56, prem: "Sep 2019", ext: null },
+  { v: 13, date: "September 2019", lts: false, jeps: 5,    cf: 57, prem: "Mar 2020", ext: null },
+  { v: 14, date: "March 2020",     lts: false, jeps: 16,   cf: 58, prem: "Sep 2020", ext: null },
+  { v: 15, date: "September 2020", lts: false, jeps: 14,   cf: 59, prem: "Mar 2021", ext: null },
+  { v: 16, date: "March 2021",     lts: false, jeps: 17,   cf: 60, prem: "Sep 2021", ext: null },
+  { v: 17, date: "September 2021", lts: true,  jeps: 14,   cf: 61, prem: "Sep 2026", ext: "Sep 2029" },
+  { v: 18, date: "March 2022",     lts: false, jeps: 9,    cf: 62, prem: "Sep 2022", ext: null },
+  { v: 19, date: "September 2022", lts: false, jeps: 7,    cf: 63, prem: "Mar 2023", ext: null },
+  { v: 20, date: "March 2023",     lts: false, jeps: 7,    cf: 64, prem: "Sep 2023", ext: null },
+  { v: 21, date: "September 2023", lts: true,  jeps: 15,   cf: 65, prem: "Sep 2028", ext: "Sep 2031" },
+  { v: 22, date: "March 2024",     lts: false, jeps: 12,   cf: 66, prem: "Sep 2024", ext: null },
+  { v: 23, date: "September 2024", lts: false, jeps: 12,   cf: 67, prem: "Mar 2025", ext: null },
+  { v: 24, date: "March 2025",     lts: false, jeps: 24,   cf: 68, prem: "Sep 2025", ext: null },
+  { v: 25, date: "September 2025", lts: true,  jeps: 18,   cf: 69, prem: "Sep 2030", ext: "Sep 2033" },
+  { v: 26, date: "March 2026",     lts: false, jeps: 10,   cf: 70, prem: "Sep 2026", ext: null }
+];
+const PIPE_RELEASES = RELEASES.filter(r => r.v >= 9);
+
+/* state codes: I=incubator P=preview F=final W=withdrawn X=experimental L=live/shipping */
+const FEATURES = [
+  { key:"switchexpr", name:"Switch expressions", proj:"Amber",
+    track:{12:["P",1,325],13:["P",2,354],14:["F",0,361]},
+    note:"The first preview feature in Java's history — and it justified the mechanism immediately. It shipped with <code>break value;</code>, users said the overloading of <code>break</code> was confusing, and the second preview replaced it with <code>yield</code>. A wrong syntax lived for exactly one release, behind a flag." },
+  { key:"textblocks", name:"Text blocks", proj:"Amber",
+    track:{13:["P",1,355],14:["P",2,368],15:["F",0,378]},
+    note:"Triple-quoted multi-line strings. The second preview added <code>\\s</code> and trailing <code>\\</code>. Textbook three-tick ladder." },
+  { key:"records", name:"Records", proj:"Amber",
+    track:{14:["P",1,359],15:["P",2,384],16:["F",0,395]},
+    note:"A transparent carrier for immutable data. One of the three pieces — with sealed types and patterns — that complete in JDK 21." },
+  { key:"pminstanceof", name:"Pattern matching for instanceof", proj:"Amber",
+    track:{14:["P",1,305],15:["P",2,375],16:["F",0,394]},
+    note:"<code>if (o instanceof String s)</code>. The binding is in scope exactly where the compiler can prove the test passed — including after an early return on the negated test." },
+  { key:"sealed", name:"Sealed classes", proj:"Amber",
+    track:{15:["P",1,360],16:["P",2,397],17:["F",0,409]},
+    note:"Not for stopping people extending your class — <code>final</code> does that. Sealing gives the <em>compiler</em> a complete list of alternatives, so a switch can be checked for exhaustiveness. Add a subtype and every unhandled switch stops compiling." },
+  { key:"pmswitch", name:"Pattern matching for switch", proj:"Amber",
+    track:{17:["P",1,406],18:["P",2,420],19:["P",3,427],20:["P",4,433],21:["F",0,441]},
+    note:"Five releases — the longest run to reach final here. It took that long because it had to settle its interaction with sealed types (exhaustiveness), records (deconstruction), generics and null before the syntax could freeze." },
+  { key:"recpatterns", name:"Record patterns", proj:"Amber",
+    track:{19:["P",1,405],20:["P",2,432],21:["F",0,440]},
+    note:"<code>case Point(int x, int y)</code> — destructuring, nesting arbitrarily deep. The third piece of the Amber design." },
+  { key:"vthreads", name:"Virtual threads", proj:"Loom",
+    track:{19:["P",1,425],20:["P",2,436],21:["F",0,444]},
+    note:"Cheap JVM-scheduled threads, so blocking thread-per-request scales to hundreds of thousands. Note the follow-up: on JDK 21 a <code>synchronized</code> block pinned the virtual thread to its carrier; <strong>JEP 491 in JDK 24 removed that</strong>, which is what made adoption safe on a large existing codebase." },
+  { key:"structconc", name:"Structured concurrency", proj:"Loom",
+    track:{19:["I",1,428],20:["I",2,437],21:["P",1,453],22:["P",2,462],23:["P",3,480],24:["P",4,499],25:["P",5,505],26:["P",6,525]},
+    note:"The outlier of the whole dataset: seven years, two incubations and six previews, and still not final. The API was also substantially redesigned in the middle — JDK 21's <code>ShutdownOnFailure</code> became JDK 25's <code>open(joiner)</code>. Do not build a library on it." },
+  { key:"scopedvals", name:"Scoped values", proj:"Loom",
+    track:{20:["I",1,429],21:["P",1,446],22:["P",2,464],23:["P",3,481],24:["P",4,487],25:["F",0,506]},
+    note:"The <code>ThreadLocal</code> replacement for a world with millions of virtual threads. Six ticks to final — and worth comparing with structured concurrency, which entered the pipeline a release <em>earlier</em> and is still previewing. Same team, same project: the difference is design risk." },
+  { key:"ffm", name:"Foreign Function &amp; Memory API", proj:"Panama",
+    track:{14:["I",1,370],15:["I",2,383],16:["I",3,393],17:["I",4,412],18:["I",5,419],19:["P",1,424],20:["P",2,434],21:["P",3,442],22:["F",0,454]},
+    note:"Eight years, and it started as <em>two separate</em> incubating APIs that merged in JDK 17. The move from incubator to preview in 19 is the graduation that renamed the package — <code>jdk.incubator.foreign</code> → <code>java.lang.foreign</code> — breaking every early adopter's imports by design. It is the supported replacement for JNI and for <code>Unsafe</code>'s off-heap access, which is why deprecating <code>Unsafe</code> could only start in JDK 23." },
+  { key:"vector", name:"Vector API", proj:"Panama",
+    track:{16:["I",1,338],17:["I",2,414],18:["I",3,417],19:["I",4,426],20:["I",5,438],21:["I",6,448],22:["I",7,460],23:["I",8,469],24:["I",9,489],25:["I",10,508],26:["I",11,529]},
+    note:"Eleven incubations and counting. Not a failure — its proposal states it will stay incubating until Project Valhalla delivers value types, because the API is designed around value semantics the language does not have yet. A long stay signals a <em>dependency</em>, not a design problem." },
+  { key:"strtemplates", name:"String templates", proj:"Amber",
+    track:{21:["P",1,430],22:["P",2,459],23:["W",0,null]},
+    note:"<strong>The load-bearing event of this whole lab.</strong> Previewed twice, then removed from the JDK entirely during JDK 23 development with no replacement and no successor JEP. Preview only means something if withdrawal actually happens — and it did. Code using <code>STR.\"…\"</code> on 21 or 22 became uncompilable on 23, exactly as the preview contract said it might." },
+  { key:"gatherers", name:"Stream gatherers", proj:"Core",
+    track:{22:["P",1,461],23:["P",2,473],24:["F",0,485]},
+    note:"Custom intermediate stream operations. <code>Gatherers.mapConcurrent(10, this::fetch)</code> gives bounded parallel I/O over virtual threads, inside a stream." },
+  { key:"classfile", name:"Class-File API", proj:"Core",
+    track:{22:["P",1,457],23:["P",2,466],24:["F",0,484]},
+    note:"The supported replacement for ASM. Its motivation is a release-train cost: the class file format changes every six months, so every bytecode library — and therefore Mockito, JaCoCo, Spring, Hibernate — has to be updated before it runs on a new JDK. That is why upgrading so often breaks your <em>test</em> tooling first." },
+  { key:"compactsrc", name:"Compact source files &amp; instance main", proj:"Amber",
+    track:{21:["P",1,445],22:["P",2,463],23:["P",3,477],24:["P",4,495],25:["F",0,512]},
+    note:"Renamed twice on the way (Unnamed Classes → Implicitly Declared Classes → Simple Source Files → Compact Source Files). A whole program is now <code>void main() { IO.println(\"hi\"); }</code> — verified compiling with no flags on JDK 25.0.4." },
+  { key:"modimports", name:"Module import declarations", proj:"Core",
+    track:{23:["P",1,476],24:["P",2,494],25:["F",0,511]},
+    note:"<code>import module java.base;</code> — verified compiling with no flags on JDK 25.0.4. Useful in scripts; use sparingly in a large codebase where explicit imports carry information." },
+  { key:"flexctor", name:"Flexible constructor bodies", proj:"Amber",
+    track:{22:["P",1,447],23:["P",2,482],24:["P",3,492],25:["F",0,513]},
+    note:"Statements before <code>super(...)</code>, so validation stops having to hide inside a static helper. Started life as \"Statements before super(…)\" and was renamed for the second preview." },
+  { key:"primpatterns", name:"Primitive types in patterns", proj:"Amber",
+    track:{23:["P",1,455],24:["P",2,488],25:["P",3,507],26:["P",4,530]},
+    note:"<code>case int i when i &gt; 100</code>. On primitives, <code>instanceof</code> tests whether the value <em>fits</em> without loss, not whether a runtime type matches. Fourth preview in 26 — another long runner." },
+  { key:"zgc", name:"ZGC", proj:"GC",
+    track:{11:["X",0,333],15:["L",0,377],16:["L",0,376],21:["L",0,439],23:["L",0,474],24:["L",0,490],25:["L",0,null]},
+    note:"Experimental in 11 → production in 15 → generational (opt-in) in 21 → generational by default in 23 → non-generational mode removed in 24. A VM feature can't be \"previewed\" — there's nothing to compile differently — so it uses the experimental gate instead." },
+  { key:"httpclient", name:"HTTP client", proj:"Core",
+    track:{9:["I",1,110],11:["F",0,321]},
+    note:"Incubated as <code>jdk.incubator.http</code>, standardised as <code>java.net.http</code>. The rename on graduation is the incubator mechanism working as designed. Gains HTTP/3 in JDK 26 (JEP 517)." }
+];
+
+const HAZARDS = [
+  { id:"F1", at:9, sev:"loud", title:"Split packages become fatal",
+    sym:"LayerInstantiationException: Package javax.annotation in both module A and module B",
+    why:"The module system requires a package to live in exactly one module, so the runtime can decide unambiguously which module exports it. Java 8's flat classpath allowed duplicates and silently picked the first — the source of classic 'works on my machine' classpath bugs.",
+    fix:"<b>The classpath is exempt.</b> Classpath code lands in the unnamed module, where split packages are still tolerated — which is why the vast majority of applications moved to Java 9+ without ever writing a <code>module-info.java</code>. You do not have to adopt modules to use modern Java." },
+  { id:"F1b", at:9, sev:"loud", title:"The version string changed",
+    sym:"Build scripts parsing '1.8.0_281' now see '9.0.4'",
+    why:"JEP 223 replaced the <code>1.x</code> scheme. Anything regexing <code>java -version</code> for a leading <code>1.</code> broke.",
+    fix:"Fix the regex, or better, stop parsing <code>java -version</code> and use <code>java --version</code> or the toolchain support in your build tool." },
+  { id:"F2", at:11, sev:"loud", title:"Java EE and CORBA modules removed",
+    sym:"package javax.xml.bind does not exist",
+    why:"JAXB, JAX-WS, <code>javax.annotation</code>, <code>javax.activation</code>, <code>javax.transaction</code> and CORBA were Java EE specs bundled into Java SE. Java EE moved to Eclipse, so the JDK was shipping a stale copy of someone else's spec. Deprecated in 9, removed in 11.",
+    fix:"Add them as ordinary dependencies — <code>jakarta.xml.bind:jakarta.xml.bind-api</code> plus a runtime like <code>org.glassfish.jaxb:jaxb-runtime</code>. Watch for the second migration hiding inside this one: current versions use the <code>jakarta.*</code> prefix, which is a trademark consequence, not a JDK change." },
+  { id:"F2b", at:11, sev:"loud", title:"JavaFX and Java Web Start removed",
+    sym:"package javafx.application does not exist / Web Start no longer available",
+    why:"JavaFX became a separate project (OpenJFX). Web Start and the browser plugin had no successor.",
+    fix:"OpenJFX as a dependency; <code>jpackage</code> (JDK 16) for desktop distribution." },
+  { id:"F7", at:15, sev:"loud", title:"Nashorn JavaScript engine removed",
+    sym:"getEngineByName(\"nashorn\") returns null → NullPointerException on the next line",
+    why:"Maintaining a full ECMAScript implementation inside the JDK cost more than the small user base justified, and JavaScript evolved faster than the JDK cycle could track. Deprecated in 11, removed in 15.",
+    fix:"Add <code>org.openjdk.nashorn:nashorn-core</code> — the same engine, now standalone — or move to GraalVM JS. Worth knowing because scripted business rules in enterprise Java often sit on Nashorn, and this surfaces as an NPE in a rules engine rather than as anything mentioning JavaScript." },
+  { id:"F8", at:15, sev:"silent", title:"Biased locking removed",
+    sym:"No error. Possibly a throughput regression on uncontended synchronized in a hot loop.",
+    why:"Biased locking let the first thread to acquire a monitor keep it cheaply. Revoking a bias needed expensive global safepoint operations, and its complexity was blocking work on the object header — the work that became compact object headers in JDK 24/25.",
+    fix:"Measure before and after. If it bites, the fix is usually to stop locking in the hot path (atomics, <code>ConcurrentHashMap</code>) rather than to chase a flag. Nothing about the memory model changed — all <code>synchronized</code> semantics are intact." },
+  { id:"F3", at:16, sev:"loud", title:"Strong encapsulation becomes the default",
+    sym:"InaccessibleObjectException: module java.base does not \"opens java.lang\" to unnamed module",
+    why:"<code>setAccessible(true)</code> — deep reflection — let code read and write private fields of classes it doesn't own. Half the ecosystem was built on it, and it also meant the JDK could never change any private field of any class. JDK 16 flipped <code>--illegal-access</code> from <code>permit</code> to <code>deny</code>, five releases after JDK 9 first warned.",
+    fix:"In order of preference: <b>upgrade the library</b> (if you're hitting this, you're usually running a 2019 version of something); add the <b>narrowest</b> <code>--add-opens</code> you can and ticket it as debt; or, in your own code, move to <code>VarHandle</code> or <code>MethodHandles.privateLookupIn</code>. Grep CI config for <code>--add-opens</code> in <code>JAVA_TOOL_OPTIONS</code> before claiming you're clean." },
+  { id:"F3b", at:17, sev:"loud", title:"The encapsulation escape hatch is removed",
+    sym:"Unrecognized option: --illegal-access=permit",
+    why:"JDK 16 flipped the default but let you set <code>--illegal-access=permit</code> to get the old behaviour. JEP 403 deletes the option entirely. Only narrow, explicit <code>--add-opens</code> remains.",
+    fix:"There is no global switch any more. Enumerate what you actually need with <code>jdeps --jdk-internals</code> and open exactly those packages." },
+  { id:"F9a", at:17, sev:"loud", title:"RMI Activation removed; Security Manager deprecated for removal",
+    sym:"package java.rmi.activation does not exist / deprecation warnings on SecurityManager",
+    why:"Both are 1990s designs with no modern use. The Security Manager deprecation starts a seven-year ladder ending in JDK 24.",
+    fix:"For RMI activation there is no replacement — it should not be in new code. For the Security Manager, start planning process-level isolation now." },
+  { id:"F6", at:18, sev:"silent", title:"UTF-8 becomes the default charset",
+    sym:"Nothing. No exception, no warning. Text decodes differently — mojibake, or a far-away string comparison failing.",
+    why:"Before JDK 18 the default charset came from the OS locale: UTF-8 on most Linux, windows-1252 on US/European Windows, Shift_JIS on Japanese Windows. The same program produced different results on different machines. JEP 400 made UTF-8 the default everywhere — right, but silent.",
+    fix:"<code>-Dfile.encoding=COMPAT</code> restores JDK 17 behaviour as a temporary bridge. The real fix is to stop using default-charset APIs: always pass <code>StandardCharsets.UTF_8</code> explicitly. Note the inconsistency that confuses people — <code>Files.readString</code> was always UTF-8; <code>new FileReader(f)</code> and <code>new String(bytes)</code> were not." },
+  { id:"F6b", at:18, sev:"loud", title:"Finalization deprecated for removal",
+    sym:"Deprecation warnings on Object.finalize()",
+    why:"Finalizers are unpredictable (no guarantee they ever run), can resurrect objects, and slow down GC. Discouraged since roughly 1997.",
+    fix:"try-with-resources for deterministic cleanup; <code>java.lang.ref.Cleaner</code> as a safety net. Test life without it using <code>--finalization=disabled</code>." },
+  { id:"F11", at:21, sev:"loud", title:"Dynamic agent loading now warns",
+    sym:"WARNING: A Java agent has been loaded dynamically … run with -XX:+EnableDynamicAgentLoading to hide this warning",
+    why:"An agent attached to a running JVM can redefine any class, bypassing the encapsulation that took five releases to establish. JEP 451's entire content is a warning, filed to start a removal ladder — the same shape as the JNI warning in 24.",
+    fix:"Pass <code>-XX:+EnableDynamicAgentLoading</code> when you genuinely want a profiler or APM agent to attach. Agents passed at startup with <code>-javaagent:</code> are unaffected and always will be. Treat the warning as an inventory tool: if it fires and you don't know why, find out what is instrumenting your JVM." },
+  { id:"F11b", at:21, sev:"loud", title:"Sequenced collections add default methods",
+    sym:"error: name clash — getFirst() in your List implementation",
+    why:"<code>List</code> gained <code>getFirst</code>/<code>getLast</code>/<code>addFirst</code>/<code>reversed</code> as default methods. A custom collection with a same-named method of a different signature now clashes.",
+    fix:"Rename or align the signature. Rare, but a genuine source of 17→21 compile errors." },
+  { id:"F5", at:23, sev:"loud", title:"String templates withdrawn",
+    sym:"STR.\"Order \\{id}\" no longer compiles at all",
+    why:"Previewed in 21 and 22, then removed from the JDK during 23's development with no replacement. Preview features sit outside the deprecation ladder that protects the specified API — that is the deal you accept when you use one.",
+    fix:"Rewrite as concatenation or <code>String.format</code>/<code>formatted</code>. The lesson is the general one: preview features are fine in an application you rebuild on every JDK bump, and unacceptable in a published library." },
+  { id:"F4", at:24, sev:"loud", title:"sun.misc.Unsafe memory access warns at runtime",
+    sym:"WARNING: sun.misc.Unsafe::objectFieldOffset has been called by … will be removed in a future release",
+    why:"A 2004 internal class that became the foundation of high-performance Java — Netty, Cassandra, many serialisers. It offers unchecked memory access with no safety net. It could not be deprecated until replacements existed: <code>VarHandle</code> (JDK 9) for field access and the FFM API (JDK 22) for off-heap memory. Terminally deprecated in 23, warning added in 24.",
+    fix:"The warning names the calling class — read it; it is usually a dependency, so upgrade it. In your own code: field access → <code>VarHandle</code>; off-heap → <code>MemorySegment</code>/<code>Arena</code>. The code still runs today." },
+  { id:"F9", at:24, sev:"loud", title:"Security Manager permanently disabled",
+    sym:"UnsupportedOperationException from System.setSecurityManager, or the JVM refusing to start",
+    why:"Designed in the 1990s for untrusted applets. Never effective for server-side sandboxing — it protects against accidental misbehaviour, not a determined attacker in the same JVM — and it imposed a permission check on every sensitive operation. Deprecated for removal in 17, disabled in 24.",
+    fix:"The replacement is not another in-JVM sandbox: it is process-level isolation — containers, seccomp, separate JVMs, least-privilege service accounts. If you relied on it for a real security boundary, you had less protection than you thought even before it was removed." },
+  { id:"F12", at:24, sev:"loud", title:"Non-generational ZGC removed",
+    sym:"JVM fails to start with -XX:-ZGenerational",
+    why:"Generational ZGC (JDK 21) was better on essentially every workload and maintaining two modes doubled the testing surface. Default flipped in 23, mode removed in 24.",
+    fix:"Delete the flag. More generally: <b>GC flags are the most common upgrade failure that has nothing to do with your code.</b> Audit them on every LTS jump with <code>-XX:+PrintFlagsFinal</code>; a flag copied from a 2016 blog post is a liability." },
+  { id:"F4b", at:24, sev:"loud", title:"JNI use now warns",
+    sym:"WARNING: A restricted method in java.lang.System has been called … --enable-native-access",
+    why:"JEP 472: native calls bypass every safety property the platform has. Another warning-only JEP filed to start a ladder.",
+    fix:"Pass <code>--enable-native-access=ALL-UNNAMED</code> (or name the module). Expect it to become mandatory." },
+  { id:"F10", at:25, sev:"loud", title:"--release 8 warns as obsolete",
+    sym:"warning: [options] source value 8 is obsolete and will be removed in a future release",
+    why:"javac keeps a table of historical platform APIs for <code>--release</code>, and maintaining every one forever is unbounded work. On JDK 25.0.4 the supported set is 8 through 25; <code>--release 7</code> is already an error.",
+    fix:"Plan the baseline bump if you publish a library for Java 8 consumers. Note the asymmetry: <b>running</b> Java 8 bytecode on JDK 25 is fine and always will be — it is <b>compiling for</b> old targets that expires." }
+];
+
+/* ======================= HELPERS ======================= */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const rel = v => RELEASES.find(r => r.v === v);
+function fillSelect(el, vals, sel) {
+  el.innerHTML = vals.map(v => '<option value="' + v + '"' + (v === sel ? " selected" : "") + ">JDK " + v + "</option>").join("");
+}
+function stateClass(code) {
+  return { I:"s-inc", P:"s-prev", F:"s-final", W:"s-gone", X:"s-exp", L:"s-live" }[code] || "s-none";
+}
+function rungClass(code) {
+  return { I:"r-inc", P:"r-prev", F:"r-final", W:"r-gone", X:"r-exp", L:"r-live" }[code] || "";
+}
+function stateLabel(code, n) {
+  if (code === "I") return n > 1 ? "Incubator " + n : "Incubator";
+  if (code === "P") return n > 1 ? "Preview " + n : "Preview";
+  if (code === "F") return "Final";
+  if (code === "W") return "Withdrawn";
+  if (code === "X") return "Experimental";
+  if (code === "L") return "Shipping";
+  return "—";
+}
+function stateShort(code, n) {
+  if (code === "I") return "I" + n;
+  if (code === "P") return "P" + n;
+  if (code === "F") return "F";
+  if (code === "W") return "✕";
+  if (code === "X") return "X";
+  if (code === "L") return "●";
+  return "";
+}
+/* the state of a feature AS OF release v (carrying forward the last transition) */
+function stateAt(f, v) {
+  let cur = null, at = null;
+  for (const k of Object.keys(f.track).map(Number).sort((a, b) => a - b)) {
+    if (k <= v) { cur = f.track[k]; at = k; }
+  }
+  return cur ? { code: cur[0], n: cur[1], jep: cur[2], since: at } : null;
+}
+
+/* ======================= TABS ======================= */
+const TABS = [["t1","p1"],["t2","p2"],["t3","p3"],["t4","p4"]];
+TABS.forEach(([tid, pid]) => {
+  $("#" + tid).addEventListener("click", () => {
+    TABS.forEach(([t, p]) => {
+      const on = t === tid;
+      $("#" + t).setAttribute("aria-selected", String(on));
+      $("#" + p).hidden = !on;
+    });
+  });
+});
+
+/* ======================= PREDICT WIDGETS ======================= */
+function wirePredict(id, correct) {
+  const root = $("#" + id);
+  const btns = $$(".pbtn", root);
+  btns.forEach(b => b.addEventListener("click", () => {
+    btns.forEach(x => {
+      x.disabled = true;
+      const i = Number(x.dataset.i);
+      x.classList.add(i === correct ? "right" : (x === b ? "wrong" : ""));
+    });
+    $(".ans", root).hidden = false;
+  }));
+}
+wirePredict("pred1", 2);
+wirePredict("pred2", 1);
+wirePredict("pred3", 2);
+wirePredict("pred4", 1);
+
+/* ======================= TAB 1 : TIMETABLE ======================= */
+const ALL_V = RELEASES.map(r => r.v);
+fillSelect($("#fromV"), ALL_V, 8);
+fillSelect($("#toV"), ALL_V, 25);
+let ltsOnly = false;
+
+function renderTimetable() {
+  const from = Number($("#fromV").value), to = Number($("#toV").value);
+  const lo = Math.min(from, to), hi = Math.max(from, to);
+  const rows = RELEASES.filter(r => !ltsOnly || r.lts || r.v === from || r.v === to);
+  const maxJ = 91;
+
+  $("#ttBody").innerHTML = rows.map(r => {
+    const inRange = r.v > lo && r.v <= hi;
+    const cls = [r.lts ? "is-lts" : "", inRange ? "in-range" : "",
+                 r.v === from ? "is-from" : "", r.v === to ? "is-to" : ""].filter(Boolean).join(" ");
+    const j = r.jeps;
+    const bar = j == null ? '<span class="jepnum">—</span>'
+      : '<span class="jepnum">' + j + '</span><i class="jepbar" style="width:' + Math.max(2, Math.round(j / maxJ * 132)) + 'px"></i>';
+    // support bar: map Mar 2014 .. Sep 2035 onto 0..100
+    const yr = s => { if (!s) return null; const p = s.split(" "); return Number(p[1]) + (p[0].startsWith("Mar") || p[0] === "January" || p[0].startsWith("Jan") ? 0 : .5); };
+    const T0 = 2014, T1 = 2036;
+    const g = rel(r.v).date.split(" "), start = Number(g[1]) + (g[0] === "March" ? 0 : .5);
+    const pct = y => Math.max(0, Math.min(100, (y - T0) / (T1 - T0) * 100));
+    const pe = yr(r.prem), xe = yr(r.ext);
+    let bars = "";
+    if (xe) bars += '<i class="suppbar extended" style="left:' + pct(start) + '%;width:' + Math.max(1, pct(xe) - pct(start)) + '%"></i>';
+    if (pe) bars += '<i class="suppbar premier" style="left:' + pct(start) + '%;width:' + Math.max(1, pct(pe) - pct(start)) + '%"></i>';
+
+    return '<tr class="' + cls + '">' +
+      '<td><span class="v-cell">' + r.v + "</span></td>" +
+      "<td>" + r.date + "</td>" +
+      '<td>' + (r.lts ? '<span class="chip lts">LTS</span>' : '<span class="chip none">6 mo</span>') + "</td>" +
+      '<td><span class="jepbar-wrap">' + bar + "</span></td>" +
+      '<td><span class="suppbar-wrap">' + bars + "</span></td>" +
+      '<td class="mono">' + r.cf + "</td></tr>";
+  }).join("");
+
+  // readout
+  const span = RELEASES.filter(r => r.v > lo && r.v <= hi);
+  const jeps = span.reduce((a, r) => a + (r.jeps || 0), 0);
+  const hz = HAZARDS.filter(h => h.at > lo && h.at <= hi);
+  const silent = hz.filter(h => h.sev === "silent").length;
+  const yrs = (span.length * 0.5).toFixed(1);
+  const dir = from === to ? "You are already there." : (from > to ? "That is a downgrade — the numbers below are for the reverse jump." : "");
+  $("#readout").innerHTML =
+    stat("Releases you swallow", span.length, span.length > 8 ? "hot" : span.length > 4 ? "warm" : "cool", yrs + " years of change") +
+    stat("Changes (JEPs)", jeps, jeps > 100 ? "hot" : jeps > 45 ? "warm" : "cool", "shipped across that span") +
+    stat("Known hazards", hz.length, hz.length > 10 ? "hot" : hz.length > 4 ? "warm" : "cool", "listed in tab 04") +
+    stat("Silent ones", silent, silent > 1 ? "hot" : silent > 0 ? "warm" : "cool", "fail with no error at all") +
+    stat("Target support ends", rel(to).ext || rel(to).prem, rel(to).lts ? "cool" : "hot", rel(to).lts ? "LTS — extended" : "non-LTS — 6 months only") +
+    (dir ? '<div class="stat"><span class="k">Note</span><div class="sub" style="margin-top:0">' + dir + "</div></div>" : "");
+}
+function stat(k, v, tone, sub) {
+  return '<div class="stat"><span class="k">' + k + '</span><div class="v ' + (tone || "") + '">' + v + "</div>" +
+         (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>";
+}
+$("#fromV").addEventListener("change", renderTimetable);
+$("#toV").addEventListener("change", renderTimetable);
+$("#rt8").addEventListener("click", () => { $("#fromV").value = 8; $("#toV").value = 25; renderTimetable(); });
+$("#rt17").addEventListener("click", () => { $("#fromV").value = 17; $("#toV").value = 25; renderTimetable(); });
+$("#rtlts").addEventListener("click", e => {
+  ltsOnly = !ltsOnly;
+  e.currentTarget.textContent = ltsOnly ? "Show every stop" : "Only LTS stops";
+  renderTimetable();
+});
+renderTimetable();
+
+/* ======================= TAB 2 : PIPELINE ======================= */
+const P_MIN = 9, P_MAX = 26;
+let pCur = P_MIN, pTimer = null, pSel = null;
+fillSelect($("#pJump"), PIPE_RELEASES.map(r => r.v), P_MIN);
+
+$("#pHead").innerHTML = '<th class="name">Feature</th>' + PIPE_RELEASES.map(r =>
+  '<th class="rel' + (r.lts ? " lts" : "") + '" data-v="' + r.v + '">' + r.v + "</th>").join("");
+
+$("#pBody").innerHTML = FEATURES.map(f =>
+  '<tr data-k="' + f.key + '"><td class="name"><button type="button" data-k="' + f.key + '">' +
+  '<span class="proj">' + f.proj + "</span><span>" + f.name + "</span></button></td>" +
+  PIPE_RELEASES.map(r => '<td class="cell" data-v="' + r.v + '" data-k="' + f.key + '"></td>').join("") + "</tr>"
+).join("");
+
+$$("#pBody td.name button").forEach(b => b.addEventListener("click", () => {
+  pSel = pSel === b.dataset.k ? null : b.dataset.k;
+  renderPipe(false);
+}));
+
+function transitionsAt(v) {
+  return FEATURES.filter(f => f.track[v]).map(f => ({ f, t: f.track[v] }));
+}
+function narrate(f, t, v) {
+  const [code, n, jep] = t;
+  const prevKeys = Object.keys(f.track).map(Number).filter(k => k < v).sort((a, b) => a - b);
+  const prev = prevKeys.length ? f.track[prevKeys[prevKeys.length - 1]] : null;
+  const nm = f.name.replace(/&amp;/g, "&");
+  let head, tech = "JDK " + v + (jep ? " · JEP " + jep : "");
+  if (code === "F") {
+    const ticks = Object.keys(f.track).length - 1;
+    head = nm + " is now final — permanent, no flag needed, and covered by Java's compatibility promise from here on. It took " + ticks + " " + (ticks === 1 ? "iteration" : "iterations") + " to get here.";
+  } else if (code === "W") {
+    head = nm + " was withdrawn: removed from the JDK entirely, with no replacement and no successor proposal. Code that used it stops compiling.";
+  } else if (code === "P" && prev && prev[0] === "I") {
+    head = nm + " graduated from incubator to preview. This is the step that renames the package, so every early adopter's imports break — by design.";
+  } else if (code === "P") {
+    head = n === 1 ? nm + " enters preview: complete and usable, but impermanent, and gated behind --enable-preview."
+                   : nm + " previews again (round " + n + "). Another six months of feedback before the design is allowed to freeze.";
+  } else if (code === "I") {
+    head = n === 1 ? nm + " enters incubation as a non-final API, in a jdk.incubator module you have to add explicitly."
+                   : nm + " incubates again (round " + n + ").";
+  } else if (code === "X") {
+    head = nm + " arrives as an experimental VM feature, off unless you unlock it. A collector cannot be 'previewed' — there is nothing to compile differently.";
+  } else {
+    head = nm + " advances.";
+  }
+  return { head, tech };
+}
+
+function renderPipe(animate) {
+  $("#pJump").value = String(pCur);
+  $$("#pHead th.rel").forEach(th => th.classList.toggle("cur", Number(th.dataset.v) === pCur));
+
+  FEATURES.forEach(f => {
+    const tr = $('#pBody tr[data-k="' + f.key + '"]');
+    tr.classList.toggle("sel", pSel === f.key);
+    PIPE_RELEASES.forEach(r => {
+      const td = $('#pBody td[data-k="' + f.key + '"][data-v="' + r.v + '"]');
+      td.classList.toggle("curcol", r.v === pCur);
+      if (r.v > pCur) { td.innerHTML = ""; return; }
+      const s = stateAt(f, r.v);
+      if (!s) { td.innerHTML = ""; return; }
+      const isTransition = !!f.track[r.v];
+      const cls = ["dot", stateClass(s.code), r.v === pCur ? "now" : "",
+                   (animate && r.v === pCur && isTransition) ? "changed" : ""].filter(Boolean).join(" ");
+      td.innerHTML = '<span class="' + cls + '" title="JDK ' + r.v + " · " + stateLabel(s.code, s.n) + '">' +
+                     (isTransition ? stateShort(s.code, s.n) : "") + "</span>";
+    });
+  });
+
+  // readout
+  const live = FEATURES.filter(f => { const s = stateAt(f, pCur); return s && (s.code === "P" || s.code === "I" || s.code === "X"); });
+  const done = FEATURES.filter(f => { const s = stateAt(f, pCur); return s && (s.code === "F" || s.code === "L"); });
+  const gone = FEATURES.filter(f => { const s = stateAt(f, pCur); return s && s.code === "W"; });
+  const r = rel(pCur);
+  $("#pReadout").innerHTML =
+    stat("Now boarding", "JDK " + pCur, "", r.date + (r.lts ? " · LTS" : " · 6 months of support")) +
+    stat("In the pipeline", live.length, "warm", "impermanent — cannot be relied on") +
+    stat("Finished", done.length, "cool", "permanent and flag-free") +
+    stat("Withdrawn", gone.length, gone.length ? "hot" : "", gone.length ? "taken back entirely" : "none so far") +
+    stat("Changes this release", r.jeps == null ? "—" : r.jeps, r.jeps > 40 ? "hot" : "", "JEPs delivered");
+
+  // detail
+  const f = pSel ? FEATURES.find(x => x.key === pSel) : null;
+  $("#pDetail").innerHTML = f ? featureDetail(f) :
+    '<h3>Click a feature name to open its ladder</h3><p style="color:var(--ink-2);margin:6px 0 0">' +
+    'Each row is one feature across eighteen releases. A run of amber is a feature being kept impermanent on purpose; ' +
+    'green is the moment it became something you can safely depend on. Two rows are worth opening first: ' +
+    '<b>String templates</b>, which reverses, and the <b>Vector API</b>, which never moves.</p>';
+
+  // log
+  const items = [];
+  for (let v = P_MIN; v <= pCur; v++) {
+    transitionsAt(v).forEach(({ f: ff, t }) => {
+      const n = narrate(ff, t, v);
+      items.push('<div class="log-item' + (v === pCur ? " hi" : "") + '"><span class="head">' + n.head +
+                 '</span><span class="tech">' + n.tech + "</span></div>");
+    });
+  }
+  $("#pLog").innerHTML = items.length ? items.reverse().join("") :
+    '<div class="log-item">Nothing has moved yet. Step forward to JDK 11.</div>';
+}
+function featureDetail(f) {
+  const keys = Object.keys(f.track).map(Number).sort((a, b) => a - b);
+  const rungs = keys.map(v => {
+    const t = f.track[v];
+    return '<span class="rung ' + rungClass(t[0]) + '"><b>' + v + "</b>" +
+           stateLabel(t[0], t[1]) + (t[2] ? '<span style="opacity:.75">JEP ' + t[2] + "</span>" : "") + "</span>";
+  }).join('<span style="align-self:center;color:var(--ink-4)">→</span>');
+  const now = stateAt(f, pCur);
+  const ticks = keys.length;
+  const yrs = ((keys[keys.length - 1] - keys[0]) * 0.5).toFixed(1);
+  return "<h3>" + f.name + "</h3>" +
+    '<p style="color:var(--ink-3);font-size:13px;margin:0 0 2px">Project ' + f.proj + " · " + ticks +
+    " release" + (ticks === 1 ? "" : "s") + " in the pipeline · " + yrs + " years from first appearance to last movement</p>" +
+    '<div class="ladder">' + rungs + "</div>" +
+    "<p><b>As of JDK " + pCur + ":</b> " + (now ? stateLabel(now.code, now.n) +
+      (now.code === "P" || now.code === "I" ? " — you may experiment with it, but not depend on it." :
+       now.code === "F" ? " — safe to depend on." :
+       now.code === "W" ? " — gone; code using it does not compile." : ".")
+      : "not yet proposed.") + "</p>" +
+    "<p>" + f.note + "</p>";
+}
+
+function pGo(v, animate) {
+  pCur = Math.max(P_MIN, Math.min(P_MAX, v));
+  renderPipe(animate !== false);
+  $("#pStepB").disabled = pCur <= P_MIN;
+  $("#pStepF").disabled = pCur >= P_MAX;
+}
+$("#pStepF").addEventListener("click", () => pGo(pCur + 1));
+$("#pStepB").addEventListener("click", () => pGo(pCur - 1));
+$("#pReset").addEventListener("click", () => { stopPlay(); pGo(P_MIN); });
+$("#pJump").addEventListener("change", e => { stopPlay(); pGo(Number(e.target.value)); });
+function stopPlay() { if (pTimer) { clearInterval(pTimer); pTimer = null; $("#pPlay").textContent = "▶ Play all releases"; } }
+$("#pPlay").addEventListener("click", () => {
+  if (pTimer) { stopPlay(); return; }
+  if (pCur >= P_MAX) pGo(P_MIN);
+  $("#pPlay").textContent = "❙❙ Pause";
+  pTimer = setInterval(() => { if (pCur >= P_MAX) { stopPlay(); return; } pGo(pCur + 1); }, 1250);
+});
+pGo(P_MIN, false);
+
+/* ======================= TAB 3 : CLASS-FILE LOCK ======================= */
+const BUILD_V = [21, 22, 23, 24, 25, 26];
+fillSelect($("#cBuild"), BUILD_V, 25);
+fillSelect($("#cRun"), BUILD_V, 25);
+
+function renderLock() {
+  const uses = $("#cUses").value === "yes";
+  const flag = $("#cFlag").value === "on";
+  const bv   = Number($("#cBuild").value);
+  const rv   = Number($("#cRun").value);
+  const rflag = $("#cRunFlag").value === "on";
+  const major = rel(bv).cf;
+  const hex = n => n.toString(16).padStart(4, "0");
+
+  /* --- compile --- */
+  let compile, compiled = true, previewStamp = false;
+  if (uses && !flag) {
+    compiled = false;
+    compile = '<span class="p">$</span> javac R.java\n' +
+      '<span class="err">R.java:3: error: StructuredTaskScope is a preview API and is disabled by default.</span>\n' +
+      '<span class="err">  (use --enable-preview to enable preview APIs)</span>\n' +
+      "1 error";
+  } else if (uses && flag) {
+    previewStamp = true;
+    compile = '<span class="p">$</span> javac --enable-preview --release ' + bv + " R.java\n" +
+      '<span class="warn">Note: R.java uses preview features of Java SE ' + bv + ".</span>\n" +
+      '<span class="warn">Note: Recompile with -Xlint:preview for details.</span>';
+  } else if (!uses && flag) {
+    previewStamp = true;
+    compile = '<span class="p">$</span> javac --enable-preview --release ' + bv + " T.java\n" +
+      "(compiles cleanly — but the flag stamps the class file anyway,\n" +
+      " even though nothing in this code needed it)";
+  } else {
+    compile = '<span class="p">$</span> javac T.java\n(compiles cleanly, no output)';
+  }
+  $("#cCompile").innerHTML = compile;
+
+  /* --- bytes --- */
+  if (!compiled) {
+    $("#cBytes").innerHTML = '<span class="b-magic">no class file was produced</span>';
+  } else {
+    const minor = previewStamp ? "ffff" : "0000";
+    $("#cBytes").innerHTML =
+      '<span class="b-magic">cafe babe</span> ' +
+      '<span class="b-minor ' + (previewStamp ? "prev" : "ok") + '">' + minor + "</span> " +
+      '<span class="b-major">' + hex(major) + "</span>";
+  }
+
+  /* --- run --- */
+  let out, verdict, good = false;
+  if (!compiled) {
+    out = '<span class="p">$</span> java R\n<span class="err">Error: Could not find or load main class R</span>';
+    verdict = { t: "It never compiled", b: "The compiler refused before any artifact existed. This is the cheapest possible failure — it costs you the time it takes to read one error message. Add <code>--enable-preview --release " + bv + "</code>, or stop using the preview API." };
+  } else if (!previewStamp) {
+    out = '<span class="p">$</span> java T\n<span class="ok">ok</span>';
+    good = true;
+    verdict = { t: "Runs anywhere from JDK " + bv + " onward", b: "Minor version <code>0000</code> means an ordinary class file. It loads on this JVM and on every later one — that forward-compatibility promise is the strongest guarantee Java makes, and it is why Java 8 bytecode still runs on JDK 25." };
+  } else if (rv !== bv) {
+    out = '<span class="p">$</span> java' + (rflag ? " --enable-preview" : "") + " R\n" +
+      '<span class="err">Error: LinkageError occurred while loading main class R</span>\n' +
+      '<span class="err">  java.lang.UnsupportedClassVersionError: R (class file version ' + major + ".65535)\n" +
+      "  was compiled by a preview version of Java SE " + bv + " and cannot be run on\n" +
+      "  Java SE " + rv + "</span>";
+    verdict = { t: "Refused — and the runtime flag cannot save it", b: "A preview class file's major version must match the running JVM <b>exactly</b>. Built on " + bv + ", so it runs on " + bv + " and nowhere else. This is the rule that stops a preview feature quietly becoming load-bearing infrastructure in somebody else's dependency tree — which is exactly why you must never publish a preview-compiled jar." };
+  } else if (!rflag) {
+    out = '<span class="p">$</span> java R\n' +
+      '<span class="err">Error: LinkageError occurred while loading main class R</span>\n' +
+      '<span class="err">  java.lang.UnsupportedClassVersionError: Preview features are not enabled for R\n' +
+      "  (class file version " + major + ".65535). Try running with '--enable-preview'</span>";
+    verdict = { t: "Refused — the flag is needed at runtime too", b: "Minor version <code>ffff</code> (65535) is the preview stamp. The class loader refuses it unless <code>--enable-preview</code> was passed to <code>java</code> as well as to <code>javac</code>. Two flags, not one — a deliberate second acknowledgement that this artifact is impermanent." };
+  } else {
+    out = '<span class="p">$</span> java --enable-preview R\n<span class="ok">42</span>';
+    good = true;
+    verdict = { t: "Runs — on JDK " + rv + ", and only on JDK " + rv, b: "Both flags present and the versions match, so it loads. But this artifact is pinned: it will refuse to run on JDK " + (rv + 1) + ", so it cannot be published, cannot be shared, and cannot survive a JDK upgrade. Defensible only for an application you rebuild on every bump." };
+  }
+  $("#cRunOut").innerHTML = out;
+  $("#cVerdict").className = "verdict " + (good ? "good" : "bad");
+  $("#cVerdict").innerHTML = "<h4>" + verdict.t + "</h4><p>" + verdict.b + "</p>";
+}
+["cUses","cFlag","cBuild","cRun","cRunFlag"].forEach(id => $("#" + id).addEventListener("change", renderLock));
+renderLock();
+
+/* ======================= TAB 4 : HAZARD SCANNER ======================= */
+fillSelect($("#hFrom"), ALL_V, 8);
+fillSelect($("#hTo"), ALL_V, 25);
+
+function renderHazards() {
+  const from = Number($("#hFrom").value), to = Number($("#hTo").value);
+  const lo = Math.min(from, to), hi = Math.max(from, to);
+  const filt = $("#hFilter").value;
+  let hz = HAZARDS.filter(h => h.at > lo && h.at <= hi);
+  const silent = hz.filter(h => h.sev === "silent").length;
+  const total = hz.length;
+  if (filt !== "all") hz = hz.filter(h => h.sev === filt);
+
+  $("#hReadout").innerHTML =
+    stat("Hazards on this jump", total, total > 10 ? "hot" : total > 4 ? "warm" : "cool",
+         "JDK " + lo + " → " + hi) +
+    stat("Fail loudly", total - silent, "cool", "found by compiling and booting") +
+    stat("Fail silently", silent, silent ? "hot" : "cool", "only a behavioural test catches these") +
+    stat("Releases crossed", RELEASES.filter(r => r.v > lo && r.v <= hi).length, "", ((hi - lo) / 2).toFixed(1) + " years");
+
+  $("#hList").innerHTML = hz.length ? hz.map(h =>
+    '<div class="hz ' + h.sev + '"><div class="hz-head">' +
+    '<div class="hz-rel">' + h.at + "</div>" +
+    '<div class="hz-main"><h4>' + h.title + "</h4>" +
+    '<span class="sev">' + (h.sev === "silent" ? "silent — no error" : "loud — fails immediately") + "</span>" +
+    '<div class="sym">' + h.sym + "</div></div></div>" +
+    '<div class="hz-body"><p><b>Why:</b> ' + h.why + "</p><p><b>What to do:</b> " + h.fix + "</p></div></div>"
+  ).join("") :
+    '<div class="card"><h3>Nothing listed for that combination</h3><p style="color:var(--ink-2);margin:6px 0 0">' +
+    (total === 0 ? "No hazards between those two releases — either it is a very short jump, or you have the versions the same way round already."
+                 : "All " + total + " hazards on this jump are filtered out by the current view. Switch “Show” back to Everything.") + "</p></div>";
+}
+["hFrom","hTo","hFilter"].forEach(id => $("#" + id).addEventListener("change", renderHazards));
+renderHazards();
+</script>

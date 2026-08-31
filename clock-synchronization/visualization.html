@@ -1,0 +1,1364 @@
+<title>The Honest Clock</title>
+<style>
+:root{
+  --bg:#eceff1; --card:#fbfcfd; --card2:#f2f5f7; --ink:#182126; --muted:#5b6b73; --line:#ccd6da;
+  --accent:#1f5f7a; --accent-soft:#e0edf2;
+  --ok:#22704e; --ok-soft:#dbeee4;
+  --bad:#a32731; --bad-soft:#f8e1e2;
+  --warn:#9a6b12; --warn-soft:#f7ecd2;
+  --info:#5a5f8c; --info-soft:#e6e7f2;
+  --alba:#1f5f7a; --bruno:#7a3a63; --truth:#4a6b2c; --band:#8a5a1c;
+  --grid:#dde4e7; --chip:#e6ecee; --ghost:#9aa8ad;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1618; --card:#182226; --card2:#1e2a2f; --ink:#dde6e9; --muted:#8ea0a7; --line:#28353a;
+    --accent:#5da9c9; --accent-soft:#122c37;
+    --ok:#5cbb8c; --ok-soft:#102c20;
+    --bad:#e5717a; --bad-soft:#391a1d;
+    --warn:#d7ab4b; --warn-soft:#33280f;
+    --info:#9ba1d6; --info-soft:#1e2036;
+    --alba:#5da9c9; --bruno:#cf8bb8; --truth:#93bb6c; --band:#d0a259;
+    --grid:#233035; --chip:#222f34; --ghost:#5f6f76;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1618; --card:#182226; --card2:#1e2a2f; --ink:#dde6e9; --muted:#8ea0a7; --line:#28353a;
+  --accent:#5da9c9; --accent-soft:#122c37;
+  --ok:#5cbb8c; --ok-soft:#102c20;
+  --bad:#e5717a; --bad-soft:#391a1d;
+  --warn:#d7ab4b; --warn-soft:#33280f;
+  --info:#9ba1d6; --info-soft:#1e2036;
+  --alba:#5da9c9; --bruno:#cf8bb8; --truth:#93bb6c; --band:#d0a259;
+  --grid:#233035; --chip:#222f34; --ghost:#5f6f76;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+     -webkit-font-smoothing:antialiased;padding:0 0 60px;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{padding:34px 0 20px}
+h1{font-size:30px;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:15px;max-width:74ch;margin:0}
+.tabs{display:flex;gap:6px;margin:22px 0 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;
+     font:600 14px var(--sans);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+.card h2{font-size:15px;margin:0 0 4px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+.card h3{font-size:15px;margin:16px 0 4px}
+.story{font-size:15px;margin:0 0 6px;max-width:76ch}
+.story b{color:var(--accent)}
+.hint{color:var(--muted);font-size:13.5px;margin:6px 0 0;max-width:76ch}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.scrollx{overflow-x:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:22px;height:11px;border-radius:3px;display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 13px;
+      font:500 13px var(--sans);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+.v{border:1px solid var(--line);border-radius:9px;padding:13px 15px;background:var(--card2)}
+.v .vh{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px}
+.v .vv{font:700 19px var(--mono);display:flex;align-items:baseline;gap:6px}
+.v .vn{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.v.pass{background:var(--ok-soft);border-color:var(--ok)} .v.pass .vv{color:var(--ok)}
+.v.fail{background:var(--bad-soft);border-color:var(--bad)} .v.fail .vv{color:var(--bad)}
+.v.hero{box-shadow:0 0 0 2px var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+td.n{font-family:var(--mono);text-align:right}
+tr.hi td{background:var(--accent-soft)}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px 16px;
+     font:600 13.5px var(--sans);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:14px}
+.ctl{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
+.ctl .lab{font-weight:600;color:var(--ink);font-size:13px}
+.ctl .val{font-family:var(--mono);color:var(--accent);font-weight:700}
+input[type=range]{width:230px;accent-color:var(--accent)}
+select{font:500 13px var(--sans);padding:6px 9px;border-radius:6px;border:1px solid var(--line);
+       background:var(--card2);color:var(--ink)}
+.callout{border-left:3px solid var(--warn);background:var(--warn-soft);padding:11px 15px;
+         border-radius:0 7px 7px 0;font-size:14px;margin-top:14px}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-soft)}
+.callout.info{border-left-color:var(--info);background:var(--info-soft)}
+.callout b{display:block;margin-bottom:3px}
+.pred{border:1px dashed var(--accent);border-radius:9px;padding:13px 16px;background:var(--accent-soft);margin-top:14px}
+.pred p{margin:0 0 9px;font-size:14px;font-weight:600}
+.pred .opts{display:flex;flex-direction:column;gap:7px}
+.pred .opt{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:7px;
+           padding:9px 13px;font:500 13.5px var(--sans);color:var(--ink);cursor:pointer}
+.pred .opt:hover{border-color:var(--accent)}
+.pred .opt[data-state="right"]{border-color:var(--ok);background:var(--ok-soft)}
+.pred .opt[data-state="wrong"]{border-color:var(--bad);background:var(--bad-soft)}
+.pred .res{margin-top:11px;font-size:13.5px;line-height:1.5}
+.small{font-size:12.5px;color:var(--muted)}
+.hidden{display:none!important}
+.eqn{font-family:var(--mono);font-size:13px;background:var(--card2);border:1px solid var(--line);
+     border-radius:7px;padding:12px 14px;margin-top:12px;overflow-x:auto;white-space:pre;line-height:1.6}
+.tracking{font-family:var(--mono);font-size:12.5px;background:var(--card2);border:1px solid var(--line);
+     border-radius:7px;padding:13px 15px;margin-top:12px;overflow-x:auto;white-space:pre;line-height:1.55}
+.tracking .k{color:var(--muted)}
+.tracking .hl{color:var(--accent);font-weight:700}
+footer{margin-top:34px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>The Honest Clock</h1>
+  <p class="sub">You cannot measure another machine's clock. This page lets you prove that to
+  yourself in about thirty seconds — with one slider that changes what is <em>true</em> while
+  leaving every number you can <em>observe</em> exactly where it was. Everything else here is
+  what engineers do once they accept it.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-m" role="tab" aria-selected="true" onclick="showTab('m')">1 · The measurement</button>
+    <button class="tab" id="tab-d" role="tab" aria-selected="false" onclick="showTab('d')">2 · The drift</button>
+    <button class="tab" id="tab-l" role="tab" aria-selected="false" onclick="showTab('l')">3 · The ledger</button>
+    <button class="tab" id="tab-b" role="tab" aria-selected="false" onclick="showTab('b')">4 · What breaks</button>
+  </div>
+</header>
+
+<!-- ============================ PANEL 1 ============================ -->
+<section id="p-m">
+  <div class="card">
+    <h2>The story</h2>
+    <p class="story"><b>Alba</b> wants to know how far ahead <b>Bruno's</b> clock is. She sends
+    a message asking the time and he answers. Four timestamps get written down: when she sent
+    (<b>T1</b>), when he received (<b>T2</b>), when he replied (<b>T3</b>), when she got the
+    answer (<b>T4</b>). From those four numbers she works out her answer.</p>
+    <p class="hint">The diagram below shows <em>true</em> time running left to right — the view
+    from outside, which neither Alba nor Bruno has. The <b>delay split</b> slider moves network
+    delay from the outbound leg to the return leg <em>without changing the total</em>. Watch the
+    four boxed numbers at the bottom as you drag it.</p>
+  </div>
+
+  <div class="pred" id="m-pred">
+    <p>🔮 Before you touch anything: if you slide delay from the outbound leg to the return leg,
+    keeping the round-trip total the same, what happens to the four timestamps Alba records?</p>
+    <div class="opts">
+      <button class="opt" onclick="mPred(0,this)">T2 and T3 shift, so Alba can detect the change and correct for it</button>
+      <button class="opt" onclick="mPred(1,this)">All four stay exactly the same — Alba cannot tell the difference</button>
+      <button class="opt" onclick="mPred(2,this)">T4 shifts, because the reply arrives later</button>
+    </div>
+    <div class="res hidden" id="m-pred-res"></div>
+  </div>
+
+  <div class="card">
+    <h2>Space–time diagram</h2>
+    <div class="scrollx"><svg id="m-svg" viewBox="0 0 960 300" role="img"
+      aria-label="Space-time diagram of one NTP exchange between Alba and Bruno"></svg></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--alba)"></i> Alba's lifeline &amp; clock</span>
+      <span><i class="sw" style="background:var(--bruno)"></i> Bruno's lifeline &amp; clock</span>
+      <span><i class="sw" style="background:var(--truth)"></i> the true offset (unobservable)</span>
+      <span><i class="sw" style="background:var(--band)"></i> the interval Alba can honestly claim</span>
+    </div>
+    <div class="row">
+      <label class="ctl"><span class="lab">Delay split &nbsp;<span class="val" id="m-split-v"></span></span>
+        <input type="range" id="m-split" min="0" max="100" value="50" oninput="mDraw()"></label>
+      <label class="ctl"><span class="lab">Network round trip δ &nbsp;<span class="val" id="m-delta-v"></span></span>
+        <input type="range" id="m-delta" min="4" max="120" value="39" oninput="mDraw()"></label>
+    </div>
+    <div class="chips">
+      <button class="chip" onclick="mWorld(50)">World A · symmetric</button>
+      <button class="chip" onclick="mWorld(11.5)">World B · fast out, slow back</button>
+      <button class="chip" onclick="mWorld(88.5)">World C · slow out, fast back</button>
+      <button class="chip" onclick="mRun()">▶ Run this for me</button>
+    </div>
+    <div class="verdicts" id="m-verdicts"></div>
+    <div class="eqn" id="m-eqn"></div>
+    <div class="callout" id="m-note"></div>
+  </div>
+
+  <div class="card">
+    <h2>Why NTP keeps the <em>fastest</em> sample and throws the rest away</h2>
+    <p class="story">Alba does not measure once. She measures eight times. Network delay has a
+    hard floor — nothing travels faster than light down the fibre — and every source of noise
+    (a queue, a busy CPU, a switch buffer) can only <em>add</em> to it. So the delay
+    distribution has a wall on the left and a long tail to the right.</p>
+    <p class="hint">Since a sample's honest error bar is exactly ±δ/2, the <b>fastest</b> sample
+    is the most trustworthy one — not the average of them all. Press the button a few times and
+    watch which strategy wins.</p>
+    <div class="row"><button class="btn" onclick="mSample()">Take 8 samples</button>
+      <button class="btn ghost" onclick="mSample(true)">Take 8 samples on a congested link</button></div>
+    <div class="scrollx"><table id="m-samples"></table></div>
+    <div class="verdicts" id="m-sampleverdict"></div>
+  </div>
+</section>
+
+<!-- ============================ PANEL 2 ============================ -->
+<section id="p-d" class="hidden">
+  <div class="card">
+    <h2>The story</h2>
+    <p class="story">Alba's clock is a vibrating rock, and her rock runs fast. Left alone she
+    gains a fixed number of microseconds every second — that is <b>drift</b>. Every so often
+    she asks a time server where she stands and applies a correction. This panel runs ten
+    minutes of that loop and draws the result.</p>
+    <p class="hint">The green line is how wrong Alba's clock actually is. The shaded band is
+    <b>ε</b> — the error she is prepared to <em>admit</em> to, which is the network uncertainty
+    from Panel 1 plus whatever drift could have accumulated since her last poll. The band must
+    always contain the line; if it doesn't, the clock is lying about how wrong it is.</p>
+  </div>
+
+  <div class="pred" id="d-pred">
+    <p>🔮 Alba corrects her clock to exactly the right value every 64 seconds, and does nothing
+    else. Her crystal is 20 ppm fast. Over ten minutes, what does the error graph look like?</p>
+    <div class="opts">
+      <div class="opt" style="cursor:default;font-weight:600;border:none;background:none;padding:0 0 4px">Pick one:</div>
+      <button class="opt" onclick="dPred(0,this)">It converges to zero — each correction gets her closer</button>
+      <button class="opt" onclick="dPred(1,this)">A sawtooth: back to zero, then climbing 1.28 ms again, forever</button>
+      <button class="opt" onclick="dPred(2,this)">It grows without bound because corrections lag behind</button>
+    </div>
+    <div class="res hidden" id="d-pred-res"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ten minutes of a disciplined clock</h2>
+    <div class="row">
+      <label class="ctl"><span class="lab">Crystal drift &nbsp;<span class="val" id="d-drift-v"></span></span>
+        <input type="range" id="d-drift" min="0" max="200" value="20" oninput="dRun()"></label>
+      <label class="ctl"><span class="lab">Poll interval &nbsp;<span class="val" id="d-poll-v"></span></span>
+        <input type="range" id="d-poll" min="4" max="128" value="64" step="4" oninput="dRun()"></label>
+      <label class="ctl"><span class="lab">Network uncertainty ±ε<sub>net</sub> &nbsp;<span class="val" id="d-net-v"></span></span>
+        <input type="range" id="d-net" min="0" max="20" value="2" step="0.5" oninput="dRun()"></label>
+      <label class="ctl"><span class="lab">Correction strategy</span>
+        <select id="d-mode" onchange="dRun()">
+          <option value="none">v0 · none (free-running crystal)</option>
+          <option value="step" selected>v4a · step the clock to the right value</option>
+          <option value="slew">v4b · slew (never jump)</option>
+          <option value="freq">v5 · slew + correct the frequency</option>
+        </select></label>
+    </div>
+    <div class="scrollx"><svg id="d-svg" viewBox="0 0 960 340" role="img"
+      aria-label="Clock error over ten minutes under the selected correction strategy"></svg></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--truth)"></i> actual error (clock − true)</span>
+      <span><i class="sw" style="background:var(--band);opacity:.35"></i> ε, the admitted bound</span>
+      <span><i class="sw" style="background:var(--bad)"></i> time moved backwards here</span>
+    </div>
+    <div class="verdicts" id="d-verdicts"></div>
+    <div class="callout" id="d-note"></div>
+    <div class="chips">
+      <button class="chip" onclick="dPreset('spanner')">▶ Reproduce Spanner's sawtooth (200 ppm, 30 s poll, ±1 ms)</button>
+      <button class="chip" onclick="dPreset('treadmill')">▶ The treadmill (step only, no frequency fix)</button>
+      <button class="chip" onclick="dPreset('backwards')">▶ Make time run backwards</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>A stopwatch held across the correction</h2>
+    <p class="story">A request starts just before a correction lands and finishes just after.
+    The code measures how long it took by subtracting two wall-clock readings. Here is what it
+    gets, for the strategy selected above.</p>
+    <div class="verdicts" id="d-stopwatch"></div>
+    <p class="hint">This is the whole argument for <code>System.nanoTime()</code> over
+    <code>System.currentTimeMillis()</code>, and the reason Go 1.9 changed
+    <code>time.Time</code> to carry a monotonic reading.</p>
+  </div>
+</section>
+
+<!-- ============================ PANEL 3 ============================ -->
+<section id="p-l" class="hidden">
+  <div class="card">
+    <h2>The story</h2>
+    <p class="story">Your machines already compute ε and print it. Almost no application reads
+    it. This panel builds the number the way <code>chronyc tracking</code> does, term by term,
+    and then tells you what a system could honestly be built on top of it.</p>
+    <p class="hint">Pick a deployment on the left, then push the sliders around. The formula in
+    the middle is <em>literally</em> AWS's published ClockBound formula, which is
+    <em>literally</em> RFC 5905's root distance with one extra hardware term.</p>
+  </div>
+
+  <div class="card">
+    <h2>Choose a deployment</h2>
+    <div class="chips" id="l-chips"></div>
+    <div class="row">
+      <label class="ctl"><span class="lab">Poll interval &nbsp;<span class="val" id="l-poll-v"></span></span>
+        <input type="range" id="l-poll" min="1" max="10" value="4" oninput="lDraw()"></label>
+      <label class="ctl"><span class="lab">Root delay &nbsp;<span class="val" id="l-rd-v"></span></span>
+        <input type="range" id="l-rd" min="0" max="200" value="82" oninput="lDraw()"></label>
+    </div>
+    <div class="tracking" id="l-tracking"></div>
+    <div class="eqn" id="l-formula"></div>
+    <div class="scrollx"><svg id="l-svg" viewBox="0 0 960 150" role="img"
+      aria-label="Contribution of each term to the total clock error bound"></svg></div>
+    <div class="verdicts" id="l-verdicts"></div>
+    <h3>What can be built on this ε?</h3>
+    <table id="l-unlocks"></table>
+    <div class="callout" id="l-note"></div>
+  </div>
+</section>
+
+<!-- ============================ PANEL 4 ============================ -->
+<section id="p-b" class="hidden">
+  <div class="card">
+    <h2>The story</h2>
+    <p class="story">Six ways clocks take production down. Each one has a prediction first —
+    commit to an answer before you run it, because the interesting thing about most of these is
+    that the wrong answer is the reasonable-sounding one.</p>
+    <div class="chips" id="b-chips"></div>
+  </div>
+  <div class="card" id="b-card">
+    <h2 id="b-title"></h2>
+    <p class="story" id="b-story"></p>
+    <div class="pred" id="b-pred">
+      <p id="b-q"></p>
+      <div class="opts" id="b-opts"></div>
+      <div class="res hidden" id="b-res"></div>
+    </div>
+    <div id="b-out" class="hidden">
+      <div class="scrollx"><svg id="b-svg" viewBox="0 0 960 240" role="img"
+        aria-label="Timeline of the selected failure scenario"></svg></div>
+      <div class="verdicts" id="b-verdicts"></div>
+      <div class="callout" id="b-note"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Companion to <code>clock-synchronization/README.md</code>. Every simulation here demonstrates
+  <em>the lesson's model</em> of a clock — a drift rate, a poll interval and a network delay.
+  It does not prove that <code>chronyd</code>, <code>ptp4l</code> or TrueTime behave identically
+  in every detail; where a real published figure is used (AWS's &lt;100&nbsp;µs and &lt;40&nbsp;µs
+  bounds, chrony's defaults, Spanner's 30&nbsp;s / 200&nbsp;µs&nbsp;s⁻¹), it is labelled at the
+  point of use and cited in the README.
+</footer>
+</div>
+
+<script>
+/* ==================================================================
+   CORE — pure functions, no DOM. Everything the panels claim is
+   computed here so it can be checked independently of the drawing.
+   ================================================================== */
+
+var CORE = (function(){
+
+  /* ---- Panel 1: one NTP exchange -------------------------------
+     The four observations are the INPUT and are held fixed. The
+     delay split is a hypothesis about the world. Different splits
+     imply different true offsets while producing identical
+     observations — which is the whole point of the panel.        */
+  function measure(deltaMs, splitPct, T2, proc){
+    var T1 = 0, T3 = T2 + proc, T4 = deltaMs + proc;
+    var est   = ((T2 - T1) + (T3 - T4)) / 2;       // = T2 - delta/2
+    var dMeas = (T4 - T1) - (T3 - T2);             // = deltaMs
+    var out   = deltaMs * splitPct / 100;
+    var back  = deltaMs - out;
+    var trueOffset = T2 - out;                     // Alba's clock defines true time
+    return {
+      T1:T1, T2:T2, T3:T3, T4:T4,
+      est:est, dMeas:dMeas, out:out, back:back,
+      trueOffset:trueOffset,
+      lo: est - dMeas/2,      // === T2 - deltaMs  (all delay outbound)
+      hi: est + dMeas/2,      // === T2            (all delay on return)
+      eps: dMeas/2,
+      err: est - trueOffset   // === (out - back)/2
+    };
+  }
+
+  /* ---- Panel 1b: eight samples over a one-sided delay distribution */
+  function sampleSet(n, congested, rnd){
+    var floorMs = 8, scale = congested ? 60 : 12, s = [];
+    for (var i = 0; i < n; i++){
+      var u = rnd();
+      var delay = floorMs - Math.log(1 - u * 0.999) * scale;
+      var split = rnd() * 100;
+      // error a sample would produce = (back - out)/2 = delta*(1-2s)/2
+      var err = delay * (1 - 2 * split / 100) / 2;
+      s.push({ delay: delay, split: split, err: err, eps: delay / 2 });
+    }
+    return s;
+  }
+  function median(xs){
+    var a = xs.slice().sort(function(p,q){ return p - q; });
+    var m = a.length >> 1;
+    return a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2;
+  }
+  function mean(xs){
+    var t = 0; for (var i=0;i<xs.length;i++) t += xs[i];
+    return t / xs.length;
+  }
+  function strategies(samples){
+    var delays = samples.map(function(s){ return s.delay; });
+    var errs   = samples.map(function(s){ return s.err; });
+    var minIdx = 0;
+    for (var i=1;i<samples.length;i++) if (samples[i].delay < samples[minIdx].delay) minIdx = i;
+    return {
+      minIdx: minIdx,
+      mean:   { delay: mean(delays),   eps: mean(delays)/2,   err: mean(errs) },
+      median: { delay: median(delays), eps: median(delays)/2, err: median(errs) },
+      min:    { delay: samples[minIdx].delay, eps: samples[minIdx].delay/2, err: samples[minIdx].err }
+    };
+  }
+
+  /* ---- Panel 2: ten minutes of a disciplined clock --------------
+     err   : clock - true, in ms
+     freq  : the frequency correction the daemon has applied, ppm
+     eps   : what the daemon ADMITS to = network term + assumed
+             worst-case drift since the last successful poll.
+     Note the deliberate asymmetry: eps is built from the assumed
+     worst case, never from the residual actually achieved. The gap
+     between the band and the line is the price of a guarantee.   */
+  var MAXSLEW_PPM = 83333.333;                 // chrony default maxslewrate
+
+  function simulate(o){
+    var dt = 0.1, durS = o.durS || 600;
+    var assumed = Math.max(o.driftPpm, 15);    // >= RFC 5905's PHI
+    var err = 0, freq = 0, slewRem = 0, slewRate = 0;
+    var tSinceSync = 0, nextPoll = o.pollS;
+    var pts = [], events = [], rnd = o.rnd || Math.random;
+    var maxSlewMsPerS = MAXSLEW_PPM / 1000;
+
+    for (var t = 0; t <= durS + 1e-9; t += dt){
+      // eps must also cover any correction that has been decided but not
+      // yet fully applied - during a slew the clock is knowingly still off.
+      pts.push({ t: t,
+                 err: err,
+                 eps: o.netEpsMs + assumed * tSinceSync / 1000 + Math.abs(slewRem) });
+
+      if (o.mode !== 'none' && t >= nextPoll - 1e-9){
+        var noise = (rnd() * 2 - 1) * o.netEpsMs;
+        var meas  = err + noise;
+        if (o.mode === 'step'){
+          events.push({ t: t, jump: -meas, kind: (-meas < 0 ? 'back' : 'fwd') });
+          err -= meas;
+        } else {
+          if (o.mode === 'freq'){
+            var ratePpm = (meas / o.pollS) * 1000;      // ms/s -> ppm
+            freq += 0.6 * ratePpm;
+            if (freq >  500) freq =  500;
+            if (freq < -500) freq = -500;
+          }
+          slewRem  = -meas;
+          var window = Math.max(Math.abs(slewRem) / maxSlewMsPerS, o.pollS * 0.5);
+          slewRate = slewRem / window;
+          events.push({ t: t, jump: 0, kind: 'slew' });
+        }
+        tSinceSync = 0;
+        nextPoll  += o.pollS;
+      }
+
+      // advance
+      err += (o.driftPpm - freq) / 1000 * dt;
+      if (Math.abs(slewRem) > 1e-9){
+        var d = slewRate * dt;
+        if (Math.abs(d) >= Math.abs(slewRem)) { err += slewRem; slewRem = 0; }
+        else { err += d; slewRem -= d; }
+      }
+      tSinceSync += dt;
+    }
+    return { pts: pts, events: events, freq: freq, assumed: assumed };
+  }
+
+  /* Largest backward movement of the clock, and what a short request
+     straddling it would measure. */
+  function stopwatch(sim, trueDurMs){
+    var worst = 0, at = null;
+    for (var i=0;i<sim.events.length;i++){
+      var e = sim.events[i];
+      if (e.jump < worst){ worst = e.jump; at = e.t; }
+    }
+    return { trueDurMs: trueDurMs, jumpMs: worst, at: at,
+             measuredMs: trueDurMs + worst, negative: (trueDurMs + worst) < 0 };
+  }
+
+  /* Range of eps over the tail of a run, i.e. after the discipline loop
+     has converged. Reporting the whole run would include the daemon's
+     first few corrections, which are not the steady state. */
+  function epsRange(sim, fromFrac){
+    var from = Math.floor(sim.pts.length * (fromFrac === undefined ? 0.5 : fromFrac));
+    var lo = Infinity, hi = -Infinity;
+    for (var i = from; i < sim.pts.length; i++){
+      if (sim.pts[i].eps < lo) lo = sim.pts[i].eps;
+      if (sim.pts[i].eps > hi) hi = sim.pts[i].eps;
+    }
+    return { lo: lo, hi: hi };
+  }
+
+  function bandContainsLine(sim){
+    for (var i=0;i<sim.pts.length;i++){
+      if (Math.abs(sim.pts[i].err) > sim.pts[i].eps + 1e-9) return false;
+    }
+    return true;
+  }
+
+  /* ---- Panel 3: the error-bound ledger --------------------------
+     AWS's published ClockBound formula, which is RFC 5905's root
+     distance plus a hardware term:
+       bound = system_time + 0.5*root_delay + root_dispersion + phc  */
+  var PHI_PPM = 15;                              // RFC 5905 frequency tolerance
+
+  function ledger(o){
+    var dispGrowth  = o.skewPpm * o.pollS / 1000;      // ms
+    var dispersion  = o.dispBaseMs + dispGrowth;
+    var bound = o.sysMs + 0.5 * o.rootDelayMs + dispersion + o.phcMs;
+    var phiGrowth   = PHI_PPM * o.pollS / 1000;
+    return {
+      sys: o.sysMs,
+      halfDelay: 0.5 * o.rootDelayMs,
+      dispersion: dispersion,
+      dispBase: o.dispBaseMs,
+      dispGrowth: dispGrowth,
+      phc: o.phcMs,
+      bound: bound,
+      boundIfPhi: o.sysMs + 0.5*o.rootDelayMs + o.dispBaseMs + phiGrowth + o.phcMs,
+      phiGrowth: phiGrowth
+    };
+  }
+
+  function unlocks(epsMs){
+    return [
+      { q: 'Order two events 1 ms apart',            need: 0.5,   unit:'ms' },
+      { q: 'Order two events 100 µs apart',          need: 0.05,  unit:'ms' },
+      { q: 'Measure one-way latency of a 500 µs hop',need: 0.05,  unit:'ms' },
+      { q: 'Spanner-style commit wait under 1 ms',   need: 0.5,   unit:'ms' },
+      { q: 'Lease margin under 20 ms',               need: 10,    unit:'ms' },
+      { q: 'Stay inside CockroachDB max-offset 500 ms', need: 250, unit:'ms' }
+    ].map(function(r){ return { q: r.q, need: r.need, ok: epsMs <= r.need }; });
+  }
+
+  return { measure:measure, sampleSet:sampleSet, strategies:strategies,
+           simulate:simulate, stopwatch:stopwatch, bandContainsLine:bandContainsLine,
+           epsRange:epsRange,
+           ledger:ledger, unlocks:unlocks, median:median, mean:mean,
+           PHI_PPM:PHI_PPM, MAXSLEW_PPM:MAXSLEW_PPM };
+})();
+
+if (typeof module !== 'undefined') { module.exports = CORE; }
+</script>
+
+<script>
+/* ==================================================================
+   VIEW — tabs, SVG drawing, and the panels' interaction.
+   ================================================================== */
+var SVGNS = 'http://www.w3.org/2000/svg';
+function $(id){ return document.getElementById(id); }
+function el(tag, attrs, text){
+  var n = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function clear(n){ while (n.firstChild) n.removeChild(n.firstChild); }
+function cv(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function fmt(x, d){ return (Math.round(x * Math.pow(10,d)) / Math.pow(10,d)).toFixed(d); }
+function ms(x){
+  if (Math.abs(x) >= 1) return fmt(x,2) + ' ms';
+  return fmt(x * 1000, 1) + ' µs';
+}
+function verdict(host, cards){
+  clear(host);
+  cards.forEach(function(c){
+    var d = document.createElement('div');
+    d.className = 'v' + (c.cls ? ' ' + c.cls : '') + (c.hero ? ' hero' : '');
+    var h = document.createElement('div'); h.className = 'vh'; h.textContent = c.h;
+    var v = document.createElement('div'); v.className = 'vv'; v.textContent = c.v;
+    d.appendChild(h); d.appendChild(v);
+    if (c.n){ var n = document.createElement('div'); n.className = 'vn'; n.innerHTML = c.n; d.appendChild(n); }
+    host.appendChild(d);
+  });
+}
+function showTab(id){
+  ['m','d','l','b'].forEach(function(k){
+    $('tab-' + k).setAttribute('aria-selected', k === id ? 'true' : 'false');
+    $('p-' + k).classList.toggle('hidden', k !== id);
+  });
+  if (id === 'd') dRun();
+  if (id === 'l') lDraw();
+}
+
+/* ======================= PANEL 1 ======================= */
+var M = { T2: 105, proc: 1, predicted: false };
+
+function mPred(i, btn){
+  var right = 1;
+  document.querySelectorAll('#m-pred .opt').forEach(function(b, j){
+    b.setAttribute('data-state', j === right ? 'right' : (b === btn ? 'wrong' : ''));
+  });
+  var r = $('m-pred-res'); r.classList.remove('hidden');
+  r.innerHTML = (i === right
+    ? '<b>Correct — and this is the whole lesson.</b> '
+    : '<b>The answer is the second one.</b> ')
+    + 'All four timestamps are <em>unchanged</em>. Alba writes down T1 and T4 on her own clock; '
+    + 'Bruno writes T2 and T3 on his. Moving delay between the legs shifts <em>when</em> the packet '
+    + 'crosses, but Bruno\'s clock reading at that moment shifts by exactly the same amount in the '
+    + 'opposite direction, and the two cancel. Alba is left with one equation and two unknowns. '
+    + 'Drag the slider and watch the boxed numbers refuse to move while the true offset sweeps '
+    + 'the whole interval.';
+  M.predicted = true;
+  mDraw();
+}
+function mWorld(split){ $('m-split').value = split; mDraw(); }
+function mRun(){
+  var s = 0, dir = 1;
+  var iv = setInterval(function(){
+    s += dir * 2.5;
+    if (s >= 100){ s = 100; dir = -1; }
+    else if (s <= 0 && dir === -1){ clearInterval(iv); $('m-split').value = 50; mDraw(); return; }
+    $('m-split').value = s; mDraw();
+  }, 45);
+}
+
+function mDraw(){
+  var delta = +$('m-delta').value, split = +$('m-split').value;
+  var r = CORE.measure(delta, split, M.T2, M.proc);
+  $('m-split-v').textContent = fmt(split,0) + '% outbound';
+  $('m-delta-v').textContent = fmt(delta,0) + ' ms';
+
+  var svg = $('m-svg'); clear(svg);
+  var W = 960, x0 = 105, x1 = 905;
+  var tMax = delta + M.proc, T = function(t){ return x0 + (tMax ? t / tMax : 0) * (x1 - x0); };
+  var yA = 82, yB = 196, ySep = 244, yBar = 292;
+  var cA = cv('--alba'), cB = cv('--bruno'), cT = cv('--truth'), cBand = cv('--band'),
+      cLine = cv('--line'), cMut = cv('--muted'), cInk = cv('--ink'), cAcc = cv('--accent');
+
+  svg.appendChild(el('text', {x:x0, y:34, fill:cMut, 'font-size':12, 'font-weight':600,
+    'letter-spacing':'.05em'}, 'TRUE TIME — THE VIEW NEITHER MACHINE HAS'));
+  svg.appendChild(el('line', {x1:x0, y1:44, x2:x1, y2:44, stroke:cLine, 'stroke-width':1}));
+
+  // lifelines
+  [[yA,'Alba',cA],[yB,'Bruno',cB]].forEach(function(p){
+    svg.appendChild(el('line', {x1:x0, y1:p[0], x2:x1, y2:p[0], stroke:p[2], 'stroke-width':2.5,
+      'stroke-linecap':'round'}));
+    svg.appendChild(el('text', {x:x0-12, y:p[0]+4, fill:p[2], 'font-size':13, 'font-weight':700,
+      'text-anchor':'end'}, p[1]));
+  });
+
+  // arrows
+  var defs = el('defs');
+  ['a','b'].forEach(function(k,i){
+    var mk = el('marker', {id:'mh'+k, viewBox:'0 0 8 8', refX:7, refY:4, markerWidth:7,
+      markerHeight:7, orient:'auto'});
+    mk.appendChild(el('path', {d:'M0,0 L8,4 L0,8 z', fill: i ? cB : cA}));
+    defs.appendChild(mk);
+  });
+  svg.appendChild(defs);
+  svg.appendChild(el('line', {x1:T(0), y1:yA, x2:T(r.out), y2:yB, stroke:cA, 'stroke-width':2,
+    'marker-end':'url(#mha)'}));
+  svg.appendChild(el('line', {x1:T(r.out + M.proc), y1:yB, x2:T(tMax), y2:yA, stroke:cB,
+    'stroke-width':2, 'marker-end':'url(#mhb)'}));
+  svg.appendChild(el('text', {x:(T(0)+T(r.out))/2 - 6, y:(yA+yB)/2 - 6, fill:cA, 'font-size':11.5,
+    'text-anchor':'end'}, 'out ' + fmt(r.out,1) + ' ms'));
+  svg.appendChild(el('text', {x:(T(r.out+M.proc)+T(tMax))/2 + 6, y:(yA+yB)/2 - 6, fill:cB,
+    'font-size':11.5}, 'back ' + fmt(r.back,1) + ' ms'));
+
+  // timestamp boxes
+  function stamp(x, y, label, val, colour, above){
+    var w = 78, h = 34, bx = x - w/2, by = above ? y - h - 13 : y + 13;
+    if (bx < 4) bx = 4; if (bx + w > W - 4) bx = W - w - 4;
+    svg.appendChild(el('rect', {x:bx, y:by, width:w, height:h, rx:6, fill:cv('--card2'),
+      stroke:colour, 'stroke-width':1.5}));
+    svg.appendChild(el('text', {x:bx+w/2, y:by+13, fill:cMut, 'font-size':10, 'font-weight':700,
+      'text-anchor':'middle', 'letter-spacing':'.06em'}, label));
+    svg.appendChild(el('text', {x:bx+w/2, y:by+27, fill:colour, 'font-size':14, 'font-weight':700,
+      'text-anchor':'middle', 'font-family':cv('--mono')}, val));
+    svg.appendChild(el('circle', {cx:x, cy:y, r:4.5, fill:colour}));
+  }
+  stamp(T(0),            yA, 'T1 · ALBA',  fmt(r.T1,1), cA, true);
+  stamp(T(tMax),         yA, 'T4 · ALBA',  fmt(r.T4,1), cA, true);
+  stamp(T(r.out),        yB, 'T2 · BRUNO', fmt(r.T2,1), cB, false);
+  stamp(T(r.out+M.proc), yB, 'T3 · BRUNO', fmt(r.T3,1), cB, false);
+
+  // ---- offset axis
+  svg.appendChild(el('line', {x1:x0, y1:ySep, x2:x1, y2:ySep, stroke:cLine, 'stroke-width':1,
+    'stroke-dasharray':'3 3'}));
+  svg.appendChild(el('text', {x:x0, y:ySep+18, fill:cMut, 'font-size':12, 'font-weight':600,
+    'letter-spacing':'.05em'}, 'HOW FAR AHEAD IS BRUNO?  (ms)'));
+  var oLo = r.lo - (r.hi - r.lo) * 0.28 - 2, oHi = r.hi + (r.hi - r.lo) * 0.28 + 2;
+  var OX = function(o){ return x0 + (o - oLo) / (oHi - oLo) * (x1 - x0); };
+  svg.appendChild(el('rect', {x:OX(r.lo), y:yBar-11, width:Math.max(2, OX(r.hi)-OX(r.lo)), height:22,
+    rx:5, fill:cBand, opacity:.24, stroke:cBand, 'stroke-width':1.5}));
+  [[r.lo,'lo'],[r.hi,'hi']].forEach(function(p){
+    svg.appendChild(el('line', {x1:OX(p[0]), y1:yBar-13, x2:OX(p[0]), y2:yBar+13, stroke:cBand,
+      'stroke-width':2}));
+    svg.appendChild(el('text', {x:OX(p[0]), y:yBar+28, fill:cBand, 'font-size':11.5,
+      'text-anchor':'middle', 'font-family':cv('--mono')}, fmt(p[0],1)));
+  });
+  // best estimate
+  svg.appendChild(el('line', {x1:OX(r.est), y1:yBar-17, x2:OX(r.est), y2:yBar+17, stroke:cAcc,
+    'stroke-width':2.5, 'stroke-dasharray':'4 3'}));
+  svg.appendChild(el('text', {x:OX(r.est), y:yBar-23, fill:cAcc, 'font-size':11.5,
+    'text-anchor':'middle', 'font-weight':700}, 'Alba\'s estimate ' + fmt(r.est,1)));
+  // the truth
+  svg.appendChild(el('circle', {cx:OX(r.trueOffset), cy:yBar, r:7, fill:cT}));
+  svg.appendChild(el('text', {x:OX(r.trueOffset), y:yBar+30, fill:cT, 'font-size':12,
+    'text-anchor':'middle', 'font-weight':700}, 'truth ' + fmt(r.trueOffset,1)));
+
+  // verdicts
+  var inside = r.trueOffset >= r.lo - 1e-9 && r.trueOffset <= r.hi + 1e-9;
+  verdict($('m-verdicts'), [
+    { h:'Alba\'s estimate θ', v: fmt(r.est,1) + ' ms', hero:true,
+      n:'Frozen. It depends only on the four observations, and they do not change.' },
+    { h:'The true offset', v: fmt(r.trueOffset,1) + ' ms', cls:'',
+      n:'Sweeps the whole interval as you move the split. Alba can never see this row.' },
+    { h:'Alba\'s error', v: (r.err>0?'+':'') + fmt(r.err,1) + ' ms',
+      cls: Math.abs(r.err) < 1e-9 ? 'pass' : 'fail',
+      n:'Exactly (out − back)/2. Zero only when the path happens to be symmetric.' },
+    { h:'Honest interval', v: '±' + fmt(r.eps,1) + ' ms', cls: inside ? 'pass' : 'fail',
+      n:'ε = δ/2. The truth is inside it for <b>every</b> split — the bound never breaks, only the point estimate does.' }
+  ]);
+
+  $('m-eqn').textContent =
+    'δ = (T4 − T1) − (T3 − T2)   = (' + fmt(r.T4,1) + ' − 0) − (' + fmt(r.T3,1) + ' − ' + fmt(r.T2,1) + ')'
+    + '  = ' + fmt(r.dMeas,1) + ' ms\n'
+    + 'θ = ((T2 − T1) + (T3 − T4)) / 2 = ((' + fmt(r.T2,1) + ') + (' + fmt(r.T3 - r.T4,1) + ')) / 2'
+    + '  = ' + fmt(r.est,1) + ' ms\n\n'
+    + 'honest answer:  Bruno is ahead by somewhere in [' + fmt(r.lo,1) + ', ' + fmt(r.hi,1) + '] ms'
+    + '   — which is exactly [T2 − δ,  T2]';
+
+  var note = $('m-note');
+  if (Math.abs(r.err) < 0.05){
+    note.className = 'callout ok';
+    note.innerHTML = '<b>The path happens to be symmetric, so the estimate is exactly right.</b>'
+      + ' Alba has no way of knowing that. From inside, this case is indistinguishable from every other'
+      + ' position of the slider — which is why she must still claim ±' + fmt(r.eps,1) + ' ms.';
+  } else {
+    note.className = 'callout bad';
+    note.innerHTML = '<b>Alba is wrong by ' + fmt(Math.abs(r.err),1) + ' ms and cannot tell.</b>'
+      + ' Her four observations are identical to the symmetric case. This is not a measurement she took'
+      + ' badly — it is a measurement that <em>cannot be taken</em> over a network that will not say which'
+      + ' direction the delay was in. Her bound of ±' + fmt(r.eps,1) + ' ms is still correct, which is'
+      + ' the only thing she can honestly publish.';
+  }
+}
+
+function mSample(congested){
+  var set = CORE.sampleSet(8, !!congested, Math.random);
+  var st = CORE.strategies(set);
+  var t = $('m-samples'); clear(t);
+  var head = document.createElement('tr');
+  ['#','round-trip δ','honest bound ±δ/2','the error it would give','' ].forEach(function(h){
+    var th = document.createElement('th'); th.textContent = h; head.appendChild(th);
+  });
+  t.appendChild(head);
+  set.forEach(function(s, i){
+    var tr = document.createElement('tr');
+    if (i === st.minIdx) tr.className = 'hi';
+    [String(i+1), fmt(s.delay,1)+' ms', '±'+fmt(s.eps,1)+' ms',
+     (s.err>0?'+':'')+fmt(s.err,1)+' ms', i === st.minIdx ? 'fastest — NTP keeps this one' : '']
+     .forEach(function(v,j){
+       var td = document.createElement('td');
+       if (j>0 && j<4) td.className = 'n';
+       td.textContent = v; tr.appendChild(td);
+     });
+    t.appendChild(tr);
+  });
+  verdict($('m-sampleverdict'), [
+    { h:'Average all eight', v:'±'+fmt(st.mean.eps,1)+' ms', cls:'fail',
+      n:'Actual error ' + fmt(st.mean.err,1) + ' ms. Contaminates the good sample with the bad ones.' },
+    { h:'Median', v:'±'+fmt(st.median.eps,1)+' ms',
+      n:'Actual error ' + fmt(st.median.err,1) + ' ms. Better, still not the best available.' },
+    { h:'Keep the fastest only', v:'±'+fmt(st.min.eps,1)+' ms', cls:'pass', hero:true,
+      n:'Actual error ' + fmt(st.min.err,1) + ' ms. <b>This is NTP\'s clock filter.</b>' },
+    { h:'Tightest bound', v: (st.min.eps <= st.median.eps && st.min.eps <= st.mean.eps) ? 'minimum' : '—',
+      cls:'pass',
+      n:'The minimum wins the <b>bound</b> every single time, by construction. It will not always win the actual error on a given draw — that is luck, and luck is not something you can publish a guarantee about.' }
+  ]);
+}
+</script>
+
+<script>
+/* ======================= PANEL 2 ======================= */
+function dPred(i, btn){
+  var right = 1;
+  document.querySelectorAll('#d-pred .opt').forEach(function(b, j){
+    if (b.getAttribute('onclick')) b.setAttribute('data-state', (j-1) === right ? 'right' : (b === btn ? 'wrong' : ''));
+  });
+  var r = $('d-pred-res'); r.classList.remove('hidden');
+  r.innerHTML = (i === right ? '<b>Correct.</b> ' : '<b>The answer is the sawtooth.</b> ')
+    + 'Correcting the <em>offset</em> does nothing about the <em>drift</em> that produced it. '
+    + 'Alba is put back on zero and immediately starts gaining 20 µs every second again: '
+    + '64 s × 20 µs/s = <b>1.28 ms</b> of fresh error before the next poll, forever. This is a '
+    + 'treadmill, not a convergence. Switch the strategy below to <em>slew + correct the '
+    + 'frequency</em> to see what actually fixes it.';
+  dRun();
+}
+function dPreset(k){
+  if (k === 'spanner'){ $('d-drift').value=200; $('d-poll').value=32; $('d-net').value=1; $('d-mode').value='freq'; }
+  if (k === 'treadmill'){ $('d-drift').value=20; $('d-poll').value=64; $('d-net').value=0.5; $('d-mode').value='step'; }
+  if (k === 'backwards'){ $('d-drift').value=200; $('d-poll').value=128; $('d-net').value=2; $('d-mode').value='step'; }
+  dRun();
+}
+
+function dRun(){
+  var drift = +$('d-drift').value, poll = +$('d-poll').value,
+      net = +$('d-net').value, mode = $('d-mode').value;
+  $('d-drift-v').textContent = drift + ' ppm  (' + fmt(drift*86400/1000,2) + ' s/day)';
+  $('d-poll-v').textContent  = poll + ' s';
+  $('d-net-v').textContent   = fmt(net,1) + ' ms';
+
+  var sim = CORE.simulate({driftPpm:drift, pollS:poll, netEpsMs:net, mode:mode, durS:600});
+  var svg = $('d-svg'); clear(svg);
+  var x0=76, x1=930, y0=40, y1=284, durS=600;
+  var lim = 0.5;
+  sim.pts.forEach(function(p){ lim = Math.max(lim, Math.abs(p.err), p.eps); });
+  lim *= 1.12;
+  var X = function(t){ return x0 + t/durS*(x1-x0); };
+  var Y = function(e){ return (y0+y1)/2 - e/lim*((y1-y0)/2); };
+  var cLine=cv('--line'), cMut=cv('--muted'), cT=cv('--truth'), cBand=cv('--band'),
+      cBad=cv('--bad'), cGrid=cv('--grid');
+
+  // grid + axes
+  for (var g=-1; g<=1; g+=0.5){
+    var yy = Y(g*lim);
+    svg.appendChild(el('line',{x1:x0,y1:yy,x2:x1,y2:yy,stroke: g===0?cLine:cGrid,'stroke-width': g===0?1.5:1}));
+    svg.appendChild(el('text',{x:x0-8,y:yy+4,fill:cMut,'font-size':11,'text-anchor':'end',
+      'font-family':cv('--mono')}, (g*lim>=0?'+':'') + fmt(g*lim,2)));
+  }
+  svg.appendChild(el('text',{x:x0-8,y:y0-14,fill:cMut,'font-size':11,'text-anchor':'end','font-weight':600},'ms'));
+  for (var t=0;t<=durS;t+=120){
+    svg.appendChild(el('line',{x1:X(t),y1:y0,x2:X(t),y2:y1,stroke:cGrid,'stroke-width':1}));
+    svg.appendChild(el('text',{x:X(t),y:y1+18,fill:cMut,'font-size':11,'text-anchor':'middle'},t+' s'));
+  }
+
+  // eps band
+  var up='', dn='';
+  sim.pts.forEach(function(p,i){ up += (i?' L':'M') + fmt(X(p.t),1) + ',' + fmt(Y(p.eps),1); });
+  for (var i=sim.pts.length-1;i>=0;i--){ dn += ' L' + fmt(X(sim.pts[i].t),1) + ',' + fmt(Y(-sim.pts[i].eps),1); }
+  svg.appendChild(el('path',{d:up+dn+' Z', fill:cBand, opacity:.20}));
+  svg.appendChild(el('path',{d:up, fill:'none', stroke:cBand, 'stroke-width':1.2, opacity:.75}));
+
+  // events
+  sim.events.forEach(function(e){
+    if (e.kind === 'slew') return;
+    svg.appendChild(el('line',{x1:X(e.t),y1:y0,x2:X(e.t),y2:y1,
+      stroke: e.kind==='back'?cBad:cMut, 'stroke-width': e.kind==='back'?1.6:1,
+      'stroke-dasharray':'3 3', opacity: e.kind==='back'?.85:.4}));
+  });
+
+  // the error line
+  var d='';
+  sim.pts.forEach(function(p,i){ d += (i?' L':'M') + fmt(X(p.t),1) + ',' + fmt(Y(p.err),1); });
+  svg.appendChild(el('path',{d:d, fill:'none', stroke:cT, 'stroke-width':2.2,
+    'stroke-linejoin':'round'}));
+
+  // readouts
+  var peak=0, late=0;
+  sim.pts.forEach(function(p,i){ peak=Math.max(peak,Math.abs(p.err)); if(i>sim.pts.length*0.8) late=Math.max(late,Math.abs(p.err)); });
+  var er = CORE.epsRange(sim, 0.5);
+  var backs = sim.events.filter(function(e){ return e.kind==='back'; }).length;
+  var contained = CORE.bandContainsLine(sim);
+
+  verdict($('d-verdicts'), [
+    { h:'Peak error, last 2 min', v: ms(late), cls: late < 0.05 ? 'pass' : '',
+      hero: mode==='freq',
+      n: mode==='freq' ? 'The frequency correction has converged to ' + fmt(sim.freq,1)
+           + ' ppm, so almost no error accumulates between polls.'
+         : (mode==='none' ? 'Nothing is correcting anything.'
+            : 'Fresh error every poll: ' + ms(drift/1000*poll) + ' = poll interval × drift.') },
+    { h:'ε, steady state', v: ms(er.lo) + ' → ' + ms(er.hi),
+      n:'The sawtooth. Floor = network term; rise = assumed worst-case drift × time since the last poll.' },
+    { h:'Backward jumps', v: String(backs), cls: backs ? 'fail' : 'pass',
+      n: backs ? 'Time repeated. Every duration measured across one of these is wrong, and some are negative.'
+               : 'The clock never moved backwards — this is what slewing buys.' },
+    { h:'Bound honest?', v: contained ? 'yes' : 'no', cls: contained ? 'pass' : 'fail',
+      n:'ε contains the actual error at every instant of the run. That is the only promise a clock can keep.' }
+  ]);
+
+  var note = $('d-note');
+  if (mode === 'freq'){
+    note.className = 'callout info';
+    note.innerHTML = '<b>Look at the gap between the green line and the shaded band.</b> The clock is'
+      + ' now accurate to ' + ms(late) + ', but it still admits to ±' + ms(er.hi) + '. That gap is not'
+      + ' waste — it is the price of a <em>guarantee</em>. ε is built from the worst-case drift the'
+      + ' hardware is <em>promised</em> never to exceed (' + fmt(sim.assumed,0) + ' ppm here), not from'
+      + ' the residual it happens to achieve today. This is exactly why Spanner assumes 200 µs/s when'
+      + ' its crystals do far better, and why commit wait costs what it costs.';
+  } else if (mode === 'step'){
+    note.className = 'callout bad';
+    note.innerHTML = '<b>Accuracy bought with continuity.</b> Each dashed red line is an instant where'
+      + ' time repeated itself. The clock is more accurate immediately afterwards — that is why the'
+      + ' step was applied — but every stopwatch on the machine just produced a wrong answer. Note'
+      + ' also that the peak error is unchanged from poll to poll: correcting the offset never touches'
+      + ' the drift. Switch to <em>slew + correct the frequency</em> and watch the sawtooth collapse.';
+  } else if (mode === 'slew'){
+    note.className = 'callout ok';
+    note.innerHTML = '<b>No jumps, and no fix either.</b> Slewing is chrony\'s default behaviour and it'
+      + ' guarantees monotonicity — but the sawtooth is still ' + ms(drift/1000*poll) + ' tall, because'
+      + ' nothing here has told the kernel that the crystal is fast. That is the next refinement.';
+  } else {
+    note.className = 'callout bad';
+    note.innerHTML = '<b>A free-running crystal at ' + drift + ' ppm.</b> After ten minutes it is '
+      + ms(drift/1000*600) + ' out; after a day it would be <b>' + fmt(drift*86400/1000,2) + ' seconds</b>'
+      + ' out. Nothing has failed. This is a healthy part behaving to specification.';
+  }
+
+  var sw = CORE.stopwatch(sim, 5);
+  verdict($('d-stopwatch'), [
+    { h:'True duration', v:'5.00 ms', n:'What actually happened.' },
+    { h:'Clock movement across it', v: (sw.jumpMs?fmt(sw.jumpMs,2)+' ms':'none'),
+      n: sw.jumpMs ? 'A correction landed inside the request\'s window.' : 'No step landed inside the window.' },
+    { h:'What the code measured', v: fmt(sw.measuredMs,2) + ' ms', cls: sw.negative ? 'fail' : 'pass',
+      hero:true,
+      n: sw.negative
+         ? '<b>Negative.</b> This is the Cloudflare 2017 outage in one line: a duration went below zero and was handed to a function that panics on negative input.'
+         : 'Correct, because nothing jumped. Note that this is luck plus a correction strategy — the fix in code is to use a monotonic clock so it is never luck.' }
+  ]);
+}
+
+/* ======================= PANEL 3 ======================= */
+var DEPLOY = [
+  { id:'pool', name:'Public NTP pool, over the internet',
+    sys:0.512,    rd:31.24, disp:2.1,    skew:0.5,  phc:0,
+    note:'Many hops, congested paths, delay asymmetry you will never see. Perfectly fine for a log timestamp; not a foundation for anything that must be ordered.' },
+  { id:'local', name:'Cloud-local NTP (e.g. 169.254.169.123)',
+    sys:0.008254, rd:0.112, disp:0.0215, skew:0.041, phc:0,
+    note:'A GPS-disciplined reference one hop away on the hypervisor\'s network. AWS publishes an expected clock error bound of <b>under 100 µs</b> for this path, which is what the ledger computes here.' },
+  { id:'hwts', name:'NTP with NIC hardware timestamps',
+    sys:0.004,    rd:0.060, disp:0.010,  skew:0.02, phc:0,
+    note:'T1–T4 are taken by the network card instead of by a userspace process that the scheduler can descheduled at any moment. Endpoint jitter stops dominating.' },
+  { id:'ptp',  name:'PTP with transparent clocks end to end',
+    sys:0.0008,   rd:0.004, disp:0.002,  skew:0.01, phc:0,
+    note:'The switches now report their own residence time, so queueing delay is <em>subtracted</em> rather than guessed at. This is the only rung on the ladder that attacks the asymmetry itself.' },
+  { id:'phc',  name:'PTP Hardware Clock on the machine',
+    sys:0.0005,   rd:0.002, disp:0.001,  skew:0.01, phc:0.030,
+    note:'The reference clock is on the card the machine is plugged into — there is no network between them. AWS publishes an expected clock error bound of <b>under 40 µs</b> here.' }
+];
+var L = { sel:'local' };
+
+function lPick(id){ L.sel = id; var d = lFind(); 
+  $('l-rd').value = Math.round(40 * Math.log(d.rd/0.001) / Math.LN10);
+  lDraw(); }
+function lFind(){ for (var i=0;i<DEPLOY.length;i++) if (DEPLOY[i].id===L.sel) return DEPLOY[i]; return DEPLOY[1]; }
+
+function lDraw(){
+  var chips = $('l-chips');
+  if (!chips.childNodes.length){
+    DEPLOY.forEach(function(d){
+      var b = document.createElement('button');
+      b.className='chip'; b.textContent = d.name;
+      b.onclick = function(){ lPick(d.id); };
+      chips.appendChild(b);
+    });
+  }
+  Array.prototype.forEach.call(chips.childNodes, function(b,i){
+    b.setAttribute('aria-pressed', DEPLOY[i].id === L.sel ? 'true' : 'false');
+  });
+
+  var d = lFind();
+  var pollIdx = +$('l-poll').value, pollS = Math.pow(2, pollIdx);
+  var rd = 0.001 * Math.pow(10, (+$('l-rd').value)/40);
+  $('l-poll-v').textContent = pollS + ' s';
+  $('l-rd-v').textContent = ms(rd);
+
+  var g = CORE.ledger({ sysMs:d.sys, rootDelayMs:rd, dispBaseMs:d.disp, skewPpm:d.skew,
+                        pollS:pollS, phcMs:d.phc });
+
+  $('l-tracking').innerHTML =
+    '<span class="k">Stratum         :</span> ' + (d.id==='phc'||d.id==='ptp' ? '1' : (d.id==='pool'?'3':'4')) + '\n'
+  + '<span class="k">System time     :</span> <span class="hl">' + fmt(d.sys/1000,9) + '</span> seconds slow of NTP time\n'
+  + '<span class="k">Frequency       :</span> 12.472 ppm fast\n'
+  + '<span class="k">Skew            :</span> ' + fmt(d.skew,3) + ' ppm\n'
+  + '<span class="k">Root delay      :</span> <span class="hl">' + fmt(rd/1000,9) + '</span> seconds\n'
+  + '<span class="k">Root dispersion :</span> <span class="hl">' + fmt(g.dispersion/1000,9) + '</span> seconds\n'
+  + '<span class="k">Update interval :</span> ' + pollS + '.0 seconds\n'
+  + '<span class="k">Leap status     :</span> Normal';
+
+  $('l-formula').textContent =
+      'CLOCK ERROR BOUND = SYSTEM TIME + (.5 * ROOT DELAY) + ROOT DISPERSION + PHC Error Bound\n'
+    + '                  = ' + ms(g.sys) + '  +  ' + ms(g.halfDelay) + '  +  ' + ms(g.dispersion)
+    + '  +  ' + ms(g.phc) + '\n'
+    + '                  = ' + ms(g.bound) + '\n\n'
+    + 'RFC 5905 calls the same quantity the root distance and defines it as\n'
+    + '"the maximum error due to all causes of the local clock relative to the primary server".';
+
+  // stacked bar
+  var svg = $('l-svg'); clear(svg);
+  var x0=20, x1=940, yb=54, h=40;
+  var parts = [
+    { k:'system time',     v:g.sys,       c:cv('--info') },
+    { k:'½ × root delay',  v:g.halfDelay, c:cv('--accent') },
+    { k:'root dispersion', v:g.dispersion,c:cv('--band') },
+    { k:'PHC error',       v:g.phc,       c:cv('--bruno') }
+  ].filter(function(p){ return p.v > 0; });
+  var x = x0;
+  parts.forEach(function(p){
+    var w = (p.v / g.bound) * (x1 - x0);
+    svg.appendChild(el('rect',{x:x, y:yb, width:Math.max(w,1.5), height:h, fill:p.c, opacity:.85}));
+    if (w > 88){
+      svg.appendChild(el('text',{x:x+w/2, y:yb+18, fill:'#fff','font-size':11.5,'text-anchor':'middle',
+        'font-weight':600}, p.k));
+      svg.appendChild(el('text',{x:x+w/2, y:yb+33, fill:'#fff','font-size':11.5,'text-anchor':'middle',
+        'font-family':cv('--mono'), opacity:.9}, ms(p.v)));
+    }
+    x += w;
+  });
+  svg.appendChild(el('text',{x:x0, y:yb-12, fill:cv('--muted'),'font-size':12,'font-weight':600,
+    'letter-spacing':'.04em'}, 'WHERE THE ' + ms(g.bound) + ' COMES FROM'));
+  var lx = x0;
+  parts.forEach(function(p, i){
+    svg.appendChild(el('rect',{x:lx, y:yb+h+16, width:14, height:11, rx:3, fill:p.c}));
+    svg.appendChild(el('text',{x:lx+20, y:yb+h+26, fill:cv('--muted'),'font-size':12},
+      p.k + '  ' + ms(p.v)));
+    lx += 40 + (p.k.length + ms(p.v).length) * 6.6;
+  });
+
+  verdict($('l-verdicts'), [
+    { h:'Clock error bound ε', v: ms(g.bound), hero:true, cls: g.bound < 0.1 ? 'pass' : '',
+      n:'This is a number your machines already compute. <code>chronyc tracking</code> prints every term.' },
+    { h:'Commit wait would cost', v: ms(2*g.bound),
+      n:'Spanner holds the acknowledgement for 2ε on every write. That is the entire price of external consistency.' },
+    { h:'Biggest single term', v: parts.reduce(function(a,b){ return b.v>a.v?b:a; }).k,
+      n:'Attack this one first — the others are rounding error until it moves.' },
+    { h:'If dispersion used RFC 5905\'s PHI', v: ms(g.boundIfPhi),
+      n:'The reference spec assumes a worst-case 15 ppm and grows dispersion at that rate between polls (' + ms(g.phiGrowth) + ' over ' + pollS + ' s). A well-disciplined chrony uses its own measured skew instead, which is far smaller.' }
+  ]);
+
+  var tb = $('l-unlocks'); clear(tb);
+  var hr = document.createElement('tr');
+  ['Could you build this on ε = ' + ms(g.bound) + '?','Needs ε ≤','Verdict'].forEach(function(h){
+    var th=document.createElement('th'); th.textContent=h; hr.appendChild(th); });
+  tb.appendChild(hr);
+  CORE.unlocks(g.bound).forEach(function(u){
+    var tr=document.createElement('tr');
+    [u.q, ms(u.need), u.ok ? '✓ yes' : '✗ no'].forEach(function(v,j){
+      var td=document.createElement('td'); if(j===1) td.className='n';
+      td.textContent=v;
+      if (j===2) td.style.color = u.ok ? cv('--ok') : cv('--bad');
+      if (j===2) td.style.fontWeight = '700';
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+
+  var n = $('l-note');
+  n.className = 'callout info';
+  n.innerHTML = '<b>' + d.name + '.</b> ' + d.note
+    + ' <br><br>And the default nobody expects: chrony\'s <code>maxdistance</code> is <b>3 seconds</b> — '
+    + 'out of the box it will happily follow a source that admits it might be wrong by three seconds. '
+    + 'Nothing in a stock configuration enforces a tight ε, and nothing alerts you when it degrades. '
+    + 'You have to go and ask.';
+}
+</script>
+
+<script>
+/* ======================= PANEL 4 ======================= */
+function timeline(svg, cfg){
+  clear(svg);
+  var x0=150, x1=930, yTop=44, gap=Math.min(58, (215-yTop)/Math.max(1,cfg.tracks.length));
+  var X = function(t){ return x0 + (t/cfg.tmax)*(x1-x0); };
+  var cMut=cv('--muted'), cGrid=cv('--grid'), cLine=cv('--line');
+  svg.appendChild(el('text',{x:x0,y:24,fill:cMut,'font-size':11.5,'font-weight':600,
+    'letter-spacing':'.05em'}, cfg.axis || 'TIME →'));
+  (cfg.bands||[]).forEach(function(b){
+    svg.appendChild(el('rect',{x:X(b.t0),y:yTop-12,width:Math.max(2,X(b.t1)-X(b.t0)),
+      height:gap*cfg.tracks.length+8, fill:b.color, opacity:.16}));
+    svg.appendChild(el('text',{x:(X(b.t0)+X(b.t1))/2, y:yTop-18, fill:b.color,'font-size':11.5,
+      'text-anchor':'middle','font-weight':700}, b.label));
+  });
+  cfg.tracks.forEach(function(tr, i){
+    var y = yTop + i*gap + 14;
+    svg.appendChild(el('line',{x1:x0,y1:y,x2:x1,y2:y,stroke:tr.color,'stroke-width':2.2,
+      'stroke-linecap':'round', opacity: tr.dim ? .35 : 1}));
+    svg.appendChild(el('text',{x:x0-14,y:y+4,fill:tr.color,'font-size':12.5,'font-weight':700,
+      'text-anchor':'end'}, tr.label));
+    if (tr.sub) svg.appendChild(el('text',{x:x0-14,y:y+19,fill:cMut,'font-size':11,
+      'text-anchor':'end'}, tr.sub));
+    (tr.events||[]).forEach(function(e){
+      var col = e.kind==='bad' ? cv('--bad') : e.kind==='ok' ? cv('--ok')
+              : e.kind==='warn' ? cv('--warn') : tr.color;
+      svg.appendChild(el('circle',{cx:X(e.t),cy:y,r:e.kind==='bad'?6.5:5,fill:col}));
+      var above = e.above !== false;
+      svg.appendChild(el('text',{x:X(e.t),y: above ? y-13 : y+22, fill:col,'font-size':11.5,
+        'text-anchor': e.anchor || 'middle','font-weight': e.kind==='bad'?700:500}, e.text));
+    });
+  });
+  (cfg.marks||[]).forEach(function(m){
+    svg.appendChild(el('line',{x1:X(m.t),y1:yTop-12,x2:X(m.t),y2:yTop+gap*cfg.tracks.length,
+      stroke:cv('--bad'),'stroke-width':1.6,'stroke-dasharray':'4 3'}));
+  });
+}
+
+var SCEN = [
+  {
+    id:'back', name:'The backward step',
+    title:'A correction moves time backwards',
+    story:'Alba\'s clock has run 25 ms fast. Her NTP daemon is configured to step rather than slew, so at 10:00:00 it sets the clock back by 25 ms. A request started 2 ms before the step and finished 3 ms after it. The handler measures how long it took by subtracting two wall-clock readings.',
+    q:'What duration does the handler compute for a request that really took 5 ms?',
+    opts:['5 ms — the step is far too small to matter','About 30 ms — the step adds to the measured time','−20 ms — negative, because the clock went backwards'],
+    right:2,
+    draw:function(svg){
+      timeline(svg,{tmax:10, axis:'TRUE TIME (ms) →',
+        marks:[{t:2}],
+        tracks:[
+          {label:'True time', color:cv('--truth'), events:[
+            {t:0,text:'request starts'},{t:5,text:'request ends'},
+            {t:8.4,text:'true elapsed = 5.00 ms',anchor:'end',above:false}]},
+          {label:'Alba\'s wall clock', color:cv('--bad'), sub:'CLOCK_REALTIME', events:[
+            {t:0,text:'reads 10:00:00.023'},
+            {t:2,text:'−25 ms STEP',kind:'bad'},
+            {t:5,text:'reads 10:00:00.003',above:false}]},
+          {label:'Monotonic clock', color:cv('--ok'), sub:'CLOCK_MONOTONIC', events:[
+            {t:0,text:'reads 918273.001'},{t:5,text:'reads 918273.006',above:false},
+            {t:8.6,text:'unaffected — cannot be set',anchor:'end',kind:'ok'}]}
+        ]});
+    },
+    verdicts:[
+      {h:'True duration',v:'5.00 ms',cls:'pass'},
+      {h:'Measured on the wall clock',v:'−20.00 ms',cls:'fail',hero:true,
+       n:'23 ms − 3 ms is not what the code expected to compute.'},
+      {h:'Measured on the monotonic clock',v:'5.00 ms',cls:'pass',
+       n:'Never set, never stepped, never negative.'},
+      {h:'Guarantee that survived',v:'accuracy',
+       n:'The clock is <em>more</em> accurate after the step than before it. Continuity was the price.'}
+    ],
+    note:{cls:'bad', html:'<b>This is Cloudflare\'s 1 January 2017 outage, exactly.</b> Their Go DNS resolver used <code>time.Now()</code> — the wall clock — to track upstream latency. A leap second stepped the clock back; a duration went negative; the negative value reached <code>rand.Int63n()</code>, which panics on negative input. About 0.2% of DNS queries were affected at peak. Go 1.9 subsequently changed <code>time.Time</code> to carry a monotonic reading so that <code>t2.Sub(t1)</code> is immune to this by construction.'}
+  },
+  {
+    id:'fwd', name:'The forward step',
+    title:'A correction moves time forwards — which feels safe',
+    story:'Alba has been isolated from her time servers for a while and her clock has fallen 30 seconds behind. Connectivity returns and the daemon steps her forward by 30 s. Nothing goes negative. Nothing throws. On the machine there are 4,000 cache entries, 180 leases, 900 idle connections and a few thousand retry timers — all with deadlines set in wall-clock time.',
+    q:'What is the visible symptom?',
+    opts:['Nothing — a forward step is harmless','Everything with a deadline in the next 30 seconds expires in the same instant','Requests time out one by one over the following 30 seconds'],
+    right:1,
+    draw:function(svg){
+      timeline(svg,{tmax:60, axis:'ALBA\'S WALL CLOCK (s) →',
+        marks:[{t:10}],
+        bands:[{t0:10,t1:40,label:'30 seconds that never happened',color:cv('--bad')}],
+        tracks:[
+          {label:'Alba\'s clock', color:cv('--accent'), events:[
+            {t:10,text:'+30 s STEP',kind:'bad'}]},
+          {label:'Cache TTLs', color:cv('--band'), sub:'4,000 entries', events:[
+            {t:10,text:'2,140 expire at once',kind:'bad',above:false}]},
+          {label:'Leases', color:cv('--bruno'), sub:'180 held', events:[
+            {t:10,text:'96 expire at once',kind:'bad'}]},
+          {label:'Retry timers', color:cv('--info'), sub:'~3,000 armed', events:[
+            {t:10,text:'all fire in one tick',kind:'bad',above:false}]}
+        ]});
+    },
+    verdicts:[
+      {h:'Errors thrown',v:'0',n:'Nothing detected anything wrong. Every value was a valid timestamp.'},
+      {h:'Deadlines hit simultaneously',v:'~5,200',cls:'fail',hero:true,
+       n:'A thundering herd with no traffic spike to explain it.'},
+      {h:'What it looks like on a dashboard',v:'"a network blip"',cls:'fail',
+       n:'Load, error rate and reconnects all spike together — which is exactly the signature of a network event.'},
+      {h:'What to check first',v:'Last offset',
+       n:'A <code>chronyc tracking</code> offset jump of several orders of magnitude, at the same second, on many hosts.'}
+    ],
+    note:{cls:'warn', html:'<b>Forward steps feel safe and are not.</b> Backward steps get all the attention because they produce negative numbers that crash things loudly. A forward step produces no invalid values at all — it just makes a large, arbitrary set of unrelated deadlines fire at the same instant. This is one of the reasons chrony ships with <code>makestep</code> <em>off</em> by default, and why distributions usually limit it to the first few updates after boot.'}
+  },
+  {
+    id:'asym', name:'The asymmetric route',
+    title:'A permanent error that more measurement cannot remove',
+    story:'London and Frankfurt. Traffic London→Frankfurt takes a direct fibre, 9 ms. Traffic Frankfurt→London is routed via Amsterdam because of a BGP policy nobody has revisited in two years: 15 ms. Round trip 24 ms. NTP halves it and assumes 12 ms each way.',
+    q:'You are worried about the resulting offset error. You increase the poll rate and take a thousand times more samples. What happens to the error?',
+    opts:['It shrinks as the square root of the sample count','It is unchanged — 3 ms, permanently, in a fixed direction','It becomes visible in the jitter metric, so at least you can alert on it'],
+    right:1,
+    draw:function(svg){
+      timeline(svg,{tmax:24, axis:'TRUE TIME (ms) →',
+        tracks:[
+          {label:'London', color:cv('--alba'), events:[
+            {t:0,text:'T1 send'},{t:24,text:'T4 receive',above:false}]},
+          {label:'Frankfurt', color:cv('--bruno'), events:[
+            {t:9,text:'T2 receive — after 9 ms'},{t:9,text:'T3 reply',above:false}]},
+          {label:'What NTP assumes', color:cv('--ghost'), dim:true, events:[
+            {t:12,text:'"12 ms each way"',kind:'warn'}]}
+        ],
+        bands:[{t0:0,t1:9,label:'out: 9 ms',color:cv('--alba')},
+               {t0:9,t1:24,label:'back: 15 ms',color:cv('--bruno')}]});
+    },
+    verdicts:[
+      {h:'Offset error',v:'3.00 ms',cls:'fail',hero:true,n:'= (15 − 9) / 2. Fixed sign, fixed size.'},
+      {h:'After 1,000× more samples',v:'3.00 ms',cls:'fail',
+       n:'Every sample carries the same bias. Averaging a biased estimator gives you a very stable biased estimate.'},
+      {h:'Jitter / RMS offset',v:'excellent',cls:'fail',
+       n:'All health indicators are green. The daemon is measuring precisely what it claims to measure.'},
+      {h:'Was the bound violated?',v:'no',cls:'pass',
+       n:'ε was ±12 ms and the truth was 3 ms off. <b>The interval was right; only the midpoint was wrong.</b> This is the argument for consuming the interval rather than the point estimate.'}
+    ],
+    note:{cls:'bad', html:'<b>This is the failure that no amount of software can find.</b> Delay asymmetry is invisible from inside the protocol — it is the one row in the lab\'s assumption stack with "detected by: <em>nothing</em>". The only real defences are to make the network report its own residence time (PTP transparent clocks) or to remove the network from the measurement entirely (a GPS receiver or a PTP Hardware Clock on the machine). Notice also how it disguises itself: it survives restarts and failovers, and it sometimes appears to be "fixed" by an unrelated network maintenance window — and then comes back when the route does.'}
+  },
+  {
+    id:'false', name:'The falseticker',
+    title:'One server is confidently wrong',
+    story:'Alba polls four time servers. S4\'s own upstream failed hours ago and it is now serving a time about five minutes off, with every appearance of health. Each server hands Alba an interval: a best estimate with an honest ±δ/2 bracket around it.',
+    q:'How does Alba work out that S4 is the liar, without being told in advance?',
+    opts:['It has the largest error bracket, so she distrusts it','She takes the median of the four estimates','A correct server\'s interval must contain the true time — so all correct servers overlap each other, and S4 overlaps nobody'],
+    right:2,
+    draw:function(svg){
+      var svgc = svg; clear(svgc);
+      var x0=120,x1=930,y0=48;
+      var ivs=[{n:'S1',lo:98,hi:104},{n:'S2',lo:101,hi:107},{n:'S3',lo:99,hi:106},{n:'S4',lo:412,hi:418}];
+      var lo=90,hi=430, X=function(v){ return x0+(v-lo)/(hi-lo)*(x1-x0); };
+      svgc.appendChild(el('text',{x:x0,y:26,fill:cv('--muted'),'font-size':11.5,'font-weight':600,
+        'letter-spacing':'.05em'},'EACH SERVER\'S CLAIMED INTERVAL — ms ahead of Alba →'));
+      ivs.forEach(function(iv,i){
+        var y=y0+i*36, bad = iv.n==='S4';
+        var c = bad ? cv('--bad') : cv('--accent');
+        svgc.appendChild(el('text',{x:x0-14,y:y+5,fill:c,'font-size':13,'font-weight':700,
+          'text-anchor':'end'}, iv.n));
+        svgc.appendChild(el('rect',{x:X(iv.lo),y:y-9,width:Math.max(3,X(iv.hi)-X(iv.lo)),height:18,
+          rx:5,fill:c,opacity:.3,stroke:c,'stroke-width':1.5}));
+        svgc.appendChild(el('text',{x:X(iv.hi)+9,y:y+5,fill:c,'font-size':11.5,
+          'font-family':cv('--mono')}, '[' + iv.lo + ', ' + iv.hi + ']'));
+        if (bad) svgc.appendChild(el('text',{x:X(iv.lo)-9,y:y+5,fill:c,'font-size':11.5,
+          'text-anchor':'end','font-weight':700}, 'overlaps nobody →'));
+      });
+      var y=y0+4*36+6;
+      svgc.appendChild(el('rect',{x:X(101),y:y-10,width:Math.max(3,X(104)-X(101)),height:20,rx:5,
+        fill:cv('--ok'),opacity:.45,stroke:cv('--ok'),'stroke-width':2}));
+      svgc.appendChild(el('text',{x:x0-14,y:y+5,fill:cv('--ok'),'font-size':13,'font-weight':700,
+        'text-anchor':'end'},'∩ S1,S2,S3'));
+      svgc.appendChild(el('text',{x:X(104)+9,y:y+5,fill:cv('--ok'),'font-size':11.5,
+        'font-family':cv('--mono')},'[101, 104]  — 3 ms wide, half of any single claim'));
+    },
+    verdicts:[
+      {h:'Falseticker found',v:'S4',cls:'pass',hero:true,
+       n:'No prior knowledge of who is honest was needed — only the rule that correct intervals must intersect.'},
+      {h:'Resulting interval',v:'[101, 104] ms',cls:'pass',
+       n:'3 ms wide. Every individual claim was 6 ms wide, so combining honest sources also <b>halves ε</b>.'},
+      {h:'Minimum sources needed',v:'4',
+       n:'Three out-votes one liar; the fourth keeps that property when one is unreachable. This is why "configure at least four servers" is standard advice.'},
+      {h:'If Alba had polled only S4',v:'5 minutes wrong',cls:'fail',
+       n:'Confidently, with a tight error bar, and with every health check green.'}
+    ],
+    note:{cls:'info', html:'<b>Marzullo\'s algorithm — and the reason it matters more than it looks.</b> A single lying clock is not one wrong machine; it is a wrong <em>cluster</em>. The <code>hybrid-logical-clocks</code> lab measured this: one node running +60 in a ±8 cluster pushed the measured bound from 16 to 67, and <code>l</code> never came back down, because HLC propagates a high value by <code>max</code> and has no mechanism to lower it. That is why the production answers are so blunt — CockroachDB makes a node <b>terminate itself</b> outside its max-offset, MongoDB <b>HMAC-signs</b> <code>$clusterTime</code> so nobody can inject a future, and Google runs atomic-clock "Armageddon" masters so a GPS-correlated failure cannot make every master lie the same way at once.'}
+  },
+  {
+    id:'lease', name:'Two holders, one lock',
+    title:'Both machines believe they hold the lease',
+    story:'A lock service grants Alba a lease until 10:00:05.000. Alba\'s clock runs 1.73 s fast; Bruno\'s runs 2.59 s slow; the lock service\'s clock is correct. Nobody crashes. No message is lost. Every participant follows the protocol exactly.',
+    q:'What goes wrong?',
+    opts:['Nothing — the lease expires correctly, just at a slightly wrong moment','Alba keeps writing after her lease has really expired, while Bruno has already been granted it — both hold it at once','Bruno never gets the lock because Alba\'s clock is ahead'],
+    right:1,
+    draw:function(svg){
+      timeline(svg,{tmax:8, axis:'TRUE TIME (s after 10:00:00) →',
+        bands:[{t0:3.2,t1:5.6,label:'both machines writing',color:cv('--bad')}],
+        tracks:[
+          {label:'Lock service', color:cv('--accent'), sub:'correct clock', events:[
+            {t:0,text:'grant to Alba, until 05.000'},
+            {t:5,text:'lease expires · grant to Bruno',kind:'warn',above:false}]},
+          {label:'Alba', color:cv('--alba'), sub:'1.73 s fast', events:[
+            {t:0,text:'writing'},
+            {t:3.27,text:'her clock says 04.900 — "I still have 100 ms"',kind:'bad',anchor:'start'}]},
+          {label:'Bruno', color:cv('--bruno'), sub:'2.59 s slow', events:[
+            {t:5,text:'granted'},{t:5.6,text:'starts writing',kind:'bad',above:false}]}
+        ]});
+    },
+    verdicts:[
+      {h:'Nodes that crashed',v:'0',n:'This is not a failure scenario in the usual sense.'},
+      {h:'Messages lost',v:'0',n:'The network behaved perfectly throughout.'},
+      {h:'Protocol violations',v:'0',cls:'fail',hero:true,
+       n:'Every participant obeyed the rules. The only fault is that three clocks disagreed.'},
+      {h:'What actually fixes it',v:'fencing token',cls:'pass',
+       n:'A monotonically increasing number issued with the lock and <b>checked by the storage layer</b>, which rejects any write carrying a token lower than one it has already accepted.'}
+    ],
+    note:{cls:'bad', html:'<b>The rule to carry away.</b> If the correctness of your system depends on comparing two clocks on two machines, you have a bug whose severity is set by ε — and ε is a number you probably have not measured. Use physical time for <em>timeouts and heuristics</em>, where being wrong costs latency. Use logical mechanisms — fencing tokens, epochs, quorums — for <em>safety</em>, where being wrong costs correctness. Notice that shortening the lease does not help: a machine that is paused or slow does not know that it is, so it cannot notice its own lease expiring. This is <code>distributed-locking</code>\'s advice with the number attached, and <code>split-brain</code>\'s argument from the other end.'}
+  },
+  {
+    id:'leap', name:'The leap second',
+    title:'Half your fleet deliberately disagrees with the other half',
+    story:'A leap second is inserted at midnight UTC. Your NTP source smears it — running slightly slow for hours so the extra second is absorbed without any jump. Your PTP Hardware Clock does not smear: it follows UTC and inserts the leap second. Both are behaving exactly as documented. Your client is configured with both.',
+    q:'During the smear window, what does the client see?',
+    opts:['The two sources agree, because both ultimately track UTC','Two sources disagreeing by up to a full second, with neither one faulty','The PTP clock is rejected automatically because it is the outlier'],
+    right:1,
+    draw:function(svg){
+      clear(svg);
+      var x0=140,x1=930,y0=44,H=120;
+      var X=function(h){ return x0+(h/24)*(x1-x0); };
+      var Y=function(s){ return y0+H-(s/1.2)*H; };
+      svg.appendChild(el('text',{x:x0,y:24,fill:cv('--muted'),'font-size':11.5,'font-weight':600,
+        'letter-spacing':'.05em'},'HOURS THROUGH THE SMEAR WINDOW →   (offset from unsmeared UTC, seconds)'));
+      [0,0.5,1].forEach(function(s){
+        svg.appendChild(el('line',{x1:x0,y1:Y(s),x2:x1,y2:Y(s),stroke:cv('--grid')}));
+        svg.appendChild(el('text',{x:x0-10,y:Y(s)+4,fill:cv('--muted'),'font-size':11,
+          'text-anchor':'end','font-family':cv('--mono')}, s.toFixed(1)+'s'));
+      });
+      for (var h=0;h<=24;h+=6){
+        svg.appendChild(el('text',{x:X(h),y:y0+H+20,fill:cv('--muted'),'font-size':11,
+          'text-anchor':'middle'}, h+'h'));
+      }
+      // smeared source: linear ramp to 1s over 24h then back to 0
+      var d='M'+X(0)+','+Y(0);
+      for (var h=0;h<=24;h+=0.5) d+=' L'+X(h)+','+Y(h/24);
+      svg.appendChild(el('path',{d:d,fill:'none',stroke:cv('--accent'),'stroke-width':2.5}));
+      svg.appendChild(el('text',{x:X(24)+8,y:Y(1)+4,fill:cv('--accent'),'font-size':12,
+        'font-weight':700},'smeared NTP'));
+      // unsmeared: flat 0, one step at the end
+      svg.appendChild(el('path',{d:'M'+X(0)+','+Y(0)+' L'+X(24)+','+Y(0),fill:'none',
+        stroke:cv('--bruno'),'stroke-width':2.5}));
+      svg.appendChild(el('text',{x:X(24)+8,y:Y(0)+4,fill:cv('--bruno'),'font-size':12,
+        'font-weight':700},'PHC (UTC)'));
+      // the gap
+      svg.appendChild(el('line',{x1:X(18),y1:Y(0),x2:X(18),y2:Y(0.75),stroke:cv('--bad'),
+        'stroke-width':2.5,'stroke-dasharray':'4 3'}));
+      svg.appendChild(el('text',{x:X(18)-10,y:Y(0.4),fill:cv('--bad'),'font-size':12,
+        'text-anchor':'end','font-weight':700},'750 ms apart, both correct'));
+      svg.appendChild(el('text',{x:x0,y:y0+H+44,fill:cv('--muted'),'font-size':12},
+        'Google and AWS smear over 24 hours; Meta over 17, because hundreds of Stratum-2 servers must smear in step.'));
+    },
+    verdicts:[
+      {h:'Sources disagreeing',v:'up to 1 s',cls:'fail',hero:true,
+       n:'And neither is faulty. Both are implementing their documented behaviour.'},
+      {h:'Falseticker rejection',v:'cannot help',cls:'fail',
+       n:'The intersection algorithm sees two mutually inconsistent sources and no majority to break the tie.'},
+      {h:'Your ε during the window',v:'~1,000× wider',cls:'fail',
+       n:'A design assuming a few ms of skew is violated by three orders of magnitude — with every health check green, because nothing is wrong.'},
+      {h:'Leap seconds after 2035',v:'none',cls:'pass',
+       n:'The 27th CGPM resolved in Nov 2022 to end them by or before 2035. Until then they can still be scheduled with six months\' notice.'}
+    ],
+    note:{cls:'warn', html:'<b>AWS documents this hazard explicitly:</b> because smeared and non-smeared time differ during a leap second event, they "do not recommend using both smeared and non-smeared time sources in your time client configuration". Note that AWS\'s own PHC does <em>not</em> smear — it inserts the leap second following UTC — so an instance configured with both the PHC and a smeared NTP source is precisely the configuration being warned about. Meta\'s PTP-era answer is the most elegant: rather than smearing the clock, <code>fbclock</code> <b>widens the Window of Uncertainty</b>, shifting time by one nanosecond every 62.5 µs. The system stops pretending to know the time more precisely than it does, and lets callers decide — which is this whole lab\'s thesis applied to a scheduled event.'}
+  }
+];
+var B = { sel:null };
+
+function bPick(id){
+  B.sel = id;
+  var s = bFind();
+  Array.prototype.forEach.call($('b-chips').childNodes, function(b,i){
+    b.setAttribute('aria-pressed', SCEN[i].id === id ? 'true' : 'false');
+  });
+  $('b-title').textContent = s.title;
+  $('b-story').textContent = s.story;
+  $('b-q').textContent = '🔮 ' + s.q;
+  var opts = $('b-opts'); clear(opts);
+  s.opts.forEach(function(o, i){
+    var btn = document.createElement('button');
+    btn.className='opt'; btn.textContent = o;
+    btn.onclick = function(){ bAnswer(i, btn); };
+    opts.appendChild(btn);
+  });
+  $('b-res').classList.add('hidden');
+  $('b-out').classList.add('hidden');
+}
+function bFind(){ for (var i=0;i<SCEN.length;i++) if (SCEN[i].id===B.sel) return SCEN[i]; return SCEN[0]; }
+function bAnswer(i, btn){
+  var s = bFind();
+  Array.prototype.forEach.call($('b-opts').childNodes, function(b, j){
+    b.setAttribute('data-state', j === s.right ? 'right' : (b === btn ? 'wrong' : ''));
+  });
+  var r = $('b-res'); r.classList.remove('hidden');
+  r.innerHTML = (i === s.right ? '<b>Correct.</b> ' : '<b>Not quite — the highlighted answer is the one.</b> ')
+    + 'The trace below is what actually happens.';
+  $('b-out').classList.remove('hidden');
+  s.draw($('b-svg'));
+  verdict($('b-verdicts'), s.verdicts);
+  var n = $('b-note'); n.className = 'callout ' + s.note.cls; n.innerHTML = s.note.html;
+}
+
+/* ======================= INIT ======================= */
+(function init(){
+  var chips = $('b-chips');
+  SCEN.forEach(function(s){
+    var b = document.createElement('button');
+    b.className='chip'; b.textContent = s.name;
+    b.onclick = function(){ bPick(s.id); };
+    chips.appendChild(b);
+  });
+  mDraw();
+  mSample();
+  bPick('back');
+  dRun();
+  lDraw();
+  lPick('local');
+})();
+</script>

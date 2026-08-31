@@ -1,0 +1,1015 @@
+<title>Replica Repair Bench</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap">
+<style>
+:root{
+  --bg:#e9edeb; --card:#fbfcfb; --card2:#f0f4f1; --card3:#e6ebe7;
+  --ink:#16211f; --muted:#5c6d69; --faint:#849691; --line:#cbd6d1;
+  --sync:#1c7050; --sync-soft:#d7ece2; --sync-line:#8ec4ad;
+  --drift:#ab2358; --drift-soft:#fadfe9; --drift-line:#e295b4;
+  --tomb:#63479c; --tomb-soft:#e6e1f4; --tomb-line:#b0a1dc;
+  --hint:#8f6209; --hint-soft:#f5e9cf; --hint-line:#d9b96a;
+  --dead:#8b9894; --dead-soft:#e2e6e4;
+  --accent:#1c7050;
+  --shadow:0 1px 2px rgba(20,40,35,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1614; --card:#18211e; --card2:#1e2724; --card3:#242e2a;
+    --ink:#dde6e2; --muted:#8ea19b; --faint:#6c7f79; --line:#2a3733;
+    --sync:#54b78e; --sync-soft:#11311f; --sync-line:#2e6d4e;
+    --drift:#e57ba4; --drift-soft:#3a1424; --drift-line:#7d3253;
+    --tomb:#a893e0; --tomb-soft:#241d3a; --tomb-line:#4d3f7a;
+    --hint:#d4a748; --hint-soft:#33280e; --hint-line:#6b5520;
+    --dead:#63736e; --dead-soft:#222b28;
+    --accent:#54b78e;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1614; --card:#18211e; --card2:#1e2724; --card3:#242e2a;
+  --ink:#dde6e2; --muted:#8ea19b; --faint:#6c7f79; --line:#2a3733;
+  --sync:#54b78e; --sync-soft:#11311f; --sync-line:#2e6d4e;
+  --drift:#e57ba4; --drift-soft:#3a1424; --drift-line:#7d3253;
+  --tomb:#a893e0; --tomb-soft:#241d3a; --tomb-line:#4d3f7a;
+  --hint:#d4a748; --hint-soft:#33280e; --hint-line:#6b5520;
+  --dead:#63736e; --dead-soft:#222b28;
+  --accent:#54b78e;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); margin:0; padding:22px 20px 80px;
+  font:15px/1.55 "IBM Plex Sans",system-ui,-apple-system,sans-serif;}
+.wrap{max-width:1340px; margin:0 auto;}
+h1{font-family:Chivo,"Helvetica Neue",Arial,sans-serif; font-weight:800; font-size:40px;
+  margin:0; letter-spacing:-.015em; text-wrap:balance; line-height:1.02;}
+h1 .thin{color:var(--muted); font-weight:700;}
+.lede{color:var(--muted); max-width:76ch; margin:10px 0 0; font-size:15.5px;}
+.lede b{color:var(--ink); font-weight:600;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+
+.cols{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:18px;}
+.stagecol{flex:1 1 700px; min-width:540px; display:flex; flex-direction:column; gap:14px;}
+.rail{flex:1 1 350px; min-width:330px; display:flex; flex-direction:column; gap:14px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:7px;
+  padding:14px 15px; box-shadow:var(--shadow);}
+.card > h3{margin:0 0 11px; font-family:Chivo,Arial,sans-serif; font-size:11.5px;
+  text-transform:uppercase; letter-spacing:.13em; color:var(--muted); font-weight:700;
+  border-bottom:1px solid var(--line); padding-bottom:8px; display:flex;
+  justify-content:space-between; align-items:baseline; gap:8px;}
+.card > h3 .note{text-transform:none; letter-spacing:0; font-weight:450; color:var(--faint); font-size:11.5px;}
+.row{display:flex; gap:7px; align-items:center; flex-wrap:wrap;}
+.spread{justify-content:space-between;}
+
+button{font:inherit; font-size:13.5px; font-weight:500; color:var(--ink); background:var(--card2);
+  border:1px solid var(--line); border-radius:5px; padding:6px 11px; cursor:pointer;
+  transition:border-color .12s, color .12s, background .12s;}
+button:hover:not(:disabled){border-color:var(--accent); color:var(--accent);}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+button:disabled{opacity:.42; cursor:not-allowed;}
+button.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+button.primary:hover:not(:disabled){color:#fff; filter:brightness(1.1);}
+button.danger{color:var(--drift); border-color:var(--drift-line); background:var(--drift-soft);}
+button.danger:hover:not(:disabled){border-color:var(--drift); color:var(--drift);}
+button.small{padding:4px 8px; font-size:12.5px;}
+select,input[type=number]{font:inherit; font-size:13px; color:var(--ink); background:var(--card2);
+  border:1px solid var(--line); border-radius:5px; padding:4px 7px;}
+input[type=range]{accent-color:var(--accent); width:100%;}
+label.set{display:flex; justify-content:space-between; align-items:center; gap:9px;
+  font-size:13px; color:var(--muted); padding:3px 0;}
+label.set b{color:var(--ink); font-weight:500;}
+.hintline{font-size:12px; color:var(--faint); margin:1px 0 7px; line-height:1.4;}
+
+/* ---- verdict ---- */
+.verdict{border-radius:7px; padding:13px 16px; border:1px solid; display:flex; gap:13px;
+  align-items:flex-start; margin-top:16px;}
+.verdict .big{font-family:Chivo,Arial,sans-serif; font-weight:800; font-size:30px; line-height:1;
+  min-width:52px; text-align:center;}
+.verdict .txt{font-size:14.5px; line-height:1.5;}
+.verdict .txt b{font-weight:600;}
+.v-ok{background:var(--sync-soft); border-color:var(--sync-line); color:var(--sync);}
+.v-bad{background:var(--drift-soft); border-color:var(--drift-line); color:var(--drift);}
+.v-warn{background:var(--hint-soft); border-color:var(--hint-line); color:var(--hint);}
+.verdict .txt{color:var(--ink);}
+
+/* ---- shops ---- */
+.shops{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+.shop{border:1px solid var(--line); border-radius:7px; background:var(--card2); padding:10px 11px;}
+.shop.down{background:var(--dead-soft); border-style:dashed; opacity:.82;}
+.shop h4{margin:0 0 3px; font-family:Chivo,Arial,sans-serif; font-size:15px; font-weight:700;
+  display:flex; justify-content:space-between; align-items:center; gap:6px;}
+.pill{font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.07em;
+  padding:2px 7px; border-radius:20px; border:1px solid;}
+.p-up{color:var(--sync); border-color:var(--sync-line); background:var(--sync-soft);}
+.p-down{color:var(--dead); border-color:var(--dead); background:var(--dead-soft);}
+.p-hint{color:var(--hint); border-color:var(--hint-line); background:var(--hint-soft);}
+.shopmeta{font-size:11.5px; color:var(--faint); margin:0 0 8px; min-height:15px;}
+.items{display:flex; flex-direction:column; gap:2px;}
+.it{display:flex; justify-content:space-between; align-items:center; gap:6px;
+  font-size:12px; padding:2.5px 6px; border-radius:4px; border:1px solid transparent;
+  background:var(--card); cursor:pointer;}
+.it:hover{border-color:var(--line);}
+.it .nm{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.it .vl{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-weight:500;}
+.it.diff{background:var(--drift-soft); border-color:var(--drift-line);}
+.it.diff .nm,.it.diff .vl{color:var(--drift);}
+.it.tomb{background:var(--tomb-soft); border-color:var(--tomb-line);}
+.it.tomb .nm,.it.tomb .vl{color:var(--tomb);}
+.it.absent .vl{color:var(--faint); font-style:italic;}
+.it.flash{animation:flash .9s ease-out;}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--hint-line);}100%{box-shadow:0 0 0 0 transparent;}}
+.it.sel{outline:2px solid var(--accent); outline-offset:1px;}
+
+/* ---- merkle ---- */
+.tree{display:flex; flex-direction:column; gap:7px; overflow-x:auto; padding-bottom:4px;}
+.lvl{display:flex; gap:4px; min-width:100%;}
+.mn{flex:1 1 0; min-width:0; border:1px solid var(--line); border-radius:4px; background:var(--card2);
+  padding:4px 3px; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+  color:var(--faint); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+.mn.match{background:var(--sync-soft); border-color:var(--sync-line); color:var(--sync); font-weight:500;}
+.mn.differ{background:var(--drift-soft); border-color:var(--drift-line); color:var(--drift); font-weight:600;}
+.mn.streamed{background:var(--hint-soft); border-color:var(--hint-line); color:var(--hint); font-weight:600;}
+.mn.unseen{opacity:.35;}
+.mn.cur{outline:2px solid var(--ink); outline-offset:1px;}
+.costs{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:8px; margin-top:11px;}
+.cost{background:var(--card2); border:1px solid var(--line); border-radius:6px; padding:7px 9px;}
+.cost .k{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); font-weight:600;}
+.cost .v{font-family:Chivo,Arial,sans-serif; font-size:21px; font-weight:800; line-height:1.15;
+  font-variant-numeric:tabular-nums;}
+.cost.good .v{color:var(--sync);} .cost.warn .v{color:var(--hint);} .cost.bad .v{color:var(--drift);}
+
+/* ---- meter ---- */
+.meter{display:flex; gap:3px; margin:2px 0 9px;}
+.meter i{flex:1 1 0; height:12px; border-radius:2px; background:var(--sync-soft);
+  border:1px solid var(--sync-line);}
+.meter i.d{background:var(--drift-soft); border-color:var(--drift);}
+.meter i.t{background:var(--tomb-soft); border-color:var(--tomb-line);}
+
+/* ---- log ---- */
+.log{max-height:270px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:0;
+  border:1px solid var(--line); border-radius:6px; background:var(--card2); padding:4px 0;}
+.ev{padding:6px 10px; font-size:12.5px; line-height:1.45; border-bottom:1px solid var(--line);}
+.ev:first-child{border-bottom:none;}
+.ev .tm{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint); margin-right:7px;}
+.ev .sub{display:block; color:var(--faint); font-size:11.5px; margin-top:2px; font-family:"IBM Plex Mono",monospace;}
+.ev.k-repair{background:var(--sync-soft);} .ev.k-bad{background:var(--drift-soft);}
+.ev.k-hint{background:var(--hint-soft);} .ev.k-tomb{background:var(--tomb-soft);}
+
+/* ---- scenarios ---- */
+.scn{border:1px solid var(--line); border-radius:6px; padding:9px 11px; background:var(--card2);
+  margin-bottom:8px;}
+.scn h5{margin:0 0 4px; font-size:13.5px; font-weight:600; font-family:Chivo,Arial,sans-serif;}
+.scn p{margin:0 0 8px; font-size:12.5px; color:var(--muted); line-height:1.45;}
+.scn .opts{display:flex; flex-direction:column; gap:5px;}
+.scn .opts button{text-align:left; font-size:12.5px; padding:5px 9px;}
+.scn .res{margin-top:8px; font-size:12.5px; line-height:1.5; border-radius:5px; padding:8px 10px;}
+.res.right{background:var(--sync-soft); border:1px solid var(--sync-line);}
+.res.wrong{background:var(--drift-soft); border:1px solid var(--drift-line);}
+.res b{font-weight:600;}
+
+.legend{display:flex; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--muted);}
+.legend span{display:flex; align-items:center; gap:6px;}
+.sw{width:13px; height:13px; border-radius:3px; border:1px solid;}
+details.rules{margin-top:14px;}
+details.rules summary{cursor:pointer; font-size:13px; color:var(--muted); font-weight:500;}
+details.rules ul{font-size:13px; color:var(--muted); line-height:1.6; max-width:80ch;}
+code{font-family:"IBM Plex Mono",monospace; font-size:.92em; background:var(--card3);
+  padding:1px 4px; border-radius:3px;}
+@media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+</style>
+
+<div class="wrap">
+  <h1>Replica Repair Bench <span class="thin">— three shops, one price list</span></h1>
+  <p class="lede">
+    Three bakeries keep their own copy of the same sixteen-item price list. Head office
+    counts a price change as done once <b>two</b> shops have confirmed it — so a shop that
+    was busy keeps selling at the old price, and <b>nothing in the ordinary running of the
+    business ever goes back to check</b>. This page is that business, and the machinery
+    that fixes it: leave a note, fix it when someone asks, or run a comparison.
+  </p>
+
+  <div id="verdict" class="verdict v-ok">
+    <div class="big" id="vbig">0</div>
+    <div class="txt" id="vtxt">All three shops agree on all sixteen prices.</div>
+  </div>
+
+  <div class="cols">
+    <div class="stagecol">
+
+      <div class="card">
+        <h3>Do something <span class="note">every action is undoable with Step back</span></h3>
+        <div class="row" style="margin-bottom:8px">
+          <select id="item"></select>
+          <input type="number" id="price" value="4.00" step="0.10" min="0" style="width:82px">
+          <button id="bWrite" class="primary">Set this price</button>
+          <button id="bDelete">Stop selling it</button>
+          <button id="bRead">A customer asks the price</button>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <span class="hintline" style="margin:0 4px 0 0">Shops:</span>
+          <button id="kA" class="danger small">Close A</button>
+          <button id="kB" class="danger small">Close B</button>
+          <button id="kC" class="danger small">Close C</button>
+          <span class="hintline" style="margin:0 4px 0 8px">Time:</span>
+          <button id="bClock1" class="small">+1 hour</button>
+          <button id="bClock4" class="small">+4 hours</button>
+          <button id="bCompact" class="small">Clear old headstones</button>
+        </div>
+        <div class="row">
+          <span class="hintline" style="margin:0 4px 0 0">Repair:</span>
+          <select id="pair">
+            <option value="AC">A ↔ C</option><option value="AB">A ↔ B</option><option value="BC">B ↔ C</option>
+          </select>
+          <button id="bMerkle" class="primary">Compare and repair</button>
+          <button id="bFull">Send everything instead</button>
+          <span style="flex:1"></span>
+          <button id="bBack" class="small">↶ Step back</button>
+          <button id="bReset" class="small">Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>The three shops <span class="note" id="clockNote"></span></h3>
+        <div class="meter" id="meter"></div>
+        <p class="hintline" id="meterNote" style="margin-top:-3px"></p>
+        <div class="shops" id="shops"></div>
+      </div>
+
+      <div class="card">
+        <h3>The comparison <span class="note" id="treeNote">run a repair to see how the two shops find their differences</span></h3>
+        <div class="row" style="margin-bottom:9px">
+          <button id="bReplay" class="small">▶ Replay the descent</button>
+          <button id="bStep" class="small">Step ▸</button>
+          <span class="hintline" id="stepNote" style="margin:0"></span>
+        </div>
+        <div class="tree" id="tree"></div>
+        <div class="costs" id="costs"></div>
+      </div>
+
+      <div class="card">
+        <h3>Legend</h3>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--card);border-color:var(--line)"></i> all three shops agree</span>
+          <span><i class="sw" style="background:var(--drift-soft);border-color:var(--drift)"></i> shops disagree about this item</span>
+          <span><i class="sw" style="background:var(--tomb-soft);border-color:var(--tomb-line)"></i> headstone: deleted, marker still kept</span>
+          <span><i class="sw" style="background:var(--sync-soft);border-color:var(--sync-line)"></i> hashes matched — branch skipped</span>
+          <span><i class="sw" style="background:var(--hint-soft);border-color:var(--hint-line)"></i> range sent over the wire</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rail">
+
+      <div class="card">
+        <h3>Predict, then watch <span class="note">pick an answer first</span></h3>
+        <div id="scenarios"></div>
+      </div>
+
+      <div class="card">
+        <h3>What happened</h3>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="card">
+        <h3>Settings <span class="note">every one of these is a real knob</span></h3>
+        <label class="set">Confirmations needed to call a write done (W)
+          <input type="number" id="cW" min="1" max="3" value="2" style="width:52px"></label>
+        <label class="set">Shops asked when a customer reads (R)
+          <input type="number" id="cR" min="1" max="3" value="2" style="width:52px"></label>
+        <label class="set">Leave a note for a closed shop
+          <input type="checkbox" id="cHints" checked></label>
+        <div class="hintline">Hinted handoff. Off = a write to a closed shop is simply lost to it.</div>
+        <label class="set">Bin the note after
+          <span><input type="number" id="cWin" min="0" max="1440" step="30" value="180" style="width:66px"> min</span></label>
+        <label class="set">Fix what a read notices
+          <input type="checkbox" id="cRR" checked></label>
+        <label class="set">…and check the shops not asked
+          <input type="checkbox" id="cRRAll"></label>
+        <div class="hintline">Read repair. The second box is Cassandra's old <code>read_repair_chance</code>: digest all three replicas even though only R answered.</div>
+        <label class="set">Deleting leaves a headstone
+          <input type="checkbox" id="cTomb" checked></label>
+        <div class="hintline">Tombstones. Off = a delete just removes the row, and repair cannot tell "deleted" from "never received".</div>
+        <label class="set">Headstones are cleared after
+          <span><input type="number" id="cGC" min="0" max="2880" step="60" value="360" style="width:66px"> min</span></label>
+        <label class="set">Rule for picking the winner
+          <select id="cMerge">
+            <option value="lww">newest timestamp wins</option>
+            <option value="arrival">whoever received it wins</option>
+          </select></label>
+        <div class="hintline">The second rule is not a join: the answer depends on which shop was on the receiving end last.</div>
+        <label class="set">Checksums at the bottom of the tree
+          <select id="cDepth">
+            <option value="1">2 ranges — 8 items each</option>
+            <option value="2">4 ranges — 4 items each</option>
+            <option value="3">8 ranges — 2 items each</option>
+            <option value="4" selected>16 ranges — 1 item each</option>
+          </select></label>
+        <div class="hintline">Coarser ranges mean fewer hashes and far more wasted transfer.</div>
+        <label class="set">Shop C's clock runs fast by
+          <span><input type="number" id="cSkew" min="0" max="600" step="30" value="0" style="width:66px"> min</span></label>
+      </div>
+
+      <div class="card">
+        <h3>Selected item</h3>
+        <div id="inspect" class="hintline">Click any item in any shop to see exactly what each shop is storing for it.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <details class="rules">
+    <summary>The rules this simulator follows (so you can check that the numbers mean what the lab says they mean)</summary>
+    <ul>
+      <li>Three shops, A, B and C. Every shop holds every one of the sixteen items. A stored row is <code>{timestamp, price, deleted}</code>; a row can also be simply absent.</li>
+      <li>A write goes from the chosen shop to every shop it can reach, and is reported successful if at least <b>W</b> shops stored it. A shop that receives a write keeps it only if its timestamp beats what is already there — an older write loses on arrival.</li>
+      <li>For every shop it could not reach, the coordinating shop parks a <b>hint</b> (if hints are on). Hints are replayed when the target reopens, unless they are older than the hint window. A shop that closes loses every hint it was holding.</li>
+      <li>A read asks <b>R</b> shops, preferring the shop that took the request. It answers with the newest record among them, and (if read repair is on) writes that record back to the shops it compared.</li>
+      <li>A delete writes a <b>headstone</b> (tombstone) carrying its timestamp, unless headstones are turned off, in which case it removes the row. "Clear old headstones" is compaction: it discards headstones older than the grace period.</li>
+      <li>A Merkle repair builds a hash tree over the item list on each of the two shops, compares them from the root down, skips any branch whose two hashes match, and transfers <i>every item</i> inside each mismatched leaf range in both directions, resolving each with the merge rule.</li>
+      <li>Costs are counted as: 32 bytes per hash exchanged, 200 bytes per row streamed. "Rows read off disk" counts the full scan both shops do to build their trees, which happens whether or not anything is wrong.</li>
+      <li>Simplifications: every shop holds every item (no token ranges); repair is pairwise and instantaneous; hashing and streaming take no time; there is one datacentre.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============================ ENGINE ============================
+   Pure-ish state + actions. Every mutation goes through pushHistory()
+   so that Step back works, and so the page can never show a state the
+   engine could not have produced. */
+
+var ITEMS = ["sourdough","baguette","croissant","rye","focaccia","brioche",
+             "bagel","ciabatta","pretzel","muffin","scone","danish",
+             "tart","eclair","macaron","cookie"];
+var NODES = ["A","B","C"];
+var BYTES_PER_HASH = 32, BYTES_PER_ROW = 200;
+
+function fnv(s){ var h=2166136261>>>0;
+  for (var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+  return h>>>0; }
+function hex(h){ return ("0000"+(h>>>16).toString(16)).slice(-4); }
+
+function initState(cfg){
+  var s = { clock:0, nodes:{}, log:[], lastRepair:null, touched:{},
+    cfg:{ W:2, R:2, hints:true, hintWindow:180, readRepair:true, readRepairAll:false,
+          tombstones:true, gcGrace:360, merge:"lww", depth:4, skewC:0 } };
+  for (var k in (cfg||{})) s.cfg[k] = cfg[k];
+  NODES.forEach(function(n){
+    s.nodes[n] = {status:"up", rows:{}, hints:[]};
+    ITEMS.forEach(function(it,i){ s.nodes[n].rows[it] = {ts:0, price:+(2.00+i*0.20).toFixed(2), dead:false}; });
+  });
+  return s;
+}
+function reachable(s,from,to){
+  if (from===to) return s.nodes[from].status!=="down";
+  return s.nodes[from].status==="up" && s.nodes[to].status==="up";
+}
+function merge(a,b){
+  if (!a) return b||null;
+  if (!b) return a;
+  if (a.ts!==b.ts) return a.ts>b.ts ? a : b;
+  if (a.dead!==b.dead) return a.dead ? a : b;
+  return a.price>=b.price ? a : b;
+}
+function sameRec(a,b){ if(!a&&!b) return true; if(!a||!b) return false;
+  return a.ts===b.ts && a.price===b.price && a.dead===b.dead; }
+function visible(r){ return (!r||r.dead) ? "not sold" : r.price.toFixed(2); }
+function cp(r){ return r ? {ts:r.ts, price:r.price, dead:r.dead} : null; }
+
+function divergence(s){
+  var stored=0, seen=0, rows={};
+  ITEMS.forEach(function(it){
+    var recs = NODES.map(function(n){ return s.nodes[n].rows[it]||null; });
+    var st = !(sameRec(recs[0],recs[1]) && sameRec(recs[1],recs[2]));
+    var vs = recs.map(visible);
+    var vi = !(vs[0]===vs[1] && vs[1]===vs[2]);
+    if (st) stored++; if (vi) seen++;
+    rows[it] = {stored:st, visible:vi};
+  });
+  return {stored:stored, visible:seen, rows:rows};
+}
+function tick(s,m){ s.clock += (m===undefined?1:m); }
+function say(s,txt,sub,kind){ s.log.push({t:s.clock, txt:txt, sub:sub||"", kind:kind||""}); }
+function listOf(a){ return a.length<2 ? (a[0]||"") :
+  a.slice(0,-1).join(", ")+" and "+a[a.length-1]; }
+function shopsPhrase(a){ return (a.length>1?"Shops ":"Shop ")+listOf(a); }
+function nodeClock(s,n){ return s.clock + (n==="C" ? s.cfg.skewC : 0); }
+function fmtClock(m){ var h=Math.floor(m/60), mm=m%60;
+  return ("0"+h).slice(-2)+":"+("0"+mm).slice(-2); }
+
+function doWrite(s,item,price,coord,dead){
+  tick(s);
+  var ts = nodeClock(s,coord), acks=0, missed=[], loser=[];
+  NODES.forEach(function(n){
+    if (!reachable(s,coord,n)) { missed.push(n); return; }
+    if (dead && !s.cfg.tombstones){ delete s.nodes[n].rows[item]; }
+    else {
+      var cur = s.nodes[n].rows[item]||null;
+      var next = merge(cur,{ts:ts, price:price, dead:!!dead});
+      if (next!==cur && next.ts===ts) { s.nodes[n].rows[item] = {ts:ts, price:price, dead:!!dead}; }
+      else { loser.push(n); }
+    }
+    acks++; s.touched[n+"/"+item]=1;
+  });
+  missed.forEach(function(n){
+    if (s.cfg.hints && s.nodes[coord].status==="up")
+      s.nodes[coord].hints.push({item:item, rec:{ts:ts,price:price,dead:!!dead}, target:n, born:s.clock});
+  });
+  var ok = acks >= s.cfg.W;
+  say(s,
+    (dead ? "Head office stops selling " : "Head office sets ")+item+
+    (dead ? "" : " to "+price.toFixed(2))+". "+acks+" of the 3 shops wrote it down"+
+    (ok ? ", which is enough (W="+s.cfg.W+"), so the change is reported as done."
+        : ", which is fewer than the "+s.cfg.W+" required, so the change is reported as FAILED — but the shops that did write it keep it.")+
+    (missed.length ? " "+shopsPhrase(missed)+" never heard."+
+        (s.cfg.hints && s.nodes[coord].status==="up" ? " A note was parked on shop "+coord+"." : " No note was left.") : ""),
+    "write "+item+"@ts"+ts+" acks="+acks+"/3 W="+s.cfg.W+(missed.length?" missed="+missed.join(","):"")+
+      (loser.length?" ignored-as-older-on="+loser.join(","):""),
+    ok?"":"k-bad");
+  if (loser.length) say(s, shopsPhrase(loser)+
+    " threw that write away: the copy already stored carries a newer timestamp. The change is gone with no error anywhere.",
+    "arriving ts="+ts+" lost to stored ts", "k-bad");
+  return {ok:ok, acks:acks, missed:missed};
+}
+
+function doRead(s,item,coord){
+  tick(s);
+  var up = NODES.filter(function(n){ return reachable(s,coord,n); });
+  var asked = up.slice().sort(function(a,b){ return (a===coord?-1:0)-(b===coord?-1:0); }).slice(0,s.cfg.R);
+  if (asked.length < s.cfg.R){
+    say(s,"A customer at shop "+coord+" asks the price of "+item+", but only "+asked.length+
+          " shop(s) can be reached and the rule says ask "+s.cfg.R+". The till refuses to answer.",
+          "read failed: R="+s.cfg.R+" reachable="+asked.length,"k-bad");
+    return {ok:false};
+  }
+  var scope = asked;
+  if (s.cfg.readRepair && s.cfg.readRepairAll) scope = up;
+  var win=null; scope.forEach(function(n){ win = merge(win, s.nodes[n].rows[item]||null); });
+  var repaired=[];
+  if (s.cfg.readRepair) scope.forEach(function(n){
+    if (!sameRec(s.nodes[n].rows[item]||null, win)){
+      if (win) s.nodes[n].rows[item] = cp(win); else delete s.nodes[n].rows[item];
+      repaired.push(n); s.touched[n+"/"+item]=1;
+    }});
+  var missedOut = NODES.filter(function(n){ return scope.indexOf(n)<0; });
+  say(s,"A customer at shop "+coord+" asks the price of "+item+". "+shopsPhrase(scope)+
+        (scope.length>1?" were":" was")+" consulted and the answer given was "+visible(win)+"."+
+        (repaired.length ? " While there, "+shopsPhrase(repaired).toLowerCase()+
+          " had the old value and "+(repaired.length>1?"were":"was")+" corrected."
+        : s.cfg.readRepair ? " Those shops already agreed, so nothing was corrected." : "")+
+        (missedOut.length ? " "+shopsPhrase(missedOut)+
+          " "+(missedOut.length>1?"were":"was")+" not consulted, so whatever "+
+          (missedOut.length>1?"they hold":"it holds")+" is untouched." : ""),
+        "read "+item+" R="+s.cfg.R+" scope="+scope.join(",")+" -> "+visible(win),
+        repaired.length?"k-repair":"");
+  return {ok:true, answer:visible(win), repaired:repaired, scope:scope};
+}
+
+function doKill(s,n){
+  tick(s);
+  var lost = s.nodes[n].hints.length;
+  s.nodes[n].status="down"; s.nodes[n].hints=[];
+  say(s,"Shop "+n+" closes. Its price list is untouched and will be exactly as it is now when it reopens."+
+        (lost ? " The "+lost+" note(s) it was holding for other shops are thrown out with it — nobody else has a copy." : ""),
+        "node "+n+" down"+(lost?"; hints lost="+lost:""), lost?"k-bad":"");
+  return {lost:lost};
+}
+
+function doRevive(s,n){
+  tick(s);
+  s.nodes[n].status="up";
+  say(s,"Shop "+n+" reopens and starts serving customers immediately, from the price list it had when it closed.",
+      "node "+n+" up");
+  var delivered=0, dropped=0;
+  NODES.forEach(function(o){
+    if (s.nodes[o].status!=="up") return;
+    var keep=[];
+    s.nodes[o].hints.forEach(function(h){
+      if (h.target!==n){ keep.push(h); return; }
+      if (s.clock-h.born > s.cfg.hintWindow){ dropped++; return; }
+      s.nodes[n].rows[h.item] = cp(merge(s.nodes[n].rows[h.item]||null, h.rec));
+      s.touched[n+"/"+h.item]=1; delivered++;
+    });
+    s.nodes[o].hints = keep;
+  });
+  if (delivered||dropped)
+    say(s,"The parked notes for shop "+n+" are read out: "+delivered+" delivered"+
+          (dropped ? ", and "+dropped+" binned for being older than the "+s.cfg.hintWindow+
+            "-minute limit. Those changes are now simply missing from shop "+n+", with nothing to say so." : "."),
+        "hinted handoff -> "+n+": delivered="+delivered+" expired="+dropped,
+        dropped?"k-bad":"k-hint");
+  return {delivered:delivered, dropped:dropped};
+}
+
+function doAdvance(s,mins){
+  tick(s,mins);
+  say(s,(mins/60).toFixed(0)+" hour(s) of ordinary trading pass. No prices change and no shop opens or closes.",
+      "clock += "+mins+"min");
+}
+
+function doCompact(s){
+  tick(s);
+  var purged=0;
+  NODES.forEach(function(n){
+    if (s.nodes[n].status==="down") return;
+    ITEMS.forEach(function(it){
+      var r = s.nodes[n].rows[it];
+      if (r && r.dead && (s.clock-r.ts) > s.cfg.gcGrace){ delete s.nodes[n].rows[it]; purged++; }
+    });
+  });
+  say(s, purged
+      ? "Old headstones are cleared away: "+purged+" of them were older than the "+(s.cfg.gcGrace/60)+
+        "-hour grace period and have been thrown out. Those items are now simply absent — there is no longer any record that they were ever deleted."
+      : "Headstones are checked for clearing. None are older than the "+(s.cfg.gcGrace/60)+"-hour grace period, so all are kept.",
+      "compaction: purged "+purged+" tombstones", purged?"k-tomb":"");
+  return {purged:purged};
+}
+
+function buildTree(s,node,depth){
+  var leaves = Math.pow(2,depth), per = ITEMS.length/leaves, lv=[];
+  for (var i=0;i<leaves;i++){
+    var str="";
+    for (var j=Math.round(i*per); j<Math.round((i+1)*per); j++){
+      var it=ITEMS[j], r=s.nodes[node].rows[it];
+      str += it+"|"+(r ? r.ts+":"+r.price.toFixed(2)+":"+(r.dead?"D":"L") : "-")+";";
+    }
+    lv.push(fnv(str));
+  }
+  var levels=[lv];
+  while (levels[0].length>1){
+    var up=[];
+    for (var i=0;i<levels[0].length;i+=2) up.push(fnv(levels[0][i]+"/"+levels[0][i+1]));
+    levels.unshift(up);
+  }
+  return levels;
+}
+function leafItems(idx,depth){
+  var leaves=Math.pow(2,depth), per=ITEMS.length/leaves, out=[];
+  for (var j=Math.round(idx*per); j<Math.round((idx+1)*per); j++) out.push(ITEMS[j]);
+  return out;
+}
+
+function doRepair(s,x,y,mode,opts){
+  opts = opts||{}; tick(s);
+  if (s.nodes[x].status!=="up" || s.nodes[y].status!=="up"){
+    say(s,"A repair between shops "+x+" and "+y+" cannot start: both shops have to be open for their lists to be compared.",
+        "repair aborted: node down","k-bad");
+    return {ok:false};
+  }
+  var before = divergence(s);
+  var r = {ok:true, mode:mode, x:x, y:y, hashes:0, rows:0, rowsStreamed:0, realDiffs:0,
+           leaves:0, mismatched:0, resurrected:[], scanned:ITEMS.length*2, depth:s.cfg.depth,
+           status:{}, order:[], tx:null, ty:null};
+  var todo=[];
+  if (mode==="full"){
+    todo = ITEMS.slice(); r.rows = ITEMS.length;
+  } else {
+    var d = s.cfg.depth;
+    var tx = buildTree(s,x,d);
+    if (opts.writeDuring){ doWrite(s, opts.writeDuring.item, opts.writeDuring.price, opts.writeDuring.coord||"B");
+      say(s,"…and that change landed after shop "+x+"'s checksums were taken but before shop "+y+"'s were.","",""); }
+    var ty = buildTree(s,y,d);
+    r.tx=tx; r.ty=ty; r.leaves=Math.pow(2,d);
+    var q=[{lvl:0,idx:0}]; r.hashes+=2; r.order.push({lvl:0,idx:0});
+    while (q.length){
+      var nd=q.shift(), key=nd.lvl+":"+nd.idx;
+      if (tx[nd.lvl][nd.idx]===ty[nd.lvl][nd.idx]){ r.status[key]="match"; continue; }
+      if (nd.lvl===tx.length-1){ r.status[key]="streamed"; r.mismatched++;
+        leafItems(nd.idx,d).forEach(function(it){ todo.push(it); }); continue; }
+      r.status[key]="differ";
+      [nd.idx*2, nd.idx*2+1].forEach(function(ci){
+        q.push({lvl:nd.lvl+1, idx:ci}); r.order.push({lvl:nd.lvl+1, idx:ci}); });
+      r.hashes+=4;
+    }
+    r.rows = todo.length;
+  }
+  r.rowsStreamed = r.rows*2;
+  todo.forEach(function(it){
+    var a=s.nodes[x].rows[it]||null, b=s.nodes[y].rows[it]||null;
+    if (!sameRec(a,b)) r.realDiffs++;
+    var w = (s.cfg.merge==="arrival") ? (b||a) : merge(a,b);
+    var aliveBefore = (a&&!a.dead) && (b&&!b.dead);
+    if (w){ s.nodes[x].rows[it]=cp(w); s.nodes[y].rows[it]=cp(w); }
+    else { delete s.nodes[x].rows[it]; delete s.nodes[y].rows[it]; }
+    if (!sameRec(a,b)){ s.touched[x+"/"+it]=1; s.touched[y+"/"+it]=1; }
+    if (w && !w.dead && !aliveBefore) r.resurrected.push(it);
+  });
+  var after = divergence(s);
+  r.before=before.stored; r.after=after.stored;
+  r.bytes = r.hashes*BYTES_PER_HASH + r.rowsStreamed*BYTES_PER_ROW;
+  s.lastRepair = r;
+  var head = mode==="full"
+    ? "Shops "+x+" and "+y+" send each other their whole price list — all "+ITEMS.length+
+      " items each way, "+r.bytes+" bytes — and settle every row."
+    : "Shops "+x+" and "+y+" compare checksums. "+r.hashes+" hashes crossed the wire, "+
+      r.mismatched+" of the "+r.leaves+" ranges disagreed, and "+r.rows+" item(s) inside them were sent both ways ("+
+      r.bytes+" bytes) to fix "+r.realDiffs+" row(s) that were genuinely different.";
+  var tail = " Items customers could be told different things about: "+before.visible+" → "+after.visible+".";
+  var zomb = r.resurrected.length
+    ? " ⚠ "+r.resurrected.length+" item(s) that had been deleted are on sale again: "+r.resurrected.join(", ")+
+      ". No error occurred — repair could not tell a deletion from a missing update." : "";
+  say(s, head+tail+zomb,
+      "repair "+x+"<->"+y+" ("+mode+"): hashes="+r.hashes+" rows="+r.rows+
+      " realDiffs="+r.realDiffs+" bytes="+r.bytes+" scanned="+r.scanned,
+      r.resurrected.length?"k-bad":"k-repair");
+  return r;
+}
+
+/* ============================ APP STATE ============================ */
+var S = initState({}), HIST = [], REPLAY = {cursor:-1, timer:null}, SEL = null;
+function snap(){ return JSON.parse(JSON.stringify(S)); }
+function push(){ HIST.push(snap()); if (HIST.length>120) HIST.shift(); }
+function act(fn){ push(); S.touched = {}; fn(S); stopReplay(); if (S.lastRepair) REPLAY.cursor = -1; render(); }
+function back(){ if (!HIST.length) return; S = HIST.pop(); stopReplay(); render(); }
+function $(id){ return document.getElementById(id); }
+
+/* ============================ RENDER ============================ */
+function render(){
+  var d = divergence(S);
+
+  /* verdict */
+  var v = $("verdict"), big = $("vbig"), txt = $("vtxt");
+  var deadNodes = NODES.filter(function(n){ return S.nodes[n].status!=="up"; });
+  v.className = "verdict " + (d.visible===0 ? (d.stored===0 ? "v-ok" : "v-warn") : "v-bad");
+  big.textContent = d.visible;
+  if (d.visible===0 && d.stored===0)
+    txt.innerHTML = "<b>All three shops agree on all sixteen prices.</b> Any customer gets the same answer at any shop. This is the only state a repair can promise, and it lasts until the next write that misses somebody.";
+  else if (d.visible===0)
+    txt.innerHTML = "<b>Customers get the same answer everywhere — but the shops are not actually holding the same thing</b> on "+d.stored+" item(s). That gap is usually a headstone on one side and a plain absence on the other, and it is exactly where deleted items come back to life.";
+  else
+    txt.innerHTML = "<b>"+d.visible+" item"+(d.visible>1?"s":"")+": a customer is told a different price depending on which shop serves them.</b> Nothing is broken and nothing has reported an error"+
+      (deadNodes.length ? "" : " — every shop is open and serving")+". Only a comparison between shops will find this.";
+
+  /* meter */
+  var m = $("meter"); m.innerHTML = "";
+  ITEMS.forEach(function(it){
+    var i = document.createElement("i");
+    var anyTomb = NODES.some(function(n){ var r=S.nodes[n].rows[it]; return r&&r.dead; });
+    if (d.rows[it].stored) i.className = "d"; else if (anyTomb) i.className = "t";
+    i.title = it + (d.rows[it].stored ? " — shops disagree" : " — all shops agree");
+    m.appendChild(i);
+  });
+  $("meterNote").textContent = "One block per item, left to right in the order they sit in the price list — which is also the order the checksum ranges cover them in.";
+  $("clockNote").textContent = "clock " + fmtClock(S.clock) + (S.cfg.skewC ? " · shop C thinks it is " + fmtClock(S.clock+S.cfg.skewC) : "");
+
+  /* shops */
+  var sh = $("shops"); sh.innerHTML = "";
+  NODES.forEach(function(n){
+    var nd = S.nodes[n], el = document.createElement("div");
+    el.className = "shop" + (nd.status!=="up" ? " down" : "");
+    var pending = nd.hints.length;
+    el.innerHTML = "<h4>Shop "+n+
+      "<span class='pill "+(nd.status==="up"?"p-up":"p-down")+"'>"+(nd.status==="up"?"open":"closed")+"</span></h4>"+
+      "<p class='shopmeta'>"+(pending ? "holding "+pending+" note"+(pending>1?"s":"")+" for a closed shop" :
+        (nd.status==="up" ? "serving customers" : "not serving; list frozen as it was"))+"</p>";
+    var box = document.createElement("div"); box.className = "items";
+    ITEMS.forEach(function(it){
+      var r = nd.rows[it], row = document.createElement("div");
+      var cls = "it";
+      if (d.rows[it].stored) cls += " diff";
+      if (r && r.dead) cls += " tomb";
+      if (!r) cls += " absent";
+      if (S.touched[n+"/"+it]) cls += " flash";
+      if (SEL===it) cls += " sel";
+      row.className = cls;
+      row.innerHTML = "<span class='nm'>"+it+"</span><span class='vl'>"+
+        (!r ? "absent" : r.dead ? "headstone" : r.price.toFixed(2))+"</span>";
+      row.title = it+" on shop "+n+": "+(!r?"no row at all":
+        (r.dead?"deletion marker":"price "+r.price.toFixed(2))+", timestamp "+r.ts);
+      row.onclick = function(){ SEL = (SEL===it?null:it); render(); };
+      box.appendChild(row);
+    });
+    el.appendChild(box);
+    sh.appendChild(el);
+  });
+
+  NODES.forEach(function(n){
+    var b = $("k"+n), down = S.nodes[n].status!=="up";
+    b.textContent = (down ? "Reopen " : "Close ")+n;
+    b.className = down ? "small" : "danger small";
+  });
+  renderTree();
+  renderLog();
+  renderInspect();
+  $("bBack").disabled = HIST.length===0;
+  var pr = $("pair").value, bothUp = S.nodes[pr[0]].status==="up" && S.nodes[pr[1]].status==="up";
+  $("bMerkle").disabled = !bothUp; $("bFull").disabled = !bothUp;
+  $("bMerkle").title = bothUp ? "" : "Both shops have to be open for their lists to be compared.";
+}
+
+function renderTree(){
+  var t = $("tree"), c = $("costs"), r = S.lastRepair;
+  t.innerHTML = ""; c.innerHTML = "";
+  if (!r){
+    $("treeNote").textContent = "run a repair to see how two shops find their differences";
+    $("bReplay").disabled = true; $("bStep").disabled = true; $("stepNote").textContent = "";
+    t.innerHTML = "<p class='hintline' style='margin:0'>Nothing compared yet. Close a shop, change a price, reopen it, then press <b>Compare and repair</b>.</p>";
+    return;
+  }
+  $("bReplay").disabled = (r.mode!=="merkle"); $("bStep").disabled = (r.mode!=="merkle");
+  if (r.mode==="full"){
+    $("treeNote").textContent = "shops "+r.x+" and "+r.y+" sent each other everything — no comparison was done";
+    t.innerHTML = "<p class='hintline' style='margin:0'>No tree: a full sync does not compare, it just ships all "+
+      ITEMS.length+" rows in both directions. It is always correct and always costs the same, whether one row differs or none do.</p>";
+  } else {
+    $("treeNote").textContent = "shops "+r.x+" and "+r.y+", "+r.leaves+" ranges over the price list";
+    var shown = REPLAY.cursor<0 ? r.order.length : REPLAY.cursor;
+    var seen = {}; for (var i=0;i<shown && i<r.order.length;i++) seen[r.order[i].lvl+":"+r.order[i].idx]=1;
+    for (var lvl=0; lvl<=r.depth; lvl++){
+      var row = document.createElement("div"); row.className="lvl";
+      for (var idx=0; idx<Math.pow(2,lvl); idx++){
+        var key = lvl+":"+idx, st = r.status[key], el = document.createElement("div");
+        var visited = !!seen[key];
+        el.className = "mn " + (visited && st ? st : "unseen");
+        if (visited && shown>0 && r.order[shown-1] && r.order[shown-1].lvl===lvl && r.order[shown-1].idx===idx)
+          el.className += " cur";
+        var items = leafItems2(lvl, idx, r.depth);
+        var lbl = visited && st
+          ? (lvl===r.depth ? (st==="match" ? "✓" : "send") : (st==="match" ? "✓ skip" : "≠"))
+          : "·";
+        el.textContent = lbl;
+        el.title = items[0]+" … "+items[items.length-1]+
+          "\n"+r.x+": "+hex(r.tx[lvl][idx])+"   "+r.y+": "+hex(r.ty[lvl][idx])+
+          "\n"+(!visited ? "never looked at — its parent matched, so this whole branch was skipped"
+               : st==="match" ? "hashes equal — branch pruned, nothing inside was read or sent"
+               : st==="streamed" ? "hashes differ and this is a leaf — every item in it is sent both ways"
+               : "hashes differ — descend into the two halves");
+        row.appendChild(el);
+      }
+      t.appendChild(row);
+    }
+    $("stepNote").textContent = REPLAY.cursor<0 ? "showing the finished comparison"
+      : "step "+Math.min(REPLAY.cursor,r.order.length)+" of "+r.order.length;
+  }
+  var full = ITEMS.length*2*BYTES_PER_ROW;
+  function cost(k,v,cls,title){
+    var e=document.createElement("div"); e.className="cost "+(cls||""); e.title=title||"";
+    e.innerHTML="<div class='k'>"+k+"</div><div class='v'>"+v+"</div>"; c.appendChild(e); }
+  cost("hashes compared", r.hashes, "good", "32 bytes each. This is the whole cost of the search.");
+  cost("rows sent", r.rowsStreamed, r.rows>r.realDiffs?"warn":"good",
+       "Counted in both directions. Anything above the number of genuinely different rows is over-streaming.");
+  cost("rows actually different", r.realDiffs, r.realDiffs?"bad":"good",
+       "The work that actually needed doing.");
+  cost("bytes on the wire", r.bytes, r.bytes<full?"good":"bad",
+       "Against "+full+" bytes for sending everything.");
+  cost("rows read off disk", r.scanned, "warn",
+       "Both shops read their whole list to build the checksums — this happens even when nothing is wrong.");
+}
+function leafItems2(lvl,idx,depth){
+  var span = ITEMS.length/Math.pow(2,lvl);
+  return ITEMS.slice(Math.round(idx*span), Math.round((idx+1)*span));
+}
+
+function renderLog(){
+  var l = $("log"); l.innerHTML = "";
+  S.log.slice(-60).forEach(function(e){
+    var d = document.createElement("div");
+    d.className = "ev "+(e.kind||"");
+    d.innerHTML = "<span class='tm'>"+fmtClock(e.t)+"</span>"+e.txt+
+      (e.sub ? "<span class='sub'>"+e.sub+"</span>" : "");
+    l.appendChild(d);
+  });
+}
+
+function renderInspect(){
+  var box = $("inspect");
+  if (!SEL){ box.className="hintline";
+    box.textContent="Click any item in any shop to see exactly what each shop is storing for it."; return; }
+  box.className="";
+  var rows = NODES.map(function(n){
+    var r = S.nodes[n].rows[SEL];
+    return "<tr><td style='padding:3px 10px 3px 0;font-weight:600'>Shop "+n+"</td>"+
+      "<td class='mono' style='padding:3px 10px 3px 0'>"+(!r?"— no row —":r.dead?"headstone":r.price.toFixed(2))+"</td>"+
+      "<td class='mono' style='color:var(--muted)'>"+(!r?"":"ts "+r.ts)+"</td></tr>";
+  }).join("");
+  var recs = NODES.map(function(n){ return S.nodes[n].rows[SEL]||null; });
+  var agree = sameRec(recs[0],recs[1]) && sameRec(recs[1],recs[2]);
+  box.innerHTML = "<div style='font-weight:600;margin-bottom:6px'>"+SEL+"</div>"+
+    "<table style='border-collapse:collapse;font-size:13px'>"+rows+"</table>"+
+    "<p class='hintline' style='margin-top:8px'>"+
+    (agree ? "All three shops hold the identical record. A repair over this item would move nothing."
+           : "The shops hold different records. Until something compares them, whichever shop a customer walks into decides the answer they get.")+
+    "</p>";
+}
+
+/* ============================ REPLAY ============================ */
+function stopReplay(){ if (REPLAY.timer){ clearInterval(REPLAY.timer); REPLAY.timer=null; } }
+function startReplay(){
+  var r = S.lastRepair; if (!r || r.mode!=="merkle") return;
+  stopReplay(); REPLAY.cursor = 0; renderTree();
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce){ REPLAY.cursor = -1; renderTree(); return; }
+  REPLAY.timer = setInterval(function(){
+    REPLAY.cursor++;
+    if (REPLAY.cursor > r.order.length){ stopReplay(); REPLAY.cursor = -1; }
+    renderTree();
+  }, 420);
+}
+function stepReplay(){
+  var r = S.lastRepair; if (!r || r.mode!=="merkle") return;
+  stopReplay();
+  if (REPLAY.cursor < 0) REPLAY.cursor = 0;
+  REPLAY.cursor = Math.min(REPLAY.cursor+1, r.order.length);
+  renderTree();
+}
+
+/* ============================ CONTROLS ============================ */
+(function(){
+  var sel = $("item");
+  ITEMS.forEach(function(it,i){
+    var o=document.createElement("option"); o.value=it;
+    o.textContent = it+"  (starts at "+(2.00+i*0.20).toFixed(2)+")"; sel.appendChild(o); });
+  sel.value = "croissant";
+})();
+function coordFor(){ return NODES.filter(function(n){ return S.nodes[n].status==="up"; })[0] || "A"; }
+
+$("bWrite").onclick = function(){ var it=$("item").value, p=parseFloat($("price").value)||0;
+  act(function(s){ doWrite(s,it,p,coordFor(),false); }); };
+$("bDelete").onclick = function(){ var it=$("item").value;
+  act(function(s){ doWrite(s,it,0,coordFor(),true); }); };
+$("bRead").onclick = function(){ var it=$("item").value;
+  act(function(s){ doRead(s,it,coordFor()); }); };
+NODES.forEach(function(n){
+  $("k"+n).onclick = function(){
+    act(function(s){ if (s.nodes[n].status==="up") doKill(s,n); else doRevive(s,n); }); };
+});
+$("bClock1").onclick = function(){ act(function(s){ doAdvance(s,60); }); };
+$("bClock4").onclick = function(){ act(function(s){ doAdvance(s,240); }); };
+$("bCompact").onclick = function(){ act(function(s){ doCompact(s); }); };
+$("bMerkle").onclick = function(){ var p=$("pair").value;
+  act(function(s){ doRepair(s,p[0],p[1],"merkle"); }); startReplay(); };
+$("bFull").onclick = function(){ var p=$("pair").value;
+  act(function(s){ doRepair(s,p[0],p[1],"full"); }); };
+$("bBack").onclick = back;
+$("bReset").onclick = function(){ push(); S = initState(readCfg()); SEL=null; stopReplay(); render(); };
+$("pair").addEventListener("change", render);
+$("bReplay").onclick = startReplay;
+$("bStep").onclick = stepReplay;
+
+function readCfg(){
+  return { W:+$("cW").value, R:+$("cR").value, hints:$("cHints").checked,
+    hintWindow:+$("cWin").value, readRepair:$("cRR").checked, readRepairAll:$("cRRAll").checked,
+    tombstones:$("cTomb").checked, gcGrace:+$("cGC").value, merge:$("cMerge").value,
+    depth:+$("cDepth").value, skewC:+$("cSkew").value };
+}
+function writeCfg(c){
+  $("cW").value=c.W; $("cR").value=c.R; $("cHints").checked=c.hints; $("cWin").value=c.hintWindow;
+  $("cRR").checked=c.readRepair; $("cRRAll").checked=c.readRepairAll; $("cTomb").checked=c.tombstones;
+  $("cGC").value=c.gcGrace; $("cMerge").value=c.merge; $("cDepth").value=c.depth; $("cSkew").value=c.skewC;
+}
+["cW","cR","cHints","cWin","cRR","cRRAll","cTomb","cGC","cMerge","cDepth","cSkew"].forEach(function(id){
+  $(id).addEventListener("change", function(){ S.cfg = readCfg(); render(); });
+});
+
+/* ============================ SCENARIOS ============================ */
+var SCENARIOS = [
+{ id:"missed",
+  title:"1 · The change that missed a shop",
+  setup:"Shop C is closed. Head office puts croissants up to 4.00 and two shops confirm, so the change is done. C reopens. A customer walks into C and asks — and to keep it fast, the till asks only one shop.",
+  q:"What price is that customer told?",
+  opts:[["4.00 — the change was successful",false],["2.40 — the price from before the change",true],
+        ["The till refuses to answer",false]],
+  why:"Two of three shops is a successful write by design. Nothing in the write path is responsible for shop C, and a single-shop read has nothing to compare against, so C serves its own stale copy with complete confidence.",
+  run:function(){ var s=initState({hints:false, R:1, readRepair:true});
+    doKill(s,"C"); doWrite(s,"croissant",4.00,"A"); doRevive(s,"C"); doRead(s,"croissant","C"); return s; } },
+
+{ id:"blind",
+  title:"2 · Read repair's blind spot",
+  setup:"Five price changes miss shop C while it is closed. C reopens. A customer at shop A then asks about one of those five items; the till asks two shops and corrects any it finds behind.",
+  q:"After that read, how many of the five items are still wrong on shop C?",
+  opts:[["None — the read fixed them all",false],["Four — it fixed the one that was read",false],
+        ["Five — it fixed nothing at all",true]],
+  why:"The read went through shop A and asked A and B. Both were correct, so the answer was correct and nothing needed fixing. The one shop that had the problem was never in the conversation — and it is the shop most likely to be left out, because it is the one that just came back.",
+  run:function(){ var s=initState({hints:false, R:2, readRepair:true});
+    doKill(s,"C");
+    ["croissant","rye","focaccia","brioche","bagel"].forEach(function(it,i){ doWrite(s,it,5.00+i,"A"); });
+    doRevive(s,"C"); doRead(s,"croissant","A"); return s; } },
+
+{ id:"hintwin",
+  title:"3 · The note that was binned",
+  setup:"Shop C closes. Three price changes happen; head office parks a note for each. Four hours pass. C reopens. The notes are binned after three hours.",
+  q:"How many items is shop C wrong about when it reopens?",
+  opts:[["None — the notes were replayed",false],["Three — all the notes were binned unread",true],
+        ["Three, and the system raises an alert",false]],
+  why:"Hints are advisory. Past the window they are dropped on the grounds that a long-absent replica has too much backlog to replay one write at a time. Nothing logs an error, and shop C starts serving customers immediately with three wrong prices.",
+  run:function(){ var s=initState({hints:true, hintWindow:180});
+    doKill(s,"C"); ["croissant","rye","focaccia"].forEach(function(it,i){ doWrite(s,it,6.00+i,"A"); });
+    doAdvance(s,240); doRevive(s,"C"); return s; } },
+
+{ id:"hintlost",
+  title:"4 · The notes died with the messenger",
+  setup:"Shop C closes. Three price changes are taken by shop A, which parks a note for each. Well inside the three-hour window, shop A closes for ten minutes — an ordinary restart — and reopens. Then C reopens.",
+  q:"How many items is shop C wrong about?",
+  opts:[["None — A kept the notes safely",false],["Three — the notes were on A and only on A",true],
+        ["Three, but shop B has copies",false]],
+  why:"Hints live on whichever shop happened to take the write. That shop is not special and not protected; a rolling deploy takes it out. This is why hinted handoff is never counted as part of a durability guarantee.",
+  run:function(){ var s=initState({hints:true});
+    doKill(s,"C"); ["croissant","rye","focaccia"].forEach(function(it,i){ doWrite(s,it,7.00+i,"A"); });
+    doKill(s,"A"); doRevive(s,"A"); doRevive(s,"C"); return s; } },
+
+{ id:"merkle",
+  title:"5 · Finding one bad row in sixteen",
+  setup:"Exactly one item differs between shops A and C. The tree has sixteen ranges, one item each. Sending everything would move all sixteen rows each way.",
+  q:"How many items does the checksum comparison actually need to send?",
+  opts:[["Just the one that differs",true],["Half of them — it splits once",false],
+        ["All sixteen — it cannot tell which",false]],
+  why:"Compare the two top checksums; if they differ, split and compare the halves; repeat. Each comparison that matches eliminates everything beneath it without reading or sending any of it. Eighteen hashes located the single bad row.",
+  run:function(){ var s=initState({hints:false, depth:4});
+    doKill(s,"C"); doWrite(s,"macaron",9.99,"A"); doRevive(s,"C");
+    doRepair(s,"A","C","merkle"); return s; } },
+
+{ id:"overstream",
+  title:"6 · The same repair, coarser checksums",
+  setup:"Identical situation — one item differs between A and C — but now each checksum covers eight items instead of one.",
+  q:"How many items get sent this time?",
+  opts:[["Still one — it finds the exact row",false],["Eight — the whole range the checksum covers",true],
+        ["Sixteen — coarse checksums mean full sync",false]],
+  why:"The unit of transfer is the range a checksum covers, not the row. In a real cluster a leaf covers thousands of rows, so a single wrong row can move hundreds of megabytes. This is over-streaming, and it is the dominant cost of repair in production.",
+  run:function(){ var s=initState({hints:false, depth:1});
+    doKill(s,"C"); doWrite(s,"macaron",9.99,"A"); doRevive(s,"C");
+    doRepair(s,"A","C","merkle"); return s; } },
+
+{ id:"zombie1",
+  title:"7 · The delete that came back",
+  setup:"Headstones are switched OFF, so a delete simply removes the row. Shop C is closed. Head office stops selling eclairs. C reopens, and A and C are repaired.",
+  q:"After the repair, is the eclair still deleted?",
+  opts:[["Yes — deletion is the newer fact",false],["No — it is on sale again everywhere",true],
+        ["The shops disagree about it",false]],
+  why:"Repair sees 'A has no row, C has a row' and cannot tell 'A deleted it' from 'C received a write A missed'. Those two demand opposite responses, and copying data over is the only safe-looking default. The deletion is gone, with no error at any point.",
+  run:function(){ var s=initState({hints:false, tombstones:false, depth:4});
+    doKill(s,"C"); doWrite(s,"eclair",0,"A",true); doRevive(s,"C");
+    doRepair(s,"A","C","merkle"); return s; } },
+
+{ id:"zombie2",
+  title:"8 · The headstone that was cleared too early",
+  setup:"Headstones are ON, and cleared after six hours. Shop C closes. Eclairs are discontinued, leaving a headstone on A and B. Eight hours pass and the old headstones are cleared. Only then does C reopen, and the shops are repaired.",
+  q:"What is the state of the eclair afterwards?",
+  opts:[["Deleted — the headstone did its job",false],["On sale again on all three shops",true],
+        ["Deleted on A and B, on sale on C",false]],
+  why:"The headstone is what makes a deletion replicable, and it is deliberately temporary. Once it is cleared, A and B hold no row at all — byte for byte the same state as having no headstones. This turns a storage setting into a hard deadline: every replica must be repaired inside the grace period, or deleted data returns. Cassandra's ten-day default is exactly that deadline.",
+  run:function(){ var s=initState({hints:false, tombstones:true, gcGrace:360, depth:4});
+    doKill(s,"C"); doWrite(s,"eclair",0,"A",true); doAdvance(s,480); doCompact(s);
+    doRevive(s,"C"); doRepair(s,"A","C","merkle"); return s; } },
+
+{ id:"order",
+  title:"9 · Does the order of repairs matter?",
+  setup:"The merge rule is switched to 'whoever received it wins', which is not a join. Shops A and B hold tart at 8.50; shop C missed the change and holds 4.40. The same three facts are then repaired in two different orders.",
+  q:"Do the two orders end at the same price?",
+  opts:[["Yes — they both converge",false],["They converge, but to two different prices",true],
+        ["No — one of them never settles",false]],
+  why:"Both orders converge quickly and stably. One leaves every shop on 4.40, the other on 8.50, decided entirely by which shop was on the receiving end of the last repair. Convergence is not correctness: a broken merge rule gives you a system that agrees with itself perfectly and is wrong, which is far harder to spot than one that disagrees.",
+  run:function(){
+    function go(seq){ var s=initState({hints:false, merge:"arrival", depth:4});
+      doKill(s,"C"); doWrite(s,"tart",8.50,"A"); doRevive(s,"C");
+      seq.forEach(function(p){ doRepair(s,p[0],p[1],"merkle"); }); return s; }
+    var s1 = go([["A","C"],["B","C"]]), s2 = go([["C","A"],["C","B"]]);
+    say(s2,"The other order (A→C then B→C) finished with every shop on "+
+      visible(s1.nodes.A.rows.tart)+". This run, repairing the other way round, finished on "+
+      visible(s2.nodes.A.rows.tart)+". Same facts, same rule, two permanent answers.","order-dependence demo","k-bad");
+    return s2; } },
+
+{ id:"skew",
+  title:"10 · One clock running fast",
+  setup:"Shop C's clock is two hours fast. C sets the scone to 3.00. Two minutes later — genuinely later — head office sets it to 3.50 through shop A.",
+  q:"What price ends up on the shelves?",
+  opts:[["3.50 — it was written last",false],["3.00 — the fast clock's timestamp wins",true],
+        ["They disagree until a repair runs",false]],
+  why:"'Newest wins' means highest timestamp wins, and a timestamp is a claim, not a measurement. The genuinely newer write was discarded by every shop the moment it arrived, because its stamp was two hours in the past relative to what was stored. Worse: repair will now spread that value authoritatively. This is the whole reason hybrid logical clocks exist.",
+  run:function(){ var s=initState({hints:false, skewC:120, depth:4});
+    doWrite(s,"scone",3.00,"C"); doWrite(s,"scone",3.50,"A"); return s; } }
+];
+
+(function(){
+  var host = $("scenarios");
+  SCENARIOS.forEach(function(sc){
+    var el = document.createElement("div"); el.className="scn";
+    el.innerHTML = "<h5>"+sc.title+"</h5><p>"+sc.setup+"</p><p style='color:var(--ink);font-weight:500'>"+sc.q+"</p>";
+    var opts = document.createElement("div"); opts.className="opts";
+    sc.opts.forEach(function(o,i){
+      var b = document.createElement("button"); b.textContent = o[0];
+      b.onclick = function(){
+        push(); S = sc.run(); S.touched={}; SEL=null; REPLAY.cursor=-1; stopReplay();
+        writeCfg(S.cfg);
+        var res = el.querySelector(".res") || document.createElement("div");
+        res.className = "res " + (o[1] ? "right" : "wrong");
+        var d = divergence(S);
+        res.innerHTML = "<b>"+(o[1] ? "Correct." : "Not what happens.")+"</b> "+sc.why+
+          "<br><br><b>On the bench now:</b> "+d.visible+" item(s) where customers get different answers, "+
+          d.stored+" where the shops hold different records. The event log below has the step-by-step.";
+        if (!el.querySelector(".res")) el.appendChild(res);
+        render();
+        if (S.lastRepair && S.lastRepair.mode==="merkle") startReplay();
+        el.scrollIntoView({block:"nearest", behavior:"smooth"});
+      };
+      opts.appendChild(b);
+    });
+    el.appendChild(opts);
+    host.appendChild(el);
+  });
+})();
+
+say(S,"The bench is set up: three shops, sixteen items, every list identical. Nothing is wrong yet.","initial state");
+writeCfg(S.cfg);
+render();
+</script>

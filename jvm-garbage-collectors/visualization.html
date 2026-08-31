@@ -1,0 +1,1961 @@
+<title>The Heap Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* ---------- tokens: light is the base, both dark states redefine only tokens ---------- */
+:root{
+  --paper:#EDEEF1;      --surface:#F7F8F9;    --sunken:#E3E6EA;
+  --ink:#151C25;        --ink-soft:#4A5461;   --ink-faint:#7C8794;
+  --rule:#CBD1D8;       --rule-soft:#DEE2E7;
+  --indigo:#33507A;     --indigo-soft:#8FA6C4;
+  --rust:#B0522B;       --amber:#C8880E;      --viridian:#1E7A5F;  --crimson:#9E2B22;
+  --free:#FFFFFF;
+  --band-eden:#E8EBF1;  --band-surv:#E6EDEA;  --band-old:#EAE8E4;  --band-flat:#E9EBEE;
+  --shadow:0 1px 2px rgba(21,28,37,.07), 0 6px 18px rgba(21,28,37,.05);
+  --focus:#33507A;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161C;    --surface:#192028;    --sunken:#0C1116;
+    --ink:#E7ECF2;      --ink-soft:#A7B2BF;   --ink-faint:#6F7B88;
+    --rule:#2B3540;     --rule-soft:#222B34;
+    --indigo:#89ADDD;   --indigo-soft:#3E5878;
+    --rust:#DA8354;     --amber:#E8B551;      --viridian:#4FBE95;  --crimson:#E9695C;
+    --free:#0A0E13;
+    --band-eden:#171E27; --band-surv:#151F1C; --band-old:#1F1C18; --band-flat:#161C23;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.3);
+    --focus:#89ADDD;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161C;    --surface:#192028;    --sunken:#0C1116;
+  --ink:#E7ECF2;      --ink-soft:#A7B2BF;   --ink-faint:#6F7B88;
+  --rule:#2B3540;     --rule-soft:#222B34;
+  --indigo:#89ADDD;   --indigo-soft:#3E5878;
+  --rust:#DA8354;     --amber:#E8B551;      --viridian:#4FBE95;  --crimson:#E9695C;
+  --free:#0A0E13;
+  --band-eden:#171E27; --band-surv:#151F1C; --band-old:#1F1C18; --band-flat:#161C23;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.3);
+  --focus:#89ADDD;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  font-size:14px; line-height:1.55; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1500px;margin:0 auto;padding:22px 20px 60px}
+h1,h2,h3,.lbl{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif}
+.mono,code,kbd{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+
+/* ---------- header ---------- */
+header{border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:16px}
+.eyebrow{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin:0 0 6px}
+h1{font-size:30px;font-weight:700;letter-spacing:-.015em;margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--ink-soft);max-width:66ch;margin:0}
+
+/* ---------- collector picker ---------- */
+.picker{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0}
+.pick{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:13px;
+  background:var(--surface);color:var(--ink-soft);border:1px solid var(--rule);
+  border-radius:2px;padding:7px 11px;cursor:pointer;line-height:1.2;text-align:left;
+}
+.pick .yr{display:block;font-size:10px;letter-spacing:.08em;color:var(--ink-faint);font-weight:500}
+.pick:hover{border-color:var(--indigo-soft)}
+.pick[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:var(--free)}
+:root[data-theme="dark"] .pick[aria-pressed="true"],
+:root:not([data-theme="light"]) .pick[aria-pressed="true"]{color:var(--sunken)}
+.pick[aria-pressed="true"] .yr{color:inherit;opacity:.75}
+
+/* ---------- verdict ---------- */
+.verdict{
+  margin:16px 0;border:1px solid var(--rule);border-left:4px solid var(--indigo);
+  background:var(--surface);border-radius:3px;padding:13px 16px;box-shadow:var(--shadow);
+}
+.verdict.warn{border-left-color:var(--amber)}
+.verdict.bad{border-left-color:var(--crimson)}
+.verdict.good{border-left-color:var(--viridian)}
+.verdict h2{font-size:17px;margin:0 0 3px;font-weight:700;letter-spacing:-.01em}
+.verdict p{margin:0;color:var(--ink-soft);max-width:90ch}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr) 330px;gap:16px;align-items:start}
+@media (max-width:1180px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:14px;box-shadow:var(--shadow)}
+.panel + .panel{margin-top:14px}
+.panel h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+  font-weight:600;margin:0 0 10px;border-bottom:1px solid var(--rule-soft);padding-bottom:7px}
+
+/* ---------- controls ---------- */
+.row{display:flex;gap:6px;flex-wrap:wrap}
+button{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:13px;
+  background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:2px;
+  padding:7px 10px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--indigo);color:var(--indigo)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--indigo);border-color:var(--indigo);color:#fff}
+:root[data-theme="dark"] button.primary,
+:root:not([data-theme="light"]) button.primary{color:var(--sunken)}
+button.primary:hover:not(:disabled){opacity:.88;color:#fff}
+:root[data-theme="dark"] button.primary:hover:not(:disabled),
+:root:not([data-theme="light"]) button.primary:hover:not(:disabled){color:var(--sunken)}
+button.wide{width:100%;text-align:left}
+.slider{margin:12px 0 0}
+.slider label{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:3px}
+.slider label b{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--indigo)}
+.toggle{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
+.toggle input{margin-top:3px;accent-color:var(--indigo);flex:none}
+.toggle b{color:var(--ink);font-weight:600}
+.hint{font-size:11.5px;color:var(--ink-faint);margin:8px 0 0;line-height:1.45}
+
+/* ---------- heap map ---------- */
+.band{margin-bottom:11px}
+.bandhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
+.bandname{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.bandmeta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.cells{display:flex;flex-wrap:wrap;gap:2px;padding:5px;border-radius:2px;border:1px solid var(--rule-soft)}
+.cells.eden{background:var(--band-eden)} .cells.surv{background:var(--band-surv)}
+.cells.old{background:var(--band-old)}  .cells.flat,.cells.from,.cells.to,.cells.free{background:var(--band-flat)}
+.cell{width:16px;height:16px;border-radius:1px;background:var(--free);border:1px solid var(--rule-soft);
+  cursor:pointer;position:relative;transition:background .12s,border-color .12s}
+.cell.live{background:var(--indigo);border-color:var(--indigo)}
+.cell.garb{background:var(--rust);border-color:var(--rust);opacity:.55}
+.cell.grey{background:var(--amber);border-color:var(--amber)}
+.cell.black{background:var(--ink);border-color:var(--ink)}
+.cell.white{background:var(--free);border:1px dashed var(--indigo-soft)}
+.cell.hum{background:repeating-linear-gradient(45deg,var(--indigo),var(--indigo) 3px,var(--indigo-soft) 3px,var(--indigo-soft) 6px);border-color:var(--indigo)}
+.cell.hazard{box-shadow:0 0 0 2px var(--crimson);z-index:2}
+.cell.flash{animation:fl .5s ease-out}
+.cell.sel{box-shadow:0 0 0 2px var(--viridian);z-index:3}
+@keyframes fl{0%{transform:scale(1.5);box-shadow:0 0 0 3px var(--amber)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cell.flash{animation:none}.cell{transition:none}}
+.regiongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px}
+.region{border:1px solid var(--rule-soft);border-radius:2px;padding:5px}
+.region .rh{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;color:var(--ink-faint);margin-bottom:3px;font-variant-numeric:tabular-nums}
+.region .rh b{font-weight:600;color:var(--ink-soft)}
+.region.cset{outline:2px solid var(--amber);outline-offset:1px}
+
+/* ---------- graph ---------- */
+.graphbox{margin-top:6px;border-top:1px solid var(--rule-soft);padding-top:10px}
+svg.graph{width:100%;height:150px;display:block}
+svg.graph text{font-family:"IBM Plex Mono",monospace;font-size:9.5px;fill:var(--ink)}
+svg.graph .edge{stroke:var(--ink-faint);stroke-width:1.2;fill:none;marker-end:url(#arw)}
+svg.graph .rootlbl{fill:var(--ink-faint);font-size:9px}
+
+/* ---------- telemetry ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.stat{background:var(--surface);padding:7px 9px}
+.stat span{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;
+  font-family:"IBM Plex Sans Condensed",sans-serif}
+.stat b{font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stat.alert b{color:var(--crimson)}
+.pausechart{display:flex;align-items:flex-end;gap:2px;height:96px;padding:4px 2px;background:var(--sunken);
+  border:1px solid var(--rule-soft);border-radius:2px;overflow-x:auto}
+.pbar{flex:none;width:9px;background:var(--indigo);border-radius:1px 1px 0 0;min-height:2px;position:relative}
+.pbar.full{background:var(--crimson)} .pbar.conc{background:var(--viridian)} .pbar.ttsp{background:var(--amber)}
+.pbar:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);font-family:"IBM Plex Mono",monospace;font-size:10px;
+  padding:3px 5px;border-radius:2px;white-space:nowrap;z-index:9}
+.log{height:280px;overflow-y:auto;background:var(--sunken);border:1px solid var(--rule-soft);border-radius:2px;padding:8px}
+.ev{padding:5px 0;border-bottom:1px solid var(--rule-soft);font-size:12.5px;line-height:1.45}
+.ev:last-child{border-bottom:none}
+.ev .t{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-faint);margin-right:6px}
+.ev .d{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+.ev.gc{color:var(--indigo)} .ev.bad{color:var(--crimson);font-weight:500} .ev.warn{color:var(--rust)}
+.ev.good{color:var(--viridian)}
+.inspect{font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.6}
+.inspect .k{color:var(--ink-faint);display:inline-block;width:86px}
+
+/* ---------- scenarios ---------- */
+.scn{border:1px solid var(--rule);border-radius:2px;margin-bottom:6px;background:var(--surface)}
+.scn button.head{width:100%;text-align:left;border:none;background:none;padding:8px 10px;display:block}
+.scn button.head span{display:block;font-family:"IBM Plex Sans",sans-serif;font-weight:400;font-size:11.5px;
+  color:var(--ink-faint);margin-top:2px;line-height:1.4}
+.scn.active{border-color:var(--indigo);border-left-width:3px}
+.quiz{padding:0 10px 10px;border-top:1px solid var(--rule-soft)}
+.quiz p{margin:8px 0;font-size:13px}
+.opt{display:block;width:100%;text-align:left;margin-bottom:5px;font-family:"IBM Plex Sans",sans-serif;
+  font-weight:400;font-size:12.5px;line-height:1.4}
+.opt.right{border-color:var(--viridian);color:var(--viridian)}
+.opt.wrong{border-color:var(--crimson);color:var(--crimson)}
+.why{font-size:12.5px;color:var(--ink-soft);border-left:2px solid var(--indigo);padding-left:9px;margin-top:8px}
+
+/* ---------- legend + footer ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px}
+.lg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
+.sw{width:14px;height:14px;border-radius:1px;border:1px solid var(--rule);flex:none}
+footer{margin-top:26px;border-top:1px solid var(--rule);padding-top:14px;color:var(--ink-faint);font-size:12.5px;max-width:80ch}
+footer h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px;color:var(--ink-faint)}
+footer li{margin-bottom:4px}
+.formula{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--sunken);
+  border:1px solid var(--rule-soft);padding:7px 9px;border-radius:2px;display:inline-block;margin:6px 0}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Interactive lab · jvm-garbage-collectors</p>
+  <h1>The Heap Machine</h1>
+  <p class="sub">A program keeps asking for memory. Something has to give it back. Below is a heap you can
+  watch — every square is one unit of memory. Pick which collector is in charge, then run it and see whether
+  the heap survives, fragments, stalls, or quietly destroys a live object.</p>
+  <div class="picker" id="picker" role="group" aria-label="Choose collector"></div>
+</header>
+
+<div class="verdict" id="verdict">
+  <h2 id="vh">Nothing has run yet</h2>
+  <p id="vb">Press <b>Run the tour for me</b> in the left panel if you have never seen this before — it plays
+  three scenarios with narration. Or just press <b>Step</b> and watch the heap fill.</p>
+</div>
+
+<div class="grid">
+
+  <!-- ============ LEFT: console ============ -->
+  <div>
+    <div class="panel">
+      <h3>Run it</h3>
+      <div class="row">
+        <button id="bStep" class="primary">Step ▸</button>
+        <button id="bBack">◂ Back</button>
+        <button id="bPlay">Play</button>
+        <button id="bReset">Reset</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="bGC" class="wide">Force a collection now</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="bTour" class="wide primary">▶ Run the tour for me</button>
+      </div>
+      <p class="hint" id="tickline">Tick 0 · nothing allocated yet.</p>
+    </div>
+
+    <div class="panel">
+      <h3>How hard is the program working?</h3>
+      <div class="slider">
+        <label for="sAlloc">New objects per tick <b id="vAlloc">3</b></label>
+        <input type="range" id="sAlloc" min="1" max="12" value="3">
+      </div>
+      <div class="slider">
+        <label for="sSurv">Share that stay reachable <b id="vSurv">10%</b></label>
+        <input type="range" id="sSurv" min="0" max="100" step="5" value="10">
+      </div>
+      <p class="hint"><b>Survival share is the most important control on this page.</b> At 10% you are watching
+      the generational hypothesis hold — nearly everything dies immediately. Push it to 70% and watch every
+      collector start to suffer.</p>
+      <div class="slider">
+        <label for="sHeap">Heap size <b id="vHeap">120 cells</b></label>
+        <input type="range" id="sHeap" min="0" max="2" value="1">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Safety machinery you can switch off</h3>
+      <label class="toggle"><input type="checkbox" id="cWB" checked>
+        <span><b>Write barrier / card table.</b> Records when an <i>old</i> object is made to point at a
+        <i>new</i> one, so a young-only collection can still find it. Switch off to see what breaks.</span></label>
+      <label class="toggle"><input type="checkbox" id="cSATB" checked>
+        <span><b>SATB barrier.</b> During concurrent marking, saves any reference the program overwrites,
+        so the collector still sees the graph as it was when marking began.</span></label>
+      <p class="hint">Both are on in every real JVM. They exist here as switches because the failure they
+      prevent is invisible until you have watched it happen once.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Make something go wrong</h3>
+      <div class="row">
+        <button id="iHum" class="wide">Allocate a huge object (8 cells)</button>
+        <button id="iO2Y" class="wide">Point an old object at a new one</button>
+        <button id="iLeak" class="wide">Leak: pin new objects to a static field</button>
+        <button id="iStuck" class="wide">Stick one thread outside a safepoint</button>
+        <button id="iSpike" class="wide">Traffic spike (4× allocation, 12 ticks)</button>
+      </div>
+      <p class="hint" id="injnote">Each of these maps to a numbered failure in stage 11 of the README.</p>
+    </div>
+  </div>
+
+  <!-- ============ CENTRE: the heap ============ -->
+  <div>
+    <div class="panel">
+      <h3 id="heaphead">The heap</h3>
+      <div id="heapmap"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Who points at what <span style="text-transform:none;letter-spacing:0;font-weight:400">— the objects currently worth naming</span></h3>
+      <svg class="graph" id="graph" viewBox="0 0 700 150" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="Object reference graph"></svg>
+      <p class="hint" id="graphnote">Roots sit on the left. An arrow means “this object holds a reference to
+      that one”. Only a handful of objects are drawn — the heap map above shows all of them.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Predict, then run</h3>
+      <div id="scenarios"></div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: telemetry ============ -->
+  <div>
+    <div class="panel">
+      <h3>Where the memory went</h3>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Pause meter — one bar per stop-the-world pause</h3>
+      <div class="pausechart" id="pauses"></div>
+      <p class="hint">Taller is worse. Hover a bar for its cause. <b>These are model milliseconds</b> from the
+      formula in the footer, not measurements of a real JVM — the <i>ratios</i> between bars are the lesson,
+      the absolute numbers mean nothing.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Inspector</h3>
+      <div class="inspect" id="inspect">Click any square in the heap to inspect the object living there.</div>
+    </div>
+
+    <div class="panel">
+      <h3>What just happened</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <h3>Honest limits of this page</h3>
+  <ul>
+    <li>Objects here are 1 cell (8 for a “huge” one). Real objects have headers, padding and sizes from 16 bytes
+      to megabytes, which makes fragmentation considerably worse than shown.</li>
+    <li>Pause length is computed, not measured:
+      <span class="formula">pause = 1.0 + 0.02 × (objects scanned) + 0.05 × (cells copied) + time-to-safepoint</span>
+      in model milliseconds. Real pauses depend on cores, cache behaviour, heap residency and much else.</li>
+    <li>Marking here is a simple worklist. Real collectors mark on many threads with work-stealing queues and
+      mark bitmaps.</li>
+    <li>There is no JIT, no escape analysis, no TLAB, no weak references, no class unloading, no metaspace,
+      and no operating system. Each of those changes real behaviour; stage 13 of the README lists how.</li>
+    <li>The G1 and ZGC models here capture the <i>idea</i> — region selection, concurrent marking, concurrent
+      relocation with forwarding — not the real implementations.</li>
+  </ul>
+</footer>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   THE HEAP MACHINE — pure state + reducer, so "Back" is just history[i-1]
+   ===================================================================== */
+var clone = (typeof structuredClone === 'function')
+  ? structuredClone
+  : function(o){ return JSON.parse(JSON.stringify(o)); };
+
+var COLLECTORS = [
+  {id:'marksweep',    name:'Mark–sweep',   yr:'stop, walk, free'},
+  {id:'markcompact',  name:'Mark–compact', yr:'+ slide survivors together'},
+  {id:'copying',      name:'Copying',      yr:'two half-heaps'},
+  {id:'generational', name:'Generational', yr:'young + old'},
+  {id:'g1',           name:'G1',           yr:'regions, pause budget'},
+  {id:'concurrent',   name:'ZGC-style',    yr:'concurrent relocation'}
+];
+var HEAPS = [80,120,200], HEAPLBL=['80 cells','120 cells','200 cells'];
+var REGION = 5, HUGE = 8, CARD = 8;
+var MARK_CHUNK = 6, SWEEP_CHUNK = 20, MOVE_CHUNK = 4;
+var REGIONAL = {g1:1, concurrent:1};
+var CONC = {concMark:1, concRelocate:1};
+var STW_LABEL = {markRoots:'initial mark', markRootsYoung:'root + card scan', mark:'mark',
+  markYoung:'young mark', remark:'remark', sweep:'sweep', compact:'compact',
+  compactOld:'compact into old', fullCompactRegions:'full compaction',
+  evacSemi:'copy to the other half', evacYoung:'evacuate young', chooseCSet:'choose regions',
+  evacCSet:'evacuate regions'};
+
+/* ---------- small utilities ---------- */
+function rnd(st){ st.rng = (st.rng * 1103515245 + 12345) & 0x7fffffff; return st.rng / 0x7fffffff; }
+function pct(a,b){ return b ? Math.round(100*a/b) : 0; }
+function spaceOf(st,id){ for(var i=0;i<st.spaces.length;i++) if(st.spaces[i].id===id) return st.spaces[i]; return null; }
+function log(st,cls,text,detail){
+  st.log.unshift({tick:st.tick, cls:cls, text:text, detail:detail||''});
+  if(st.log.length>250) st.log.pop();
+}
+function cardOf(addr){ return Math.floor(addr/CARD); }
+
+function makeSpaces(collector,N){
+  if(collector==='marksweep'||collector==='markcompact')
+    return [{id:'heap',name:'Heap',kind:'flat',start:0,len:N}];
+  if(collector==='copying'){
+    var h=Math.floor(N/2);
+    return [{id:'from',name:'Half A',kind:'from',start:0,len:h},
+            {id:'to',  name:'Half B',kind:'to', start:h,len:N-h}];
+  }
+  if(collector==='generational'){
+    var eden=Math.round(N*0.40), sv=Math.max(4,Math.round(N*0.07));
+    var old=N-eden-2*sv;
+    return [{id:'eden',name:'Eden — where every object is born',kind:'eden',start:0,len:eden},
+            {id:'s0',name:'Survivor 0',kind:'surv',start:eden,len:sv},
+            {id:'s1',name:'Survivor 1',kind:'surv',start:eden+sv,len:sv},
+            {id:'old',name:'Old generation',kind:'old',start:eden+2*sv,len:old}];
+  }
+  var n=Math.floor(N/REGION), out=[];
+  for(var i=0;i<n;i++) out.push({id:'r'+i,name:'R'+i,kind:'free',label:'free',start:i*REGION,len:REGION});
+  return out;
+}
+
+function init(collector, opts){
+  opts = opts||{};
+  var N = opts.N || 120;
+  var st = {
+    collector:collector, N:N, tick:0,
+    cells:new Array(N), objects:{}, nextId:1,
+    staticRoots:[], stack:[], names:{},
+    spaces:makeSpaces(collector,N), fromSpace:'from', toSurv:'s0',
+    gc:null, pendingAlloc:[], pendingFull:false,
+    cards:{}, greyQueue:[], markSet:{},
+    allocRate: opts.allocRate||3, survival: (opts.survival===undefined?0.10:opts.survival),
+    writeBarrier: opts.writeBarrier!==false, satb: opts.satb!==false,
+    leak:false, stuck:0, spike:0, stall:0, oom:false,
+    stats:{alloc:0,freed:0,promoted:0,copied:0,scanned:0,gcs:0,fulls:0,floating:0,lost:0,stalls:0},
+    pauses:[], log:[], hazards:[], floor:0, floorPrev:0,
+    verdict:{tone:'',h:'Nothing has run yet',b:'Press Step, or run a scenario below.'},
+    selected:null, script:null, scriptI:0, scenario:null,
+    rng: 987654321
+  };
+  for(var i=0;i<N;i++) st.cells[i]=-1;
+  // one permanent static holder — the "static field" root every Java program has
+  var h = newObj(st,1,'holder');
+  h.name='staticCache';
+  placeAnywhere(st,h, REGIONAL[collector]? null : (collector==='generational'?'old':(collector==='copying'?'from':'heap')));
+  st.staticRoots.push(h.id);
+  st.names.staticCache = h.id;
+  log(st,'', 'Heap ready: '+N+' cells under the '+labelOf(collector)+' collector. Nothing allocated yet.',
+    'spaces='+st.spaces.length);
+  return st;
+}
+function labelOf(id){ for(var i=0;i<COLLECTORS.length;i++) if(COLLECTORS[i].id===id) return COLLECTORS[i].name; return id; }
+
+function newObj(st,size,kind){
+  var id=st.nextId++;
+  st.objects[id]={id:id,size:size||1,refs:[],color:'',age:0,addr:-1,space:'',
+                  born:st.tick,kind:kind||'obj',name:null};
+  return st.objects[id];
+}
+function findRun(st,start,len,size){
+  var run=0;
+  for(var i=start;i<start+len;i++){
+    if(st.cells[i]===-1){ run++; if(run===size) return i-size+1; } else run=0;
+  }
+  return -1;
+}
+function largestRun(st){
+  var run=0,best=0;
+  for(var i=0;i<st.N;i++){ if(st.cells[i]===-1){run++; if(run>best)best=run;} else run=0; }
+  return best;
+}
+function setCells(st,o,at,spaceId){
+  for(var i=at;i<at+o.size;i++) st.cells[i]=o.id;
+  o.addr=at; o.space=spaceId;
+}
+function unplace(st,o){
+  if(o.addr<0) return;
+  for(var i=o.addr;i<o.addr+o.size;i++) if(st.cells[i]===o.id) st.cells[i]=-1;
+  o.addr=-1;
+}
+function placeIn(st,o,spaceId){
+  var sp=spaceOf(st,spaceId); if(!sp) return false;
+  var at=findRun(st,sp.start,sp.len,o.size); if(at<0) return false;
+  setCells(st,o,at,spaceId); return true;
+}
+function takeRegion(st,label){
+  for(var i=0;i<st.spaces.length;i++){
+    if(st.spaces[i].label==='free'){ st.spaces[i].label=label; st.spaces[i].kind=label; return st.spaces[i]; }
+  }
+  return null;
+}
+function placeHumongousRegions(st,o){
+  var need=Math.ceil(o.size/REGION);
+  for(var i=0;i+need<=st.spaces.length;i++){
+    var ok=true;
+    for(var k=0;k<need;k++) if(st.spaces[i+k].label!=='free'){ ok=false; break; }
+    if(ok){
+      for(var k2=0;k2<need;k2++){ st.spaces[i+k2].label='hum'; st.spaces[i+k2].kind='hum'; }
+      setCells(st,o,st.spaces[i].start,st.spaces[i].id);
+      return true;
+    }
+  }
+  return false;
+}
+function placeAnywhere(st,o,pref){
+  if(REGIONAL[st.collector]){
+    if(o.size>REGION) return placeHumongousRegions(st,o);
+    for(var i=0;i<st.spaces.length;i++){
+      var s=st.spaces[i];
+      if(s.label==='eden'){ var at=findRun(st,s.start,s.len,o.size); if(at>=0){ setCells(st,o,at,s.id); return true; } }
+    }
+    var fr=takeRegion(st,'eden');
+    if(fr){ var at2=findRun(st,fr.start,fr.len,o.size); if(at2>=0){ setCells(st,o,at2,fr.id); return true; } }
+    return false;
+  }
+  if(pref) return placeIn(st,o,pref);
+  var C=st.collector;
+  if(C==='marksweep'||C==='markcompact') return placeIn(st,o,'heap');
+  if(C==='copying') return placeIn(st,o,st.fromSpace);
+  if(C==='generational') return o.size>1 ? placeIn(st,o,'old') : placeIn(st,o,'eden');
+  return false;
+}
+
+/* ---------- reachability, the only source of truth about liveness ---------- */
+function rootIds(st){
+  var out=st.staticRoots.slice();
+  for(var i=0;i<st.stack.length;i++) out.push(st.stack[i].id);
+  return out;
+}
+function reachableSet(st){
+  var seen={}, q=rootIds(st), n=0;
+  while(q.length){
+    var id=q.pop(); if(seen[id]) continue;
+    var o=st.objects[id]; if(!o) continue;
+    seen[id]=true; n++;
+    for(var i=0;i<o.refs.length;i++) if(!seen[o.refs[i]]) q.push(o.refs[i]);
+  }
+  return seen;
+}
+function isYoung(st,o){
+  if(!o) return false;
+  if(REGIONAL[st.collector]){ var s=spaceOf(st,o.space); return !!s && (s.label==='eden'||s.label==='surv'); }
+  return o.space==='eden'||o.space==='s0'||o.space==='s1';
+}
+function isOld(st,o){
+  if(!o) return false;
+  if(REGIONAL[st.collector]){ var s=spaceOf(st,o.space); return !!s && (s.label==='old'||s.label==='hum'); }
+  return o.space==='old';
+}
+
+/* ---------- the two barriers, exactly where the JIT would put them ---------- */
+function linkRef(st,pid,cid){
+  var p=st.objects[pid], c=st.objects[cid];
+  if(!p||!c) return;
+  p.refs.push(cid);
+  if(isOld(st,p) && isYoung(st,c)){
+    if(st.writeBarrier){ st.cards[cardOf(p.addr)]=true; }
+    else { st.missedWrites=(st.missedWrites||0)+1; }
+  }
+  // an object written into an already-scanned (black) object during marking
+  if(st.gc && st.gc.marking && p.color==='black' && c.color==='white'){ st.gc.blackToWhite=(st.gc.blackToWhite||0)+1; }
+}
+function unlinkRef(st,pid,index){
+  var p=st.objects[pid]; if(!p||!p.refs.length) return null;
+  var idx = (index===undefined) ? p.refs.length-1 : index;
+  var old = p.refs[idx];
+  p.refs.splice(idx,1);
+  if(st.gc && st.gc.marking && st.satb && old!=null){
+    var o=st.objects[old];
+    if(o && o.color==='white'){ o.color='grey'; st.greyQueue.push(old); st.gc.satbSaves=(st.gc.satbSaves||0)+1; }
+  }
+  return old;
+}
+
+/* ---------- the mutator: your application code ---------- */
+function longLivedIds(st){
+  var out=[];
+  for(var k in st.objects){
+    var o=st.objects[k];
+    if(o.kind==='holder' || isOld(st,o) || o.space==='s0' || o.space==='s1') out.push(o.id);
+  }
+  return out;
+}
+function mutate(st,fraction){
+  for(var i=st.stack.length-1;i>=0;i--) if(st.stack[i].expires<=st.tick) st.stack.splice(i,1);
+  var n=Math.max(1, Math.round(st.allocRate*(st.spike>0?4:1)*(fraction||1)));
+  for(var k=0;k<n;k++){
+    var o=newObj(st,1);
+    if(!placeAnywhere(st,o)){
+      delete st.objects[o.id];
+      st.pendingAlloc.push({size:1});
+      if(st.gc){
+        st.stats.stalls++; st.stall=2;
+        log(st,'bad','The program asked for memory and there was none. Because a collection is already running, the thread is now **stalled** — parked until the collector frees something. Your users feel this exactly like a pause.','allocation stall');
+        if(largestRun(st)===0){
+          log(st,'bad','The heap is completely full and the concurrent cycle has not finished. The JVM has one move left: abandon the concurrent cycle and do a full stop-the-world compaction.','concurrent mode failure');
+          st.gc=null; startGC(st,'the concurrent cycle lost the race against allocation',true);
+        }
+      } else {
+        startGC(st,'an allocation could not be satisfied');
+      }
+      return;
+    }
+    st.stats.alloc++;
+    st.stack.push({id:o.id, expires:st.tick+1});
+    if(st.gc && st.gc.marking){ o.color='black'; st.markSet[o.id]=true; o.allocBlack=true; }
+    if(st.leak){ linkRef(st, st.staticRoots[0], o.id); }
+    else if(rnd(st) < st.survival){
+      var hosts=longLivedIds(st);
+      if(hosts.length) linkRef(st, hosts[Math.floor(rnd(st)*hosts.length)], o.id);
+    }
+  }
+  // long-lived objects occasionally drop a reference — this is how old-generation garbage is made
+  if(!st.leak){
+    var hs=longLivedIds(st);
+    for(var h=0;h<hs.length;h++){
+      var ho=st.objects[hs[h]];
+      if(ho && ho.refs.length>4 && rnd(st)<0.30) unlinkRef(st,ho.id,Math.floor(rnd(st)*ho.refs.length));
+    }
+  }
+  if(REGIONAL[st.collector] && !st.gc && freeRegions(st) <= Math.max(2, Math.round(st.spaces.length*0.22))){
+    startGC(st,"heap occupancy passed the threshold that starts a concurrent cycle");
+  }
+  if(st.spike>0) st.spike--;
+  st.tick++;
+}
+function makeOldToYoungRef(st){
+  var olds=[], youngs=[];
+  for(var k in st.objects){
+    var o=st.objects[k];
+    if(isOld(st,o)) olds.push(o); else if(isYoung(st,o)) youngs.push(o);
+  }
+  if(!olds.length||!youngs.length) return null;
+  var p=olds[Math.floor(rnd(st)*olds.length)], c=youngs[Math.floor(rnd(st)*youngs.length)];
+  linkRef(st,p.id,c.id);
+  return {p:p,c:c};
+}
+
+/* ---------- collection cycles ---------- */
+function spaceFree(st,id){
+  var s=spaceOf(st,id); if(!s) return 0; var f=0;
+  for(var i=s.start;i<s.start+s.len;i++) if(st.cells[i]===-1) f++;
+  return f;
+}
+function freeRegions(st){ var n=0; for(var i=0;i<st.spaces.length;i++) if(st.spaces[i].label==='free') n++; return n; }
+
+function startGC(st, reason, forceFull){
+  if(st.gc) return;
+  var C=st.collector, kind, phases;
+  if(C==='marksweep'){ kind='full'; phases=['markRoots','mark','check','sweep','finish']; }
+  else if(C==='markcompact'){ kind='full'; phases=['markRoots','mark','check','compact','finish']; }
+  else if(C==='copying'){ kind='full'; phases=['markRoots','mark','check','evacSemi','finish']; }
+  else if(C==='generational'){
+    if(forceFull || spaceFree(st,'old')<4){ kind='full'; phases=['markRoots','mark','check','compactOld','finish']; }
+    else { kind='minor'; phases=['markRootsYoung','markYoung','check','evacYoung','finish']; }
+  }
+  else if(forceFull){ kind='full'; phases=['markRoots','mark','check','fullCompactRegions','finish']; }
+  else if(C==='g1'){ kind='mixed'; phases=['markRoots','concMark','remark','check','chooseCSet','evacCSet','finish']; }
+  else { kind='cycle'; phases=['markRoots','concMark','remark','check','chooseCSet','concRelocate','finish']; }
+  st.gc={kind:kind,phases:phases,i:0,reason:reason,marking:false,scanned:0,copied:0,
+         stwScanned:0,stwCopied:0,satbSaves:0,cset:[],youngOnly:false,pauseSeq:0};
+  var names={full:'full, stop-the-world',minor:'young generation only',mixed:'young + a few old regions',cycle:'concurrent cycle'};
+  log(st,'gc','A collection started — '+names[kind]+'. Trigger: '+reason+'.','collector='+C);
+}
+
+var PH = {};
+
+PH.markRoots = function(st,g){
+  st.markSet={}; st.greyQueue=[];
+  for(var k in st.objects) st.objects[k].color='white';
+  var roots=rootIds(st), seeded=0;
+  for(var i=0;i<roots.length;i++){
+    var o=st.objects[roots[i]];
+    if(o && o.color==='white'){ o.color='grey'; st.greyQueue.push(o.id); seeded++; }
+  }
+  g.marking=true;
+  return {done:true, scanned:roots.length,
+    text:'Every application thread has been stopped, and the collector read the roots: '+seeded+
+         ' object(s) are reachable straight from a thread stack or a static field. They are now grey — reached, but their own fields not yet examined.',
+    detail:'roots='+roots.length+' grey='+st.greyQueue.length};
+};
+
+PH.markRootsYoung = function(st,g){
+  st.markSet={}; st.greyQueue=[];
+  for(var k in st.objects) st.objects[k].color='white';
+  var roots=rootIds(st), seeded=0;
+  for(var i=0;i<roots.length;i++){
+    var o=st.objects[roots[i]];
+    if(o && o.color==='white'){ o.color='grey'; st.greyQueue.push(o.id); seeded++; }
+  }
+  var fromCards=0, dirty=Object.keys(st.cards).length;
+  if(st.writeBarrier){
+    for(var k2 in st.objects){
+      var oo=st.objects[k2];
+      if(isOld(st,oo) && oo.addr>=0 && st.cards[cardOf(oo.addr)] && oo.color==='white'){
+        oo.color='grey'; st.greyQueue.push(oo.id); fromCards++;
+      }
+    }
+  }
+  g.marking=true; g.youngOnly=true;
+  var txt='Threads stopped. The collector seeded '+seeded+' object(s) from the roots';
+  if(st.writeBarrier) txt+=', plus '+fromCards+' old object(s) sitting in the '+dirty+' card(s) the write barrier dirtied since the last collection. Those old objects are the only reason a young-only collection can find references coming down from the old generation.';
+  else txt+='. The write barrier is switched OFF, so no cards were recorded and the old generation will not be examined at all. Any young object whose only reference lives in an old object is about to be treated as garbage.';
+  return {done:true, scanned:roots.length+fromCards, text:txt, detail:'roots='+seeded+' cards='+dirty+' fromCards='+fromCards};
+};
+
+function markBody(st,g,limit){
+  var n=0;
+  while(st.greyQueue.length && n<limit){
+    var id=st.greyQueue.shift(), o=st.objects[id]; n++;
+    if(!o) continue;
+    o.color='black'; st.markSet[id]=true;
+    for(var i=0;i<o.refs.length;i++){
+      var c=st.objects[o.refs[i]];
+      if(!c) continue;
+      if(g.youngOnly && !isYoung(st,c)) continue;
+      if(c.color==='white'){ c.color='grey'; st.greyQueue.push(c.id); }
+    }
+  }
+  return n;
+}
+PH.mark = function(st,g){
+  var n=markBody(st,g,MARK_CHUNK);
+  var black=Object.keys(st.markSet).length;
+  var done=st.greyQueue.length===0;
+  return {done:done, scanned:n,
+    text: done ? 'Marking is finished. '+black+' object(s) were reached and are black. Everything still white was never reached from any root, and is therefore garbage — the collector never had to prove any of it was dead.'
+               : 'Scanned '+n+' more object(s) and blackened them. '+st.greyQueue.length+' object(s) are still grey, waiting on the worklist.',
+    detail:'grey='+st.greyQueue.length+' black='+black};
+};
+PH.markYoung = PH.mark;
+PH.concMark = function(st,g){
+  var r=PH.mark(st,g);
+  r.text = (r.done?'Concurrent marking finished. ':'Concurrent marking: ')+r.text.replace(/^Marking is finished\. |^Scanned /,r.done?'':'scanned ');
+  return r;
+};
+PH.remark = function(st,g){
+  var n=markBody(st,g,500);
+  g.marking=false;
+  var t='Threads stopped again, briefly, to finish off the '+n+' object(s) the program touched while marking was running.';
+  if(g.satbSaves) t+=' The SATB barrier had rescued '+g.satbSaves+' reference(s) that the program overwrote mid-cycle — without it, those objects would now be collected while still in use.';
+  else if(!st.satb) t+=' The SATB barrier is OFF, so any reference the program moved out of reach of the collector during marking was simply lost.';
+  return {done:true, scanned:n, text:t, detail:'satbSaves='+g.satbSaves};
+};
+
+PH.check = function(st,g){
+  var live=reachableSet(st), lost=[], floating=[];
+  for(var id in live){
+    var o=st.objects[id]; if(!o) continue;
+    if(g.youngOnly && !isYoung(st,o)) continue;
+    if(!st.markSet[id]) lost.push(Number(id));
+  }
+  for(var m in st.markSet){ if(!live[m] && st.objects[m]) floating.push(Number(m)); }
+  st.stats.floating+=floating.length;
+  st.hazards=lost.slice();
+  var txt, cls='gc', detail='marked='+Object.keys(st.markSet).length+' reachable='+Object.keys(live).length;
+  if(lost.length){
+    st.stats.lost+=lost.length;
+    var why = !st.writeBarrier ? 'The write barrier is off, so the collector never looked at the old-generation objects that point into the young generation.'
+            : !st.satb ? 'The SATB barrier is off, so a reference the program moved from an unscanned object into an already-scanned one was never followed.'
+            : 'A reference reachable from the roots was not found by the walk.';
+    txt='CORRUPTION: '+lost.length+' object(s) are reachable from the roots and were NOT marked. They are about to be freed while your program still holds references to them. '+why+' Every field still pointing at them will become a dangling pointer.';
+    cls='bad';
+  } else if(floating.length){
+    txt='Marking is sound: nothing reachable was missed. '+floating.length+' object(s) were marked live but have since become unreachable — that is floating garbage, and it survives until the next cycle. That is the exact price of not stopping the world.';
+    cls='warn';
+  } else {
+    txt='Marking is sound: every reachable object was marked, and nothing unreachable was.';
+    cls='good';
+  }
+  return {done:true, scanned:0, text:txt, detail:detail, cls:cls};
+};
+
+function freeUnmarked(st,youngOnly){
+  var freed=0;
+  for(var k in st.objects){
+    var o=st.objects[k];
+    if(o.kind==='holder') continue;
+    if(youngOnly && !isYoung(st,o)) continue;
+    if(!st.markSet[o.id]){ unplace(st,o); delete st.objects[o.id]; freed++; }
+  }
+  // drop dangling references so the model stays consistent after corruption
+  for(var k2 in st.objects){
+    var oo=st.objects[k2], keep=[];
+    for(var i=0;i<oo.refs.length;i++) if(st.objects[oo.refs[i]]) keep.push(oo.refs[i]);
+    oo.refs=keep;
+  }
+  for(var s=st.stack.length-1;s>=0;s--) if(!st.objects[st.stack[s].id]) st.stack.splice(s,1);
+  st.stats.freed+=freed;
+  return freed;
+}
+
+PH.sweep = function(st,g){
+  if(g.sweepPtr==null){ g.sweepPtr=0; g.sweptFreed=0; }
+  var end=Math.min(st.N, g.sweepPtr+SWEEP_CHUNK), freed=0;
+  for(var i=g.sweepPtr;i<end;i++){
+    var id=st.cells[i];
+    if(id>=0){
+      var o=st.objects[id];
+      if(o && o.kind!=='holder' && !st.markSet[id]){ unplace(st,o); delete st.objects[id]; freed++; }
+    }
+  }
+  var walked=end-g.sweepPtr;
+  g.sweepPtr=end; g.sweptFreed+=freed; st.stats.freed+=freed;
+  var done=g.sweepPtr>=st.N;
+  if(done){
+    for(var k in st.objects){ var oo=st.objects[k],keep=[]; for(var j=0;j<oo.refs.length;j++) if(st.objects[oo.refs[j]]) keep.push(oo.refs[j]); oo.refs=keep; }
+    for(var s=st.stack.length-1;s>=0;s--) if(!st.objects[st.stack[s].id]) st.stack.splice(s,1);
+  }
+  return {done:done, scanned:walked,
+    text: done ? 'Sweep finished: walked all '+st.N+' cells and freed '+g.sweptFreed+' dead object(s). Nothing moved, so the free space is left exactly where the dead objects happened to be. The largest single gap is now '+largestRun(st)+' cell(s).'
+               : 'Sweeping cells '+(end-walked)+'–'+(end-1)+', freeing '+freed+' dead object(s) into the free list.',
+    detail:'swept='+g.sweepPtr+'/'+st.N};
+};
+
+PH.compact = function(st,g){
+  if(!g.moveQ){
+    freeUnmarked(st,false);
+    var ids=[];
+    for(var k in st.objects) if(st.objects[k].addr>=0) ids.push(st.objects[k]);
+    ids.sort(function(a,b){return a.addr-b.addr;});
+    g.moveQ=ids.map(function(o){return o.id;}); g.ptr=0; g.movedTotal=0;
+  }
+  var moved=0, cells=0;
+  while(g.moveQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.moveQ.shift()];
+    if(!o){ continue; }
+    if(o.addr!==g.ptr){
+      unplace(st,o);
+      setCells(st,o,g.ptr,o.space);
+      cells+=o.size; moved++; g.movedTotal++;
+    }
+    g.ptr+=o.size;
+  }
+  st.stats.copied+=cells;
+  var done=g.moveQ.length===0;
+  return {done:done, copied:cells,
+    text: done ? 'Compaction finished. '+g.movedTotal+' survivor(s) were slid down to the bottom of the heap, so all free space is now one contiguous block of '+largestRun(st)+' cells. Every reference that pointed at a moved object had to be found and rewritten — that is what makes this the most expensive thing the JVM does.'
+               : 'Sliding '+moved+' survivor(s) down toward the bottom of the heap, closing the gaps the dead objects left.',
+    detail:'moved='+g.movedTotal+' remaining='+g.moveQ.length};
+};
+
+PH.compactOld = function(st,g){
+  if(!g.moveQ){
+    freeUnmarked(st,false);
+    var ids=[];
+    for(var k in st.objects) if(st.objects[k].addr>=0) ids.push(st.objects[k]);
+    ids.sort(function(a,b){return a.addr-b.addr;});
+    g.moveQ=ids.map(function(o){return o.id;});
+    var old=spaceOf(st,'old'); g.ptr=old.start; g.oldEnd=old.start+old.len; g.movedTotal=0;
+    for(var i=0;i<st.N;i++) st.cells[i]=-1;
+    for(var k2 in st.objects) st.objects[k2].addr=-1;
+  }
+  var moved=0, cells=0;
+  while(g.moveQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.moveQ.shift()]; if(!o) continue;
+    if(g.ptr+o.size>g.oldEnd){
+      st.oom=true;
+      return {done:true, copied:cells, cls:'bad',
+        text:'OutOfMemoryError. A full collection compacts every survivor into the old generation, and the survivors no longer fit there. The live set is simply larger than the heap can hold.',
+        detail:'live='+Object.keys(st.objects).length};
+    }
+    setCells(st,o,g.ptr,'old'); o.age=15; g.ptr+=o.size; cells+=o.size; moved++; g.movedTotal++;
+  }
+  st.stats.copied+=cells;
+  var done=g.moveQ.length===0;
+  return {done:done, copied:cells,
+    text: done ? 'Full collection finished: the entire heap was marked and every one of the '+g.movedTotal+' survivors compacted into the old generation. Eden and both survivor spaces are now completely empty. This is the multi-second event you see as "Pause Full" in a real GC log.'
+               : 'Compacting '+moved+' survivor(s) into the old generation.',
+    detail:'moved='+g.movedTotal};
+};
+
+PH.evacSemi = function(st,g){
+  if(!g.evacQ){
+    freeUnmarked(st,false);
+    var dest = (st.fromSpace==='from')?'to':'from';
+    var ids=[];
+    for(var k in st.objects) if(st.objects[k].space===st.fromSpace) ids.push(st.objects[k].id);
+    g.evacQ=ids; g.dest=dest; g.ptr=spaceOf(st,dest).start; g.end=g.ptr+spaceOf(st,dest).len; g.movedTotal=0;
+  }
+  var moved=0, cells=0;
+  while(g.evacQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.evacQ.shift()]; if(!o) continue;
+    if(g.ptr+o.size>g.end){ st.oom=true;
+      return {done:true, copied:cells, cls:'bad',
+        text:'OutOfMemoryError: the survivors do not fit in the other half of the heap. A copying collector can only ever use half its memory, which is exactly why nobody uses a pure semi-space collector for a whole heap.',detail:''};
+    }
+    unplace(st,o); setCells(st,o,g.ptr,g.dest); g.ptr+=o.size; cells+=o.size; moved++; g.movedTotal++;
+  }
+  st.stats.copied+=cells;
+  var done=g.evacQ.length===0;
+  if(done) st.fromSpace=g.dest;
+  return {done:done, copied:cells,
+    text: done ? 'Evacuation finished: '+g.movedTotal+' survivor(s) copied into the other half, and the half they came from was declared free in one stroke. Notice what was never touched — none of the dead objects were visited at all. Cost depends only on how many survived.'
+               : 'Copying '+moved+' survivor(s) across to the other half of the heap.',
+    detail:'copied='+g.movedTotal};
+};
+
+PH.evacYoung = function(st,g){
+  if(!g.evacQ){
+    freeUnmarked(st,true);
+    var ids=[];
+    for(var k in st.objects) if(isYoung(st,st.objects[k])) ids.push(st.objects[k]);
+    ids.sort(function(a,b){return a.addr-b.addr;});
+    g.evacQ=ids.map(function(o){return o.id;});
+    g.dest = (st.toSurv==='s0')?'s0':'s1';
+    g.movedTotal=0; g.promotedTotal=0; g.overflow=0;
+  }
+  var moved=0, cells=0;
+  while(g.evacQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.evacQ.shift()]; if(!o) continue;
+    o.age++;
+    var toOld = o.age>=3;
+    unplace(st,o);
+    if(!toOld){
+      if(!placeIn(st,o,g.dest)){ toOld=true; g.overflow++; }
+    }
+    if(toOld){
+      if(!placeIn(st,o,'old')){ st.pendingFull=true; placeIn(st,o,g.dest); }
+      else { o.age=Math.max(o.age,3); g.promotedTotal++; st.stats.promoted++; }
+    }
+    cells+=o.size; moved++; g.movedTotal++;
+  }
+  st.stats.copied+=cells;
+  var done=g.evacQ.length===0;
+  if(done){ st.toSurv = (st.toSurv==='s0')?'s1':'s0'; st.cards={}; }
+  var t;
+  if(done){
+    t='Minor collection finished. '+g.movedTotal+' survivor(s) copied out of the young generation ('+g.promotedTotal+' of them promoted into the old generation), then Eden and the old survivor space were freed wholesale. ';
+    t+= g.overflow ? 'Warning: '+g.overflow+' object(s) were promoted early because the survivor space was too small to hold them — they are now in the old generation despite being seconds old.'
+                   : 'Everything that died in Eden cost the collector nothing at all: it was never visited.';
+  } else t='Copying '+moved+' young survivor(s) out — into the survivor space, or into the old generation if they are old enough.';
+  return {done:done, copied:cells, text:t, detail:'copied='+g.movedTotal+' promoted='+g.promotedTotal};
+};
+
+function regionStats(st,s){
+  var used=0, liveCells=0;
+  for(var i=s.start;i<s.start+s.len;i++){
+    var id=st.cells[i];
+    if(id>=0){ used++; if(st.markSet[id]) liveCells++; }
+  }
+  return {used:used, live:liveCells, garbage:used-liveCells};
+}
+PH.chooseCSet = function(st,g){
+  var young=[], olds=[];
+  for(var i=0;i<st.spaces.length;i++){
+    var s=st.spaces[i];
+    if(s.label==='eden'||s.label==='surv') young.push(s);
+    else if(s.label==='old'){ var rs=regionStats(st,s); if(rs.used) olds.push({s:s,g:rs.garbage,u:rs.used}); }
+  }
+  olds.sort(function(a,b){ return (b.g/Math.max(1,b.u)) - (a.g/Math.max(1,a.u)); });
+  var free=freeRegions(st);
+  var budget=Math.min(3, Math.max(0, free-1));
+  var chosen=young.slice();
+  var picked=[];
+  for(var j=0;j<olds.length && picked.length<budget;j++){
+    if(olds[j].g/Math.max(1,olds[j].u) >= 0.30){ chosen.push(olds[j].s); picked.push(olds[j]); }
+  }
+  g.cset=chosen.map(function(s){return s.id;});
+  var t='Chose '+chosen.length+' region(s) to evacuate: all '+young.length+' young region(s)';
+  if(picked.length){
+    var best=Math.round(100*picked[0].g/Math.max(1,picked[0].u));
+    t+=', plus the '+picked.length+' old region(s) with the most garbage in them (the best is '+best+'% garbage). Those give the most memory back for the least copying — which is the entire meaning of the name "garbage-first".';
+  } else t+='. No old region was garbage-rich enough to be worth the copying cost, so they are left alone this cycle.';
+  return {done:true, scanned:st.spaces.length, text:t, detail:'cset='+g.cset.join(',')};
+};
+
+function evacRegions(st,g,concurrent){
+  if(!g.evacQ){
+    var ids=[];
+    for(var k in st.objects){
+      var o=st.objects[k];
+      if(g.cset.indexOf(o.space)>=0){ if(st.markSet[o.id]) ids.push(o.id); }
+    }
+    g.evacQ=ids; g.movedTotal=0; g.promotedTotal=0; g.destRegion=null;
+  }
+  var moved=0, cells=0;
+  while(g.evacQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.evacQ.shift()]; if(!o) continue;
+    var src=spaceOf(st,o.space);
+    o.age++;
+    var wantLabel = (src && src.label==='old') ? 'old' : (o.age>=2 ? 'old' : 'surv');
+    var dest=null;
+    for(var i=0;i<st.spaces.length;i++){
+      var s=st.spaces[i];
+      if(s.label===wantLabel && g.cset.indexOf(s.id)<0 && findRun(st,s.start,s.len,o.size)>=0){ dest=s; break; }
+    }
+    if(!dest) dest=takeRegion(st,wantLabel);
+    if(!dest){
+      st.pendingFull=true;
+      log(st,'bad','Evacuation failure: there is no free region left to copy survivors into. G1 calls this "to-space exhausted"; the only way out is a full stop-the-world compaction.','to-space exhausted');
+      g.evacQ=[]; break;
+    }
+    var at=findRun(st,dest.start,dest.len,o.size);
+    if(at<0){ g.evacQ.unshift(o.id); var nr=takeRegion(st,wantLabel); if(!nr){ st.pendingFull=true; g.evacQ=[]; break; } continue; }
+    unplace(st,o); setCells(st,o,at,dest.id);
+    if(wantLabel==='old'){ g.promotedTotal++; st.stats.promoted++; }
+    cells+=o.size; moved++; g.movedTotal++;
+  }
+  st.stats.copied+=cells;
+  var done=g.evacQ.length===0;
+  if(done){
+    for(var c=0;c<g.cset.length;c++){
+      var cs=spaceOf(st,g.cset[c]);
+      if(!cs) continue;
+      for(var x=cs.start;x<cs.start+cs.len;x++){
+        var id2=st.cells[x];
+        if(id2>=0){ var oo=st.objects[id2]; if(oo && oo.kind!=='holder'){ unplace(st,oo); delete st.objects[id2]; st.stats.freed++; } else st.cells[x]=-1; }
+      }
+      cs.label='free'; cs.kind='free';
+    }
+    for(var k3 in st.objects){ var ob=st.objects[k3], keep=[]; for(var q=0;q<ob.refs.length;q++) if(st.objects[ob.refs[q]]) keep.push(ob.refs[q]); ob.refs=keep; }
+    for(var s2=st.stack.length-1;s2>=0;s2--) if(!st.objects[st.stack[s2].id]) st.stack.splice(s2,1);
+    st.cards={};
+  }
+  return {done:done, copied:cells, moved:moved};
+}
+PH.evacCSet = function(st,g){
+  var r=evacRegions(st,g,false);
+  return {done:r.done, copied:r.copied,
+    text: r.done ? 'Evacuation pause finished: '+g.movedTotal+' live object(s) copied out of the chosen regions, and every one of those regions was then freed whole. Copying survivors compacts the heap as a side effect — G1 never needs a separate compaction phase. But note when this happened: your application was stopped the entire time.'
+                 : 'Copying '+r.moved+' live object(s) out of the chosen regions, with all application threads stopped.',
+    detail:'moved='+g.movedTotal};
+};
+PH.concRelocate = function(st,g){
+  var r=evacRegions(st,g,true);
+  return {done:r.done, copied:r.copied,
+    text: r.done ? 'Concurrent relocation finished: '+g.movedTotal+' object(s) were moved while your application kept running. Every reference to a moved object was left behind as a forwarding pointer, and the load barrier on each reference read repairs stale references one at a time as the program touches them — so the program never sees an old address, and the collector never had to stop it.'
+                 : 'Relocating '+r.moved+' object(s) — while the application keeps running. A load barrier on every reference read sends any thread that touches a moved object to its new address, and rewrites the field so the next read is full speed.',
+    detail:'moved='+g.movedTotal};
+};
+
+PH.fullCompactRegions = function(st,g){
+  if(!g.moveQ){
+    freeUnmarked(st,false);
+    var ids=[];
+    for(var k in st.objects) if(st.objects[k].addr>=0) ids.push(st.objects[k]);
+    ids.sort(function(a,b){return a.addr-b.addr;});
+    g.moveQ=ids.map(function(o){return o.id;}); g.movedTotal=0;
+    for(var i=0;i<st.N;i++) st.cells[i]=-1;
+    for(var k2 in st.objects) st.objects[k2].addr=-1;
+    for(var s=0;s<st.spaces.length;s++){ st.spaces[s].label='free'; st.spaces[s].kind='free'; }
+    g.ptr=0;
+  }
+  var moved=0, cells=0;
+  while(g.moveQ.length && moved<MOVE_CHUNK){
+    var o=st.objects[g.moveQ.shift()]; if(!o) continue;
+    var ri=Math.floor(g.ptr/REGION);
+    if(g.ptr%REGION + o.size > REGION) { g.ptr = (ri+1)*REGION; ri=ri+1; }
+    if(ri>=st.spaces.length){ st.oom=true;
+      return {done:true, copied:cells, cls:'bad', text:'OutOfMemoryError: the live set does not fit even after a full compaction.', detail:''}; }
+    var need=Math.ceil(o.size/REGION);
+    for(var d=0;d<need;d++){ var sp=st.spaces[ri+d]; if(sp){ sp.label = o.size>REGION?'hum':'old'; sp.kind=sp.label; } }
+    setCells(st,o,g.ptr,st.spaces[ri].id);
+    g.ptr+=o.size; cells+=o.size; moved++; g.movedTotal++;
+  }
+  st.stats.copied+=cells;
+  var done=g.moveQ.length===0;
+  return {done:done, copied:cells,
+    text: done ? 'Full compaction finished: every survivor was packed into the lowest regions and '+freeRegions(st)+' region(s) are now completely free and adjacent. This is the pause a region-based collector exists to avoid, and it just happened anyway.'
+               : 'Packing '+moved+' survivor(s) into the lowest regions, with everything stopped.',
+    detail:'moved='+g.movedTotal};
+};
+
+function flushPause(st,g,why){
+  var scanned=g.stwScanned||0, copied=g.stwCopied||0;
+  if(scanned===0 && copied===0) return;
+  var ttsp = st.stuck>0 ? 14 : 0;
+  var ms = 1.0 + 0.02*scanned + 0.05*copied + ttsp;
+  var kind = g.kind==='full' ? 'full' : (ms<3 ? 'conc' : 'norm');
+  if(ttsp) kind='ttsp';
+  st.pauses.push({ms:Math.round(ms*10)/10, kind:kind,
+    label:(why||'pause')+' · '+(Math.round(ms*10)/10)+'ms'+(ttsp?' (of which '+ttsp+'ms was just waiting for one thread to reach a safepoint)':'')});
+  if(st.pauses.length>90) st.pauses.shift();
+  if(ttsp){
+    log(st,'warn','That pause was '+(Math.round(ms*10)/10)+'ms, but the collector only did '+(Math.round((ms-ttsp)*10)/10)+'ms of work. The other '+ttsp+'ms was spent waiting for one thread stuck outside a safepoint. Every other thread waited for that one thread.','time-to-safepoint');
+  }
+  g.stwScanned=0; g.stwCopied=0;
+}
+
+PH.finish = function(st,g){
+  flushPause(st,g,({full:'full GC',minor:'minor GC',mixed:'evacuation',cycle:'cycle'})[g.kind]||'pause');
+  st.cards={};
+  for(var k in st.objects){ st.objects[k].color=''; delete st.objects[k].allocBlack; }
+  refreshCards(st);
+  st.greyQueue=[]; st.stats.gcs++;
+  if(g.kind==='full') st.stats.fulls++;
+  st.floorPrev=st.floor;
+  var used=0; for(var i=0;i<st.N;i++) if(st.cells[i]!==-1) used++;
+  st.floor=used;
+  var retried=0, failed=0;
+  while(st.pendingAlloc.length){
+    var req=st.pendingAlloc.shift();
+    var o=newObj(st,req.size);
+    if(placeAnywhere(st,o)){ if(req.name){ o.name=req.name; st.names[req.name]=o.id; } st.stack.push({id:o.id,expires:st.tick+40}); st.stats.alloc++; retried++; if(st.leak) linkRef(st,st.staticRoots[0],o.id); }
+    else { delete st.objects[o.id]; failed++; st.pendingAlloc.unshift(req); break; }
+  }
+  var txt='Collection complete. The heap is now '+pct(used,st.N)+'% occupied, and the largest contiguous free block is '+largestRun(st)+' cell(s).';
+  var cls='gc';
+  if(failed){
+    if(g.kind!=='full' && !st.pendingFull){ st.pendingFull=true;
+      txt+=' The allocation that triggered this collection still cannot be satisfied, so the JVM must escalate to a full collection.'; cls='warn'; }
+    else { st.oom=true;
+      txt='OutOfMemoryError: Java heap space. A full collection ran and the allocation still cannot be satisfied. '+
+          (largestRun(st)>0 ? 'Note that '+ (st.N-used) +' cells are free — they are simply not contiguous enough (largest gap: '+largestRun(st)+').' : 'The heap is genuinely full of live objects.');
+      cls='bad'; }
+  }
+  return {done:true, scanned:0, text:txt, detail:'used='+used+'/'+st.N+' retriedAlloc='+retried, cls:cls};
+};
+
+/* ---------- the reducer ---------- */
+function runGCSlice(st){
+  var g=st.gc, name=g.phases[g.i], conc=!!CONC[name];
+  if(conc) flushPause(st,g,'initial mark');
+  var r=PH[name](st,g);
+  if(!conc){ g.stwScanned=(g.stwScanned||0)+(r.scanned||0); g.stwCopied=(g.stwCopied||0)+(r.copied||0); }
+  st.stats.scanned+=(r.scanned||0);
+  log(st, r.cls||(conc?'':'gc'), r.text, (STW_LABEL[name]||name)+(conc?' [program still running]':' [threads stopped]')+' · '+(r.detail||''));
+  if(conc && !st.oom && !st.freezeMutator) mutate(st,0.6);
+  if(r.done) g.i++;
+  if(g.i>=g.phases.length || st.oom){
+    if(!st.oom && g.i>=g.phases.length){ /* finish already flushed */ }
+    st.gc=null;
+    if(st.pendingFull && !st.oom){ st.pendingFull=false; startGC(st,'the previous collection could not free enough memory',true); }
+  }
+}
+
+function step(prev){
+  var st=clone(prev);
+  if(st.oom) return st;
+  if(st.script && st.scriptI<st.script.length){ runScript(st); updateVerdict(st); return st; }
+  if(st.gc){ runGCSlice(st); updateVerdict(st); return st; }
+  if(st.stall>0){ st.stall--; st.tick++; log(st,'warn','A thread is still stalled, waiting for memory.','allocation stall'); updateVerdict(st); return st; }
+  st.lockVerdict=false;
+  mutate(st);
+  if(st.stuck>0) st.stuck--;
+  updateVerdict(st);
+  return st;
+}
+
+function updateVerdict(st){
+  if(st.lockVerdict) return;
+  var used=0; for(var i=0;i<st.N;i++) if(st.cells[i]!==-1) used++;
+  var occ=pct(used,st.N), last=st.pauses.length?st.pauses[st.pauses.length-1]:null;
+  var v;
+  if(st.oom){
+    v={tone:'bad',h:'The program is dead — OutOfMemoryError',
+       b:'The collector did everything correctly and there is still nowhere to put the next object. Look at the log for which of the two causes it was: the live set genuinely outgrew the heap, or the free space is there but too broken up to use.'};
+  } else if(st.stats.lost>0){
+    v={tone:'bad',h:'A live object was destroyed',
+       b:'The collector freed '+st.stats.lost+' object(s) that your program can still reach. Every field pointing at them is now a dangling pointer, and the next read of one is undefined behaviour. This is the one thing a collector may never do — and it happened because a barrier you switched off was the only thing preventing it.'};
+  } else if(st.stall>0){
+    v={tone:'warn',h:'Threads are stalled waiting for memory',
+       b:'The collector is running but cannot free memory faster than the program is consuming it. Your users experience this exactly as they would a pause; the GC log will not call it one.'};
+  } else if(st.stats.fulls>0 && (st.collector==='g1'||st.collector==='concurrent')){
+    v={tone:'warn',h:'A full stop-the-world collection happened — on a low-pause collector',
+       b:'That is the failure this collector exists to avoid. It means the collector lost the race against your allocation rate, or ran out of somewhere to copy survivors to. Look at the tallest bar in the pause meter: that is the pause you thought you had designed away.'};
+  } else if(st.floor>0 && st.floorPrev>0 && st.floor>st.floorPrev+Math.max(3,st.N*0.04) && st.stats.gcs>2){
+    v={tone:'warn',h:'Occupancy is not returning to where it was',
+       b:'After each collection the heap is fuller than it was after the last one. Nothing is broken — every one of those objects is genuinely reachable from a root. That is exactly what a memory leak looks like from the collector’s side, and no collector can fix it.'};
+  } else if(st.stats.gcs===0){
+    v={tone:'',h:'Filling the heap',
+       b:occ+'% of the heap is in use. Nothing has been collected yet — the first collection will start when an allocation cannot be satisfied.'};
+  } else {
+    v={tone:'good',h:'Healthy: '+occ+'% occupied after '+st.stats.gcs+' collection(s)',
+       b:'The longest pause so far is '+maxPause(st)+' model-ms'+(last?', the most recent was '+last.ms+'ms':'')+
+         '. Survivors: '+pct(st.stats.copied, Math.max(1,st.stats.alloc))+'% of everything allocated has had to be copied at least once — the lower that number, the better the generational hypothesis is holding for this workload.'};
+  }
+  st.verdict=v;
+}
+function maxPause(st){ var m=0; for(var i=0;i<st.pauses.length;i++) if(st.pauses[i].ms>m) m=st.pauses[i].ms; return m; }
+</script>
+
+<script>
+"use strict";
+/* =====================================================================
+   SCENARIOS — predict, then run
+   ===================================================================== */
+function mkNamed(st,name,size,label){
+  var o=newObj(st,size||1); o.name=name; st.names[name]=o.id;
+  if(REGIONAL[st.collector]){
+    var reg=null,i,s;
+    for(i=0;i<st.spaces.length;i++){ s=st.spaces[i]; if(s.label===label && findRun(st,s.start,s.len,o.size)>=0){reg=s;break;} }
+    if(!reg) reg=takeRegion(st,label);
+    if(reg){ var at=findRun(st,reg.start,reg.len,o.size); if(at>=0) setCells(st,o,at,reg.id); }
+  } else placeIn(st,o,label);
+  return o;
+}
+function seedOld(st,n){
+  for(var i=0;i<n;i++){
+    var o=newObj(st,1); o.age=15;
+    if(REGIONAL[st.collector]){
+      var reg=null;
+      for(var j=0;j<st.spaces.length;j++){ var s=st.spaces[j]; if(s.label==='old'&&findRun(st,s.start,s.len,1)>=0){reg=s;break;} }
+      if(!reg) reg=takeRegion(st,'old');
+      if(reg){ var at=findRun(st,reg.start,reg.len,1); if(at>=0) setCells(st,o,at,reg.id); }
+    } else placeIn(st,o,'old');
+    linkRef(st, st.staticRoots[0], o.id);
+  }
+}
+
+var SCEN = [
+{ id:0, key:'frag', title:'1 · Free memory you cannot use',
+  blurb:'Mark–sweep, a heap that has been collected many times, and one ordinary array allocation.',
+  collector:'marksweep', opts:{N:120},
+  setup:function(st){
+    for(var i=0;i<st.N;i++){
+      if(st.cells[i]!==-1) continue;
+      if(i%3===1 || i%17===0) continue;
+      var o=newObj(st,1); setCells(st,o,i,'heap'); linkRef(st,st.staticRoots[0],o.id);
+    }
+  },
+  question:'The heap below has been swept many times by a collector that never moves anything. Roughly a third of it is free. The program now asks for an 8-cell array. What happens?',
+  options:[
+    {t:'It is allocated normally — there is plenty of free memory.', ok:false},
+    {t:'A collection runs first, then it is allocated.', ok:false},
+    {t:'It fails, because the free memory is not in one piece.', ok:true}
+  ],
+  why:'Total free memory is never the number that decides an allocation — the largest contiguous free block is. Sweeping never moves a survivor, so every collection leaves the holes exactly where the dead objects happened to be, and the heap gets more broken up with every cycle, forever. Switch the collector at the top to Mark–compact and run this again: compaction slides the survivors together and the same allocation succeeds instantly.',
+  script:function(st){
+    var free=0; for(var i=0;i<st.N;i++) if(st.cells[i]===-1) free++;
+    return [
+      {n:'note',text:'Look at the heap: '+free+' of its '+st.N+' cells are free — '+pct(free,st.N)+'% of the whole heap. But look at how they are arranged. The largest run of adjacent free cells is '+largestRun(st)+'.',detail:'largestFreeRun='+largestRun(st)},
+      {n:'note',text:'This shape is not artificial. It is what a sweeping collector inevitably produces: survivors stay exactly where they were born, and the dead leave holes wherever they happened to be lying.'},
+      {n:'note',text:'The program now needs one array of 8 cells.'},
+      {n:'alloc',size:8,name:'bigArray',thenGC:true,
+        failText:'Allocation FAILED. There is no run of 8 adjacent free cells anywhere in the heap. A collection is triggered in the hope of producing one.'},
+      {n:'finishGC'},
+      {n:'note',cls:'bad',text:'The collection freed nothing, because everything in this heap is still reachable — and even if it had freed something, sweeping would not have moved anything, so the fragments would still be fragments.'},
+      {n:'verdict',tone:'bad',h:'OutOfMemoryError with a third of the heap free',
+       b:'Nothing here is broken. The collector marked correctly, swept correctly, and reported honestly. The allocation failed because free memory and usable memory are different quantities, and only a collector that MOVES objects can convert one into the other. Now switch to Mark–compact at the top and press this scenario again.'}
+    ];
+  }
+},
+{ id:1, key:'bet', title:'2 · The bet generational collection makes',
+  blurb:'Fill Eden with objects that mostly die, collect, then make them mostly survive and watch it fall apart.',
+  collector:'generational', opts:{N:120, allocRate:6, survival:0.05},
+  setup:function(st){ seedOld(st,10); },
+  question:'Eden is about to fill up with roughly 45 objects, of which about 43 will already be unreachable when the collection runs. How much work does the young collection do?',
+  options:[
+    {t:'It examines all ~45 objects to decide which are dead.', ok:false},
+    {t:'It examines only the ~2 survivors and never touches the dead ones at all.', ok:true},
+    {t:'It examines the whole heap, young and old.', ok:false}
+  ],
+  why:'A young collection marks from the roots, copies whatever it reached into the survivor space, and then declares the whole of Eden free in one operation. The dead are never marked, never swept, never visited. That is why its cost depends on how many objects SURVIVED and is completely independent of how many died — and it is the single largest win in the history of garbage collection. Watch the second half of this scenario for what happens when the bet stops paying.',
+  script:function(st){
+    return [
+      {n:'note',text:'Survival share is set to 5%: this is a request-response service where nearly every object dies with the request. Filling Eden now.'},
+      {n:'ticks',k:9},
+      {n:'note',text:'Eden is nearly full. Forcing the young collection.'},
+      {n:'startGC',reason:'Eden is full'},
+      {n:'finishGC'},
+      {n:'note',cls:'good',text:'Look at the "Cells copied" figure in the stats, and at the height of that pause bar. Almost nothing was copied, because almost nothing survived.'},
+      {n:'note',text:'Now the same collector, same heap — but the program changes shape. Survival share goes to 70%: think of a request handler that stores everything it builds into a cache.'},
+      {n:'set',k:'survival',v:0.7,text:'Survival share raised to 70%. Every object allocated from here on has a 70% chance of still being reachable when the collection runs.'},
+      {n:'ticks',k:26},
+      {n:'note',cls:'warn',text:'Compare the pause bars now with the first one. Survivors have to be copied — twice, if they bounce between survivor spaces — and then promoted into the old generation, which then fills, which forces a full collection of the entire heap.'},
+      {n:'verdict',tone:'warn',h:'The generational hypothesis is an assumption, not a law',
+       b:'At 5% survival, a young collection is almost free. At 70% survival, the same collector copies most of what it allocates, promotes it into the old generation, and eventually has to collect the whole heap anyway — while still paying for the write barrier and the two survivor spaces. Generational collection is a bet on your program\'s behaviour, and a cache-heavy workload is where the bet loses.'}
+    ];
+  }
+},
+{ id:2, key:'card', title:'3 · The note nobody wrote down',
+  blurb:'A young collection with the write barrier switched off. This one destroys a live object.',
+  collector:'generational', opts:{N:120, allocRate:2, survival:0.1, writeBarrier:false},
+  setup:function(st){
+    seedOld(st,6);
+    var ce=mkNamed(st,'cacheEntry',1,'old'); ce.age=15;
+    linkRef(st, st.staticRoots[0], ce.id);
+  },
+  question:'A young collection starts its walk from the thread stacks and static fields, and follows references only into the young generation — it never walks the old generation, because that is the entire point of being a young collection. An object in the OLD generation is about to be pointed at a brand-new object in Eden. What happens to the new object?',
+  options:[
+    {t:'It survives — the collector walks the whole heap to be safe.', ok:false},
+    {t:'It is freed, even though the old object still points at it.', ok:true},
+    {t:'The collection refuses to run until the reference is removed.', ok:false}
+  ],
+  why:'With the write barrier switched off, nothing recorded that an old object was made to point into the young generation. The collector started from the roots, never walked the old generation, and so never found the reference. The young object was never marked, so Eden was freed with it inside — and cacheEntry.lastAccess is now a dangling pointer into memory that will shortly hold something else entirely. This is the exact catastrophe a collector may never cause, and the two instructions of the write barrier are the only thing standing between you and it. Switch the write barrier back on in the left panel and run this scenario again — the same scenario, one dirtied card, and the object lives.',
+  script:function(st){
+    var on=st.writeBarrier;
+    return [
+      {n:'note',text:'cacheEntry is an object that has been alive long enough to be promoted into the old generation. Find it in the heap map: it is in the Old generation band.'},
+      on ? {n:'note',cls:'good',text:'The write barrier is ON for this run, exactly as it is in every real JVM. Watch what it records.'}
+         : {n:'note',cls:'warn',text:'The write barrier is switched OFF for this run. In a real JVM it is always on and you cannot disable it — it exists here as a switch so you can see what it prevents.'},
+      {n:'alloc',size:1,name:'timestamp',space:'eden',noRoot:true,
+        text:'The program allocates a fresh Timestamp in Eden. Nothing on any thread stack refers to it.'},
+      {n:'link',a:'cacheEntry',b:'timestamp',cls: on?'good':'warn',
+        text: on
+          ? 'cacheEntry.lastAccess = timestamp. An OLD object now points at a YOUNG object — and the write barrier dirtied the card covering cacheEntry. Two instructions, one byte, and the next young collection will know to look here.'
+          : 'cacheEntry.lastAccess = timestamp. An OLD object now points at a YOUNG object. With the write barrier on, this write would have dirtied one card and the collector would scan cacheEntry. With it off, nothing at all was recorded.'},
+      {n:'note',text:'The Timestamp is unquestionably reachable: staticCache → cacheEntry → timestamp. Now the young collection runs.'},
+      {n:'startGC',reason:'the scenario asked for a young collection'},
+      {n:'finishGC'},
+      {n:'verdictIf',
+        bad:{tone:'bad',h:'A reachable object was freed',
+          b:'The Timestamp was reachable through cacheEntry the entire time and was collected anyway. Read the log entry marked CORRUPTION: the marking walk started at the roots, never entered the old generation, and therefore never saw the only reference to that object. Now switch the write barrier back on in the left panel and run this scenario again — one dirtied card is all it takes.'},
+        good:{tone:'good',h:'One dirty card was the difference',
+          b:'Exactly the same scenario, and the Timestamp survived. The barrier dirtied the card covering cacheEntry when the reference was written; the collection then added every object in that card to its root set alongside the thread stacks, found cacheEntry, followed it, and marked the Timestamp. That is the entire mechanism — a couple of instructions on every reference write, in exchange for making young-only collection possible at all.'}}
+    ];
+  }
+},
+{ id:3, key:'lost', title:'4 · The lost object',
+  blurb:'Concurrent marking, two ordinary lines of Java, and a live object that vanishes. The hardest idea in the lab.',
+  collector:'concurrent', opts:{N:120, allocRate:2, survival:0.2, satb:false},
+  setup:function(st){
+    var X=mkNamed(st,'X',1,'old'); X.age=9;
+    var Y=mkNamed(st,'Y',1,'old'); Y.age=9;
+    var Z=mkNamed(st,'Z',1,'eden');
+    linkRef(st, st.staticRoots[0], X.id);
+    linkRef(st, st.staticRoots[0], Y.id);
+    linkRef(st, Y.id, Z.id);
+    st.freezeMutator=true;
+  },
+  question:'Marking is running WHILE the program runs. X has already been scanned (black — the collector will never look at it again). Y has been reached but not yet scanned (grey). Z is not yet reached (white), and the only reference to Z anywhere is Y.child. The program now runs two ordinary lines: X.field = Y.child; then Y.child = null; What colour is Z when marking ends?',
+  options:[
+    {t:'Black — X points at it, and X is reachable.', ok:false},
+    {t:'Grey — the collector will get to it eventually.', ok:false},
+    {t:'White — and it gets freed, while X.field still points at it.', ok:true}
+  ],
+  why:'This is the lost object problem, and it needs both halves to happen: the reference was written into an object the collector had already finished with, AND every path to it from an unscanned object was destroyed before that object was scanned. Neither line of Java was wrong. The SATB barrier fixes it by recording the OLD value of every overwritten reference — so when Y.child was set to null, Z was pushed onto the marking worklist and survived. Its name says what it does: it marks the graph as it existed at the instant marking began. Switch the SATB barrier back on in the left panel and run this scenario again.',
+  script:function(st){
+    var on=st.satb;
+    return [
+      {n:'note',text:'Three objects matter here. Find them in the graph below the heap: X and Y are both in old regions and both reachable from the static cache. Z is in a young region, and the ONLY reference to it in the entire heap is Y.child.'},
+      on ? {n:'note',cls:'good',text:'The SATB barrier is ON for this run, as it is in G1 and Shenandoah. Watch the moment it fires.'}
+         : {n:'note',cls:'warn',text:'The SATB barrier is switched OFF for this run. Everything else about this collector is normal.'},
+      {n:'startGC',reason:'a concurrent cycle was requested'},
+      {n:'slice',k:1},
+      {n:'forceMark',black:['staticCache','X'],grey:['Y'],
+        text:'Fast-forwarding marking to the exact instant that matters: X is now BLACK — scanned, finished with, and the collector will never examine its fields again. Y is GREY — reached, but its fields are still on the worklist. Z is WHITE.'},
+      {n:'link',a:'X',b:'Z',cls:'warn',
+        text:'The program runs: X.field = Y.child. A black object now points at a white one. The collector has no idea — it is done with X.'},
+      {n:'unlink',a:'Y',cls: on?'good':'warn',
+        text: on
+          ? 'The program runs: Y.child = null. Before letting that reference go, the SATB barrier recorded its old value and pushed Z onto the marking worklist. Z is grey now — the collector will reach it after all.'
+          : 'The program runs: Y.child = null. The last reference the collector could still have followed to Z is gone. With the SATB barrier on, this write would have pushed Z onto the marking worklist before letting the reference go.'},
+      {n:'note',text:'Z is still perfectly reachable — staticCache → X → Z. Marking now continues.'},
+      {n:'finishGC'},
+      {n:'verdictIf',
+        bad:{tone:'bad',h:'A live object was marked white and reclaimed',
+          b:'Read the log entry marked CORRUPTION. Z was reachable from the roots through X for the whole second half of marking, and the collector never saw it, because a black object is never re-examined and the grey path to Z was destroyed first. Switch the SATB barrier back on in the left panel and run this again: the same two lines of Java, and Z lives.'},
+        good:{tone:'good',h:'Snapshot-at-the-beginning kept Z alive',
+          b:'The same two lines of Java, and Z survived — because the barrier saved the reference at the instant the program threw it away. That is what the name means: the collector marks the object graph as it existed when marking began, so nothing reachable at that instant can be missed. The price is written in the log too: objects that die after marking starts are still marked live and survive until the next cycle. That is floating garbage, and it is the exact cost of not stopping the world.'}}
+    ];
+  }
+},
+{ id:4, key:'hum', title:'5 · The object that is too big',
+  blurb:'G1, a heap of live objects with isolated free regions, and one buffer that needs two regions side by side.',
+  collector:'g1', opts:{N:120, allocRate:3, survival:0.2},
+  setup:function(st){
+    for(var i=0;i<st.spaces.length;i++){
+      var s=st.spaces[i];
+      if(i%3===1){ continue; }
+      s.label='old'; s.kind='old';
+      for(var k=0;k<3;k++){
+        var at=findRun(st,s.start,s.len,1); if(at<0) break;
+        var o=newObj(st,1); o.age=9;
+        setCells(st,o,at,s.id); linkRef(st,st.staticRoots[0],o.id);
+      }
+    }
+  },
+  question:'A third of this heap is free — but every free region has an occupied region on both sides, so no two free regions are side by side. An object of 8 cells needs two adjacent regions (each region is 5 cells). What does G1 do?',
+  options:[
+    {t:'It splits the object across two non-adjacent regions.', ok:false},
+    {t:'It allocates it in a young region like anything else.', ok:false},
+    {t:'It fails, collects, and ends up doing a full stop-the-world compaction.', ok:true}
+  ],
+  why:'An object at least half a region in size is "humongous" and cannot live in Eden — it needs a run of adjacent regions of its own. That reintroduces the fragmentation problem of scenario 1, one level up: the free space is there, but not in the shape required. An ordinary collection cannot help here, because every occupied region is full of live objects and evacuating them would buy nothing. The only move left is the full compacting collection that region-based collectors exist to avoid. A service that allocates multi-megabyte buffers per request can drive G1 into exactly this loop.',
+  script:function(st){
+    return [
+      {n:'note',text:'Look at the region grid: '+freeRegions(st)+' regions are completely free, but every one of them has an occupied region on both sides — there is no adjacent pair anywhere.'},
+      {n:'note',text:'The program now asks for an 8-cell buffer. Each region is '+REGION+' cells, so this needs two adjacent regions of its own.'},
+      {n:'alloc',size:HUGE,name:'buffer',thenGC:true,
+        failText:'Allocation FAILED: no two adjacent free regions exist. G1 starts a collection to try to produce some.'},
+      {n:'finishGC'},
+      {n:'verdict',tone:'warn',h:'A full compaction — on the collector built to avoid them',
+       b:'Follow the log from the bottom up. The ordinary collection found no region worth evacuating, because every occupied region here is entirely live. So the allocation still could not be satisfied, and G1 escalated to a full stop-the-world compaction that moved every survivor in the heap into the lowest regions — which finally left a run of free regions big enough. This is what "G1 Humongous Allocation" means as a GC cause in a real log. The fixes are to raise the region size so the object is no longer humongous, or to stop allocating multi-megabyte buffers per request.'}
+    ];
+  }
+},
+{ id:5, key:'race', title:'6 · Losing the race',
+  blurb:'A concurrent collector against a program that allocates faster than it can collect.',
+  collector:'concurrent', opts:{N:120, allocRate:9, survival:0.75},
+  setup:function(st){ seedOld(st,24); },
+  question:'A concurrent collector marks and relocates while your program keeps running — so it is racing the program\'s allocation rate. The heap is already 40% live, the program is allocating fast, and most of what it allocates survives. What happens when the heap fills before the cycle finishes?',
+  options:[
+    {t:'The collector speeds up and finishes in time.', ok:false},
+    {t:'Threads block waiting for memory, and the JVM falls back to a full stop-the-world collection.', ok:true},
+    {t:'Allocation fails immediately with OutOfMemoryError.', ok:false}
+  ],
+  why:'A concurrent collector needs headroom: free heap to absorb both what the program allocates during the cycle and the floating garbage it cannot reclaim this time round. Take that headroom away and the collector loses the race. First allocating threads stall — which your users feel exactly like a pause, though the GC log will not call it one — and then the JVM does the only thing left, a full compacting collection. That is the very pause you chose this collector to avoid, arriving at peak load. The fixes, in order of how often they work: more heap, start the cycle earlier, allocate less.',
+  script:function(st){
+    return [
+      {n:'note',text:'The heap is already about 40% live and the program is allocating 9 objects per tick, of which 75% survive. Watch the pause meter.'},
+      {n:'ticks',k:34},
+      {n:'verdict',tone:'warn',h:'The collector lost the race',
+       b:'Look for the tall bar in the pause meter and the log lines about stalls and the abandoned concurrent cycle. Concurrency did not remove the pause — it converted it into a race, and the pause comes back the moment the race is lost. Try this again with the allocation slider at 2 and watch the collector win comfortably.'}
+    ];
+  }
+},
+{ id:6, key:'promo', title:'7 · Promoted before their time',
+  blurb:'Generational collection when the survivor space is too small for what survives.',
+  collector:'generational', opts:{N:120, allocRate:7, survival:0.55},
+  setup:function(st){ seedOld(st,6); },
+  question:'An object is supposed to age through several young collections before being promoted to the old generation. This workload produces more survivors than the survivor space can hold. Where do the overflow objects go?',
+  options:[
+    {t:'They stay in Eden until there is room.', ok:false},
+    {t:'They are promoted straight into the old generation, at age 1.', ok:true},
+    {t:'They are discarded — the collector treats the overflow as garbage.', ok:false}
+  ],
+  why:'Survivor space is small by design, and there is nowhere else to put the overflow, so it is promoted immediately regardless of age. Those objects were mostly going to die within milliseconds — and now they are in the old generation, where only an expensive collection will ever reach them. The old generation fills with short-lived garbage, full collections become frequent, and the generational hypothesis has effectively been switched off. Watch the "Promoted" counter climb and the Old band fill.',
+  script:function(st){
+    return [
+      {n:'note',text:'55% of everything allocated survives its first collection, and the survivor spaces hold only a handful of cells each. Watch the Old generation band and the Promoted counter.'},
+      {n:'ticks',k:40},
+      {n:'verdict',tone:'warn',h:'Short-lived objects are filling the old generation',
+       b:'Look at the log lines that mention objects promoted early because the survivor space was too small. Each of those is an object that would have died in the next few milliseconds, now sitting in the old generation where only a full collection can reach it. In a real JVM you see this as the age histogram collapsing toward age 1 in -Xlog:gc+age=trace.'}
+    ];
+  }
+},
+{ id:7, key:'leak', title:'8 · The leak no collector can fix',
+  blurb:'Everything works perfectly and the process still dies.',
+  collector:'generational', opts:{N:120, allocRate:4, survival:0.1},
+  setup:function(st){ seedOld(st,4); },
+  question:'Every object the program allocates is added to a static map and never removed. The collector is working perfectly. What happens?',
+  options:[
+    {t:'The collector notices the objects are unused and frees them.', ok:false},
+    {t:'Nothing is freed, occupancy climbs after every collection, and the process eventually dies.', ok:true},
+    {t:'The collector frees them once the map exceeds a size limit.', ok:false}
+  ],
+  why:'Every one of those objects is genuinely reachable from a root — a static field is a root — so the collector is CORRECT to keep every one of them. This is the gap that never closes: "reachable" is what the collector can prove, "in use" is what you meant, and no collector can tell the difference. In production this looks like a heap-occupancy floor that rises after every collection until the process OOMs after a predictable uptime. The fix is never a flag; it is a heap dump, a dominator tree, and a code change.',
+  script:function(st){
+    return [
+      {n:'note',text:'Watch the occupancy figure immediately AFTER each collection. In a healthy service it returns to roughly the same level every time.'},
+      {n:'ticks',k:8},
+      {n:'set',k:'leak',v:true,text:'From this point every object allocated is also stored in a static map — one line of code, no error, no warning.'},
+      {n:'ticks',k:60},
+      {n:'verdict',tone:'bad',h:'The collector did its job perfectly and the process still died',
+       b:'Nothing here is a collector bug. Every object it kept was reachable from a static field, which is a root. Automatic memory management removes the dangling pointer and the double free; it cannot remove the decision about what your program should stop holding on to.'}
+    ];
+  }
+}
+];
+
+/* =====================================================================
+   APP — history, rendering, wiring
+   ===================================================================== */
+var history=[], cur=0, playTimer=null, lastCls=[], flashOn=false;
+var ui={heapIdx:1, collector:'generational', openScen:null, answered:{}, tour:[], sel:null,
+         wbOverride:null, satbOverride:null};
+
+function S(){ return history[cur]; }
+function push(next,flash){ history=history.slice(0,cur+1); history.push(next);
+  if(history.length>420){ history.shift(); } cur=history.length-1; flashOn=flash!==false; render(); }
+function resetTo(collector,opts,scen){
+  stopPlay();
+  ui.collector=collector;
+  var st=init(collector,opts||{N:HEAPS[ui.heapIdx]});
+  if(scen){
+    st.scenario=scen.id;
+    if(scen.setup) scen.setup(st);
+    st.script=scen.script(st); st.scriptI=0;
+    log(st,'','Scenario loaded: '+scen.title+'. Press Step to advance one move at a time, or let it play.','');
+  }
+  history=[st]; cur=0; lastCls=[]; ui.sel=null; flashOn=false; render();
+}
+function doStep(){ if(S().oom) { stopPlay(); return; } push(step(S())); }
+function goBack(){ if(cur>0){ cur--; flashOn=false; render(); } }
+function stopPlay(){ if(playTimer){ clearInterval(playTimer); playTimer=null; }
+  var b=document.getElementById('bPlay'); if(b) b.textContent='Play'; }
+function startPlay(ms){
+  stopPlay();
+  document.getElementById('bPlay').textContent='Pause';
+  playTimer=setInterval(function(){
+    var st=S();
+    if(st.oom){ stopPlay(); return; }
+    if(st.script && st.scriptI>=st.script.length){ stopPlay(); nextTour(); return; }
+    doStep();
+  }, ms||360);
+}
+function nextTour(){
+  if(!ui.tour.length) return;
+  var id=ui.tour.shift();
+  setTimeout(function(){ openScenario(id,true); },900);
+}
+
+/* ---------- render ---------- */
+function render(){
+  var st=S(), live=reachableSet(st);
+  renderVerdict(st);
+  renderHeap(st,live);
+  renderGraph(st,live);
+  renderStats(st);
+  renderPauses(st);
+  renderLog(st);
+  renderInspect(st,live);
+  document.getElementById('bBack').disabled = cur===0;
+  document.getElementById('bStep').disabled = !!st.oom;
+  var scriptLeft = st.script ? Math.max(0,st.script.length-st.scriptI) : 0;
+  document.getElementById('tickline').textContent =
+    'Tick '+st.tick+' · '+Object.keys(st.objects).length+' objects in the heap · '+
+    (st.gc ? 'a collection is in progress' : 'the program is running')+
+    (scriptLeft? ' · '+scriptLeft+' scenario step(s) left' : '');
+  var picks=document.querySelectorAll('#picker .pick');
+  for(var i=0;i<picks.length;i++) picks[i].setAttribute('aria-pressed', picks[i].dataset.id===st.collector ? 'true':'false');
+  document.getElementById('cWB').checked=st.writeBarrier;
+  document.getElementById('cSATB').checked=st.satb;
+  document.getElementById('heaphead').textContent='The heap — '+labelOf(st.collector)+
+    (st.gc? ' · '+(st.gc.marking?'marking in progress':'reclaiming') : '');
+}
+function renderVerdict(st){
+  var v=st.verdict, el=document.getElementById('verdict');
+  el.className='verdict'+(v.tone?' '+v.tone:'');
+  document.getElementById('vh').textContent=v.h;
+  document.getElementById('vb').textContent=v.b;
+}
+function cellCls(st,i,live){
+  var id=st.cells[i]; if(id<0) return '';
+  var o=st.objects[id]; if(!o) return '';
+  if(st.gc && st.gc.marking && o.color) return o.color;
+  if(o.size>1) return 'hum';
+  return live[id] ? 'live' : 'garb';
+}
+function cellsHtml(st,s,live){
+  var h='';
+  for(var i=s.start;i<s.start+s.len;i++){
+    var c=cellCls(st,i,live), id=st.cells[i];
+    var cls='cell '+c;
+    if(flashOn && lastCls[i]!==undefined && lastCls[i]!==c) cls+=' flash';
+    if(id>=0 && st.hazards.indexOf(id)>=0) cls+=' hazard';
+    if(id>=0 && ui.sel===id) cls+=' sel';
+    var o=id>=0?st.objects[id]:null;
+    var t=(id<0)?('cell '+i+' — free'):('cell '+i+' — object #'+id+(o&&o.name?' ('+o.name+')':'')+', age '+(o?o.age:'?'));
+    h+='<div class="'+cls+'" data-cell="'+i+'" title="'+t+'"></div>';
+    lastCls[i]=c;
+  }
+  return h;
+}
+function renderHeap(st,live){
+  var out='';
+  if(REGIONAL[st.collector]){
+    out+='<div class="regiongrid">';
+    for(var i=0;i<st.spaces.length;i++){
+      var s=st.spaces[i], rs=regionStats(st,s);
+      var inC = st.gc && st.gc.cset && st.gc.cset.indexOf(s.id)>=0;
+      var lbl={free:'free',eden:'eden',surv:'survivor',old:'old',hum:'huge'}[s.label]||s.label;
+      out+='<div class="region'+(inC?' cset':'')+'"><div class="rh"><b>'+s.name+'</b><span>'+lbl+'</span></div>'+
+           '<div class="cells '+(s.label==='surv'?'surv':s.label)+'" style="padding:3px">'+cellsHtml(st,s,live)+'</div></div>';
+    }
+    out+='</div>';
+    out+='<p class="hint">Each box is one region of '+REGION+' cells. A region is not permanently young or old — its label changes as it is reused. An amber outline marks a region chosen for the next evacuation.</p>';
+  } else {
+    for(var j=0;j<st.spaces.length;j++){
+      var sp=st.spaces[j], used=0;
+      for(var c=sp.start;c<sp.start+sp.len;c++) if(st.cells[c]!==-1) used++;
+      var extra='';
+      if(st.collector==='copying') extra = (sp.id===st.fromSpace)?' · in use for allocation':' · reserved for the next copy';
+      if(sp.id==='s0'||sp.id==='s1') extra = (sp.id===st.toSurv)?' · next destination':'';
+      out+='<div class="band"><div class="bandhead"><span class="bandname">'+sp.name+extra+'</span>'+
+           '<span class="bandmeta">'+used+'/'+sp.len+' cells · '+pct(used,sp.len)+'%</span></div>'+
+           '<div class="cells '+sp.kind+'">'+cellsHtml(st,sp,live)+'</div></div>';
+    }
+  }
+  document.getElementById('heapmap').innerHTML=out;
+  var lg=[['live','Reachable object'],['garb','Allocated, unreachable — garbage'],['','Free cell'],
+          ['white','White: not yet reached by the walk'],['grey','Grey: reached, fields not yet scanned'],
+          ['black','Black: reached and fully scanned'],['hum','A single object too big for one region'],
+          ['hazard','Reachable, but the collector missed it']];
+  var lh='';
+  for(var k=0;k<lg.length;k++){
+    lh+='<span class="lg"><span class="sw cell '+lg[k][0]+'" style="cursor:default"></span>'+lg[k][1]+'</span>';
+  }
+  document.getElementById('legend').innerHTML=lh;
+}
+function renderGraph(st,live){
+  var picks=[], seen={};
+  for(var n in st.names){ var id=st.names[n]; if(st.objects[id]&&!seen[id]){picks.push(id);seen[id]=true;} }
+  var extra=[];
+  for(var k in st.objects){ var o=st.objects[k]; if(!seen[o.id]&&o.refs.length) extra.push(o.id); }
+  extra.sort(function(a,b){ return st.objects[b].refs.length-st.objects[a].refs.length; });
+  for(var e=0;e<extra.length && picks.length<10;e++){ picks.push(extra[e]); seen[extra[e]]=true; }
+  var rset={}; var r=rootIds(st); for(var i=0;i<r.length;i++) rset[r[i]]=true;
+  var col={}, cols=[[],[],[]];
+  for(var p=0;p<picks.length;p++){
+    var d = rset[picks[p]] ? 0 : 1;
+    col[picks[p]]=d;
+  }
+  for(var p2=0;p2<picks.length;p2++){
+    if(col[picks[p2]]===0) continue;
+    var parents=0;
+    for(var q=0;q<picks.length;q++){ if(col[picks[q]]===1 && st.objects[picks[q]].refs.indexOf(picks[p2])>=0) parents++; }
+    if(parents) col[picks[p2]]=2;
+  }
+  for(var p3=0;p3<picks.length;p3++) cols[col[picks[p3]]].push(picks[p3]);
+  var pos={}, W=700,H=150;
+  for(var c=0;c<3;c++){
+    for(var i2=0;i2<cols[c].length;i2++){
+      pos[cols[c][i2]]={x:70+c*250, y:26+ (cols[c].length===1?52:(i2*(100/Math.max(1,cols[c].length-1))))};
+    }
+  }
+  var svg='<defs><marker id="arw" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'+
+          '<path d="M0,0 L8,4 L0,8 z" fill="currentColor" opacity=".55"/></marker></defs>';
+  svg+='<text class="rootlbl" x="8" y="14">ROOTS</text>';
+  for(var a=0;a<picks.length;a++){
+    var o=st.objects[picks[a]];
+    for(var b=0;b<o.refs.length;b++){
+      var t=o.refs[b];
+      if(pos[t] && pos[o.id] && t!==o.id){
+        svg+='<path class="edge" d="M'+(pos[o.id].x+16)+','+pos[o.id].y+' C'+(pos[o.id].x+70)+','+pos[o.id].y+' '+(pos[t].x-70)+','+pos[t].y+' '+(pos[t].x-16)+','+pos[t].y+'"/>';
+      }
+    }
+  }
+  for(var z=0;z<picks.length;z++){
+    var ob=st.objects[picks[z]], pp=pos[picks[z]]; if(!pp) continue;
+    var fill='var(--indigo)', stroke='var(--indigo)';
+    if(st.gc && st.gc.marking && ob.color){
+      fill = ob.color==='black'?'var(--ink)':ob.color==='grey'?'var(--amber)':'var(--free)';
+      stroke= ob.color==='white'?'var(--indigo-soft)':fill;
+    } else if(!live[ob.id]){ fill='var(--rust)'; stroke='var(--rust)'; }
+    var haz = st.hazards.indexOf(ob.id)>=0;
+    svg+='<circle cx="'+pp.x+'" cy="'+pp.y+'" r="13" fill="'+fill+'" stroke="'+(haz?'var(--crimson)':stroke)+'" stroke-width="'+(haz?3:1.5)+'"/>';
+    svg+='<text x="'+pp.x+'" y="'+(pp.y+26)+'" text-anchor="middle">'+(ob.name||('#'+ob.id))+'</text>';
+  }
+  var g=document.getElementById('graph');
+  g.innerHTML=svg;
+  g.style.color='var(--ink-faint)';
+}
+function renderStats(st){
+  var used=0; for(var i=0;i<st.N;i++) if(st.cells[i]!==-1) used++;
+  var rows=[
+    ['Occupied', pct(used,st.N)+'%',0],
+    ['Largest free gap', largestRun(st)+'',0],
+    ['Objects allocated', st.stats.alloc+'',0],
+    ['Objects freed', st.stats.freed+'',0],
+    ['Cells copied', st.stats.copied+'',0],
+    ['Promoted to old', st.stats.promoted+'',0],
+    ['Collections', st.stats.gcs+'',0],
+    ['Full stop-the-world', st.stats.fulls+'', st.stats.fulls>0?1:0],
+    ['Longest pause', maxPause(st)+' ms',0],
+    ['Floating garbage', st.stats.floating+'',0],
+    ['Allocation stalls', st.stats.stalls+'', st.stats.stalls>0?1:0],
+    ['Live objects LOST', st.stats.lost+'', st.stats.lost>0?1:0]
+  ];
+  var h='';
+  for(var r=0;r<rows.length;r++) h+='<div class="stat'+(rows[r][2]?' alert':'')+'"><span>'+rows[r][0]+'</span><b>'+rows[r][1]+'</b></div>';
+  document.getElementById('stats').innerHTML=h;
+}
+function renderPauses(st){
+  var max=Math.max(4,maxPause(st)), h='';
+  for(var i=0;i<st.pauses.length;i++){
+    var p=st.pauses[i];
+    h+='<div class="pbar '+p.kind+'" style="height:'+Math.max(3,Math.round(88*p.ms/max))+'px" data-t="'+p.label+'"></div>';
+  }
+  if(!st.pauses.length) h='<span style="color:var(--ink-faint);font-size:12px;padding:6px">No collection has paused the program yet.</span>';
+  document.getElementById('pauses').innerHTML=h;
+}
+function renderLog(st){
+  var h='';
+  for(var i=0;i<Math.min(st.log.length,80);i++){
+    var e=st.log[i];
+    h+='<div class="ev '+(e.cls||'')+'"><span class="t">t'+e.tick+'</span>'+esc(e.text)+
+       (e.detail?'<span class="d">'+esc(e.detail)+'</span>':'')+'</div>';
+  }
+  document.getElementById('log').innerHTML=h;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function pathToRoot(st,id){
+  var q=rootIds(st).map(function(r){return [r];}), seen={};
+  while(q.length){
+    var path=q.shift(), last=path[path.length-1];
+    if(seen[last]) continue; seen[last]=true;
+    if(last===id) return path;
+    var o=st.objects[last]; if(!o) continue;
+    for(var i=0;i<o.refs.length;i++) if(!seen[o.refs[i]]) q.push(path.concat([o.refs[i]]));
+  }
+  return null;
+}
+function renderInspect(st,live){
+  var el=document.getElementById('inspect');
+  if(ui.sel==null || !st.objects[ui.sel]){
+    el.innerHTML='Click any square in the heap to inspect the object living there.';
+    return;
+  }
+  var o=st.objects[ui.sel];
+  var sp=spaceOf(st,o.space);
+  var path=pathToRoot(st,o.id);
+  var pathStr = path ? path.map(function(p){ var x=st.objects[p]; return x&&x.name?x.name:('#'+p); }).join(' → ') : null;
+  var h='';
+  h+='<div><span class="k">object</span>#'+o.id+(o.name?' · '+o.name:'')+'</div>';
+  h+='<div><span class="k">address</span>cell '+o.addr+(o.size>1?'–'+(o.addr+o.size-1):'')+'</div>';
+  h+='<div><span class="k">lives in</span>'+(sp?sp.name+(sp.label?' ('+sp.label+')':''):o.space)+'</div>';
+  h+='<div><span class="k">size</span>'+o.size+' cell(s)</div>';
+  h+='<div><span class="k">age</span>survived '+o.age+' collection(s)</div>';
+  if(st.gc && st.gc.marking) h+='<div><span class="k">mark colour</span>'+(o.color||'—')+'</div>';
+  h+='<div><span class="k">points at</span>'+(o.refs.length?o.refs.map(function(r){var x=st.objects[r];return x&&x.name?x.name:('#'+r);}).join(', '):'nothing')+'</div>';
+  h+='<div style="margin-top:8px;font-family:\'IBM Plex Sans\',sans-serif;color:var(--ink-soft)">';
+  if(live[o.id]) h+='<b>Alive.</b> It is reachable from a root by this chain:<br><span class="mono" style="font-size:11px">'+esc(pathStr||'(root)')+'</span>';
+  else h+='<b>Garbage.</b> No chain of references reaches it from any root, so no line of code can ever name it again. The collector will take its memory back — without ever having proved it was "dead".';
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+/* ---------- scenarios UI ---------- */
+function renderScenarioList(){
+  var h='';
+  for(var i=0;i<SCEN.length;i++){
+    var s=SCEN[i], open=ui.openScen===s.id, ans=ui.answered[s.id];
+    h+='<div class="scn'+(open?' active':'')+'">';
+    h+='<button class="head" data-scen="'+s.id+'">'+s.title+'<span>'+s.blurb+'</span></button>';
+    if(open){
+      h+='<div class="quiz"><p><b>Predict first.</b> '+esc(s.question)+'</p>';
+      for(var j=0;j<s.options.length;j++){
+        var cls='opt';
+        if(ans!=null) cls+= s.options[j].ok ? ' right' : (ans===j?' wrong':'');
+        h+='<button class="'+cls+'" data-opt="'+j+'" data-sid="'+s.id+'">'+esc(s.options[j].t)+'</button>';
+      }
+      if(ans!=null){
+        h+='<p class="why"><b>'+(s.options[ans].ok?'Correct.':'Not quite.')+'</b> '+esc(s.why)+'</p>';
+        h+='<div class="row"><button class="primary" data-run="'+s.id+'">▶ Run it and watch</button>'+
+           '<button data-load="'+s.id+'">Load it, I will step through</button></div>';
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  document.getElementById('scenarios').innerHTML=h;
+}
+function openScenario(id,autorun){
+  ui.openScen=id;
+  var s=SCEN[id];
+  ui.heapIdx = (s.opts && s.opts.N) ? HEAPS.indexOf(s.opts.N) : ui.heapIdx;
+  if(ui.heapIdx<0) ui.heapIdx=1;
+  var o={}; for(var kk in (s.opts||{})) o[kk]=s.opts[kk];
+  if(ui.wbOverride!=null) o.writeBarrier=ui.wbOverride;
+  if(ui.satbOverride!=null) o.satb=ui.satbOverride;
+  resetTo(s.collector, o, s);
+  syncControls();
+  renderScenarioList();
+  document.getElementById('scenarios').scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(autorun && ui.answered[id]!=null) startPlay(420);
+}
+function syncControls(){
+  var st=S();
+  document.getElementById('sAlloc').value=st.allocRate;
+  document.getElementById('vAlloc').textContent=st.allocRate;
+  document.getElementById('sSurv').value=Math.round(st.survival*100);
+  document.getElementById('vSurv').textContent=Math.round(st.survival*100)+'%';
+  document.getElementById('sHeap').value=ui.heapIdx;
+  document.getElementById('vHeap').textContent=HEAPLBL[ui.heapIdx];
+}
+
+/* ---------- wiring ---------- */
+(function(){
+  var pk='';
+  for(var i=0;i<COLLECTORS.length;i++)
+    pk+='<button class="pick" data-id="'+COLLECTORS[i].id+'" aria-pressed="false">'+COLLECTORS[i].name+
+        '<span class="yr">'+COLLECTORS[i].yr+'</span></button>';
+  document.getElementById('picker').innerHTML=pk;
+  document.getElementById('picker').addEventListener('click',function(e){
+    var b=e.target.closest('.pick'); if(!b) return;
+    ui.openScen=null; renderScenarioList();
+    resetTo(b.dataset.id,{N:HEAPS[ui.heapIdx]});
+  });
+
+  document.getElementById('bStep').onclick=function(){ stopPlay(); doStep(); };
+  document.getElementById('bBack').onclick=function(){ stopPlay(); goBack(); };
+  document.getElementById('bPlay').onclick=function(){ playTimer?stopPlay():startPlay(); };
+  document.getElementById('bReset').onclick=function(){
+    var s = ui.openScen!=null ? SCEN[ui.openScen] : null;
+    if(s) openScenario(s.id,false); else resetTo(S().collector,{N:HEAPS[ui.heapIdx]});
+  };
+  document.getElementById('bGC').onclick=function(){
+    stopPlay(); var st=clone(S()); if(!st.gc) startGC(st,'you asked for one'); push(st);
+  };
+  document.getElementById('bTour').onclick=function(){
+    ui.tour=[2,3];
+    ui.answered[0]=2; ui.answered[2]=1; ui.answered[3]=2;
+    openScenario(0,true);
+  };
+
+  document.getElementById('sAlloc').oninput=function(){
+    S().allocRate=+this.value; document.getElementById('vAlloc').textContent=this.value; render();
+  };
+  document.getElementById('sSurv').oninput=function(){
+    S().survival=(+this.value)/100; document.getElementById('vSurv').textContent=this.value+'%'; render();
+  };
+  document.getElementById('sHeap').oninput=function(){
+    ui.heapIdx=+this.value; document.getElementById('vHeap').textContent=HEAPLBL[ui.heapIdx];
+    ui.openScen=null; renderScenarioList(); resetTo(S().collector,{N:HEAPS[ui.heapIdx]});
+  };
+  document.getElementById('cWB').onchange=function(){ ui.wbOverride=this.checked; S().writeBarrier=this.checked; render(); };
+  document.getElementById('cSATB').onchange=function(){ ui.satbOverride=this.checked; S().satb=this.checked; render(); };
+
+  function inject(fn,msg){
+    return function(){ stopPlay(); var st=clone(S()); fn(st); if(msg) log(st,'warn',msg,''); updateVerdict(st); push(st); };
+  }
+  document.getElementById('iHum').onclick=inject(function(st){
+    var o=newObj(st,HUGE);
+    if(placeAnywhere(st,o)){ st.stack.push({id:o.id,expires:st.tick+40}); st.stats.alloc++;
+      log(st,'','Allocated an 8-cell object at cell '+o.addr+'. In a region-based collector this is a "humongous" object: it is at least half a region, so it gets whole regions of its own rather than a slot in Eden.',''); }
+    else { delete st.objects[o.id]; st.pendingAlloc.push({size:HUGE});
+      log(st,'bad','An 8-cell allocation failed: there is no run of 8 adjacent free cells (largest gap: '+largestRun(st)+'). Starting a collection to try to make one.','');
+      startGC(st,'an 8-cell allocation could not be satisfied'); }
+  });
+  document.getElementById('iO2Y').onclick=inject(function(st){
+    var r=makeOldToYoungRef(st);
+    if(!r) log(st,'warn','There is no old object and young object to connect yet — run a few ticks first.','');
+    else log(st, st.writeBarrier?'':'bad',
+      'Wrote a reference from old object #'+r.p.id+' into young object #'+r.c.id+'. '+
+      (st.writeBarrier ? 'The write barrier dirtied card '+cardOf(r.p.addr)+', so the next young collection will scan #'+r.p.id+' and find the reference.'
+                       : 'The write barrier is OFF, so nothing was recorded. The next young collection will not look at #'+r.p.id+', will not find this reference, and will free #'+r.c.id+' while it is still in use.'),'');
+  });
+  document.getElementById('iLeak').onclick=inject(function(st){
+    st.leak=!st.leak;
+    log(st, st.leak?'warn':'good', st.leak
+      ? 'Leak switched ON: every object allocated from now on is also stored in a static map. A static field is a GC root, so every one of them stays reachable forever — and a reachable object is one the collector must keep.'
+      : 'Leak switched OFF: newly allocated objects are no longer pinned. Note that everything already pinned stays pinned.','');
+  });
+  document.getElementById('iStuck').onclick=inject(function(st){
+    st.stuck=6;
+    log(st,'warn','One application thread is now stuck in a long counted loop with no safepoint poll in it. Nothing is wrong with it — it just cannot be suspended. The next few pauses will include the time everybody spends waiting for that one thread to arrive.','time-to-safepoint');
+  });
+  document.getElementById('iSpike').onclick=inject(function(st){
+    st.spike=12;
+    log(st,'warn','Traffic spike: allocation rate is 4x for the next 12 ticks. This is when concurrent collectors lose their race and when premature promotion happens.','');
+  });
+
+  document.getElementById('scenarios').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.scen!=null){ var id=+b.dataset.scen; ui.tour=[]; if(ui.openScen===id){ ui.openScen=null; renderScenarioList(); } else openScenario(id,false); return; }
+    if(b.dataset.opt!=null){ ui.answered[+b.dataset.sid]=+b.dataset.opt; renderScenarioList(); return; }
+    if(b.dataset.run!=null){ openScenario(+b.dataset.run,false); startPlay(420); return; }
+    if(b.dataset.load!=null){ openScenario(+b.dataset.load,false); return; }
+  });
+
+  document.getElementById('heapmap').addEventListener('click',function(e){
+    var c=e.target.closest('.cell'); if(!c) return;
+    var i=+c.dataset.cell, st=S();
+    ui.sel = st.cells[i]>=0 ? st.cells[i] : null;
+    render();
+  });
+
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT') return;
+    if(e.key==='ArrowRight'){ e.preventDefault(); stopPlay(); doStep(); }
+    if(e.key==='ArrowLeft'){ e.preventDefault(); stopPlay(); goBack(); }
+    if(e.key===' '){ e.preventDefault(); playTimer?stopPlay():startPlay(); }
+  });
+
+  renderScenarioList();
+  resetTo('generational',{N:HEAPS[ui.heapIdx]});
+  syncControls();
+})();
+</script>
+
+<script>
+"use strict";
+/* =====================================================================
+   SCRIPT DRIVER — one scenario command per Step, so you can always
+   stop, go back, and look at what the previous move actually did.
+   ===================================================================== */
+function runScript(st){
+  var cmd=st.script[st.scriptI];
+  if(!cmd){ st.scriptI++; return; }
+  switch(cmd.n){
+
+  case 'note':
+    log(st, cmd.cls||'', cmd.text, cmd.detail||'');
+    st.scriptI++; break;
+
+  case 'verdict':
+    st.verdict={tone:cmd.tone||'', h:cmd.h, b:cmd.b};
+    st.lockVerdict=true;
+    log(st, cmd.tone==='bad'?'bad':(cmd.tone==='warn'?'warn':'good'), cmd.h+' — '+cmd.b, 'scenario complete');
+    st.scriptI++; break;
+
+  case 'set':
+    st[cmd.k]=cmd.v;
+    log(st, 'warn', cmd.text||('Changed '+cmd.k+' to '+cmd.v), '');
+    st.scriptI++; break;
+
+  case 'ticks':
+    if(st.gc){ runGCSlice(st); break; }
+    if(st.stall>0){ st.stall--; st.tick++; break; }
+    cmd._i=(cmd._i||0)+1;
+    mutate(st);
+    if(cmd._i>=cmd.k) st.scriptI++;
+    break;
+
+  case 'startGC':
+    if(!st.gc) startGC(st, cmd.reason||'the scenario asked for a collection', !!cmd.full);
+    st.scriptI++; break;
+
+  case 'slice':
+    if(st.gc) runGCSlice(st);
+    cmd._i=(cmd._i||0)+1;
+    if(cmd._i>=(cmd.k||1) || !st.gc) st.scriptI++;
+    break;
+
+  case 'finishGC':
+    if(st.gc) runGCSlice(st);
+    else st.scriptI++;
+    break;
+
+  case 'alloc': {
+    var o=newObj(st, cmd.size||1);
+    if(cmd.name){ o.name=cmd.name; st.names[cmd.name]=o.id; }
+    if(placeAnywhere(st, o, cmd.space)){
+      if(!cmd.noRoot) st.stack.push({id:o.id, expires:st.tick+200});
+      st.stats.alloc++;
+      log(st,'good', cmd.text || ('Allocated '+(cmd.name||'an object')+' of '+(cmd.size||1)+' cell(s) at cell '+o.addr+'.'),
+        'addr='+o.addr+' space='+o.space);
+    } else {
+      delete st.objects[o.id];
+      if(cmd.name) delete st.names[cmd.name];
+      log(st,'bad', cmd.failText || ('The allocation of '+(cmd.size||1)+' cell(s) failed.'),
+        'largestFreeRun='+largestRun(st));
+      if(cmd.thenGC){ st.pendingAlloc.push({size:cmd.size||1, name:cmd.name}); startGC(st,'a '+(cmd.size||1)+'-cell allocation could not be satisfied'); }
+    }
+    st.scriptI++; break; }
+
+  case 'link':
+    linkRef(st, st.names[cmd.a], st.names[cmd.b]);
+    log(st, cmd.cls||'', cmd.text, cmd.a+' → '+cmd.b);
+    st.scriptI++; break;
+
+  case 'unlink': {
+    var removed=unlinkRef(st, st.names[cmd.a], cmd.idx);
+    var rn=null; for(var nm in st.names) if(st.names[nm]===removed) rn=nm;
+    log(st, cmd.cls||'', cmd.text, cmd.a+' dropped its reference to '+(rn||('#'+removed)));
+    st.scriptI++; break; }
+
+  case 'forceMark': {
+    st.markSet={}; st.greyQueue=[];
+    for(var k in st.objects) st.objects[k].color='white';
+    var bl=cmd.black||[], gr=cmd.grey||[], i;
+    for(i=0;i<bl.length;i++){ var ob=st.objects[st.names[bl[i]]]; if(ob){ ob.color='black'; st.markSet[ob.id]=true; } }
+    for(i=0;i<gr.length;i++){ var og=st.objects[st.names[gr[i]]]; if(og){ og.color='grey'; st.greyQueue.push(og.id); } }
+    if(st.gc) st.gc.marking=true;
+    log(st,'gc', cmd.text, 'black='+bl.join(',')+' grey='+gr.join(','));
+    st.scriptI++; break; }
+
+  case 'verdictIf': {
+    var isBad = st.stats.lost>0;
+    var vv = isBad ? cmd.bad : cmd.good;
+    st.verdict={tone:vv.tone||'', h:vv.h, b:vv.b};
+    st.lockVerdict=true;
+    log(st, isBad?'bad':'good', vv.h+' — '+vv.b, 'scenario complete');
+    st.scriptI++; break; }
+
+  default:
+    st.scriptI++;
+  }
+}
+</script>
+
+<script>
+"use strict";
+/* A real JVM records an old->young reference at the moment it is created, including
+   when the object holding it is promoted mid-collection. This does that bookkeeping
+   once per cycle instead of incrementally — same effect, less machinery to watch.
+   It is part of the write barrier, so it is skipped when the barrier is switched off. */
+function refreshCards(st){
+  if(!st.writeBarrier) return;
+  for(var k in st.objects){
+    var o=st.objects[k];
+    if(o.addr<0 || !isOld(st,o)) continue;
+    for(var i=0;i<o.refs.length;i++){
+      var c=st.objects[o.refs[i]];
+      if(c && isYoung(st,c)){ st.cards[cardOf(o.addr)]=true; break; }
+    }
+  }
+}
+</script>

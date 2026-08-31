@@ -1,0 +1,515 @@
+<title>Two Branches, One Instant</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f4f6f4; --panel:#fdfdfb; --panel2:#eef1ee; --line:#d4dcd5; --line2:#bfcac1;
+  --ink:#1c2b26; --ink2:#54645c; --ink3:#7d8b83;
+  --green:#0e7a4e; --green-soft:#e2f0e8; --red:#b3382e; --red-soft:#f6e5e3;
+  --amber:#a06f14; --amber-soft:#f5ecd8; --blue:#35569b; --blue-soft:#e4e9f5;
+  --shadow:0 1px 3px rgba(28,43,38,.08),0 4px 14px rgba(28,43,38,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101613; --panel:#18201c; --panel2:#1f2924; --line:#2c3831; --line2:#3a4840;
+    --ink:#dce6df; --ink2:#9fb0a6; --ink3:#71817a;
+    --green:#4cc08a; --green-soft:#173427; --red:#e2726a; --red-soft:#3a1f1c;
+    --amber:#d9a544; --amber-soft:#332a15; --blue:#8ba7e8; --blue-soft:#1d2740;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101613; --panel:#18201c; --panel2:#1f2924; --line:#2c3831; --line2:#3a4840;
+  --ink:#dce6df; --ink2:#9fb0a6; --ink3:#71817a;
+  --green:#4cc08a; --green-soft:#173427; --red:#e2726a; --red-soft:#3a1f1c;
+  --amber:#d9a544; --amber-soft:#332a15; --blue:#8ba7e8; --blue-soft:#1d2740;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif;padding:22px 18px 60px}
+.wrap{max-width:1060px;margin:0 auto}
+h1{font-family:"Fraunces",Georgia,serif;font-weight:650;font-size:clamp(26px,4vw,38px);text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--ink2);max-width:68ch;margin:8px 0 4px}
+.sub b{color:var(--ink)}
+h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:19px;margin:26px 0 10px}
+.mono{font-family:"IBM Plex Mono",monospace}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:14px 0 4px;font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid var(--line2)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 10px}
+.tab{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:20px;padding:6px 14px;font:600 13px "IBM Plex Sans",sans-serif;cursor:pointer}
+.tab.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.tab:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.cfgrow{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;color:var(--ink2);font-size:13.5px;margin-bottom:14px}
+.cfgrow label{display:flex;gap:8px;align-items:center}
+.cfgrow select,.cfgrow input[type=range]{accent-color:var(--green)}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:8px;padding:4px 8px;font:13.5px "IBM Plex Sans",sans-serif}
+.enginenote{font-size:13px;color:var(--ink2);border-left:3px solid var(--line2);padding:2px 0 2px 12px;margin:0 0 14px;max-width:78ch}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.stage{grid-template-columns:1fr}}
+.actors{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;margin-bottom:14px;align-items:stretch}
+@media(max-width:720px){.actors{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
+.card h3{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:600;margin-bottom:6px}
+.actor .who{font-weight:600;font-size:15px}
+.actor .st{font-size:13px;color:var(--ink2);margin-top:4px;min-height:38px}
+.actor .clock{font-size:12px;color:var(--blue);margin-top:6px}
+.oraclebox{min-width:150px;text-align:center;background:var(--blue-soft);border-color:var(--blue)}
+.oraclebox .num{font:500 30px "IBM Plex Mono",monospace;color:var(--blue)}
+.oraclebox .cap{font-size:11.5px;color:var(--ink2);letter-spacing:.05em;text-transform:uppercase}
+.ledger .bal{font:500 15px "IBM Plex Mono",monospace}
+.vrow{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}
+.ver{font:12.5px "IBM Plex Mono",monospace;background:var(--green-soft);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:2px 7px}
+.ver.new{animation:pop .6s}
+.lock{font:12.5px "IBM Plex Mono",monospace;background:var(--amber-soft);color:var(--amber);border:1px dashed var(--amber);border-radius:6px;padding:2px 7px}
+.staged{font:12.5px "IBM Plex Mono",monospace;background:var(--panel2);color:var(--ink2);border:1px dotted var(--line2);border-radius:6px;padding:2px 7px}
+.crec{font:12.5px "IBM Plex Mono",monospace;background:var(--green);color:var(--ground);border-radius:6px;padding:2px 7px}
+.wlock{font:12.5px "IBM Plex Mono",monospace;background:var(--red-soft);color:var(--red);border:1px dashed var(--red);border-radius:6px;padding:2px 7px}
+@keyframes pop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+.keyrow{padding:7px 0;border-top:1px solid var(--line)}
+.keyrow:first-of-type{border-top:none}
+.keyname{font-weight:600;font-size:14px}
+.primarytag{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);border:1px solid var(--blue);border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.verdict{margin:14px 0;border-radius:12px;padding:13px 16px;font-size:14.5px;border:1px solid var(--line);background:var(--panel)}
+.verdict.good{background:var(--green-soft);border-color:var(--green)}
+.verdict.bad{background:var(--red-soft);border-color:var(--red)}
+.verdict b{font-size:15px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px}
+.btn{border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:9px;padding:8px 14px;font:600 13.5px "IBM Plex Sans",sans-serif;cursor:pointer;box-shadow:var(--shadow)}
+.btn.pri{background:var(--green);border-color:var(--green);color:#fff}
+:root[data-theme="dark"] .btn.pri{color:#0d130f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.pri{color:#0d130f}}
+@media (prefers-reduced-motion: reduce){.ver.new{animation:none}}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.42;cursor:default;box-shadow:none}
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+.scard .q{font-weight:600;margin:2px 0 10px;text-wrap:balance}
+.scard .tagline{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:8px;padding:7px 11px;font:13.5px "IBM Plex Sans",sans-serif;cursor:pointer}
+.opt:hover{border-color:var(--ink3)}
+.scard .res{font-size:13px;margin-top:8px;display:none;border-radius:8px;padding:8px 11px}
+.scard .res.good{display:block;background:var(--green-soft);color:var(--ink)}
+.scard .res.bad{display:block;background:var(--red-soft);color:var(--ink)}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-height:340px;overflow-y:auto;padding:6px 0;margin-top:10px}
+.log .e{padding:7px 16px;border-top:1px solid var(--line);font-size:13.5px}
+.log .e:first-child{border-top:none}
+.log .e .t{color:var(--ink3);font:11.5px "IBM Plex Mono",monospace;margin-right:8px}
+.log .e .tech{display:block;color:var(--ink2);font:12px "IBM Plex Mono",monospace;margin-top:2px}
+.log .e.commit{border-left:3px solid var(--green)}
+.log .e.bad{border-left:3px solid var(--red)}
+.log .e.lockish{border-left:3px solid var(--amber)}
+.foot{color:var(--ink3);font-size:12.5px;margin-top:26px;max-width:80ch}
+</style>
+<div class="wrap">
+<h1>Two Branches, One Instant</h1>
+<p class="sub">A bank grew too big for one computer: <b>alice</b>'s account lives on shard
+<b>S0</b>, <b>bob</b>'s on shard <b>S1</b>. <b>Priya</b> moves 50 between them.
+<b>Omar</b> the auditor may sum every account whenever he pleases — and the books
+must <i>always</i> total 200. You drive both of them, one step at a time. The bug
+you are hunting: a transfer that is correct on disk but visible in halves.</p>
+<div class="legend">
+  <span><span class="sw" style="background:var(--green-soft);border-color:var(--green)"></span> committed version <span class="mono">val@ts</span></span>
+  <span><span class="sw" style="background:var(--amber-soft);border:1px dashed var(--amber)"></span> percolator lock (points at the primary)</span>
+  <span><span class="sw" style="background:var(--red-soft);border:1px dashed var(--red)"></span> 2PC write-lock</span>
+  <span><span class="sw" style="background:var(--panel2);border:1px dotted var(--line2)"></span> staged (invisible) value</span>
+  <span><span class="sw" style="background:var(--green)"></span> commit record — the verdict</span>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="cfgrow">
+  <label>Transfer direction
+    <select id="dir">
+      <option value="ab">alice → bob (primary: alice on S0)</option>
+      <option value="ba">bob → alice (primary: bob on S1)</option>
+    </select>
+  </label>
+  <label id="skewwrap" style="display:none">Clock skew ±<span id="skewval" class="mono">4</span> ticks
+    <input type="range" id="skew" min="0" max="10" value="4">
+  </label>
+  <span id="ttlnote" style="display:none">lock TTL: <span class="mono">12</span> ticks</span>
+</div>
+<p class="enginenote" id="enginenote"></p>
+
+<div class="actors">
+  <div class="card actor"><h3>Priya — the transfer's client</h3>
+    <div class="who" id="p-title">moves 50: alice → bob</div>
+    <div class="st" id="p-state">idle</div>
+    <div class="clock" id="p-clock"></div>
+  </div>
+  <div class="card oraclebox" id="oraclecard"><div class="cap" id="oraclecap">timestamp oracle</div>
+    <div class="num" id="oraclenum">1</div>
+    <div class="cap">tick <span id="ticknum" class="mono">0</span></div>
+  </div>
+  <div class="card actor"><h3>Omar — the auditor</h3>
+    <div class="who">sums every account</div>
+    <div class="st" id="o-state">no audit running</div>
+    <div class="clock" id="o-clock"></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="card ledger" id="shard-S0"></div>
+  <div class="card ledger" id="shard-S1"></div>
+</div>
+
+<div class="verdict" id="verdict">No audit has run yet. The truth: the bank holds <b>200</b>.</div>
+
+<div class="controls">
+  <button class="btn pri" id="b-step">Step transfer</button>
+  <button class="btn danger" id="b-kill">Kill Priya's process</button>
+  <button class="btn" id="b-audit">Start an audit</button>
+  <button class="btn pri" id="b-astep">Step audit</button>
+  <button class="btn" id="b-tick">Let a tick pass</button>
+  <button class="btn" id="b-back">⟲ Step back</button>
+  <button class="btn" id="b-reset">Reset</button>
+</div>
+
+<h2>Predict, then watch</h2>
+<p class="sub" style="margin-bottom:10px">Each card resets the world, asks for your bet, then plays the
+scenario with narration in the log below. Don't know which buttons to press? These press them for you.</p>
+<div class="scen" id="scen"></div>
+
+<h2>Event log <span style="font-weight:400;font-size:13px;color:var(--ink3)">(newest first — every line says what happened and why it matters)</span></h2>
+<div class="log" id="log"><div class="e">Pick an engine, then step Priya and Omar against each other.</div></div>
+
+<p class="foot">Same machinery as the Java lab (<span class="mono">src/Engines.java</span>): six designs, the
+percolator read rule, TTL resolution, and TrueTime commit wait. This page's engine is verified headlessly
+against the Java results — see <span class="mono">validate-visualization.sh</span>. Skew here means: Priya's
+clock runs fast by the slider amount, Omar's runs slow — the worst honest pair within the bound.</p>
+</div>
+
+<script id="engine-js">
+// ===================== pure simulation engine (UI-free; verified in node) =====================
+const ENGINES = {
+  NAIVE:{label:"Naive (dual write)", note:"Commit at each shard separately, read whatever is newest. The road every lab already closed — here as the baseline: crashes destroy money, audits fracture."},
+  TPC:{label:"2PC", note:"Prepare (write-lock + stage) on both shards, log the verdict, commit both. Atomic ON DISK — and Omar can still walk between the two commit moments. Reads take no locks and no snapshot."},
+  TPC_2PL:{label:"2PC + read locks", note:"Same, but Omar must read-lock each account and writers wait for readers (strict two-phase locking, distributed). Correct — and readers queue behind every commit, and a dead coordinator strands them."},
+  PERCO:{label:"Percolator", note:"Snapshot reads at one oracle timestamp; the commit is ONE local write at the primary. Readers hitting a lock consult the primary and finish or undo dead transactions themselves."},
+  CLOCK:{label:"Clocks, no wait", note:"Percolator, but timestamps come from each client's own (skewed) clock instead of the oracle. Watch what 'done' stops meaning."},
+  CLOCK_WAIT:{label:"Clocks + commit wait", note:"TrueTime: every timestamp is now().latest, and the ack is held until the commit timestamp is provably in the past for every clock (~2× skew). Nobody's clock improves — the ack slows down."}
+};
+const TTL = 12, AMT = 50;
+
+function initState(engine, dir, skew){
+  const from = dir==="ba" ? "bob" : "alice", to = dir==="ba" ? "alice" : "bob";
+  return {
+    engine, skew: skew||0, tick:0, oracle:1,
+    keys:{alice:"S0", bob:"S1"},
+    shards:{
+      S0:{versions:{alice:[{ts:1,v:100}]}, wlock:{}, rlocks:{}, staged2pc:{}, locks:{}, staged:{}, crec:{}},
+      S1:{versions:{bob:[{ts:1,v:100}]},  wlock:{}, rlocks:{}, staged2pc:{}, locks:{}, staged:{}, crec:{}}
+    },
+    txn:{from, to, keys:[from,to], deltas:[-AMT,AMT], state:0, startTs:null, commitTs:null,
+         dead:false, aborted:false, done:false, decision:false, waitTicks:0, ackAt:null},
+    omar:null, lastAudit:null, log:[]
+  };
+}
+const shardOf=(st,k)=>st.shards[st.keys[k]];
+const latest=(sh,k)=>{const v=sh.versions[k]; return v&&v.length? v[v.length-1].v : 0;};
+const latestTs=(sh,k)=>{const v=sh.versions[k]; return v&&v.length? v[v.length-1].ts : 0;};
+const floorVal=(sh,k,ts)=>{const v=(sh.versions[k]||[]).filter(x=>x.ts<=ts); return v.length? v[v.length-1].v : 0;};
+const put=(sh,k,ts,v)=>{ (sh.versions[k]=sh.versions[k]||[]).push({ts,v}); sh.versions[k].sort((a,b)=>a.ts-b.ts); };
+function say(st,main,tech,cls){ st.log.unshift({t:st.tick,main,tech:tech||"",cls:cls||""}); }
+const isPerco=e=>e==="PERCO"||e==="CLOCK"||e==="CLOCK_WAIT";
+const isClock=e=>e==="CLOCK"||e==="CLOCK_WAIT";
+
+// timestamps: Priya's clock runs +skew, Omar's −skew; TrueTime adds +eps (=skew) and waits it out.
+function ts(st, who, kind){ // kind: start|commit|snap
+  if(!isClock(st.engine)) return ++st.oracle;
+  const off = who==="priya" ? st.skew : -st.skew;
+  const eps = st.engine==="CLOCK_WAIT" ? st.skew : 0;
+  let t = st.tick + off + eps;
+  if(kind==="commit" && st.txn.startTs!=null) t = Math.max(t, st.txn.startTs+1);
+  return t;
+}
+
+function stepTransfer(st){
+  const x = st.txn;
+  if(x.dead){ say(st,"Priya's process is dead. Her transaction cannot take another step — but its locks and staged values are still out there.","","bad"); return; }
+  if(x.done||x.aborted){ say(st,"The transfer already finished."); return; }
+  st.tick++;
+  const e=st.engine, k=x.keys, d=x.deltas;
+  if(e==="NAIVE"){
+    const i=x.state, sh=shardOf(st,k[i]);
+    put(sh,k[i],++st.oracle,latest(sh,k[i])+d[i]);
+    say(st,`Priya commits the ${d[i]<0?"debit":"credit"} on ${st.keys[k[i]]} — ${k[i]} is now ${latest(sh,k[i])}, visible to everyone. ${i===0?"The other half exists only in her intentions.":""}`,`${k[i]}=${latest(sh,k[i])} committed locally`, i===0?"lockish":"commit");
+    if(++x.state===2){ x.done=true; x.ackAt=st.tick; say(st,"Priya is told: done."); }
+    return;
+  }
+  if(e==="TPC"||e==="TPC_2PL"){
+    const S=x.state;
+    if(S<2){ // prepare
+      const key=k[S], sh=shardOf(st,key);
+      if(sh.wlock[key] || (e==="TPC_2PL" && (sh.rlocks[key]||[]).length)){
+        say(st,`Priya wants to prepare ${key} but it is ${sh.wlock[key]?"write":"read"}-locked — she waits.`,"","lockish"); return;
+      }
+      sh.wlock[key]="T1"; sh.staged2pc[key]=latest(sh,key)+d[S];
+      say(st,`PREPARE on ${st.keys[key]}: write-lock ${key}, stage ${sh.staged2pc[key]}. Nothing visible changed.`,`lock(${key}) staged=${sh.staged2pc[key]}`,"lockish");
+      x.state++; return;
+    }
+    if(S===2){ x.decision=true; x.state++; say(st,"Priya's coordinator durably logs the verdict: COMMIT. The transaction WILL happen — but no shard shows it yet.","decision=COMMIT","lockish"); return; }
+    const i=S-3, key=k[i], sh=shardOf(st,key);
+    put(sh,key,++st.oracle,sh.staged2pc[key]); delete sh.staged2pc[key]; delete sh.wlock[key];
+    say(st,`COMMIT applied on ${st.keys[key]}: ${key} is now ${latest(sh,key)} — visible to everyone.${i===0?" The other shard still shows the old world.":""}`,`${key}=${latest(sh,key)}`,i===0?"lockish":"commit");
+    if(++x.state===5){ x.done=true; x.ackAt=st.tick; say(st,"Both shards committed. Priya is told: done.","","commit"); }
+    return;
+  }
+  // percolator family
+  const primary=k[0], S=x.state;
+  if(S===0){ x.startTs=ts(st,"priya","start");
+    say(st,`Priya takes start-ts ${x.startTs}${isClock(e)?" from her own clock":" from the oracle"} — the snapshot her transaction reads from.`,`startTs=${x.startTs}`); x.state++; return; }
+  if(S===1||S===2){
+    const key=k[S-1], sh=shardOf(st,key);
+    if(sh.locks[key]){ say(st,`Priya wants to prewrite ${key} but it is locked by another transaction — she waits.`,"","lockish"); return; }
+    if(latestTs(sh,key)>x.startTs){ x.aborted=true;
+      say(st,`Prewrite ${key} FAILS: someone committed at ts ${latestTs(sh,key)}, after Priya's snapshot ${x.startTs}. First committer wins — Priya aborts and must retry.`,"write-write conflict","bad");
+      k.slice(0,S-1).forEach(pk=>{const psh=shardOf(st,pk); delete psh.locks[pk]; delete psh.staged[pk];}); return; }
+    sh.locks[key]={startTs:x.startTs, primary, created:st.tick};
+    sh.staged[key]=floorVal(sh,key,x.startTs)+d[S-1];
+    say(st,`PREWRITE ${key} on ${st.keys[key]}: lock(start=${x.startTs}, primary=${primary}), stage ${sh.staged[key]}.${key!==primary?" This lock POINTS AT "+primary+" — the verdict will live there.":" This key is the PRIMARY: the verdict will live here."}`,`lock+stage on ${key}`,"lockish");
+    x.state++; return;
+  }
+  if(S===3){ x.commitTs=ts(st,"priya","commit");
+    say(st,`Priya takes commit-ts ${x.commitTs}.`,`commitTs=${x.commitTs}`); x.state++; return; }
+  if(S===4){ // commit wait: hold the ack until now().earliest > commitTs.
+    // Priya's clock reads tick+skew with eps=skew, so her earliest = (tick+skew)-skew = tick.
+    if(e==="CLOCK_WAIT" && st.tick <= x.commitTs){
+      x.waitTicks++;
+      say(st,`COMMIT WAIT: Priya's clock says the commit-ts might still be in some clock's future — she holds the ack. (waited ${x.waitTicks})`,`need earliest > ${x.commitTs}`,"lockish"); return;
+    }
+    x.state++; /* fallthrough next press */ say(st,e==="CLOCK_WAIT"?"Commit wait satisfied: the commit-ts is now in the past for EVERY clock in the system.":"(no commit wait for this engine)"); return;
+  }
+  if(S===5){ // commit primary
+    const sh=shardOf(st,primary), l=sh.locks[primary];
+    if(!l || l.startTs!==x.startTs){ x.aborted=true;
+      say(st,"Priya goes to flip the primary and finds her lock GONE — a reader decided she was dead and rolled her back. She aborts; nothing committed.","primary lock lost","bad");
+      const sec=k[1], ssh=shardOf(st,sec); if(ssh.locks[sec]&&ssh.locks[sec].startTs===x.startTs){delete ssh.locks[sec];delete ssh.staged[sec];} return; }
+    put(sh,primary,x.commitTs,sh.staged[primary]); delete sh.staged[primary]; delete sh.locks[primary];
+    sh.crec[x.startTs]=x.commitTs;
+    say(st,`COMMIT POINT: one local write on ${st.keys[primary]} — ${primary}=${latest(sh,primary)}@${x.commitTs}, lock replaced by commit record {${x.startTs}→${x.commitTs}}. The WHOLE transaction is now committed, though the other shard has heard nothing.`,`crec[${x.startTs}]=${x.commitTs}`,"commit");
+    x.state++; return;
+  }
+  if(S===6){
+    const sec=k[1], sh=shardOf(st,sec);
+    if(sh.locks[sec] && sh.locks[sec].startTs===x.startTs){
+      put(sh,sec,x.commitTs,sh.staged[sec]); delete sh.staged[sec]; delete sh.locks[sec];
+      say(st,`Secondary cleanup on ${st.keys[sec]}: ${sec}=${latest(sh,sec)}@${x.commitTs}. Pure housekeeping — the verdict already existed.`,"","commit");
+    } else say(st,"Secondary cleanup: nothing to do — a reader already rolled it forward.");
+    x.done=true; x.ackAt=st.tick; say(st,"Priya is told: done.","","commit"); return;
+  }
+}
+
+function killPriya(st){ if(st.txn.done||st.txn.aborted){say(st,"Too late to kill Priya — the transfer already finished.");return;} st.txn.dead=true;
+  say(st,"⚡ Priya's process is KILLED. Whatever locks, staged values and half-commits she left behind are now orphans. Who can clean up — and who gets stuck?","","bad"); }
+
+function newAudit(st){
+  st.tick++;
+  const o={idx:0, keys:["alice","bob"], seen:{}, sum:0, done:false, snapTs:null, held:[], waitTicks:0, gaveUp:false};
+  if(isPerco(st.engine)){
+    o.snapTs=ts(st,"omar","snap");
+    const acked = st.txn.done && st.txn.ackAt!=null && st.txn.commitTs!=null;
+    say(st,`Omar starts an audit with snapshot ${o.snapTs}${isClock(st.engine)?" from HIS clock":""}. He will read every account as of that instant.`,`snapTs=${o.snapTs}`);
+    if(acked && o.snapTs<st.txn.commitTs)
+      say(st,`⚠ STALE SNAPSHOT: Priya was told "done" (commit-ts ${st.txn.commitTs}) BEFORE this audit began, yet Omar's snapshot ${o.snapTs} is smaller — he will silently read a world without her transfer. External consistency violated.`,"snap < acked commitTs","bad");
+  } else say(st,"Omar starts an audit. This engine has no snapshots — he reads whatever each shard shows when he arrives"+(st.engine==="TPC_2PL"?", after taking a read lock":"")+".");
+  st.omar=o;
+}
+
+function stepAudit(st){
+  const o=st.omar;
+  if(!o){ say(st,"No audit is running — press ‘Start an audit’ first."); return; }
+  if(o.done){ say(st,"The audit already finished."); return; }
+  st.tick++;
+  const key=o.keys[o.idx], sh=shardOf(st,key), e=st.engine;
+  if(e==="TPC_2PL"){
+    if(sh.wlock[key]){
+      o.waitTicks++;
+      if(o.waitTicks>TTL+6){ o.gaveUp=true;o.done=true; o.held.forEach(h=>{const s2=shardOf(st,h); s2.rlocks[h]=(s2.rlocks[h]||[]).filter(x=>x!=="omar");});
+        say(st,`Omar GIVES UP: ${key} has been write-locked for ages and the verdict lives only in the (possibly dead) coordinator. Nobody can tell him whether to wait or read. This is 2PC's blocking problem, charged to a reader.`,"","bad"); return; }
+      say(st,`Omar wants to read ${key} but it is write-locked by an in-flight transaction — he waits. (${o.waitTicks})`,"","lockish"); return;
+    }
+    (sh.rlocks[key]=sh.rlocks[key]||[]).push("omar"); o.held.push(key);
+    o.seen[key]=latest(sh,key); o.sum+=o.seen[key];
+    say(st,`Omar read-locks ${key} and reads ${o.seen[key]}. He keeps the lock until the audit ends (strict 2PL).`,`rlock(${key})`);
+  } else if(isPerco(e)){
+    const l=sh.locks[key];
+    if(l && l.startTs<=o.snapTs){
+      const psh=shardOf(st,l.primary), cts=psh.crec[l.startTs];
+      if(cts!=null){
+        if(cts<=o.snapTs){
+          if(sh.staged[key]!=null){ put(sh,key,cts,sh.staged[key]); delete sh.staged[key]; }
+          delete sh.locks[key];
+          say(st,`Omar hits a lock on ${key}, follows it to the primary (${l.primary}) and finds commit record {${l.startTs}→${cts}} — the transaction COMMITTED before his snapshot. He ROLLS IT FORWARD himself and reads the new value.`,`roll forward @${cts}`,"commit");
+        } else say(st,`Omar hits a lock on ${key}; the primary says it committed at ${cts} — AFTER his snapshot ${o.snapTs}. None of his business; he reads below his snapshot.`);
+      } else if(psh.locks[l.primary] && psh.locks[l.primary].startTs===l.startTs){
+        if(st.tick-l.created>TTL){
+          delete psh.locks[l.primary]; delete psh.staged[l.primary];
+          if(!(psh===sh && key===l.primary)){ delete sh.locks[key]; delete sh.staged[key]; }
+          say(st,`The lock on ${key} is ${st.tick-l.created} ticks old — past the TTL. No commit record ever appeared, so the transaction never committed. Omar ROLLS IT BACK: locks and staged values wiped, primary first.`,"roll back (TTL)","bad");
+        } else { o.waitTicks++; say(st,`Omar hits a fresh lock on ${key}; the primary is still locked and there is no verdict yet — someone is mid-commit. He waits politely. (age ${st.tick-l.created}/${TTL})`,"","lockish"); return; }
+      } else {
+        delete sh.locks[key]; delete sh.staged[key];
+        say(st,`The lock on ${key} points at a primary that is unlocked with NO commit record — that transaction aborted. Omar sweeps up the leftovers and reads on.`,"clean aborted leftovers");
+      }
+    }
+    o.seen[key]=floorVal(sh,key,o.snapTs); o.sum+=o.seen[key];
+    say(st,`Omar reads ${key} as of ts ${o.snapTs}: ${o.seen[key]}.`,`floor(${key},${o.snapTs})=${o.seen[key]}`);
+  } else {
+    o.seen[key]=latest(sh,key); o.sum+=o.seen[key];
+    say(st,`Omar reads ${key} on ${st.keys[key]}: sees ${o.seen[key]} — whatever is committed right now.`,`latest(${key})=${o.seen[key]}`);
+  }
+  if(++o.idx===2){
+    o.done=true; st.lastAudit={sum:o.sum, seen:{...o.seen}, fractured:o.sum!==200, stale:isPerco(e)&&st.txn.done&&st.txn.commitTs!=null&&o.snapTs<st.txn.commitTs&&st.txn.ackAt!=null};
+    o.held.forEach(h=>{const s2=shardOf(st,h); s2.rlocks[h]=(s2.rlocks[h]||[]).filter(x=>x!=="omar");});
+    if(o.sum!==200) say(st,`AUDIT COMPLETE: alice=${o.seen.alice}, bob=${o.seen.bob}, total ${o.sum} — the books DO NOT BALANCE. ${o.sum<200?"Money has vanished before Omar's eyes":"Money appeared from nowhere"} — a fractured read.`,"","bad");
+    else say(st,`AUDIT COMPLETE: alice=${o.seen.alice}, bob=${o.seen.bob}, total 200 — the books balance.`,"","commit");
+  }
+}
+function waitTick(st){ st.tick++; say(st,"A tick passes. (Locks age; commit wait progresses.)"); }
+
+if(typeof module!=="undefined") module.exports={initState,stepTransfer,stepAudit,newAudit,killPriya,waitTick,latest,shardOf,TTL,ENGINES};
+</script>
+
+<script>
+// ===================== UI =====================
+let engine="TPC", dir="ab", skew=4;
+let st=initState(engine,dir,skew), hist=[];
+const $=id=>document.getElementById(id);
+
+function snap(){ hist.push(JSON.stringify(st)); if(hist.length>200)hist.shift(); }
+function dispatch(fn){ snap(); fn(st); render(); }
+
+function render(){
+  $("oraclenum").textContent = isClock(engine) ? "—" : st.oracle;
+  $("oraclecap").textContent = isClock(engine) ? "no oracle — clocks rule" : "timestamp oracle";
+  $("ticknum").textContent = st.tick;
+  $("p-clock").textContent = isClock(engine)?`her clock reads ${st.tick+skew} (runs ${skew} fast)`:"";
+  $("o-clock").textContent = isClock(engine)?`his clock reads ${st.tick-skew} (runs ${skew} slow)`:"";
+  const x=st.txn;
+  $("p-title").textContent=`moves 50: ${x.from} → ${x.to}`;
+  $("p-state").textContent = x.dead?"☠ dead — her mess remains": x.aborted?"aborted": x.done?`done (acked at tick ${x.ackAt})`:
+    (x.startTs!=null?`in flight — start-ts ${x.startTs}${x.commitTs!=null?", commit-ts "+x.commitTs:""}`:"idle — press ‘Step transfer’");
+  const o=st.omar;
+  $("o-state").textContent = !o?"no audit running": o.gaveUp?"gave up — stranded by a lock with no reachable verdict":
+    o.done?`audit done: total ${o.sum}`:`auditing… read ${o.idx}/2${o.snapTs!=null?" at snapshot "+o.snapTs:""}`;
+  for(const sid of["S0","S1"]){
+    const sh=st.shards[sid], el=$("shard-"+sid);
+    let h=`<h3>Shard ${sid}</h3>`;
+    for(const key of Object.keys(st.keys).filter(k=>st.keys[k]===sid)){
+      const isP=isPerco(engine)&&st.txn.keys[0]===key;
+      h+=`<div class="keyrow"><span class="keyname">${key}</span>${isP?'<span class="primarytag">primary</span>':""}
+        <span class="bal" style="float:right">balance shown: ${latest(sh,key)}</span>
+        <div class="vrow">${(sh.versions[key]||[]).map((v,i,a)=>`<span class="ver${i===a.length-1?' new':''}">${v.v}@${v.ts}</span>`).join("")}
+        ${sh.staged2pc[key]!=null?`<span class="staged">staged ${sh.staged2pc[key]}</span>`:""}
+        ${sh.staged[key]!=null?`<span class="staged">staged ${sh.staged[key]}</span>`:""}
+        ${sh.wlock[key]?`<span class="wlock">write-locked</span>`:""}
+        ${(sh.rlocks[key]||[]).length?`<span class="lock">read-locked by Omar</span>`:""}
+        ${sh.locks[key]?`<span class="lock">lock start=${sh.locks[key].startTs} → primary ${sh.locks[key].primary}</span>`:""}
+        </div></div>`;
+    }
+    const recs=Object.entries(sh.crec);
+    if(recs.length) h+=`<div style="margin-top:6px">${recs.map(([s,c])=>`<span class="crec">verdict: ${s}→${c} committed</span>`).join(" ")}</div>`;
+    el.innerHTML=h;
+  }
+  const v=$("verdict"), la=st.lastAudit;
+  if(!la){ v.className="verdict"; v.innerHTML="No audit has finished yet. The truth: the bank holds <b>200</b>."; }
+  else if(la.fractured){ v.className="verdict bad"; v.innerHTML=`<b>Books don't balance:</b> Omar's audit totals <b>${la.sum}</b> (alice ${la.seen.alice} + bob ${la.seen.bob}) against a true 200. He caught the transfer half-applied — a <b>fractured read</b>. Nothing crashed; the commit simply wasn't one instant.`; }
+  else if(la.stale){ v.className="verdict bad"; v.innerHTML=`<b>Books balance at 200 — but from the past:</b> Priya was told “done” before this audit began, and Omar's snapshot still predates her commit. A confirmed transfer is invisible: <b>external consistency violated</b>.`; }
+  else { v.className="verdict good"; v.innerHTML=`<b>Books balance:</b> Omar's audit totals <b>200</b> (alice ${la.seen.alice} + bob ${la.seen.bob}). Every transaction he saw, he saw whole.`; }
+  $("log").innerHTML = st.log.slice(0,60).map(e=>`<div class="e ${e.cls}"><span class="t">t${e.t}</span>${e.main}${e.tech?`<span class="tech">${e.tech}</span>`:""}</div>`).join("")||"<div class='e'>—</div>";
+  $("b-back").disabled = hist.length===0;
+  $("b-kill").disabled = st.txn.done||st.txn.aborted||st.txn.dead;
+  $("skewwrap").style.display = isClock(engine)?"":"none";
+  $("ttlnote").style.display = isPerco(engine)?"":"none";
+  $("enginenote").textContent = ENGINES[engine].note;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.e===engine));
+}
+
+function reset(){ st=initState(engine,dir,skew); hist=[]; render(); }
+
+// tabs
+const tabbar=$("tabs");
+for(const [k,v] of Object.entries(ENGINES)){
+  const b=document.createElement("button"); b.className="tab"; b.dataset.e=k; b.textContent=v.label;
+  b.onclick=()=>{engine=k; reset();}; tabbar.appendChild(b);
+}
+$("dir").onchange=e=>{dir=e.target.value; reset();};
+$("skew").oninput=e=>{skew=+e.target.value; $("skewval").textContent=skew; reset();};
+$("b-step").onclick=()=>dispatch(stepTransfer);
+$("b-kill").onclick=()=>dispatch(killPriya);
+$("b-audit").onclick=()=>dispatch(newAudit);
+$("b-astep").onclick=()=>dispatch(stepAudit);
+$("b-tick").onclick=()=>dispatch(waitTick);
+$("b-back").onclick=()=>{ if(hist.length){ st=JSON.parse(hist.pop()); render(); } };
+$("b-reset").onclick=reset;
+
+// ---------- predict-then-run scenarios ----------
+const SCEN=[
+ {tag:"2PC, mid-commit", q:"2PC transfer; Omar audits between the two per-shard commits. His total?",
+  opts:["200 — 2PC is atomic","150 — he sees the gap","He gets an error"], right:1,
+  run(play){ engine="TPC"; dir="ab"; reset();
+    play([[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[newAudit],[stepAudit],[stepAudit],[stepTransfer]]); },
+  verdict:s=>s.lastAudit&&s.lastAudit.sum===150,
+  why:"2PC committed S0 at one moment and S1 at a later one. Omar walked through the window: 50 + 100 = 150. Durability was atomic; visibility was not."},
+ {tag:"Percolator, mid-commit", q:"Percolator: primary already flipped, secondary still locked. Omar audits. His total?",
+  opts:["150 — same gap as 2PC","200 — he finishes the commit himself","He waits forever"], right:1,
+  run(play){ engine="PERCO"; dir="ab"; reset();
+    play([[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[newAudit],[stepAudit],[stepAudit]]); },
+  verdict:s=>s.lastAudit&&s.lastAudit.sum===200,
+  why:"Omar hit bob's lock, followed it to the primary, found the commit record, and rolled bob forward HIMSELF. The lock check makes the in-between unobservable."},
+ {tag:"Die before the flip", q:"Percolator: Priya dies after prewriting both keys, before the primary flip. What happens to her transaction?",
+  opts:["Money is lost","Readers wait for a coordinator reboot","A reader rolls it back after the TTL"], right:2,
+  run(play){ engine="PERCO"; dir="ab"; reset();
+    const steps=[[stepTransfer],[stepTransfer],[stepTransfer],[killPriya],[newAudit],[stepAudit]];
+    for(let i=0;i<13;i++) steps.push([waitTick]);
+    steps.push([stepAudit],[stepAudit],[stepAudit]);
+    play(steps); },
+  verdict:s=>s.lastAudit&&s.lastAudit.sum===200&&!Object.keys(s.shards.S0.locks).length,
+  why:"No commit record can ever appear, so once the lock outlived its TTL, Omar buried the corpse — locks and staged values wiped — and audited a clean 200. Nobody blocked."},
+ {tag:"Die after the flip", q:"Priya dies right AFTER the primary flip. Is the transfer lost?",
+  opts:["Yes — nobody can finish it","No — any reader completes it from the commit record"], right:1,
+  run(play){ engine="PERCO"; dir="ab"; reset();
+    play([[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[killPriya],[newAudit],[stepAudit],[stepAudit]]); },
+  verdict:s=>s.lastAudit&&s.lastAudit.sum===200&&s.lastAudit.seen.bob===150,
+  why:"The verdict is DATA at the primary, not memory in a coordinator. Omar rolled bob forward; the transaction outlived its own client."},
+ {tag:"2PC + locks, dead coordinator", q:"Read-locking engine: Priya dies holding both write locks. What happens to Omar's audit?",
+  opts:["He reads old values and moves on","He waits, then gives up — stranded","He cleans up her locks"], right:1,
+  run(play){ engine="TPC_2PL"; dir="ab"; reset();
+    const steps=[[stepTransfer],[stepTransfer],[stepTransfer],[killPriya],[newAudit]];
+    for(let i=0;i<20;i++) steps.push([stepAudit]);
+    play(steps); },
+  verdict:s=>s.omar&&s.omar.gaveUp,
+  why:"The verdict lives only in the dead coordinator's log, so Omar can neither read around the lock nor resolve it. 2PC's blocking problem, charged to an innocent reader. (The Java lab counts 281 of him in one experiment.)"},
+ {tag:"Clocks, no oracle", q:"Clock engine (skew 4, no commit wait): Priya's transfer is acknowledged, THEN Omar starts an audit. Does he see it?",
+  opts:["Of course — it was confirmed first","No — his slow clock hands him a stale snapshot"], right:1,
+  run(play){ engine="CLOCK"; skew=4; $("skew").value=4; $("skewval").textContent=4; dir="ab"; reset();
+    play([[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[stepTransfer],[newAudit],[stepAudit],[stepAudit]]); },
+  verdict:s=>s.lastAudit&&s.lastAudit.stale,
+  why:"Omar's snapshot came from a clock running behind Priya's: smaller than her commit-ts, so her CONFIRMED transfer is invisible. Flip to ‘Clocks + commit wait’ and replay: the ack is held ~2×skew ticks, and this can no longer happen."}
+];
+const scenBox=$("scen");
+SCEN.forEach((sc,i)=>{
+  const d=document.createElement("div"); d.className="scard";
+  d.innerHTML=`<div class="tagline">${sc.tag}</div><div class="q">${sc.q}</div>`+
+    sc.opts.map((o,j)=>`<button class="opt" data-j="${j}">${o}</button>`).join("")+
+    `<div class="res" id="res${i}"></div>`;
+  d.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const chose=+b.dataset.j, res=$("res"+i);
+    if(window._scenTimer) clearInterval(window._scenTimer);
+    res.className="res"; res.textContent="Running…"; res.style.display="block";
+    let queue=null;
+    sc.run(steps=>{queue=steps;});
+    let idx=0;
+    const timer=window._scenTimer=setInterval(()=>{
+      if(idx>=queue.length){ clearInterval(timer);
+        const held = sc.verdict(st), win = (chose===sc.right);
+        res.className="res "+(win?"good":"bad");
+        res.innerHTML=(win?"✔ Your prediction held. ":"✘ Not what you predicted. ")+sc.why+(held?"":" (unexpected sim state — try Reset)");
+        render(); return; }
+      snap(); queue[idx][0](st); render(); idx++;
+    }, 520);
+  });
+  scenBox.appendChild(d);
+});
+reset();
+</script>

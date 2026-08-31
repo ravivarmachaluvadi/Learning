@@ -1,0 +1,1002 @@
+<title>The Query Shape Machine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F2F4F1;
+    --surface: #FBFCFA;
+    --surface2: #E9EDE8;
+    --text: #1C2620;
+    --muted: #5B6862;
+    --line: #CDD5CE;
+    --accent: #2E7D5B;
+    --accent-ink: #FFFFFF;
+    --good: #2E7D5B;
+    --warn: #B07C2A;
+    --bad: #B3453E;
+    --good-bg: #E2EFE7;
+    --warn-bg: #F4EAD8;
+    --bad-bg: #F3E0DE;
+    --c-oltp: #33628C;  --c-kv: #A06E1B;    --c-doc: #7A5AA0;
+    --c-col: #8C4B78;   --c-search: #2E7D7D; --c-graph: #B3453E;
+    --c-log: #C25F2E;   --c-tsdb: #4C7C3A;   --c-vec: #5A6ABF;
+    --c-newsql: #2E7D5B; --c-wide: #6E6538;
+    --cell: #DCE3DD;
+    --cell-hot: #2E7D5B;
+    --cell-done: #A9C6B6;
+    --shadow: 0 1px 3px rgba(28, 38, 32, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121815;
+      --surface: #1A211D;
+      --surface2: #232C27;
+      --text: #D7E0DA;
+      --muted: #93A29A;
+      --line: #35403A;
+      --accent: #58A97F;
+      --accent-ink: #0E140F;
+      --good: #6FB899;
+      --warn: #D9A75B;
+      --bad: #DE8A82;
+      --good-bg: #1D3229;
+      --warn-bg: #38301C;
+      --bad-bg: #3A2422;
+      --c-oltp: #7FA8CE;  --c-kv: #D9A75B;    --c-doc: #AF97CF;
+      --c-col: #C687AE;   --c-search: #6BB8B4; --c-graph: #DE8A82;
+      --c-log: #E09A6C;   --c-tsdb: #8FBB7A;   --c-vec: #98A5E5;
+      --c-newsql: #6FB899; --c-wide: #C9BC72;
+      --cell: #2A342E;
+      --cell-hot: #58A97F;
+      --cell-done: #3E5A4C;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121815;
+    --surface: #1A211D;
+    --surface2: #232C27;
+    --text: #D7E0DA;
+    --muted: #93A29A;
+    --line: #35403A;
+    --accent: #58A97F;
+    --accent-ink: #0E140F;
+    --good: #6FB899;
+    --warn: #D9A75B;
+    --bad: #DE8A82;
+    --good-bg: #1D3229;
+    --warn-bg: #38301C;
+    --bad-bg: #3A2422;
+    --c-oltp: #7FA8CE;  --c-kv: #D9A75B;    --c-doc: #AF97CF;
+    --c-col: #C687AE;   --c-search: #6BB8B4; --c-graph: #DE8A82;
+    --c-log: #E09A6C;   --c-tsdb: #8FBB7A;   --c-vec: #98A5E5;
+    --c-newsql: #6FB899; --c-wide: #C9BC72;
+    --cell: #2A342E;
+    --cell-hot: #58A97F;
+    --cell-done: #3E5A4C;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    margin: 0;
+    padding: 0 16px 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1, h2, h3, .mono { font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace; }
+  h1 { font-size: 1.7rem; font-weight: 600; letter-spacing: -.02em; margin: 40px 0 6px; text-wrap: balance; }
+  h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 10px; }
+  h3 { font-size: .95rem; font-weight: 600; margin: 18px 0 8px; }
+  .tagline { color: var(--muted); max-width: 62ch; margin: 0 0 4px; }
+  .story { max-width: 68ch; margin: 10px 0 0; }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .14em; color: var(--accent); margin: 0;
+  }
+
+  /* legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 18px 0 0; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .legend .chip { display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: .74rem; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+  /* tabs */
+  nav.tabs { display: flex; gap: 6px; margin: 26px 0 0; border-bottom: 2px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; padding-top: 6px; }
+  nav.tabs button {
+    font-family: "IBM Plex Mono", monospace; font-size: .85rem; font-weight: 600;
+    background: none; border: none; color: var(--muted); padding: 10px 14px 12px; cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  nav.tabs button:focus-visible, .btn:focus-visible, .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  section.tab { display: none; padding-top: 26px; }
+  section.tab.active { display: block; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 20px; margin: 0 0 18px; box-shadow: var(--shadow);
+  }
+  .card p { max-width: 70ch; }
+  .btn {
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; font-weight: 600;
+    background: var(--surface2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 8px 14px; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:disabled:hover { border-color: var(--line); }
+  .btn.primary:disabled:hover { border-color: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .controls label { font-size: .82rem; color: var(--muted); }
+  select {
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; padding: 7px 8px;
+    background: var(--surface2); color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+  }
+
+  /* scenario cards */
+  .scenario .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 12px; }
+  .opt {
+    text-align: left; font-family: "IBM Plex Sans", sans-serif; font-size: .88rem;
+    background: var(--surface2); border: 1px solid var(--line); border-left: 5px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--text);
+  }
+  .opt .cat { font-family: "IBM Plex Mono", monospace; font-size: .78rem; font-weight: 600; }
+  .opt:hover { border-color: var(--accent); }
+  .opt.revealed { cursor: default; }
+  .opt.best { background: var(--good-bg); border-color: var(--good); }
+  .opt.ok { background: var(--warn-bg); border-color: var(--warn); }
+  .opt.trap { background: var(--bad-bg); border-color: var(--bad); }
+  .opt .verdict-tag { font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 4px; }
+  .opt.best .verdict-tag { color: var(--good); }
+  .opt.ok .verdict-tag { color: var(--warn); }
+  .opt.trap .verdict-tag { color: var(--bad); }
+  .opt .why { display: block; margin-top: 4px; color: var(--muted); font-size: .84rem; }
+  .scenario .outcome { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: .92rem; display: none; }
+  .scenario .outcome.show { display: block; }
+  .scenario .outcome.right { background: var(--good-bg); }
+  .scenario .outcome.okpick { background: var(--warn-bg); }
+  .scenario .outcome.wrong { background: var(--bad-bg); }
+  .scorebar { font-family: "IBM Plex Mono", monospace; font-size: .85rem; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 18px; }
+
+  /* decision walker */
+  .pathlog { list-style: none; margin: 0 0 14px; padding: 0; }
+  .pathlog li { padding: 7px 0 7px 18px; border-left: 3px solid var(--accent); margin-left: 6px; font-size: .9rem; }
+  .pathlog li .q { color: var(--muted); }
+  .decide-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+  .result-card { border-left: 6px solid var(--accent); }
+  .result-card .alt { color: var(--muted); font-size: .9rem; }
+  .walkaway { background: var(--bad-bg); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: .9rem; }
+
+  /* under the hood */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
+  .pane { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .pane h3 { margin-top: 0; }
+  .grid-rows { display: grid; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .row-line { display: flex; gap: 3px; }
+  .cellu {
+    width: 22px; height: 16px; border-radius: 3px; background: var(--cell); flex: none;
+    transition: background .18s;
+  }
+  .cellu.hot { background: var(--cell-hot); }
+  .cellu.done { background: var(--cell-done); }
+  .cellu.target { box-shadow: inset 0 0 0 2px var(--c-oltp); }
+  .colstrips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .strip { display: grid; gap: 3px; }
+  .strip-label { font-family: "IBM Plex Mono", monospace; font-size: .62rem; color: var(--muted); text-align: center; }
+  .counter { font-family: "IBM Plex Mono", monospace; font-size: .82rem; margin-top: 8px; }
+  .counter b { font-size: 1rem; }
+  .verdict {
+    margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--surface);
+    border: 1px dashed var(--line); font-size: .95rem; min-height: 1.4em;
+  }
+  .verdict.decided { border-style: solid; border-color: var(--accent); }
+  .predict { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+  .predict .pq { font-weight: 600; margin: 0 0 8px; }
+  .predict .p-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .predict .presult { margin: 10px 0 0; font-size: .9rem; display: none; }
+  .predict .presult.show { display: block; }
+
+  .eventlog {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; margin-top: 12px; max-height: 180px; overflow-y: auto;
+    font-size: .85rem;
+  }
+  .eventlog p { margin: 4px 0; max-width: none; }
+  .eventlog p b.mono { font-size: .78rem; color: var(--muted); font-weight: 500; }
+  .eventlog p:first-child { color: var(--text); }
+
+  /* memtable / runs / pages */
+  .pagebox {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+    min-width: 52px;
+  }
+  .pagebox.hot { border-color: var(--c-graph); box-shadow: 0 0 0 2px var(--c-graph); }
+  .pagebox .plabel { font-family: "IBM Plex Mono", monospace; font-size: .6rem; color: var(--muted); }
+  .slots { display: flex; gap: 2px; }
+  .slot { width: 7px; height: 14px; border-radius: 2px; background: var(--cell); }
+  .slot.filled { background: var(--c-oltp); }
+  .pages-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .runrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .runbox { padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-family: "IBM Plex Mono", monospace; font-size: .72rem; }
+  .runbox.hot { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .runbox.mem { border-style: dashed; }
+  footer { margin-top: 48px; color: var(--muted); font-size: .85rem; max-width: 70ch; }
+  @media (prefers-reduced-motion: reduce) { .cellu { transition: none; } }
+</style>
+
+<div class="wrap">
+  <p class="kicker">database-landscape lab · interactive companion</p>
+  <h1>The Query Shape Machine</h1>
+  <p class="tagline">Every database is an opinionated bet on one access pattern. This page trains the skill of
+    matching a workload's <em>query shape</em> to the store whose bet fits it.</p>
+  <p class="story"><strong>The story so far</strong> (from the lab's README): Chaptr, an online bookstore, started on one
+    PostgreSQL database — the right first move. Then growth sent it <em>new shapes of question</em>: a dashboard scanning
+    40 million rows, a search box expecting typo-tolerant ranking, a view-counter taking hundreds of writes a second, a
+    recommendation query joining orders to orders to orders. Each broke the single store in a different way.
+    Your job on this page: diagnose workloads the way Chaptr's engineers had to.</p>
+
+  <div class="legend" id="legend"></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="diagnose">1 · Diagnose</button>
+    <button role="tab" aria-selected="false" data-tab="decide">2 · Decide</button>
+    <button role="tab" aria-selected="false" data-tab="hood">3 · Under the hood</button>
+  </nav>
+
+  <section class="tab active" id="tab-diagnose">
+    <div class="card">
+      <h2>Eight workloads walk into your office</h2>
+      <p>Each card is a real workload with real numbers. <strong>Commit to a store before revealing</strong> — pick the
+        option you'd bet your on-call rotation on. Every option gets a verdict: the <em>best fit</em>, a <em>defensible</em>
+        choice with a named cost, or a <em>trap</em> with the production incident it causes. Wrong guesses teach the most.</p>
+    </div>
+    <div class="scorebar" id="scorebar">No workloads diagnosed yet.</div>
+    <div id="scenarios"></div>
+  </section>
+
+  <section class="tab" id="tab-decide">
+    <div class="card">
+      <h2>The decision walk</h2>
+      <p>The same tree from the lab's README §9, made walkable. Answer with the workload's <em>dominant, measured</em>
+        behavior — not its rarest edge case. Every answer is logged as a sentence, and <strong>Step back</strong> undoes
+        the last one, so you can explore alternate branches cheaply.</p>
+      <ol class="pathlog" id="pathlog"></ol>
+      <div class="card" id="decide-question"></div>
+      <div class="controls">
+        <button class="btn" id="decide-back">← Step back</button>
+        <button class="btn" id="decide-reset">Start over</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-hood">
+    <div class="card">
+      <h2>Why layout decides everything: two mechanisms, moving</h2>
+      <p>The README's claims, animated. Both machines are deterministic — <strong>Step</strong> and <strong>Step back</strong>
+        replay the exact same history, so you can scrub to any moment. Both also have a
+        <strong>Run it for me</strong> button that plays the whole demonstration with narration.</p>
+    </div>
+
+    <div class="card" id="scan-card">
+      <h2>Machine A — row store vs column store, one query</h2>
+      <p>Sixteen orders, eight columns each. Left: a <b>row store</b> (each order's cells sit together, like PostgreSQL).
+        Right: a <b>column store</b> (each column's cells sit together, like BigQuery or DuckDB). The green flash is the
+        disk read happening right now; the pale green is data already read. The counter below each side is the real cost:
+        <b>cells read from disk</b>.</p>
+      <div class="controls">
+        <label for="scan-query">The query:</label>
+        <select id="scan-query">
+          <option value="agg">SUM(price) over all 16 orders — the dashboard query</option>
+          <option value="point">Fetch ALL of order #11 — the checkout query</option>
+        </select>
+      </div>
+      <div class="predict" id="scan-predict">
+        <p class="pq" id="scan-predict-q"></p>
+        <div class="p-opts" id="scan-predict-opts"></div>
+        <p class="presult" id="scan-predict-r"></p>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="scan-run">▶ Run it for me</button>
+        <button class="btn" id="scan-step">Step</button>
+        <button class="btn" id="scan-backstep">Step back</button>
+        <button class="btn" id="scan-reset">Reset</button>
+      </div>
+      <div class="duo">
+        <div class="pane">
+          <h3>Row store</h3>
+          <div class="grid-rows" id="rowstore"></div>
+          <p class="counter">cells read: <b id="row-count">0</b></p>
+        </div>
+        <div class="pane">
+          <h3>Column store</h3>
+          <div class="colstrips" id="colstore"></div>
+          <p class="counter">cells read: <b id="col-count">0</b></p>
+        </div>
+      </div>
+      <div class="verdict" id="scan-verdict">Pick a query, make your prediction, then run.</div>
+      <div class="eventlog" id="scan-log"><p>Machine A ready. The event log narrates every step here, newest first.</p></div>
+    </div>
+
+    <div class="card" id="write-card">
+      <h2>Machine B — B-tree vs LSM-tree, thirty-two writes</h2>
+      <p>The same 32 writes hit both engines. Left: a <b>B-tree</b> (sorted pages; each write lands <em>in place</em> in
+        the page owning its key — red outline = the page being touched; a jump to a different page than last time is a
+        <b>disk seek</b>). Right: an <b>LSM-tree</b> (writes fill a RAM buffer — the dashed box; every 8 writes it flushes
+        to disk as a sorted run, and 4 runs compact into one — all <b>sequential</b> writing). The counters are the cost
+        that matters on spinning disks and still matters on SSDs: seeks vs sequential blocks.</p>
+      <div class="controls">
+        <label for="write-pattern">Key pattern of the 32 writes:</label>
+        <select id="write-pattern">
+          <option value="random">Random keys (real-world user IDs)</option>
+          <option value="seq">Sequential keys (an append-style workload)</option>
+        </select>
+      </div>
+      <div class="predict" id="write-predict">
+        <p class="pq" id="write-predict-q"></p>
+        <div class="p-opts" id="write-predict-opts"></div>
+        <p class="presult" id="write-predict-r"></p>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="write-run">▶ Run it for me</button>
+        <button class="btn" id="write-step">Step</button>
+        <button class="btn" id="write-backstep">Step back</button>
+        <button class="btn" id="write-reset">Reset</button>
+        <button class="btn" id="write-read">Now read key 42</button>
+      </div>
+      <div class="duo">
+        <div class="pane">
+          <h3>B-tree (8 sorted pages, keys 0–95)</h3>
+          <div class="pages-wrap" id="btree-pages"></div>
+          <p class="counter">disk seeks (page jumps): <b id="btree-seeks">0</b></p>
+        </div>
+        <div class="pane">
+          <h3>LSM-tree</h3>
+          <div class="runrow" id="lsm-mem"></div>
+          <div class="runrow" id="lsm-runs"></div>
+          <p class="counter">sequential blocks written: <b id="lsm-blocks">0</b> · places a read must check: <b id="lsm-places">1</b></p>
+        </div>
+      </div>
+      <div class="verdict" id="write-verdict">Pick a key pattern, predict, then run the 32 writes.</div>
+      <div class="eventlog" id="write-log"><p>Machine B ready. The event log narrates every step here, newest first.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Companion to the <span class="mono">database-landscape</span> lab (README §9–§10). The two machines here are the
+      mechanisms behind lab experiments 1 and 3 — run those for the same effects measured in real milliseconds on your
+      own machine. Colors are stable per store family across all three tabs (legend at top).</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- store families: one stable color each, used on every tab ---------- */
+const CATS = {
+  oltp:   { name: "Relational OLTP",  v: "--c-oltp" },
+  kv:     { name: "Key-value / cache", v: "--c-kv" },
+  doc:    { name: "Document",          v: "--c-doc" },
+  col:    { name: "Columnar OLAP",     v: "--c-col" },
+  wide:   { name: "Wide-column",       v: "--c-wide" },
+  search: { name: "Search engine",     v: "--c-search" },
+  graph:  { name: "Graph",             v: "--c-graph" },
+  log:    { name: "Streaming log/queue", v: "--c-log" },
+  tsdb:   { name: "Time-series",       v: "--c-tsdb" },
+  vec:    { name: "Vector",            v: "--c-vec" },
+  newsql: { name: "Distributed SQL",   v: "--c-newsql" },
+};
+
+const $ = (id) => document.getElementById(id);
+
+const legend = $("legend");
+for (const c of Object.values(CATS)) {
+  const s = document.createElement("span");
+  s.className = "chip";
+  s.innerHTML = `<span class="dot" style="background:var(${c.v})"></span>${c.name}`;
+  legend.appendChild(s);
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll("section.tab").forEach((s) => s.classList.remove("active"));
+    $("tab-" + b.dataset.tab).classList.add("active");
+  });
+});
+
+/* =====================================================================
+   TAB 1 — DIAGNOSE: predict-then-reveal scenario cards
+   ===================================================================== */
+const SCENARIOS = [
+  {
+    title: "Checkout for a growing shop",
+    body: "Orders, payments, inventory for a store doing 40 orders/minute at peak. Placing an order must atomically: check stock, decrement it, insert the order, record the payment. Query patterns will keep evolving as the business does.",
+    options: [
+      { cat: "kv", label: "DynamoDB", verdict: "trap", why: "Key-value stores can't do multi-record transactions of this shape, and you'd have to know every future query today. Checkout's hard requirement is atomicity — the one thing this category traded away." },
+      { cat: "oltp", label: "PostgreSQL", verdict: "best", why: "Multi-row ACID is the actual requirement, 40 orders/min is trivial load, and SQL's ad-hoc flexibility is the best hedge against unknown future queries. The boring answer is the senior answer." },
+      { cat: "doc", label: "MongoDB", verdict: "ok", why: "Workable — it has multi-document transactions now — but orders/stock/payments are many-to-many relational data, so you'd be simulating a relational DB inside documents. You gain nothing for the modeling pain." },
+    ],
+  },
+  {
+    title: "The view counter",
+    body: "“231 people viewed this book today.” Popular books take 500 counter updates/second. The number may be slightly off; nobody audits it. Reads happen on every page load.",
+    options: [
+      { cat: "oltp", label: "A counter row in PostgreSQL", verdict: "trap", why: "500 updates/s fighting to lock ONE row — full transactional ceremony for a number nobody needs exact. This is the lab's incident 3: the hot row melts while the rest of the database idles." },
+      { cat: "log", label: "Kafka + a consumer that counts", verdict: "ok", why: "Works and scales, but you've added a cluster and a consumer service to maintain a page-view number. Heavy machinery for a tolerant counter." },
+      { cat: "kv", label: "Redis INCR", verdict: "best", why: "An atomic in-memory increment, lock-free, microseconds, thousands/sec without strain. The value is rebuildable-ish and loss-tolerant — exactly what a cache-class store is for." },
+    ],
+  },
+  {
+    title: "The search box",
+    body: "Users type “blue train mistery” (typo included) and expect the best books ranked first, with filters like ‘Fiction (1,203)’. Catalog: 2 million titles and descriptions. New books should be findable within seconds.",
+    options: [
+      { cat: "search", label: "Elasticsearch / OpenSearch", verdict: "best", why: "Inverted index + analyzers: typo tolerance, stemming, relevance ranking, facets — this category exists for exactly this. Keep Postgres as truth; index is rebuildable." },
+      { cat: "oltp", label: "PostgreSQL LIKE '%blue%train%'", verdict: "trap", why: "Scans every row on every keystroke, can't rank, can't handle the typo. Incident 2 verbatim. (Postgres full-text search is a legitimate middle step — LIKE is not.)" },
+      { cat: "vec", label: "A vector database only", verdict: "ok", why: "Semantic similarity would catch the typo's intent, but users also expect exact-match and filters, where keyword search wins. Production search is increasingly HYBRID (⑦+⑫) — vector-only drops half the job." },
+    ],
+  },
+  {
+    title: "The revenue dashboard",
+    body: "Finance wants revenue by day/category/region over two years — 40 million order rows scanned, a handful of columns aggregated. Runs ~50×/day. Data one hour stale is fine. Today it runs on the production Postgres and takes 4 minutes.",
+    options: [
+      { cat: "oltp", label: "Add more indexes to Postgres", verdict: "trap", why: "Indexes accelerate selective lookups; this query touches ALL rows regardless (exp1 proves it: 1.25× ‘speedup’). Meanwhile every index added taxes checkout writes." },
+      { cat: "col", label: "A columnar warehouse fed by a pipeline", verdict: "best", why: "Columnar layout reads only the aggregated columns (566× in exp3), and analysts can no longer queue behind — or lock up — checkout. The OLTP/OLAP split is THE canonical two-store architecture." },
+      { cat: "oltp", label: "Run it on a read replica", verdict: "ok", why: "A real, cheap first step — it stops analytics hurting checkout. But the query itself stays 4 minutes (row layout unchanged), and heavy scans can stall the replica's replication." },
+    ],
+  },
+  {
+    title: "Reading-position telemetry",
+    body: "A reading app reports each reader's page position every 10 s: ~100,000 writes/sec, worldwide, forever. The ONLY query, known and fixed: ‘positions for reader X, newest first.’ Must survive a datacenter outage; a lost single update is harmless.",
+    options: [
+      { cat: "oltp", label: "PostgreSQL, sharded by hand", verdict: "trap", why: "100k random writes/s overwhelms a B-tree single primary, and hand-sharding relational data is a famous tar pit. You'd also be paying for ACID that a lost-tolerant position update doesn't need." },
+      { cat: "kv", label: "DynamoDB", verdict: "ok", why: "Defensible: key-partitioned, managed, huge scale. Costs more at this write volume and gives you less control over the clustering order than a wide-column store's native model." },
+      { cat: "wide", label: "Cassandra / ScyllaDB", verdict: "best", why: "LSM swallows the write firehose, partition key = reader, clustering key = timestamp DESC answers the one known query, masterless replication survives a DC loss. This is the textbook wide-column workload." },
+    ],
+  },
+  {
+    title: "The fraud ring",
+    body: "A bank flags accounts connected to known-fraudulent ones through shared devices, cards, or addresses — up to 5 hops out, in any direction, queried interactively by analysts all day.",
+    options: [
+      { cat: "graph", label: "Neo4j / a graph database", verdict: "best", why: "Variable-depth traversal IS the workload. Index-free adjacency makes hop 5 as cheap as hop 1; the query reads like the question. This (fraud) is the category's killer app." },
+      { cat: "oltp", label: "SQL with recursive self-joins", verdict: "trap", why: "Five hops = joining the edges table to itself five times; work multiplies per hop (incident 4's six-second query). Fine for one report; hopeless for interactive analysis." },
+      { cat: "doc", label: "MongoDB with embedded connection lists", verdict: "trap", why: "Embedding one hop duplicates the graph into every document; five hops means five application-side round-trip fan-outs and a sync nightmare when edges change." },
+    ],
+  },
+  {
+    title: "One truth, five consumers",
+    body: "Every order change must reach: search, the warehouse, the cache, a fraud scorer, and email — five systems, each at its own pace. Next year there will be a sixth you haven't imagined yet, which must also see PAST changes.",
+    options: [
+      { cat: "log", label: "CDC into Kafka; consumers replay", verdict: "best", why: "One durable, ordered, replayable change stream: each consumer keeps its own offset, and next year's consumer replays history from offset zero. This is the outbox pattern at infrastructure grade." },
+      { cat: "oltp", label: "The app writes to all five directly", verdict: "trap", why: "Five independent writes = the dual-write problem five times over — every partial failure silently diverges a store (failure F2). And consumer #6 can never see the past." },
+      { cat: "log", label: "RabbitMQ / SQS queues per consumer", verdict: "ok", why: "Delivery works, but a queue's message is gone once consumed: no replay, no late-joining consumer #6, and five queues to keep in lockstep. Queues are for jobs; this is a stream of facts." },
+    ],
+  },
+  {
+    title: "“Books like this one”",
+    body: "Semantic similarity over 2M book embeddings (‘cozy mystery on a train’ should find The Blue Locomotive with zero shared words). Must join results against stock and price. The team already runs PostgreSQL.",
+    options: [
+      { cat: "search", label: "Elasticsearch keyword search", verdict: "ok", why: "Catches word overlap, misses meaning (‘cozy mystery on a train’ shares no words with the hit). The strong answer is hybrid — but keyword-only leaves the semantic half undone." },
+      { cat: "vec", label: "pgvector in the existing Postgres", verdict: "best", why: "HNSW similarity next to the relational data — ‘similar AND in stock’ is one SQL join, no new cluster, no new sync pipeline. Dedicated vector DBs earn their place at 100M+ vectors, not 2M." },
+      { cat: "vec", label: "A dedicated vector DB cluster", verdict: "ok", why: "It works, but you've bought a marriage (ops + a sync pipeline + drift monitoring) for scale you don't have, and the stock/price join now crosses systems." },
+    ],
+  },
+];
+
+let diagnosed = 0, firstTry = 0;
+const scWrap = $("scenarios");
+SCENARIOS.forEach((sc, i) => {
+  const card = document.createElement("div");
+  card.className = "card scenario";
+  const catOf = (o) => (CATS[o.cat] ? CATS[o.cat] : CATS.col);
+  card.innerHTML =
+    `<h2>${i + 1} · ${sc.title}</h2><p>${sc.body}</p>` +
+    `<p><b>Which store do you bet your on-call rotation on?</b></p>` +
+    `<div class="opts">` +
+    sc.options.map((o, j) =>
+      `<button class="opt" data-j="${j}">` +
+      `<span class="verdict-tag" hidden></span>` +
+      `<span class="cat"><span class="dot" style="display:inline-block;vertical-align:baseline;background:var(${catOf(o).v})"></span> ${o.catShown || catOf(o).name}</span><br>${o.label}` +
+      `<span class="why" hidden>${o.why}</span></button>`
+    ).join("") +
+    `</div><div class="outcome"></div>`;
+  scWrap.appendChild(card);
+
+  const outcome = card.querySelector(".outcome");
+  card.querySelectorAll(".opt").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (card.dataset.done) return;
+      card.dataset.done = "1";
+      diagnosed++;
+      const picked = sc.options[+btn.dataset.j];
+      if (picked.verdict === "best") firstTry++;
+      card.querySelectorAll(".opt").forEach((b) => {
+        const o = sc.options[+b.dataset.j];
+        b.classList.add("revealed", o.verdict);
+        b.querySelector(".verdict-tag").hidden = false;
+        b.querySelector(".verdict-tag").textContent =
+          o.verdict === "best" ? "best fit" : o.verdict === "ok" ? "defensible, with a cost" : "trap";
+        b.querySelector(".why").hidden = false;
+        b.disabled = true;
+      });
+      outcome.classList.add("show", picked.verdict === "best" ? "right" : picked.verdict === "ok" ? "okpick" : "wrong");
+      outcome.innerHTML =
+        picked.verdict === "best"
+          ? `<b>Right first try.</b> You picked the best fit — read the other verdicts to see the traps you dodged.`
+          : picked.verdict === "ok"
+            ? `<b>Defensible — but read the best-fit card.</b> Your pick works; the green option removes the cost yours carries.`
+            : `<b>That one causes an incident.</b> Read your card's failure, then the green card for why the best fit avoids it. Wrong guesses here are the cheapest way to learn this.`;
+      $("scorebar").textContent =
+        `Diagnosed ${diagnosed} of ${SCENARIOS.length} workloads — ${firstTry} best-fit on the first try.` +
+        (diagnosed === SCENARIOS.length ? (firstTry >= 6 ? " Strong — you think in query shapes now." : " Revisit the trap cards; each maps to a README §11 failure.") : "");
+    });
+  });
+});
+
+/* =====================================================================
+   TAB 2 — DECIDE: the walkable decision tree (history stack => step back)
+   ===================================================================== */
+const TREE = {
+  root: { q: "What is the dominant operation — the one you'll serve thousands of times an hour?", opts: [
+    { t: "Read/write single records by id or key", next: "acid" },
+    { t: "Scan millions of rows, aggregate a few columns", next: "olapWho" },
+    { t: "Match human language, rank by relevance", next: "R_search" },
+    { t: "Follow relationships hop by hop", next: "hops" },
+    { t: "Append events that several systems consume", next: "jobsOrFacts" },
+    { t: "Numbers over time: metrics, sensors, ticks", next: "tsVolume" },
+    { t: "Find items similar in meaning (embeddings)", next: "vecScale" },
+  ]},
+  acid: { q: "Must several records change together, atomically (real transactions)?", opts: [
+    { t: "Yes — money/stock-grade correctness", next: "writeScale" },
+    { t: "No — records live and die alone", next: "fetchHow" },
+  ]},
+  writeScale: { q: "Does sustained write volume genuinely exceed one primary node (tens of thousands of writes/sec, measured — not projected)?", opts: [
+    { t: "No — one good node handles it", next: "R_oltp" },
+    { t: "Yes, measured — or we must survive a region loss with strong consistency", next: "R_newsql" },
+  ]},
+  fetchHow: { q: "How is the data fetched?", opts: [
+    { t: "By exact key only, as fast as possible", next: "truthOrCache" },
+    { t: "Whole self-contained records, queried by any field; shapes vary", next: "R_doc" },
+    { t: "A write firehose; queries known in advance; massive, global", next: "R_wide" },
+  ]},
+  truthOrCache: { q: "If this store vanished right now, is the data rebuildable (cache, session) — or gone (truth)?", opts: [
+    { t: "Rebuildable / tolerable loss", next: "R_cache" },
+    { t: "It's truth — loss is unacceptable", next: "R_dkv" },
+  ]},
+  olapWho: { q: "Who consumes the answers?", opts: [
+    { t: "Analysts and dashboards; seconds are fine", next: "R_wh" },
+    { t: "End-users inside the product; sub-second", next: "R_ch" },
+    { t: "Data science / ML over raw, huge, varied data", next: "R_lake" },
+  ]},
+  hops: { q: "Are traversals variable-depth or 3+ hops, asked frequently?", opts: [
+    { t: "Yes — the connections are the product", next: "R_graph" },
+    { t: "No — 1–2 fixed hops now and then", next: "R_joins" },
+  ]},
+  jobsOrFacts: { q: "Are the messages jobs to perform once — or facts many readers replay, including future ones?", opts: [
+    { t: "Jobs: do it once, then it's done (emails, resizing)", next: "R_queue" },
+    { t: "Facts: history several systems consume at their own pace", next: "R_kafka" },
+  ]},
+  tsVolume: { q: "Volume, honestly: millions of rows — or billions with relentless ingest?", opts: [
+    { t: "Millions — one team's app metrics", next: "R_tslite" },
+    { t: "Billions — fleets of devices/servers, high cardinality", next: "R_tsdb" },
+  ]},
+  vecScale: { q: "How many vectors, and is similarity the core product?", opts: [
+    { t: "Under ~100k vectors", next: "R_brute" },
+    { t: "Millions, living beside relational data", next: "R_pgv" },
+    { t: "Hundreds of millions; similarity IS the product", next: "R_vecdb" },
+  ]},
+};
+const RESULTS = {
+  R_oltp:  { cat: "oltp", title: "Relational OLTP — PostgreSQL / MySQL", why: "You need transactions and flexibility at a scale one node serves. The boring choice is the strong choice: ACID, ad-hoc SQL, forty years of tooling.", also: "Also fine: a managed flavor (RDS/Aurora/Cloud SQL). Extensions (JSONB, PostGIS, pgvector, Timescale) cover many side-workloads without a new store.", walk: "Walk away when a measured write ceiling or a hard multi-region requirement appears — that is the Distributed SQL branch, earned by numbers, not fear." },
+  R_newsql:{ cat: "newsql", title: "Distributed SQL — CockroachDB / Spanner / Yugabyte", why: "SQL + ACID, sharded with per-shard consensus (your Paxos lab, productized). Survives nodes and regions while staying consistent (CP).", also: "Also consider: Vitess if you're really sharding MySQL; staying single-region Postgres if the requirement was aspiration, not measurement.", walk: "Walk away if one node actually suffices — you'd pay a network round-trip on every write and heavier ops for headroom you don't use." },
+  R_cache: { cat: "kv", title: "In-memory key-value — Redis (or Memcached)", why: "Microsecond O(1) by key: sessions, caches, counters, rate limits, leaderboards. Atomic INCR solves hot counters without locks.", also: "Also fine: Memcached for pure caching at scale; Redis persistence (AOF) when 'mostly durable' is enough.", walk: "Walk away — instantly — if this data is truth. A restarted cache is empty (failure F1). Truth goes in a durable store; Redis holds copies." },
+  R_dkv:   { cat: "kv", title: "Durable key-value — DynamoDB", why: "Key-only access with durability, replication, and effectively unlimited managed scale — Amazon's cart runs here.", also: "Also fine: Postgres with a key-indexed table if scale is modest — don't buy planet-scale for a small shop.", walk: "Walk away if you'll need queries beyond the key or evolving access patterns: DynamoDB demands you know your queries up front, forever." },
+  R_doc:   { cat: "doc", title: "Document store — MongoDB (or Postgres JSONB)", why: "Self-contained, variably-shaped records read whole — catalogs, profiles, content. One read, no joins to reassemble the thing.", also: "Seriously consider Postgres JSONB first: documents inside a relational store, keeping transactions and joins available for free.", walk: "Walk away if records are many-to-many relational, need cross-record transactions routinely, or grow without bound (the 16 MB / unbounded-array trap, F5)." },
+  R_wide:  { cat: "wide", title: "Wide-column — Cassandra / ScyllaDB", why: "LSM write firehose + partition-per-key + masterless replication: messaging history, telemetry, feeds at Discord/Netflix scale (AP, tunable).", also: "Also fine: DynamoDB for the same shape with zero ops; Bigtable/HBase in analytics-adjacent stacks.", walk: "Walk away below ~10k writes/sec or a few TB (Postgres does it cheaper), for ad-hoc queries (every new question = a new table + backfill), or if you need transactions." },
+  R_wh:    { cat: "col", title: "Columnar warehouse — BigQuery / Snowflake / Redshift", why: "Columnar layout + parallel scan: billions of rows aggregated in seconds (566× vs a row store in this lab's exp3), analysts fenced off from production.", also: "Also fine: DuckDB if the data fits one machine — 'SQLite for analytics', zero infrastructure.", walk: "Walk away for per-request point reads or anything user-facing (failure F6: seconds of latency, scan-priced bills). Warehouses feed serving stores; browsers never query them." },
+  R_ch:    { cat: "col", title: "Real-time OLAP — ClickHouse (or Apache Pinot/Druid)", why: "Columnar speed engineered for sub-second, high-concurrency, user-facing analytics — Cloudflare-style in-product dashboards.", also: "Also fine: precomputing aggregates into Postgres/Redis if the widget set is small and fixed.", walk: "Walk away if 'sub-second, in-product' is really 'a daily internal dashboard' — then the plain warehouse is simpler and cheaper." },
+  R_lake:  { cat: "col", title: "Lakehouse — S3/GCS + Parquet + Iceberg/Delta", why: "The cheapest durable bytes there are, in open columnar files any engine (Spark, Trino, DuckDB) can query; the table format adds ACID commits and time travel.", also: "Also fine: plain object storage + Parquet if a single team just needs cheap history without multi-engine table semantics yet.", walk: "Walk away for serving traffic (seconds-to-minutes latency) or small structured data — a warehouse or one Postgres table beats a Spark-sized toolchain there." },
+  R_search:{ cat: "search", title: "Search engine — Elasticsearch / OpenSearch / Typesense", why: "Inverted index + analyzers: typo-tolerant, stemmed, relevance-ranked, faceted search over language (288,088× vs LIKE in this lab's exp2).", also: "Also fine: Postgres full-text search for modest catalogs; pairing with vectors (hybrid) is where product search is heading.", walk: "Walk away for exact structured matching (SQL's job) — and NEVER make it truth: it must stay a store you can delete and rebuild from the source (F2)." },
+  R_graph: { cat: "graph", title: "Graph database — Neo4j / Neptune / Memgraph", why: "Index-free adjacency: hop 5 costs like hop 1, and the query language reads like the question. Fraud rings, recommendations, knowledge graphs.", also: "Also fine: recursive SQL CTEs for occasional shallow traversals before buying a new store.", walk: "Walk away if queries are really 1–2 fixed hops (JOIN does that), if the workload is whole-graph analytics, or if you hoped it would scale writes like Cassandra — graphs partition poorly." },
+  R_joins: { cat: "oltp", title: "Stay relational — JOINs are enough", why: "'Our data has relationships' describes every dataset. One or two fixed hops is exactly what SQL joins with indexes are for — no new store, no sync pipeline, no new on-call.", also: "Revisit only if traversal depth becomes variable and frequent — that's the graph branch.", walk: "The trap here is buying a graph DB for a org-chart query. The cheapest database is the one you already run." },
+  R_queue: { cat: "log", title: "Message queue — SQS / RabbitMQ", why: "A job is handed to one worker, acknowledged, gone. Retries, dead-letter queues, per-message routing — built for work distribution.", also: "Also fine: a Postgres jobs table with SKIP LOCKED at modest scale — boring and debuggable.", walk: "Walk away if consumers are really replaying facts (audit, sync, late joiners) — that's a log's job; a queue forgets, and queue-on-Kafka / log-on-RabbitMQ both hurt." },
+  R_kafka: { cat: "log", title: "Streaming log — Kafka / Pulsar / Kinesis", why: "Durable ordered replayable history: each consumer at its own offset, future consumers replay from zero. The backbone that feeds every derived store (CDC in, projections out).", also: "Also fine at small scale: the plain transactional-outbox pattern you know, with no cluster at all.", walk: "Walk away for request/response between two services (that's an API call) or as a queryable store — a log only replays; state lives in stores derived from it." },
+  R_tslite:{ cat: "tsdb", title: "Postgres + timestamp index, or Timescale", why: "Millions of time-rows is a normal table with a BRIN/btree index — or the Timescale extension for partitioning and rollups inside the store you already run.", also: "Prometheus if it's specifically infrastructure metrics — it's the ecosystem default with scraping built in.", walk: "Walk away from buying a dedicated TSDB cluster here — the specialized machinery pays off at billions of points, not millions." },
+  R_tsdb:  { cat: "tsdb", title: "Time-series DB — TimescaleDB / InfluxDB / QuestDB", why: "Time-partitioning, delta+float compression (10–20×), automatic downsampling and retention: the append-only, window-queried shape exploited ruthlessly.", also: "Also fine: ClickHouse — many teams run huge metrics on it happily.", walk: "Walk away if data gets updated after the fact or isn't time-keyed — and never store business truth in a store configured to expire data by design." },
+  R_brute: { cat: "vec", title: "No index — brute-force similarity scan", why: "Under ~100k vectors, comparing against all of them takes milliseconds and is EXACT. The best index is no index; numpy or pgvector without an index is enough.", also: "Grow into an HNSW index (pgvector) when the scan stops being instant.", walk: "The trap is standing up a vector-DB cluster for ten thousand embeddings — infrastructure with no workload." },
+  R_pgv:   { cat: "vec", title: "pgvector — vectors inside PostgreSQL", why: "HNSW similarity beside your relational data: 'similar AND in stock AND under ₹500' is one SQL query, no new cluster, no sync pipeline, no drift.", also: "Also fine: the same pattern in your existing search engine (hybrid keyword+vector), which is where product search is converging.", walk: "Walk away when vectors dominate the workload at 100M+ scale with heavy filtering SLAs — that's the dedicated-store branch." },
+  R_vecdb: { cat: "vec", title: "Dedicated vector store — Milvus / Pinecone / Qdrant", why: "When similarity IS the product at hundreds of millions of vectors, a purpose-built ANN engine with its own scaling story earns its ops bill.", also: "Also fine: Elasticsearch/OpenSearch kNN if you already run it and want hybrid search in one place.", walk: "Remember it's a derived store twice over (documents → model → embedding): a model upgrade means full re-embedding, so the delete-and-rebuild rule applies doubly (F2)." },
+};
+
+let decideStack = [];
+function renderDecide() {
+  const logEl = $("pathlog");
+  logEl.innerHTML = decideStack
+    .map((s) => `<li><span class="q">${TREE[s.node].q}</span><br><b>→ ${TREE[s.node].opts[s.pick].t}</b></li>`)
+    .join("");
+  const cur = decideStack.length ? TREE[decideStack[decideStack.length - 1].node].opts[decideStack[decideStack.length - 1].pick].next : "root";
+  const box = $("decide-question");
+  if (RESULTS[cur]) {
+    const r = RESULTS[cur];
+    box.className = "card result-card";
+    box.style.borderLeftColor = `var(${CATS[r.cat].v})`;
+    box.innerHTML =
+      `<p class="kicker" style="color:var(${CATS[r.cat].v})">${CATS[r.cat].name}</p>` +
+      `<h2>${r.title}</h2><p>${r.why}</p><p class="alt">${r.also}</p>` +
+      `<div class="walkaway"><b>Walk away when:</b> ${r.walk}</div>` +
+      `<p class="alt" style="margin-top:10px">Use <b>Step back</b> to try the branch you almost took — comparing neighboring outcomes is where the judgment forms.</p>`;
+  } else {
+    const n = TREE[cur];
+    box.className = "card";
+    box.style.borderLeftColor = "";
+    box.innerHTML =
+      `<h2>${n.q}</h2><div class="decide-opts">` +
+      n.opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="cat">${o.t}</span></button>`).join("") +
+      `</div>`;
+    box.querySelectorAll(".opt").forEach((b) =>
+      b.addEventListener("click", () => { decideStack.push({ node: cur, pick: +b.dataset.i }); renderDecide(); })
+    );
+  }
+  $("decide-back").disabled = decideStack.length === 0;
+}
+$("decide-back").addEventListener("click", () => { decideStack.pop(); renderDecide(); });
+$("decide-reset").addEventListener("click", () => { decideStack = []; renderDecide(); });
+renderDecide();
+
+/* =====================================================================
+   TAB 3 — UNDER THE HOOD
+   Machine A: row vs column scan.  Pure function of (mode, step) => replayable.
+   ===================================================================== */
+const ROWS = 16, COLS = 8, PRICE = 3, TARGET = 10; // TARGET = order #11 (0-indexed)
+const scan = { mode: "agg", step: 0, timer: null, predicted: null };
+
+function scanTotalSteps() { return scan.mode === "agg" ? ROWS : Math.max(1, COLS); }
+function scanCounts(step) {
+  if (scan.mode === "agg") {
+    return { row: Math.min(step, ROWS) * COLS, col: Math.min(step, ROWS) };
+  }
+  return { row: step >= 1 ? COLS : 0, col: Math.min(step, COLS) };
+}
+function buildScanGrids() {
+  const rs = $("rowstore");
+  rs.innerHTML = "";
+  for (let r = 0; r < ROWS; r++) {
+    const line = document.createElement("div");
+    line.className = "row-line";
+    for (let c = 0; c < COLS; c++) {
+      const d = document.createElement("div");
+      d.className = "cellu";
+      d.dataset.r = r; d.dataset.c = c;
+      line.appendChild(d);
+    }
+    rs.appendChild(line);
+  }
+  const cs = $("colstore");
+  cs.innerHTML = "";
+  const names = ["id", "user", "book", "price", "qty", "city", "ts", "note"];
+  for (let c = 0; c < COLS; c++) {
+    const wrapEl = document.createElement("div");
+    const lab = document.createElement("div");
+    lab.className = "strip-label"; lab.textContent = names[c];
+    const strip = document.createElement("div");
+    strip.className = "strip";
+    for (let r = 0; r < ROWS; r++) {
+      const d = document.createElement("div");
+      d.className = "cellu";
+      d.dataset.r = r; d.dataset.c = c;
+      strip.appendChild(d);
+    }
+    wrapEl.appendChild(lab); wrapEl.appendChild(strip);
+    cs.appendChild(wrapEl);
+  }
+}
+function renderScan() {
+  const s = scan.step;
+  document.querySelectorAll("#rowstore .cellu").forEach((d) => {
+    const r = +d.dataset.r;
+    let cls = "cellu";
+    if (scan.mode === "agg") {
+      if (r < s - 1) cls += " done"; else if (r === s - 1) cls += " hot";
+    } else {
+      if (r === TARGET) { cls += " target"; if (s >= 1) cls += s === 1 ? " hot" : " done"; }
+    }
+    d.className = cls;
+  });
+  document.querySelectorAll("#colstore .cellu").forEach((d) => {
+    const r = +d.dataset.r, c = +d.dataset.c;
+    let cls = "cellu";
+    if (scan.mode === "agg") {
+      if (c === PRICE) { if (r < s - 1) cls += " done"; else if (r === s - 1) cls += " hot"; }
+    } else {
+      if (r === TARGET) { cls += " target"; if (c < s - 1) cls += " done"; else if (c === s - 1) cls += " hot"; }
+    }
+    d.className = cls;
+  });
+  const k = scanCounts(s);
+  $("row-count").textContent = k.row;
+  $("col-count").textContent = k.col;
+  const done = s >= scanTotalSteps();
+  const v = $("scan-verdict");
+  if (!done) {
+    v.className = "verdict";
+    v.textContent = s === 0
+      ? "Pick a query, make your prediction, then run."
+      : (scan.mode === "agg"
+          ? `Scanning… the row store has dragged ${k.row} cells through memory to get ${k.col === 0 ? 0 : Math.min(s, ROWS)} price values; the column store has read exactly ${k.col}.`
+          : `Fetching order #11… the row store went to one place; the column store is visiting segment ${Math.min(s, COLS)} of ${COLS}.`);
+  } else {
+    v.className = "verdict decided";
+    v.innerHTML = scan.mode === "agg"
+      ? `<b>Column store wins the scan:</b> 16 cells read vs 128 — it touched only the price column, the row store dragged every column of every order past the CPU. Same data, same SQL; the LAYOUT was the whole difference. At Chaptr's 40M rows this is the 4-minute dashboard, and it's exp3's measured 566×.`
+      : `<b>Row store wins the point read:</b> order #11 sat together in one place (one page read), while the column store visited all ${COLS} column segments to reassemble the row — exp3 measured this reversal at 57.8×. <b>Neither layout wins both queries — that asymmetry is why OLTP and OLAP are different store categories.</b>`;
+    resolveScanPrediction();
+  }
+}
+function scanLog(msg) {
+  const el = $("scan-log");
+  const p = document.createElement("p");
+  p.innerHTML = msg;
+  el.prepend(p);
+}
+function scanStep(narrate) {
+  if (scan.step >= scanTotalSteps()) return false;
+  scan.step++;
+  const s = scan.step;
+  if (narrate) {
+    if (scan.mode === "agg") {
+      if (s === 1) scanLog(`<b class="mono">[row]</b> To sum ONE column, the row store must read order #1's entire row — all 8 cells — because they are stored glued together. <b class="mono">[col]</b> The column store reads 1 cell: the price, because prices are stored glued to each other.`);
+      else if (s === ROWS) scanLog(`Both finished. Row store: 128 cells for 16 prices. Column store: 16 cells for 16 prices. Layout was the only difference.`);
+      else if (s === 8) scanLog(`Halfway. The gap grows linearly: every order costs the row store 8 cells and the column store 1. Real columnar engines also compress similar values together, widening this gap further.`);
+    } else {
+      if (s === 1) scanLog(`<b class="mono">[row]</b> Order #11's cells are physically adjacent — one page read returns the whole order. Done. <b class="mono">[col]</b> Order #11 is scattered across 8 column segments; visiting segment 1 (id)…`);
+      else if (s === COLS) scanLog(`Column store finally has all 8 pieces of order #11 — 8 separate segment visits to rebuild what the row store got in one. The bet reversed.`);
+    }
+  }
+  renderScan();
+  return true;
+}
+function resetScan(clearLog) {
+  clearInterval(scan.timer); scan.timer = null;
+  scan.step = 0; scan.predicted = null;
+  $("scan-run").disabled = false;
+  buildScanGrids(); renderScan(); renderScanPredict();
+  if (clearLog) $("scan-log").innerHTML = "<p>Machine A reset. The event log narrates every step here, newest first.</p>";
+}
+const SCAN_PREDICTS = {
+  agg: { q: "🔮 Predict — SUM(price) over all 16 orders: which layout reads fewer cells from disk?",
+    opts: ["The row store", "The column store", "Same either way"], correct: 1,
+    why: "The column store reads only the 16 price cells (the query names one column); the row store must read all 128, because each price is physically glued to 7 cells it doesn't need." },
+  point: { q: "🔮 Predict — fetching ALL of order #11: which layout visits fewer places on disk?",
+    opts: ["The row store", "The column store", "Same either way"], correct: 0,
+    why: "The row store keeps order #11's cells together — one page read. The column store scattered them across 8 column segments, so it must visit all 8 to rebuild one row." },
+};
+function renderScanPredict() {
+  const P = SCAN_PREDICTS[scan.mode];
+  $("scan-predict-q").textContent = P.q;
+  const w = $("scan-predict-opts");
+  w.innerHTML = "";
+  P.opts.forEach((t, i) => {
+    const b = document.createElement("button");
+    b.className = "btn"; b.textContent = t;
+    b.addEventListener("click", () => {
+      scan.predicted = i;
+      w.querySelectorAll(".btn").forEach((x) => (x.disabled = true));
+      b.classList.add("primary");
+      $("scan-predict-r").className = "presult show";
+      $("scan-predict-r").textContent = "Prediction locked in. Now run the machine and see.";
+    });
+    w.appendChild(b);
+  });
+  $("scan-predict-r").className = "presult";
+  $("scan-predict-r").textContent = "";
+}
+function resolveScanPrediction() {
+  const P = SCAN_PREDICTS[scan.mode];
+  const r = $("scan-predict-r");
+  r.className = "presult show";
+  r.innerHTML = scan.predicted === null
+    ? `(No prediction was made — commit to a guess next run; being wrong first is how this sticks.) ${P.why}`
+    : scan.predicted === P.correct
+      ? `<b>Your prediction held.</b> ${P.why}`
+      : `<b>Your prediction didn't hold — the good kind of wrong.</b> ${P.why}`;
+}
+$("scan-query").addEventListener("change", (e) => { scan.mode = e.target.value; resetScan(true); });
+$("scan-step").addEventListener("click", () => scanStep(true));
+$("scan-backstep").addEventListener("click", () => {
+  if (scan.step === 0) return;
+  scan.step--;
+  scanLog(`Stepped back to step ${scan.step} — the machine replays its deterministic history.`);
+  renderScan();
+});
+$("scan-reset").addEventListener("click", () => resetScan(true));
+$("scan-run").addEventListener("click", () => {
+  resetScan(false);
+  $("scan-run").disabled = true;
+  scanLog(`<b>Auto-run started</b> — query: ${scan.mode === "agg" ? "SUM(price) over every order (the dashboard shape)" : "fetch all of order #11 (the checkout shape)"}. Watch the counters diverge.`);
+  scan.timer = setInterval(() => {
+    if (!scanStep(true)) { clearInterval(scan.timer); scan.timer = null; $("scan-run").disabled = false; }
+  }, 420);
+});
+resetScan(true);
+
+/* =====================================================================
+   Machine B: B-tree vs LSM write path.  computeWriteState(n) replays n writes.
+   ===================================================================== */
+const N_WRITES = 32, KEYS_PER_PAGE = 12, N_PAGES = 8, MEMTABLE_MAX = 8, COMPACT_AT = 4;
+const wr = { pattern: "random", step: 0, timer: null, predicted: null };
+
+function keyAt(i) {
+  if (wr.pattern === "seq") return (i * 3) % 96;
+  // deterministic LCG advanced i+1 times => stable pseudo-random keys, replayable
+  let x = 1234;
+  for (let k = 0; k <= i; k++) x = (x * 1103515245 + 12345) % 2147483648;
+  return x % 96;
+}
+function computeWriteState(n) {
+  const pages = new Array(N_PAGES).fill(0);
+  let lastPage = -1, seeks = 0, mem = [], runs = [], blocks = 0, compactions = 0, hotRun = -1;
+  for (let i = 0; i < n; i++) {
+    const k = keyAt(i);
+    const pg = Math.floor(k / KEYS_PER_PAGE);
+    if (pg !== lastPage) seeks++;
+    lastPage = pg;
+    pages[pg]++;
+    mem.push(k);
+    if (mem.length >= MEMTABLE_MAX) {
+      runs.push(mem.length);
+      blocks += 1; hotRun = runs.length - 1;
+      mem = [];
+      if (runs.length >= COMPACT_AT) {
+        const total = runs.reduce((a, b) => a + b, 0);
+        blocks += runs.length; // read+rewrite merged into one sequential pass
+        runs = [total];
+        compactions++; hotRun = 0;
+      }
+    }
+  }
+  return { pages, lastPage, seeks, mem, runs, blocks, compactions, hotRun };
+}
+function renderWrite() {
+  const st = computeWriteState(wr.step);
+  const pw = $("btree-pages");
+  pw.innerHTML = "";
+  for (let p = 0; p < N_PAGES; p++) {
+    const box = document.createElement("div");
+    box.className = "pagebox" + (p === st.lastPage && wr.step > 0 ? " hot" : "");
+    const lo = p * KEYS_PER_PAGE, hi = lo + KEYS_PER_PAGE - 1;
+    box.innerHTML = `<span class="plabel">keys ${lo}–${hi}</span>`;
+    const slots = document.createElement("div");
+    slots.className = "slots";
+    for (let sIdx = 0; sIdx < KEYS_PER_PAGE; sIdx++) {
+      const sl = document.createElement("div");
+      sl.className = "slot" + (sIdx < st.pages[p] ? " filled" : "");
+      slots.appendChild(sl);
+    }
+    box.appendChild(slots);
+    pw.appendChild(box);
+  }
+  $("btree-seeks").textContent = st.seeks;
+  const memEl = $("lsm-mem");
+  memEl.innerHTML = `<span class="runbox mem">memtable (RAM): ${st.mem.length ? st.mem.join(", ") : "empty"} · flushes at ${MEMTABLE_MAX}</span>`;
+  const runsEl = $("lsm-runs");
+  runsEl.innerHTML = st.runs.length
+    ? st.runs.map((sz, i) => `<span class="runbox${i === st.hotRun ? " hot" : ""}">run ${i + 1}: ${sz} keys, sorted</span>`).join("")
+    : `<span class="runbox" style="opacity:.55">no on-disk runs yet</span>`;
+  $("lsm-blocks").textContent = st.blocks;
+  $("lsm-places").textContent = 1 + st.runs.length;
+  const v = $("write-verdict");
+  if (wr.step < N_WRITES) {
+    v.className = "verdict";
+    v.textContent = wr.step === 0
+      ? "Pick a key pattern, predict, then run the 32 writes."
+      : `Write ${wr.step} of ${N_WRITES}… B-tree seeks so far: ${st.seeks}. LSM sequential blocks: ${st.blocks}.`;
+  } else {
+    v.className = "verdict decided";
+    v.innerHTML = wr.pattern === "random"
+      ? `<b>LSM wins the random firehose:</b> 32 random-key writes cost the B-tree <b>${st.seeks} disk seeks</b> (nearly every write landed on a different page than the last), while the LSM wrote <b>${st.blocks} sequential blocks</b> (4 flushes + 1 compaction) — and sequential is the fastest thing a disk does. This is why Cassandra/RocksDB swallow write firehoses. The price is visible on the right: a read must now check <b>${1 + st.runs.length} places</b> (memtable + runs) instead of the B-tree's one — press “Now read key 42.”`
+      : `<b>With sequential keys the engines nearly tie:</b> the B-tree paid only <b>${st.seeks} seeks</b>, because ordered keys fill one page before moving to the next — the B-tree's happy path (this is why auto-increment primary keys exist). The LSM's cost is unchanged (${st.blocks} blocks); its advantage only appears when keys arrive in random order. <b>The moral: the winning engine depends on the write pattern, not the brand.</b>`;
+    resolveWritePrediction();
+  }
+}
+function writeLog(msg) {
+  const el = $("write-log");
+  const p = document.createElement("p");
+  p.innerHTML = msg;
+  el.prepend(p);
+}
+function writeStep(narrate) {
+  if (wr.step >= N_WRITES) return false;
+  const before = computeWriteState(wr.step);
+  wr.step++;
+  const after = computeWriteState(wr.step);
+  if (narrate) {
+    const k = keyAt(wr.step - 1);
+    const pg = Math.floor(k / KEYS_PER_PAGE);
+    if (after.seeks > before.seeks && wr.step > 1)
+      writeLog(`<b class="mono">[write ${wr.step}]</b> key ${k} belongs in page ${pg} — a DIFFERENT page than the last write, so the B-tree pays a disk seek (now ${after.seeks}). The LSM just appended it to RAM, no disk touched.`);
+    else if (wr.step === 1)
+      writeLog(`<b class="mono">[write 1]</b> key ${k} → B-tree walks to page ${pg} and writes in place (seek #1). LSM appends to the memtable in RAM — the disk isn't touched yet.`);
+    if (after.runs.length > before.runs.length)
+      writeLog(`<b class="mono">[LSM flush]</b> The memtable hit ${MEMTABLE_MAX} keys, sorted itself, and was written to disk as ONE sequential block — run ${after.runs.length}. Sequential blocks so far: ${after.blocks}.`);
+    if (after.compactions > before.compactions)
+      writeLog(`<b class="mono">[LSM compaction]</b> ${COMPACT_AT} runs merged into one big sorted run in a single sequential pass. Cost now, so reads check fewer places later — the LSM's background bargain.`);
+    if (wr.step === N_WRITES) writeLog(`All ${N_WRITES} writes done. Read the verdict panel — then try the other key pattern and run it again.`);
+  }
+  renderWrite();
+  return true;
+}
+function resetWrite(clearLog) {
+  clearInterval(wr.timer); wr.timer = null;
+  wr.step = 0; wr.predicted = null;
+  $("write-run").disabled = false;
+  renderWrite(); renderWritePredict();
+  if (clearLog) $("write-log").innerHTML = "<p>Machine B reset. The event log narrates every step here, newest first.</p>";
+}
+const WRITE_PREDICTS = {
+  random: { q: "🔮 Predict — 32 writes with RANDOM keys: which engine performs fewer distinct disk operations?",
+    opts: ["The B-tree", "The LSM-tree", "About the same"], correct: 1,
+    why: "Random keys make the B-tree jump to a different page almost every write (a seek each time), while the LSM batches everything in RAM and writes a handful of big sequential blocks." },
+  seq: { q: "🔮 Predict — the same 32 writes but with SEQUENTIAL keys: does the LSM still win by a lot?",
+    opts: ["Yes, LSM still wins big", "No — the B-tree is nearly as cheap now", "The B-tree wins big"], correct: 1,
+    why: "Ordered keys fill one B-tree page completely before moving to the next, so seeks collapse to one per page. Sequential-key inserts are the B-tree's happy path — which is exactly why auto-increment primary keys are standard advice." },
+};
+function renderWritePredict() {
+  const P = WRITE_PREDICTS[wr.pattern];
+  $("write-predict-q").textContent = P.q;
+  const w = $("write-predict-opts");
+  w.innerHTML = "";
+  P.opts.forEach((t, i) => {
+    const b = document.createElement("button");
+    b.className = "btn"; b.textContent = t;
+    b.addEventListener("click", () => {
+      wr.predicted = i;
+      w.querySelectorAll(".btn").forEach((x) => (x.disabled = true));
+      b.classList.add("primary");
+      $("write-predict-r").className = "presult show";
+      $("write-predict-r").textContent = "Prediction locked in. Run the 32 writes.";
+    });
+    w.appendChild(b);
+  });
+  $("write-predict-r").className = "presult";
+  $("write-predict-r").textContent = "";
+}
+function resolveWritePrediction() {
+  const P = WRITE_PREDICTS[wr.pattern];
+  const r = $("write-predict-r");
+  r.className = "presult show";
+  r.innerHTML = wr.predicted === null
+    ? `(No prediction was made — commit to a guess next run.) ${P.why}`
+    : wr.predicted === P.correct
+      ? `<b>Your prediction held.</b> ${P.why}`
+      : `<b>Your prediction didn't hold — the good kind of wrong.</b> ${P.why}`;
+}
+$("write-pattern").addEventListener("change", (e) => { wr.pattern = e.target.value; resetWrite(true); });
+$("write-step").addEventListener("click", () => writeStep(true));
+$("write-backstep").addEventListener("click", () => {
+  if (wr.step === 0) return;
+  wr.step--;
+  writeLog(`Stepped back to write ${wr.step} — state is recomputed by replaying the deterministic history.`);
+  renderWrite();
+});
+$("write-reset").addEventListener("click", () => resetWrite(true));
+$("write-run").addEventListener("click", () => {
+  resetWrite(false);
+  $("write-run").disabled = true;
+  writeLog(`<b>Auto-run started</b> — 32 writes, ${wr.pattern === "random" ? "random" : "sequential"} keys. Watch which side touches the disk, and how.`);
+  wr.timer = setInterval(() => {
+    if (!writeStep(true)) { clearInterval(wr.timer); wr.timer = null; $("write-run").disabled = false; }
+  }, 380);
+});
+$("write-read").addEventListener("click", () => {
+  const st = computeWriteState(wr.step);
+  writeLog(`<b class="mono">[read key 42]</b> B-tree: walk root → page ${Math.floor(42 / KEYS_PER_PAGE)} — <b>1 place checked</b>. LSM: check the memtable, then each on-disk run newest-first — <b>${1 + st.runs.length} places checked</b>. The LSM bought its write speed by taxing every read: there is no free lunch, only a choice of who pays.`);
+});
+resetWrite(true);
+</script>

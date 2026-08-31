@@ -1,0 +1,828 @@
+<title>The Commit Point</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Public+Sans:wght@400;600;700&family=Red+Hat+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #F1F3EE;
+    --surface: #FCFDFB;
+    --surface-2: #E6EAE2;
+    --ink: #21302B;
+    --muted: #5E6E66;
+    --line: #CFD8CF;
+    --accent: #14606B;
+    --accent-ink: #FCFDFB;
+    --gold: #9A7B22;  --gold-bg: #F3ECD8;
+    --doubt: #8A4FA3; --doubt-bg: #EFE5F6;
+    --ok: #2E7D4F;    --ok-bg: #E3EFE6;
+    --bad: #B3372E;   --bad-bg: #F6E4E1;
+    --shadow: 0 1px 3px rgba(33, 48, 43, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121815;
+      --surface: #1B2420;
+      --surface-2: #243029;
+      --ink: #E5EAE6;
+      --muted: #94A49B;
+      --line: #35443C;
+      --accent: #57B0BC;
+      --accent-ink: #0F1A17;
+      --gold: #D2B25E;  --gold-bg: #38301B;
+      --doubt: #B98FD9; --doubt-bg: #2D2237;
+      --ok: #6FC08E;    --ok-bg: #1D3229;
+      --bad: #E08074;   --bad-bg: #392522;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121815;
+    --surface: #1B2420;
+    --surface-2: #243029;
+    --ink: #E5EAE6;
+    --muted: #94A49B;
+    --line: #35443C;
+    --accent: #57B0BC;
+    --accent-ink: #0F1A17;
+    --gold: #D2B25E;  --gold-bg: #38301B;
+    --doubt: #B98FD9; --doubt-bg: #2D2237;
+    --ok: #6FC08E;    --ok-bg: #1D3229;
+    --bad: #E08074;   --bad-bg: #392522;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  header h1 {
+    font-family: "Young Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  .tagline { color: var(--muted); margin: 0 0 14px; max-width: 68ch; }
+  .story {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    max-width: 78ch;
+    margin: 0 0 22px;
+  }
+  .story p { margin: 6px 0; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+  fieldset.ctl {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 8px 12px 10px;
+    margin: 0;
+    min-width: 250px;
+    flex: 1 1 250px;
+  }
+  fieldset.ctl legend {
+    font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); padding: 0 6px;
+  }
+  .ctl select {
+    width: 100%; font: inherit; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px;
+  }
+  .ctl .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 20px; }
+  button {
+    font: inherit; font-weight: 600;
+    border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink);
+    padding: 9px 15px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.tour { border-color: var(--gold); }
+
+  .board-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .board {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 24px;
+    min-width: 940px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px 12px;
+    min-height: 250px;
+    position: relative;
+    outline: 2px solid transparent;
+    transition: outline-color 0.2s;
+  }
+  .card.active { outline-color: var(--accent); }
+  .card.dead { filter: grayscale(0.9); opacity: 0.75; }
+  .card.dead::after {
+    content: "💥 crashed";
+    position: absolute; inset: auto 8px 8px 8px;
+    text-align: center; background: var(--bad-bg); color: var(--bad);
+    font-weight: 700; border-radius: 6px; padding: 4px;
+  }
+  .card h3 { margin: 0 0 2px; font-size: 1rem; font-family: "Young Serif", serif; font-weight: 400; }
+  .card .role { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; min-height: 26px; }
+  .chip {
+    font-size: 0.74rem; font-weight: 700;
+    border-radius: 999px; padding: 2px 10px;
+    border: 1px solid var(--line); background: var(--surface-2);
+  }
+  .chip.lock   { background: var(--gold-bg);  color: var(--gold);  border-color: var(--gold); }
+  .chip.doubt  { background: var(--doubt-bg); color: var(--doubt); border-color: var(--doubt); }
+  .chip.okc    { background: var(--ok-bg);    color: var(--ok);    border-color: var(--ok); }
+  .chip.badc   { background: var(--bad-bg);   color: var(--bad);   border-color: var(--bad); }
+
+  .bal {
+    font-family: "Red Hat Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem; font-weight: 600; margin: 2px 0 0;
+  }
+  .bal small {
+    display: block; font-size: 0.72rem; color: var(--muted);
+    font-family: "Public Sans", sans-serif; font-weight: 400;
+  }
+
+  .kv { margin-top: 8px; }
+  .kv .tname {
+    display: block;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .rows {
+    font-family: "Red Hat Mono", ui-monospace, monospace;
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-height: 26px;
+    overflow-x: auto;
+  }
+  .rows div { white-space: nowrap; padding: 1px 0; }
+  .rows .empty { color: var(--muted); font-style: italic; font-family: "Public Sans", sans-serif; }
+  .rows .cp { color: var(--accent); font-weight: 600; }
+  .rows .prep { color: var(--gold); }
+  .rows .okr { color: var(--ok); }
+  .rows .badr { color: var(--bad); }
+
+  #note {
+    position: absolute; z-index: 5; font-size: 1.4rem; left: 0; top: 0;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    transition: transform 0.55s cubic-bezier(.45,0,.35,1), opacity 0.3s;
+    opacity: 0; pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) { #note { transition: none; } }
+
+  .verdict {
+    margin-top: 20px; border-radius: 10px; padding: 14px 18px;
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .verdict .v-state {
+    font-family: "Young Serif", serif; font-weight: 400;
+    font-size: 1.22rem; margin: 0 0 2px;
+  }
+  .verdict .v-why { margin: 0; color: var(--muted); max-width: 94ch; }
+  .verdict.ok    { background: var(--ok-bg);    border-color: var(--ok); }
+  .verdict.ok .v-state    { color: var(--ok); }
+  .verdict.bad   { background: var(--bad-bg);   border-color: var(--bad); }
+  .verdict.bad .v-state   { color: var(--bad); }
+  .verdict.warn  { background: var(--gold-bg);  border-color: var(--gold); }
+  .verdict.warn .v-state  { color: var(--gold); }
+  .verdict.doubtv { background: var(--doubt-bg); border-color: var(--doubt); }
+  .verdict.doubtv .v-state { color: var(--doubt); }
+
+  .log-wrap { margin-top: 22px; }
+  .log-wrap h2 {
+    font-family: "Young Serif", serif; font-weight: 400;
+    font-size: 1.12rem; margin: 0 0 8px;
+  }
+  #log {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px;
+    max-height: 300px; overflow-y: auto;
+  }
+  .entry { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .entry:last-child { border-bottom: none; }
+  .entry .plain { margin: 0; }
+  .entry .tech {
+    margin: 2px 0 0;
+    font-family: "Red Hat Mono", ui-monospace, monospace;
+    font-size: 0.75rem; color: var(--muted);
+  }
+  .entry.act .plain { font-family: "Young Serif", serif; color: var(--accent); }
+  .entry.crash .plain { color: var(--bad); font-weight: 600; }
+  .entry.doubte .plain { color: var(--doubt); }
+  .entry.read .plain { color: var(--gold); }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 86ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <h1>The Commit Point</h1>
+  <p class="tagline">Move ₹500 from alice at Bank A to bob at Bank B — atomically, though the banks share nothing. Two-phase commit does it with one referee, two rounds of messages, and three durable logs. Every log is on screen: the protocol IS the logs.</p>
+</header>
+
+<div class="story">
+  <p><strong>The setup.</strong> alice has <strong>₹1000</strong> at Bank A; bob has <strong>₹200</strong> at Bank B. Phase 1: the coordinator asks each bank to <em>promise</em> it could commit (the bank locks the account and writes the promise to its own disk first). Phase 2: if every promise is in, the coordinator writes one decision to <em>its</em> disk — <strong>that single write is the commit</strong> — then tells everyone.</p>
+  <p><strong>New here?</strong> Press <em>“Run the whole story for me”</em>: four acts — a clean transfer, a veto, the famous nightmare (coordinator dies after the promises; both banks freeze), and the same crash one instant earlier, ending the opposite way.</p>
+</div>
+
+<div class="controls">
+  <fieldset class="ctl">
+    <legend>What will Bank B do when asked to promise?</legend>
+    <select id="failSel">
+      <option value="none">Promise YES — everything is fine</option>
+      <option value="no">Vote NO — bob's account is frozen by compliance</option>
+      <option value="crash">Crash before answering (silence)</option>
+      <option value="crash-after">Promise YES, then crash — the YES never arrives</option>
+    </select>
+    <div class="hint">Bank A always promises YES first — so you control the vote that arrives when a promise already exists.</div>
+  </fieldset>
+  <fieldset class="ctl">
+    <legend>Crashing the referee</legend>
+    <div class="hint">“Next step” runs ONE action at a time. Crash the coordinator between any two — the deadliest spots are just before and just after it writes its decision. Its durable log survives every crash.</div>
+  </fieldset>
+</div>
+
+<div class="actions">
+  <button class="primary" id="btnStart">🏦 Start the ₹500 transfer</button>
+  <button id="btnStep" disabled>⏭ Next step</button>
+  <button id="btnReadA">👀 Customer reads alice</button>
+  <button id="btnReadB">👀 Customer reads bob</button>
+  <button id="btnCrash" disabled>💥 Crash the coordinator</button>
+  <button id="btnRestart" disabled>🔁 Restart coordinator (recover from its log)</button>
+  <button id="btnRestartB" disabled>🔁 Restart Bank B</button>
+  <button id="btnReset">🧹 Reset everything</button>
+  <button class="tour" id="btnStory">▶ Run the whole story for me</button>
+</div>
+
+<div class="board-scroll">
+  <div class="board" id="board">
+    <div id="note">💸</div>
+
+    <div class="card" id="c-A">
+      <h3>Bank A</h3>
+      <span class="role">holds alice's account — its own database, its own disk</span>
+      <p class="bal">₹<span id="balA">1000</span><small>alice's balance</small></p>
+      <div class="chips" id="chipsA"></div>
+      <div class="kv"><span class="tname">Bank A's durable log</span>
+        <div class="rows" id="logA"><div class="empty">empty</div></div></div>
+    </div>
+
+    <div class="card" id="c-C">
+      <h3>Coordinator</h3>
+      <span class="role">the referee — collects promises, writes ONE decision, announces it</span>
+      <div class="chips" id="chipsC"></div>
+      <div class="kv"><span class="tname">Coordinator's durable log — the decision line is the commit point</span>
+        <div class="rows" id="logC"><div class="empty">empty</div></div></div>
+      <div class="kv"><span class="tname">next actions</span>
+        <div class="rows" id="planView"><div class="empty">no transfer in progress</div></div></div>
+    </div>
+
+    <div class="card" id="c-B">
+      <h3>Bank B</h3>
+      <span class="role">holds bob's account — its own database, its own disk</span>
+      <p class="bal">₹<span id="balB">200</span><small>bob's balance</small></p>
+      <div class="chips" id="chipsB"></div>
+      <div class="kv"><span class="tname">Bank B's durable log</span>
+        <div class="rows" id="logB"><div class="empty">empty</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict" id="verdict">
+  <p class="v-state" id="vState">Ready.</p>
+  <p class="v-why" id="vWhy">Start a transfer — or run the guided story.</p>
+</div>
+
+<div class="log-wrap">
+  <h2>What just happened</h2>
+  <div id="log"></div>
+</div>
+
+<footer>Part of the <code>two-phase-commit</code> learning lab — <code>README.md</code> has every failure walk-through; <code>TpcLab.java</code> runs these same experiments in code. Companion labs: <code>transactional-outbox</code> and <code>saga</code> — the two patterns that replaced 2PC at service boundaries, and what they gave up.</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ state */
+const S = {
+  A: { bal: 1000, acct: "alice", lock: false, log: [], state: null, down: false },
+  B: { bal: 200, acct: "bob", lock: false, log: [], state: null, down: false },
+  C: { log: [], down: false },
+  queue: [],
+  txnN: 0,
+  txn: null,
+  outcome: null,      // "COMMITTED" | "ABORTED" | null
+  touring: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const AMOUNT = 500;
+
+/* ------------------------------------------------------------------ narration */
+function say(plain, tech, cls) {
+  const e = document.createElement("div");
+  e.className = "entry" + (cls ? " " + cls : "");
+  const p = document.createElement("p");
+  p.className = "plain";
+  p.textContent = plain;
+  e.appendChild(p);
+  if (tech) {
+    const t = document.createElement("p");
+    t.className = "tech";
+    t.textContent = tech;
+    e.appendChild(t);
+  }
+  const box = $("log");
+  box.appendChild(e);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function flyNote(fromId, toId) {
+  const nt = $("note");
+  const board = $("board");
+  const a = $(fromId).getBoundingClientRect();
+  const b = $(toId).getBoundingClientRect();
+  const p = board.getBoundingClientRect();
+  nt.style.transition = "none";
+  nt.style.transform = `translate(${a.left - p.left + a.width / 2}px, ${a.top - p.top + 34}px)`;
+  nt.style.opacity = "1";
+  nt.getBoundingClientRect();
+  nt.style.transition = "";
+  nt.style.transform = `translate(${b.left - p.left + b.width / 2}px, ${b.top - p.top + 34}px)`;
+  await sleep(600);
+  nt.style.opacity = "0";
+}
+
+function pulse(cardId) {
+  const el = $(cardId);
+  el.classList.add("active");
+  setTimeout(() => el.classList.remove("active"), 700);
+}
+
+/* ------------------------------------------------------------------ protocol actions */
+function decisionInLog() {
+  for (const e of S.C.log) {
+    if (e === S.txn + ": DECISION COMMIT") return "COMMIT";
+    if (e === S.txn + ": DECISION ABORT") return "ABORT";
+  }
+  return null;
+}
+
+function bankPrepare(name, delta) {
+  const bank = S[name];
+  bank.lock = true;
+  bank.log.push(S.txn + ": PREPARED (" + bank.acct + " " + (delta > 0 ? "+" : "") + delta + ")");
+  bank.state = "PREPARED";
+}
+
+function bankFinish(name, decision) {
+  const bank = S[name];
+  if (bank.state === decision + "TED") return;
+  if (decision === "COMMIT" && bank.state === "PREPARED") {
+    bank.bal += (name === "A" ? -AMOUNT : AMOUNT);
+    bank.log.push(S.txn + ": COMMITTED");
+    bank.state = "COMMITTED";
+  } else {
+    bank.log.push(S.txn + ": ABORTED");
+    bank.state = "ABORTED";
+  }
+  bank.lock = false;
+}
+
+function buildDecisionAndPhase2(votes) {
+  // votes: {A: "YES", B: "YES"|"NO"|"SILENT"}
+  const q = [];
+  const allYes = votes.A === "YES" && votes.B === "YES";
+  const decision = allYes ? "COMMIT" : "ABORT";
+  q.push({
+    label: "coordinator writes its decision to disk — THE COMMIT POINT",
+    run: async () => {
+      pulse("c-C");
+      S.C.log.push(S.txn + ": DECISION " + decision);
+      say(allYes
+        ? `Both promises are in. The coordinator writes “DECISION COMMIT” to its own disk. THIS single write is the entire commit — the transfer is now committed, everywhere, even though no bank has been told yet.`
+        : `Not every vote was YES${votes.B === "SILENT" ? " (silence counts as NO — safe, because no decision existed yet)" : ""}. The coordinator writes “DECISION ABORT” to its disk. The verdict is sealed: nobody will move money.`,
+        `C.log ← DECISION ${decision}   ⟵ commit point`);
+    },
+  });
+  for (const name of ["A", "B"]) {
+    q.push({
+      label: "tell Bank " + name + " the verdict",
+      run: async () => {
+        if (S[name].down) {
+          say(`The coordinator tries to tell Bank ${name} — unreachable. No matter: the verdict is durable. Bank ${name} will ask when it recovers.`,
+            `Bank ${name} down — message lost; verdict survives in C.log`);
+          return;
+        }
+        if (S[name].state !== "PREPARED" && decision === "COMMIT") {
+          say(`Bank ${name} has nothing prepared — nothing to do.`, null);
+          return;
+        }
+        await flyNote("c-C", "c-" + name);
+        pulse("c-" + name);
+        const before = S[name].bal;
+        bankFinish(name, decision);
+        say(decision === "COMMIT"
+          ? `Bank ${name} applies the change: ${S[name].acct} ₹${before} → ₹${S[name].bal}. It logs the outcome and RELEASES the lock — customers can look again.`
+          : `Bank ${name} aborts: nothing changes for ${S[name].acct}${before !== S[name].bal ? "" : " (₹" + S[name].bal + ")"}. Lock released, promise dissolved.`,
+          `${name}.${decision.toLowerCase()}() → log ← ${decision}TED; unlock`);
+      },
+    });
+  }
+  q.push({
+    label: "coordinator closes the book (END)",
+    run: async () => {
+      pulse("c-C");
+      S.C.log.push(S.txn + ": END");
+      S.outcome = decision === "COMMIT" ? "COMMITTED" : "ABORTED";
+      say(`Everyone has been told. The coordinator logs END and forgets the transfer. Final answer: ${S.outcome}.`,
+        `C.log ← END`);
+    },
+  });
+  return q;
+}
+
+function buildTransferPlan() {
+  const failB = $("failSel").value;
+  const votes = { A: "YES", B: failB === "none" ? "YES" : failB === "no" ? "NO" : "SILENT" };
+  // "crash" and "crash-after" both look like SILENT to the coordinator —
+  // the difference lives only in Bank B's own durable log.
+  const q = [];
+  q.push({
+    label: "coordinator opens the transaction (BEGIN)",
+    run: async () => {
+      pulse("c-C");
+      S.C.log.push(S.txn + ": BEGIN (alice −500 @A, bob +500 @B)");
+      say(`The coordinator durably notes what this transfer intends, then starts phase 1: collecting promises.`,
+        `C.log ← BEGIN`);
+    },
+  });
+  q.push({
+    label: "ask Bank A: “could you commit alice −500?”",
+    run: async () => {
+      await flyNote("c-C", "c-A");
+      pulse("c-A");
+      bankPrepare("A", -AMOUNT);
+      say(`Bank A checks (₹1000 ≥ ₹500 ✓), LOCKS alice's account, writes the promise to its own disk FIRST, and only then answers YES. From this instant Bank A cannot change its mind — not even by crashing.`,
+        `A: lock(alice); A.log ← PREPARED; flush; reply YES`);
+    },
+  });
+  q.push({
+    label: "ask Bank B: “could you commit bob +500?”",
+    run: async () => {
+      await flyNote("c-C", "c-B");
+      pulse("c-B");
+      if (votes.B === "YES") {
+        bankPrepare("B", AMOUNT);
+        say(`Bank B locks bob's account, logs its promise, and answers YES. Unanimity — both futures (commit and abort) are now survivable at both banks.`,
+          `B: lock(bob); B.log ← PREPARED; flush; reply YES`);
+      } else if (votes.B === "NO") {
+        S.B.log.push(S.txn + ": VOTED-NO");
+        S.B.state = "VOTED-NO";
+        say(`Bank B refuses — bob's account is frozen by compliance. A NO is a veto: cheap, final, nothing locked, nothing promised. 2PC needs unanimous consent.`,
+          `B.log ← VOTED-NO; reply NO`);
+      } else if ($("failSel").value === "crash-after") {
+        bankPrepare("B", AMOUNT);
+        S.B.down = true;
+        say(`Bank B locks bob, writes its promise to disk — and dies before the YES leaves the building. Its log now holds a binding promise nobody heard. The coordinator sees only silence and will count it as a NO.`,
+          `B.log ← PREPARED (durable!); crash; YES lost`, "crash");
+      } else {
+        S.B.down = true;
+        say(`Bank B never answers — it crashed before voting. The coordinator's timeout will treat silence as a NO. This timeout is SAFE: no decision exists yet, so nothing can have committed anywhere.`,
+          `B silent → coordinator counts TIMEOUT as NO`, "crash");
+      }
+    },
+  });
+  q.push(...buildDecisionAndPhase2(votes));
+  return q;
+}
+
+/* ------------------------------------------------------------------ render */
+function fillRows(el, rows, emptyText) {
+  el.textContent = "";
+  if (!rows.length) {
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = emptyText;
+    el.appendChild(d);
+    return;
+  }
+  for (const r of rows) {
+    const d = document.createElement("div");
+    d.textContent = r.text;
+    if (r.cls) d.className = r.cls;
+    el.appendChild(d);
+  }
+}
+
+function logRowCls(text) {
+  if (text.includes("DECISION")) return "cp";
+  if (text.includes("PREPARED")) return "prep";
+  if (text.includes("COMMITTED")) return "okr";
+  if (text.includes("ABORTED") || text.includes("VOTED-NO")) return "badr";
+  return undefined;
+}
+
+function bankChips(name) {
+  const bank = S[name];
+  const chips = [];
+  if (bank.lock) chips.push({ text: "🔒 " + bank.acct + " locked", cls: "chip lock" });
+  if (bank.state === "PREPARED") chips.push({ text: "IN DOUBT — promised, waiting for the verdict", cls: "chip doubt" });
+  if (bank.state === "COMMITTED") chips.push({ text: "committed", cls: "chip okc" });
+  if (bank.state === "ABORTED") chips.push({ text: "aborted", cls: "chip badc" });
+  if (bank.state === "VOTED-NO") chips.push({ text: "voted NO", cls: "chip badc" });
+  if (!chips.length) chips.push({ text: "idle", cls: "chip" });
+  return chips;
+}
+
+function renderChips(el, chips) {
+  el.textContent = "";
+  for (const c of chips) {
+    const s = document.createElement("span");
+    s.className = c.cls;
+    s.textContent = c.text;
+    el.appendChild(s);
+  }
+}
+
+function render() {
+  $("balA").textContent = S.A.bal;
+  $("balB").textContent = S.B.bal;
+  fillRows($("logA"), S.A.log.map((t) => ({ text: t, cls: logRowCls(t) })), "empty");
+  fillRows($("logB"), S.B.log.map((t) => ({ text: t, cls: logRowCls(t) })), "empty");
+  fillRows($("logC"), S.C.log.map((t) => ({ text: t, cls: logRowCls(t) })), "empty");
+  fillRows($("planView"), S.queue.map((a, i) => ({ text: (i === 0 ? "→ " : "  ") + a.label })),
+    S.outcome ? "transfer " + S.outcome.toLowerCase() : "no transfer in progress");
+  renderChips($("chipsA"), bankChips("A"));
+  renderChips($("chipsB"), bankChips("B"));
+  renderChips($("chipsC"), [S.C.down
+    ? { text: "down — its log is safe on disk", cls: "chip badc" }
+    : { text: S.queue.length ? "driving the protocol" : "idle", cls: "chip" }]);
+  $("c-C").classList.toggle("dead", S.C.down);
+  $("c-B").classList.toggle("dead", S.B.down);
+  updateButtons();
+  updateVerdict();
+}
+
+function updateButtons() {
+  const t = S.touring;
+  $("btnStart").disabled = t || S.C.down || (S.queue.length > 0 && !S.outcome);
+  $("btnStep").disabled = t || S.C.down || S.queue.length === 0;
+  $("btnCrash").disabled = t || S.C.down || S.queue.length === 0;
+  $("btnRestart").disabled = t || !S.C.down;
+  $("btnRestartB").disabled = t || !S.B.down;
+  $("btnReadA").disabled = t;
+  $("btnReadB").disabled = t;
+  $("btnReset").disabled = t;
+  $("btnStory").disabled = t;
+}
+
+function setVerdict(cls, state, why) {
+  $("verdict").className = "verdict" + (cls ? " " + cls : "");
+  $("vState").textContent = state;
+  $("vWhy").textContent = why;
+}
+
+function updateVerdict() {
+  if (!S.txn) {
+    setVerdict("", "Ready.", "Start a transfer — or run the guided story.");
+    return;
+  }
+  const inDoubt = [S.A.state, S.B.state].filter((s) => s === "PREPARED").length;
+  if (S.outcome === "COMMITTED") {
+    setVerdict("ok", "✓ Money moved — atomically.",
+      `alice ₹${S.A.bal}, bob ₹${S.B.bal}. At no observable moment did the debit exist without the credit: locks hid the in-between, and one durable log write chose the outcome for everyone.`);
+  } else if (S.outcome === "ABORTED") {
+    if (inDoubt > 0) {
+      setVerdict("doubtv", "✓ Aborted — but one bank doesn't know yet.",
+        `The verdict ABORT is sealed in the coordinator's log, yet a crashed bank still holds a durable promise (and its lock will return with it). When it recovers, it must ASK for the verdict — restart Bank B to watch the in-doubt resolution.`);
+    } else {
+      setVerdict("ok", "✓ Cleanly aborted — nothing moved.",
+        `alice ₹${S.A.bal}, bob ₹${S.B.bal}. Every promise was dissolved, every lock released. All-or-nothing held: this time it was “nothing”.`);
+    }
+  } else if (S.C.down && inDoubt > 0) {
+    setVerdict("doubtv", "⏸ FROZEN — banks in doubt, locks held, nobody can decide.",
+      `${inDoubt} bank(s) promised YES and now hear silence. They may not commit (the verdict might be ABORT), may not abort (it might be COMMIT — the truth sits only in the coordinator's log on disk). Customers hitting those accounts wait. Only the coordinator's return can end this.`);
+  } else if (S.C.down) {
+    setVerdict("warn", "⏸ Coordinator down — but nobody had promised yet.",
+      "No bank is trapped: without a promise there is no obligation, and without a logged decision the recovered coordinator will simply abort (“presumed abort”).");
+  } else if (S.queue.length) {
+    setVerdict("warn", "⏳ Transfer in flight — promises and locks accumulating.",
+      `Locks held: ${[S.A.lock ? "alice" : null, S.B.lock ? "bob" : null].filter(Boolean).join(", ") || "none yet"}. Until the coordinator's decision hits its disk, this can still go either way.`);
+  } else {
+    setVerdict("", "Idle.", "Start a transfer.");
+  }
+}
+
+/* ------------------------------------------------------------------ user actions */
+function startTransfer() {
+  if (S.C.down || (S.queue.length > 0 && !S.outcome)) return;
+  S.txnN += 1;
+  S.txn = "txn-" + S.txnN;
+  S.outcome = null;
+  S.A.state = null; S.B.state = null;
+  S.queue = buildTransferPlan();
+  say(`A customer asks to move ₹500 from alice (Bank A) to bob (Bank B). The coordinator will run two-phase commit as ${S.txn}. Step through it.`,
+    null, "act");
+  render();
+}
+
+async function nextStep() {
+  if (S.C.down || !S.queue.length) return;
+  const action = S.queue.shift();
+  await action.run();
+  render();
+}
+
+function crashCoordinator() {
+  if (S.C.down) return;
+  S.C.down = true;
+  S.queue = [];
+  const inDoubt = [S.A, S.B].filter((b) => b.state === "PREPARED").length;
+  say(`💥 The coordinator dies. Its plan evaporates — but its durable log survives on disk. ${inDoubt ? inDoubt + " bank(s) hold promises and locks with no one to tell them the verdict: they are IN DOUBT and can only wait." : "No bank had promised yet, so nobody is trapped."}`,
+    "coordinator memory lost; C.log intact on disk", "crash");
+  render();
+}
+
+function restartCoordinator() {
+  if (!S.C.down) return;
+  S.C.down = false;
+  const dec = decisionInLog();
+  const ended = S.C.log.includes(S.txn + ": END");
+  say(`🔁 A fresh coordinator starts and reads its durable log for ${S.txn}: ${dec ? `it finds “DECISION ${dec}” — the verdict already existed; it only needs to re-announce it.` : `it finds BEGIN but NO decision. Rule: no decision on disk means no one can ever have been told one — so it is safe to ABORT. (“Presumed abort.”)`}`,
+    dec ? `C.log has DECISION ${dec}, no END → re-send phase 2` : "no decision in C.log → presumed abort", "act");
+  if (ended) { S.queue = []; render(); return; }
+  if (dec) {
+    // phase 2 must follow the LOGGED decision — reconstruct votes to match
+    const votes = dec === "COMMIT" ? { A: "YES", B: "YES" } : { A: "YES", B: "NO" };
+    S.queue = buildDecisionAndPhase2(votes).slice(1);   // decision already logged
+  } else {
+    S.queue = buildDecisionAndPhase2({ A: "YES", B: "NO" });  // forces ABORT path
+    S.queue[0] = {
+      label: "log the recovery decision: ABORT (presumed abort)",
+      run: async () => {
+        pulse("c-C");
+        S.C.log.push(S.txn + ": DECISION ABORT");
+        say(`The recovered coordinator seals the only safe verdict: ABORT. Had it died one instant LATER — after logging COMMIT — recovery would commit instead. The banks' view is identical in both runs; only this log tells the worlds apart.`,
+          "C.log ← DECISION ABORT (presumed abort)");
+      },
+    };
+  }
+  render();
+}
+
+function restartBankB() {
+  if (!S.B.down) return;
+  S.B.down = false;
+  const unresolvedPromise = S.B.state === "PREPARED";
+  if (unresolvedPromise) {
+    S.B.lock = true;   // the promise survives the restart — relock
+    say(`🔁 Bank B restarts and reads its own log: a PREPARED promise with no outcome. It is IN DOUBT — the promise survives the crash, so it relocks bob and must ask the coordinator for the verdict. It cannot guess.`,
+      "B.recover: PREPARED without outcome → in doubt; relock", "doubte");
+    if (S.C.down) {
+      say(`Bank B asks the coordinator… which is also down. Nothing to do but hold the lock and keep asking. (This is the blocking problem from Bank B's side.)`,
+        "coordinator unreachable — still in doubt", "doubte");
+    } else {
+      const dec = decisionInLog() || "ABORT";
+      bankFinish("B", dec);
+      say(`The coordinator answers from its log: ${dec}${dec === "ABORT" ? " (no decision was ever recorded — presumed abort)" : ""}. Bank B obeys, logs the outcome, and releases bob's lock. In doubt resolved — by asking, never by guessing.`,
+        `B.ask(C) → ${dec}; B.${dec.toLowerCase()}(); unlock`);
+    }
+  } else {
+    say(`🔁 Bank B restarts and reads its own log: no unresolved promise — it never voted, so it owes nothing. Its earlier silence was already safely counted as a NO.`,
+      "B.recover: no PREPARED entry → nothing in doubt");
+  }
+  render();
+}
+
+function readBalance(name) {
+  const bank = S[name];
+  if (bank.down) {
+    say(`👀 A customer asks Bank ${name} for ${bank.acct}'s balance — the bank is down; no answer at all.`, null, "read");
+  } else if (bank.lock) {
+    say(`👀 A customer asks Bank ${name} for ${bank.acct}'s balance — “please wait”: the account is LOCKED by in-flight transfer ${S.txn}. ${S.C.down ? "And with the coordinator down, nobody can say for how long. This queue of waiting customers is 2PC's blocking problem made visible." : "The lock protects them from seeing (and acting on) money that might still be un-moved."}`,
+      `${name}.read(${bank.acct}) → BLOCKED by ${S.txn}`, "read");
+  } else {
+    say(`👀 A customer asks Bank ${name} for ${bank.acct}'s balance — ₹${bank.bal}, served immediately. No lock, no wait.`,
+      `${name}.read(${bank.acct}) → ${bank.bal}`, "read");
+  }
+  render();
+}
+
+function reset(silent) {
+  Object.assign(S.A, { bal: 1000, lock: false, log: [], state: null, down: false });
+  Object.assign(S.B, { bal: 200, lock: false, log: [], state: null, down: false });
+  Object.assign(S.C, { log: [], down: false });
+  Object.assign(S, { queue: [], txn: null, outcome: null });
+  if (!silent) say("🧹 Everything reset: alice ₹1000, bob ₹200, all logs empty.", "");
+  render();
+}
+
+/* ------------------------------------------------------------------ guided story */
+async function drain(pause) {
+  while (S.queue.length && !S.C.down) {
+    await nextStep();
+    await sleep(pause);
+  }
+}
+
+async function runStory() {
+  if (S.touring) return;
+  S.touring = true;
+  updateButtons();
+  const N = 1150;
+  try {
+    reset(true);
+    say("— ACT 1 · A clean transfer: promises, one decisive disk write, announcements —", "", "act");
+    $("failSel").value = "none";
+    startTransfer();
+    await sleep(N); await drain(750); await sleep(N * 1.5);
+
+    say("— ACT 2 · One NO is a veto — and Bank A paid for a transfer that never happened —", "", "act");
+    reset(true);
+    $("failSel").value = "no";
+    startTransfer();
+    await sleep(N); await drain(750); await sleep(N);
+    say("Bank A locked, flushed and promised — real work, real waiting — for a doomed transfer. Unanimity means everyone pays even to lose.", "");
+    await sleep(N * 1.5);
+
+    say("— ACT 3 · The nightmare: coordinator dies right AFTER its decision write —", "", "act");
+    reset(true);
+    $("failSel").value = "none";
+    startTransfer();
+    await sleep(N);
+    await nextStep(); await sleep(500);   // BEGIN
+    await nextStep(); await sleep(500);   // A prepares
+    await nextStep(); await sleep(500);   // B prepares
+    await nextStep(); await sleep(N);     // DECISION COMMIT logged
+    crashCoordinator(); await sleep(N);
+    readBalance("A"); await sleep(N * 1.4);
+    say("Neither bank can move: aborting might contradict a COMMIT verdict, committing might contradict an ABORT. The answer exists — on one dead machine's disk. So: locks held, customers queueing, until…", "", "doubte");
+    await sleep(N * 1.4);
+    restartCoordinator(); await sleep(N);
+    await drain(750); await sleep(600);
+    readBalance("A"); await sleep(N * 1.5);
+
+    say("— ACT 4 · Same crash, one instant EARLIER — and the opposite ending —", "", "act");
+    reset(true);
+    startTransfer();
+    await sleep(N);
+    await nextStep(); await sleep(500);   // BEGIN
+    await nextStep(); await sleep(500);   // A prepares
+    await nextStep(); await sleep(N);     // B prepares — decision NOT yet logged
+    crashCoordinator(); await sleep(N * 1.2);
+    restartCoordinator(); await sleep(N);
+    await drain(750); await sleep(600);
+    say("Acts 3 and 4 were indistinguishable to the banks — vote YES, then silence. One ended ₹500/₹700, the other ₹1000/₹200. The verdict lives ONLY in the coordinator's log: that is why prepared banks must block, and why 2PC's availability hangs on one machine. (Your outbox and saga labs are the two ways out of this trade.)", "", "act");
+  } finally {
+    S.touring = false;
+    render();
+  }
+}
+
+/* ------------------------------------------------------------------ wiring */
+$("btnStart").addEventListener("click", startTransfer);
+$("btnStep").addEventListener("click", nextStep);
+$("btnCrash").addEventListener("click", crashCoordinator);
+$("btnRestart").addEventListener("click", restartCoordinator);
+$("btnRestartB").addEventListener("click", restartBankB);
+$("btnReadA").addEventListener("click", () => readBalance("A"));
+$("btnReadB").addEventListener("click", () => readBalance("B"));
+$("btnReset").addEventListener("click", () => reset(false));
+$("btnStory").addEventListener("click", runStory);
+
+render();
+say("Welcome to the bank. Choose what Bank B will do, start the transfer, and press “Next step” — or run the whole story.", "");
+</script>

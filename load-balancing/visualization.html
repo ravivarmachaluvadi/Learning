@@ -1,0 +1,1194 @@
+<meta charset="utf-8">
+<title>Eight Lanes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#e9edf0; --card:#fbfcfd; --card2:#f2f5f7; --sunk:#e2e7eb;
+  --ink:#131a1f; --ink2:#3f4d58; --muted:#66737e; --rule:#d2d9df; --rule2:#c0c9d1;
+  --good:#00874f; --goodFill:rgba(0,135,79,.13);
+  --bad:#8e4585;  --badFill:rgba(142,69,133,.13);
+  --warn:#a2650b; --warnFill:rgba(162,101,11,.14);
+  --cool:#1f6f9c; --coolFill:rgba(31,111,156,.13);
+  --idle:#9aa6b1;
+  --accent:#00874f; --onAccent:#ffffff;
+  --shadow:0 1px 2px rgba(19,26,31,.06),0 6px 20px rgba(19,26,31,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+    --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+    --good:#26a877; --goodFill:rgba(38,168,119,.16);
+    --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+    --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+    --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+    --idle:#6b7883;
+    --accent:#26a877; --onAccent:#0c1216;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+  --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+  --good:#26a877; --goodFill:rgba(38,168,119,.16);
+  --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+  --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+  --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+  --idle:#6b7883;
+  --accent:#26a877; --onAccent:#0c1216;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; margin:0; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 72px}
+
+header.top{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+h1{font-family:Chivo,system-ui,sans-serif;font-weight:900;font-size:clamp(30px,4.4vw,46px);
+   line-height:.98;letter-spacing:-.025em;margin:0;text-wrap:balance}
+h1 .sub{display:block;font-size:.38em;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5em}
+.lede{max-width:62ch;color:var(--ink2);margin:10px 0 0;font-size:15.5px}
+.themebtn{font:600 12px/1 "Public Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--card);color:var(--ink2);border:1px solid var(--rule);border-radius:999px;
+  padding:9px 15px;cursor:pointer;white-space:nowrap}
+.themebtn:hover{border-color:var(--rule2);color:var(--ink)}
+
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+  margin:0 0 8px;box-shadow:var(--shadow)}
+.cell{background:var(--card);padding:15px 17px 16px;min-width:0}
+.cell .lab{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.cell .val{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;
+  font-size:clamp(21px,2.9vw,30px);line-height:1.12;margin-top:7px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.cell .note{font-size:11.5px;color:var(--muted);margin-top:3px;min-height:1.3em}
+.cell.hero{background:var(--card2)}
+.v-good{color:var(--good)} .v-bad{color:var(--bad)} .v-warn{color:var(--warn)}
+.readnote{font-size:12.5px;color:var(--muted);margin:0 0 22px;max-width:74ch}
+
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--sunk);padding:4px;border-radius:12px;margin-bottom:20px;border:1px solid var(--rule)}
+nav.tabs button{font:600 13px/1 "Public Sans",sans-serif;color:var(--ink2);background:transparent;
+  border:0;border-radius:9px;padding:10px 15px;cursor:pointer;white-space:nowrap}
+nav.tabs button:hover{color:var(--ink);background:var(--card2)}
+nav.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+nav.tabs button .n{font-family:"IBM Plex Mono",monospace;color:var(--muted);margin-right:7px;font-weight:500}
+nav.tabs button[aria-selected="true"] .n{color:var(--accent)}
+
+.panel{display:none}
+.panel.on{display:block}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card+.card{margin-top:20px}
+.card h2{font-family:Chivo,sans-serif;font-weight:700;font-size:17px;letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+.card h3{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:20px 0 10px}
+.card h3:first-child{margin-top:0}
+.card p{margin:0 0 12px;color:var(--ink2);font-size:14px}
+.card p.small{font-size:13px;color:var(--muted)}
+
+.ctl{margin-bottom:16px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:600 12.5px/1.4 "Public Sans",sans-serif;color:var(--ink2);margin-bottom:7px}
+.ctl label b{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;font-size:13px}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px;cursor:pointer}
+.seg{display:flex;gap:2px;background:var(--sunk);padding:3px;border-radius:9px;border:1px solid var(--rule);width:100%}
+.seg.col{flex-direction:column}
+.seg button{flex:1;font:600 12.5px/1.25 "Public Sans",sans-serif;color:var(--ink2);background:transparent;
+  border:0;border-radius:7px;padding:8px 4px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--ink)}
+.btn{font:600 13.5px/1 "Public Sans",sans-serif;background:var(--accent);color:var(--onAccent);
+  border:0;border-radius:10px;padding:12px 16px;cursor:pointer;width:100%;margin-top:4px}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:var(--card2);color:var(--ink);border:1px solid var(--rule)}
+.btn.ghost:hover{border-color:var(--rule2);filter:none}
+.btn[disabled]{opacity:.5;cursor:default;filter:none}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scen{display:flex;flex-direction:column;gap:7px}
+.scen button{text-align:left;font:500 13.5px/1.35 "Public Sans",sans-serif;color:var(--ink);
+  background:var(--card2);border:1px solid var(--rule);border-radius:10px;padding:11px 13px;cursor:pointer}
+.scen button:hover{border-color:var(--accent)}
+.scen button b{display:block;font-family:Chivo,sans-serif;font-weight:700;font-size:13.5px;margin-bottom:2px}
+.scen button span{color:var(--muted);font-size:12.5px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---------- the lanes ---------- */
+.lanes{display:flex;gap:7px;align-items:flex-end;height:190px;padding:0 2px;margin:4px 0 0}
+.lane{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-width:0;height:100%}
+.lane .track{position:relative;height:100%;background:var(--sunk);border-radius:7px 7px 3px 3px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.lane .fill{width:100%;flex:none;background:var(--cool);border-radius:6px 6px 0 0;min-height:0}
+/* no CSS transition here: the queue depth is repainted every animation frame, and a
+   transition longer than a frame leaves the bar permanently chasing a target it never reaches */
+.lane.hot .fill{background:var(--warn)}
+.lane.broken .fill{background:var(--bad)}
+.lane.target .track{box-shadow:inset 0 0 0 2px var(--good)}
+.lane.target .fill{background:var(--good)}
+.lane .pickflash{position:absolute;inset:0;background:var(--goodFill);opacity:0;transition:opacity .18s}
+.lane.picked .pickflash{opacity:1;transition:none}
+.lanelabels{display:flex;gap:7px;padding:0 2px;margin-top:6px}
+.lanelabels div{flex:1;text-align:center;font:600 11.5px/1.4 "IBM Plex Mono",monospace;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0}
+.lanelabels div b{display:block;color:var(--ink);font-size:13px}
+.lanelabels div.hot b{color:var(--warn)}
+.lanelabels div.broken b{color:var(--bad)}
+.workers{display:flex;gap:7px;padding:0 2px;margin-top:5px}
+.workers>div{flex:1;display:flex;gap:2px;justify-content:center;min-width:0}
+.workers i{width:7px;height:7px;border-radius:50%;background:var(--rule2);display:block}
+.workers i.on{background:var(--good)}
+.laneshead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.laneshead .tag{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.laneshead .met{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.laneshead .met b{color:var(--ink);font-weight:600}
+
+.verdict{border-left:3px solid var(--accent);background:var(--card2);border-radius:0 10px 10px 0;
+  padding:14px 16px;margin-top:16px;font-size:14px;color:var(--ink2)}
+.verdict strong{color:var(--ink);font-weight:600}
+.verdict.bad{border-left-color:var(--bad)}
+.verdict.warn{border-left-color:var(--warn)}
+
+details.predict{border:1px solid var(--rule);border-radius:11px;background:var(--card2);padding:0;margin:0 0 16px}
+details.predict summary{cursor:pointer;padding:13px 16px;font:600 13.5px/1.4 "Public Sans",sans-serif;color:var(--ink);list-style:none}
+details.predict summary::-webkit-details-marker{display:none}
+details.predict summary::before{content:"▸ ";color:var(--accent);font-weight:700}
+details.predict[open] summary::before{content:"▾ "}
+details.predict .body{padding:0 16px 15px;font-size:13.5px;color:var(--ink2)}
+details.predict .body p{margin:0 0 9px}
+details.predict .body p:last-child{margin-bottom:0}
+
+.tblwrap{overflow-x:auto;margin-top:14px;border:1px solid var(--rule);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:9px 13px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--card2)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+tr.hi td{background:var(--goodFill)}
+tr.lo td{background:var(--badFill)}
+
+.bars{display:flex;flex-direction:column;gap:11px;margin-top:8px}
+.bar{display:grid;grid-template-columns:132px minmax(0,1fr) 66px;gap:12px;align-items:center;font-size:13.5px}
+.bar .track{height:20px;background:var(--sunk);border-radius:6px;overflow:hidden;position:relative}
+.bar .fill{height:100%;border-radius:6px;transition:width .4s cubic-bezier(.2,.7,.3,1)}
+.bar .fair{position:absolute;top:0;bottom:0;width:2px;background:var(--muted);opacity:.55}
+.bar .pc{font-family:"IBM Plex Mono",monospace;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+
+.chartwrap{position:relative;margin-bottom:6px}
+canvas{width:100%;display:block;border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 0;font-size:12.5px;color:var(--ink2)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:16px;height:3px;border-radius:2px;display:block;flex:none}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 8px);height:2px}
+
+.raceside{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.raceside{grid-template-columns:1fr}}
+.mini{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:78ch}
+footer code{font-family:"IBM Plex Mono",monospace;font-size:11.5px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1><span class="sub">A load-balancing lab</span>Eight Lanes</h1>
+    <p class="lede">Eight identical servers. Four workers each, 80&nbsp;ms a request — every one of
+      them can finish <b>50 requests a second</b>, so the fleet can finish <b>400</b>. Nothing here
+      ever breaks on its own. The only thing that changes is <b>which server each request is sent
+      to</b>, and that turns out to be worth 4× your tail latency.</p>
+  </div>
+  <button class="themebtn" id="themebtn">Theme</button>
+</header>
+
+<div class="readout" id="readout">
+  <div class="cell"><div class="lab">Offered</div><div class="val" id="r-off">—</div><div class="note" id="r-rho">requests arriving per second</div></div>
+  <div class="cell"><div class="lab">Median</div><div class="val" id="r-p50">—</div><div class="note">so far, in this live run</div></div>
+  <div class="cell hero"><div class="lab v-warn">99th percentile</div><div class="val v-warn" id="r-p99">—</div><div class="note">live window — the sweep is the real figure</div></div>
+  <div class="cell hero"><div class="lab">Busiest ÷ average</div><div class="val" id="r-spread">—</div><div class="note">1.00 would be perfect balance</div></div>
+  <div class="cell"><div class="lab">Idle servers</div><div class="val" id="r-idle">—</div><div class="note">doing nothing, right now</div></div>
+</div>
+<p class="readnote">Watch <b>busiest ÷ average</b> rather than latency. It is the only number that goes
+  bad <em>before</em> customers notice, and no standard dashboard has it.
+  <b>A note on the floor:</b> requests take 80&nbsp;ms on average but vary, so even an empty fleet has a
+  p99 near <b>370&nbsp;ms</b> of pure work. Everything above that is queueing.</p>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-p="p1"><span class="n">1</span>The eight lanes</button>
+  <button role="tab" aria-selected="false" data-p="p2"><span class="n">2</span>Race two rules</button>
+  <button role="tab" aria-selected="false" data-p="p3"><span class="n">3</span>The stale view</button>
+  <button role="tab" aria-selected="false" data-p="p4"><span class="n">4</span>Break a server</button>
+</nav>
+
+<!-- ============ 1 ============ -->
+<section class="panel on" id="p1">
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>Pick a rule, pick a load</h2>
+      <p class="small">Every bar is one server's queue. Every green dot is a worker that is busy.</p>
+      <h3>Dispatch rule</h3>
+      <div class="seg col" id="s1rule">
+        <button data-v="random" aria-pressed="false">Send it anywhere (random)</button>
+        <button data-v="rr" aria-pressed="true">Take turns (round robin)</button>
+        <button data-v="po2" aria-pressed="false">Ask two, pick the shorter</button>
+        <button data-v="leastconn" aria-pressed="false">Ask all eight, pick the shortest</button>
+      </div>
+      <h3>How busy the fleet is</h3>
+      <div class="ctl">
+        <label for="s1rho">Load <b><span id="s1rho-v">0.90</span> · <span id="s1lam">360</span> req/s</b></label>
+        <input type="range" id="s1rho" min="30" max="95" step="5" value="90">
+      </div>
+      <h3>How unequal the requests are</h3>
+      <div class="seg" id="s1cv">
+        <button data-v="0" aria-pressed="false">All identical</button>
+        <button data-v="1" aria-pressed="true">Normal</button>
+        <button data-v="16" aria-pressed="false">Heavy tail</button>
+      </div>
+      <p class="small" style="margin-top:9px">Every request costs exactly 80&nbsp;ms · the usual spread ·
+        or a service where 3% of requests cost 16× the rest.</p>
+      <div class="btnrow" style="margin-top:14px">
+        <button class="btn ghost" id="s1pause">Pause</button>
+        <button class="btn ghost" id="s1reset">Reset</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Measure it properly</h2>
+      <p class="small">Runs all four rules — plus a shared queue — across the whole load range. Five
+        simulated minutes and three seeds per point, which takes about <b>30 seconds</b>; the chart
+        fills in as it goes and the animation pauses meanwhile.</p>
+      <button class="btn" id="s1sweep">Run the load sweep</button>
+    </div>
+  </div>
+
+  <div>
+    <details class="predict">
+      <summary>Predict before you touch anything: at 50% load, how much does the rule matter?</summary>
+      <div class="body">
+        <p>Set the load slider to 0.50 and flip between all four rules. Watch the p99 at the top.</p>
+        <p><b>They land in a 16&nbsp;ms band</b> — 383, 371, 370 and 367&nbsp;ms — every one of them
+          within 4% of a theoretically perfect balancer. At half load the choice is worth nothing.</p>
+        <p>Now put the slider at 0.95 and do it again. Random is <b>1,834&nbsp;ms</b> and asking two
+          servers is <b>476&nbsp;ms</b>. The algorithm only matters when you are already in trouble —
+          which is also the day you cannot safely change it.</p>
+      </div>
+    </details>
+
+    <div class="card">
+      <div class="laneshead">
+        <span class="tag">Queue depth per server</span>
+        <span class="met">busiest <b id="s1max">0</b> · average <b id="s1avg">0.0</b> · idle <b id="s1idlen">0</b></span>
+      </div>
+      <div class="lanes" id="s1lanes"></div>
+      <div class="lanelabels" id="s1labels"></div>
+      <div class="workers" id="s1workers"></div>
+      <div class="verdict" id="s1verdict">Running.</div>
+    </div>
+
+    <div class="card">
+      <h2>Tail latency against fleet load</h2>
+      <p class="small">99th percentile, five simulated minutes and three seeds per point. The grey
+        dashed line is a single shared queue — the arrangement a bank uses and a web service cannot have. It is the
+        ceiling on what any dispatch rule could ever achieve.</p>
+      <div class="chartwrap"><canvas id="s1chart" height="430"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--muted)" class="dash"></i>One shared queue (unreachable)</span>
+        <span><i style="background:var(--bad)"></i>Random</span>
+        <span><i style="background:var(--warn)"></i>Round robin</span>
+        <span><i style="background:var(--cool)"></i>Ask two</span>
+        <span><i style="background:var(--good)"></i>Ask all eight</span>
+      </div>
+      <div class="verdict" id="s1sverdict">Press <strong>Run the load sweep</strong>.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="panel" id="p2">
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>The same traffic, twice</h2>
+      <p class="small">Both fleets receive <em>the identical requests</em>, at the identical moments,
+        with the identical sizes. Every difference you see was caused by the rule and nothing else.</p>
+      <h3>Left fleet</h3>
+      <div class="seg col" id="s2a">
+        <button data-v="random" aria-pressed="false">Random</button>
+        <button data-v="rr" aria-pressed="true">Round robin</button>
+        <button data-v="po2" aria-pressed="false">Ask two</button>
+        <button data-v="leastconn" aria-pressed="false">Ask all eight</button>
+      </div>
+      <h3>Right fleet</h3>
+      <div class="seg col" id="s2b">
+        <button data-v="random" aria-pressed="false">Random</button>
+        <button data-v="rr" aria-pressed="false">Round robin</button>
+        <button data-v="po2" aria-pressed="false">Ask two</button>
+        <button data-v="leastconn" aria-pressed="true">Ask all eight</button>
+      </div>
+      <h3>How unequal the requests are</h3>
+      <div class="ctl" style="margin-top:10px">
+        <label for="s2cv">Request-size spread <b id="s2cv-v">normal</b></label>
+        <input type="range" id="s2cv" min="0" max="3" step="1" value="1">
+      </div>
+      <div class="ctl">
+        <label for="s2rho">Load <b><span id="s2rho-v">0.90</span></b></label>
+        <input type="range" id="s2rho" min="50" max="95" step="5" value="90">
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" id="s2pause">Pause</button>
+        <button class="btn ghost" id="s2reset">Reset</button>
+      </div>
+      <h3>Try these</h3>
+      <div class="scen" id="s2scen">
+        <button data-a="rr" data-b="leastconn" data-cv="0"><b>Round robin ties the optimum</b><span>identical requests — taking turns is perfect</span></button>
+        <button data-a="rr" data-b="leastconn" data-cv="3"><b>The same rule, beaten</b><span>heavy tail — taking turns collapses</span></button>
+        <button data-a="random" data-b="po2" data-cv="1"><b>One extra question</b><span>random vs asking two servers</span></button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: with every request costing exactly the same, how close can round robin get?</summary>
+      <div class="body">
+        <p>Set the spread slider to its lowest setting and race round robin against asking all eight.
+          Most people expect round robin to lose by a little.</p>
+        <p><b>It ties exactly</b> — 99.7&nbsp;ms against 99.7&nbsp;ms in the ten-minute measurement.
+          When every request costs the same, sending every eighth request to a server is
+          <em>identical</em> to that server taking the front of one shared line. Round robin is not an
+          approximation of the ideal; under those conditions it <em>is</em> the ideal.</p>
+        <p>Now drag the spread to the top. Round robin goes to 3,863&nbsp;ms and pure random goes to
+          3,847&nbsp;ms — <b>taking turns has become slightly worse than not thinking at all.</b>
+          Round robin was never an algorithm with a quality. It is a bet that all requests cost the
+          same, and it pays out exactly as far as that is true.</p>
+      </div>
+    </details>
+    <div class="raceside">
+      <div class="card">
+        <div class="laneshead"><span class="tag" id="s2alab">Left</span><span class="met">p99 <b id="s2ap99">—</b></span></div>
+        <div class="lanes" id="s2alanes"></div>
+        <div class="lanelabels" id="s2alabels"></div>
+        <p class="mini">busiest ÷ average <b id="s2aspread">—</b></p>
+      </div>
+      <div class="card">
+        <div class="laneshead"><span class="tag" id="s2blab">Right</span><span class="met">p99 <b id="s2bp99">—</b></span></div>
+        <div class="lanes" id="s2blanes"></div>
+        <div class="lanelabels" id="s2blabels"></div>
+        <p class="mini">busiest ÷ average <b id="s2bspread">—</b></p>
+      </div>
+    </div>
+    <div class="card"><div class="verdict" id="s2verdict">Both fleets are receiving the same requests.</div></div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="panel" id="p3">
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>What the dispatcher believes</h2>
+      <p class="small">A real load balancer does not have a live feed of every queue. It has statistics,
+        and statistics arrive on a schedule — a metrics scrape, a gossip round, a load header on a
+        health check. Here is what that costs.</p>
+      <h3>Dispatch rule</h3>
+      <div class="seg col" id="s3rule">
+        <button data-v="leastconn" aria-pressed="true">Ask all eight, pick the shortest</button>
+        <button data-v="po2" aria-pressed="false">Ask two, pick the shorter</button>
+      </div>
+      <h3>How old the information is</h3>
+      <div class="ctl">
+        <label for="s3tau">Refreshed every <b><span id="s3tau-v">250</span> ms</b></label>
+        <input type="range" id="s3tau" min="0" max="1000" step="50" value="250">
+      </div>
+      <p class="small">0&nbsp;ms is a live feed and does not exist. A Kubernetes metrics scrape is
+        15–60 <em>seconds</em>. Even a health check carrying a load header is typically 1–10 seconds.</p>
+      <div class="btnrow" style="margin-top:14px">
+        <button class="btn ghost" id="s3pause">Pause</button>
+        <button class="btn ghost" id="s3reset">Reset</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Measure the whole curve</h2>
+      <p class="small">Both rules, staleness from 0 to 1 second. Five simulated minutes and three seeds
+        per point — about <b>40 seconds</b>, because a herding balancer builds queues hundreds deep and
+        those are expensive to simulate.</p>
+      <button class="btn" id="s3sweep">Run the staleness sweep</button>
+    </div>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: how stale does the information have to be before asking all eight is worse than random?</summary>
+      <div class="body">
+        <p>Asking all eight servers and picking the shortest queue is the best rule in this lab when
+          its information is live — 94&nbsp;ms against a theoretical floor of 91.5.</p>
+        <p><b>At 100&nbsp;ms of staleness it is worse than choosing at random.</b> At 250&nbsp;ms it is
+          2.9× worse than random. At one second it is 9.6× worse.</p>
+        <p>Watch the two rows of bars below. The top row is what is <em>true</em>. The bottom row is
+          what the dispatcher <em>believes</em>. Every arrival in the gap between refreshes pours into
+          whichever server was empty at the last snapshot — long after it stopped being empty. Then the
+          snapshot updates and the whole stream swings onto the next victim. The servers take turns
+          being crushed, and the fleet's <em>average</em> utilisation never moves, which is why no
+          dashboard shows this.</p>
+      </div>
+    </details>
+    <div class="card">
+      <div class="laneshead"><span class="tag">The truth — what the queues actually are</span>
+        <span class="met">busiest <b id="s3max">0</b> · p99 <b id="s3p99">—</b></span></div>
+      <div class="lanes" id="s3lanes"></div>
+      <div class="lanelabels" id="s3labels"></div>
+      <div class="laneshead" style="margin-top:22px"><span class="tag">The belief — what the dispatcher is routing on</span>
+        <span class="met">next request goes to <b id="s3pick">—</b></span></div>
+      <div class="lanes" id="s3vlanes" style="height:120px"></div>
+      <div class="lanelabels" id="s3vlabels"></div>
+      <div class="verdict" id="s3verdict">Running.</div>
+    </div>
+    <div class="card">
+      <h2>Tail latency against how stale the information is</h2>
+      <div class="chartwrap"><canvas id="s3chart" height="400"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--bad)"></i>Ask all eight</span>
+        <span><i style="background:var(--good)"></i>Ask two</span>
+        <span><i style="background:var(--muted)" class="dash"></i>Random (knows nothing)</span>
+      </div>
+      <div class="verdict" id="s3sverdict">Press <strong>Run the staleness sweep</strong>.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="panel" id="p4">
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>Break server A</h2>
+      <p class="small">Two failures that look similar on a status page and point in exactly opposite
+        directions.</p>
+      <h3>What is wrong with A</h3>
+      <div class="seg col" id="s4fail">
+        <button data-v="none" aria-pressed="true">Nothing — all eight healthy</button>
+        <button data-v="slow" aria-pressed="false">A is five times slower</button>
+        <button data-v="fast" aria-pressed="false">A errors instantly (1 ms)</button>
+      </div>
+      <h3>Dispatch rule</h3>
+      <div class="seg col" id="s4rule">
+        <button data-v="rr" aria-pressed="false">Round robin</button>
+        <button data-v="po2" aria-pressed="true">Ask two</button>
+        <button data-v="leastconn" aria-pressed="false">Ask all eight</button>
+        <button data-v="leastresp" aria-pressed="false">Fastest observed response</button>
+      </div>
+      <div class="btnrow" style="margin-top:14px">
+        <button class="btn ghost" id="s4pause">Pause</button>
+        <button class="btn ghost" id="s4reset">Reset</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Both failures, all four rules</h2>
+      <p class="small">Five rules × two faults. Traffic shares settle much faster than percentiles do,
+        so this runs four simulated minutes and two seeds per point — within 0.2 percentage points of
+        the document's ten-minute figures. About <b>5 seconds</b>.</p>
+      <button class="btn" id="s4run">Run the comparison</button>
+    </div>
+  </div>
+  <div>
+    <details class="predict">
+      <summary>Predict: server A returns errors in 1 ms instead of working. How much traffic does it get?</summary>
+      <div class="body">
+        <p>Eight servers, one of them broken. A fair share is <b>12.5%</b>. Commit to a number for
+          "ask all eight, pick the shortest" before you run it.</p>
+        <p><b>It gets 66.1%.</b> And the cleverest rule on the page — route to whichever server has
+          been answering fastest — sends it <b>100.0%</b>. Round robin, which knows nothing, gives it
+          exactly 12.5% and is the safest thing here.</p>
+        <p>The reason is uncomfortable. Every load-aware rule measures how quickly a server gets rid of
+          requests. <em>Failing is the fastest possible way to get rid of a request.</em> A rule that
+          seeks speed will seek failure.</p>
+        <p>Now switch the fault to "five times slower" and run the same four rules. The order reverses
+          completely: round robin hands a machine that can do 10 requests a second exactly 40 of them,
+          and its queue grows without bound on a fleet running at 80%. <b>No dispatch rule can tell
+          broken from fast.</b> That is what health checking is for, and it is a separate mechanism for
+          exactly this reason.</p>
+      </div>
+    </details>
+    <div class="card">
+      <div class="laneshead"><span class="tag">Queue depth — server A is on the left</span>
+        <span class="met">p99 <b id="s4p99">—</b> · errors <b id="s4err">0.0%</b></span></div>
+      <div class="lanes" id="s4lanes"></div>
+      <div class="lanelabels" id="s4labels"></div>
+      <h3 style="font:600 10.5px/1.3 'Public Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:22px 0 4px">Share of all traffic sent to each server</h3>
+      <div class="bars" id="s4bars"></div>
+      <div class="verdict" id="s4verdict">All eight healthy.</div>
+    </div>
+    <div class="card">
+      <h2>Share of traffic sent to the faulty server</h2>
+      <div class="tblwrap"><table id="s4tbl">
+        <thead><tr><th>Dispatch rule</th><th>A is 5× slower</th><th>A errors in 1&nbsp;ms</th></tr></thead>
+        <tbody><tr><td colspan="3" style="text-align:left;color:var(--muted)">Press <b>Run the comparison</b>. A fair share is 12.5%.</td></tr></tbody>
+      </table></div>
+      <div class="verdict" id="s4tverdict">The two columns should point in opposite directions.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>
+  <b>What this is.</b> A discrete-event simulator of eight backends, each with four workers and an
+  80&nbsp;ms mean service time, and a dispatcher whose view of them is configurably imperfect. It is
+  the same engine that produced every number in <code>README.md</code>, and it was checked against
+  the cases where queueing theory knows the exact answer (M/M/1 at ρ&nbsp;=&nbsp;0.8: 398.6&nbsp;ms
+  against a theoretical 400; M/M/4 pooled at ρ&nbsp;=&nbsp;0.8: 139.8 against 140).
+  <br><br>
+  <b>What it is not.</b> It models dispatch and queueing only — no TCP, no TLS, no connection setup,
+  and no allowance for the fact that a real server gets <em>slower</em>, not merely busier, as its
+  queue grows. Every one of those makes reality worse than what you see here, never better.
+  <br><br>
+  <b>How the sweeps relate to the document.</b> The live panels show a rolling window of the last few
+  thousand requests and will scatter. The sweep buttons run <em>five</em> simulated minutes and three
+  seeds per point, so that a press returns in seconds; <code>README.md</code> uses ten minutes and six
+  seeds. The two agree within about 1% everywhere except very close to saturation
+  (ρ&nbsp;=&nbsp;0.95), where a nearly-full queue is genuinely noisy and the document says so. The
+  engine itself is identical: given the document's run length and seed count it reproduces every
+  figure in it exactly.
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ============================== engine ============================== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function Heap(){this.a=[]}
+Heap.prototype.push=function(x){var a=this.a;a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if(a[p].t<=a[i].t)break;var t=a[p];a[p]=a[i];a[i]=t;i=p}};
+Heap.prototype.pop=function(){var a=this.a;var top=a[0];var last=a.pop();if(a.length){a[0]=last;var i=0;for(;;){var l=2*i+1,r=l+1,m=i;if(l<a.length&&a[l].t<a[m].t)m=l;if(r<a.length&&a[r].t<a[m].t)m=r;if(m===i)break;var t=a[m];a[m]=a[i];a[i]=t;i=m}}return top};
+Heap.prototype.size=function(){return this.a.length};
+function pct(s,p){if(!s.length)return NaN;return s[Math.min(s.length-1,Math.floor(p*s.length))]}
+function makeService(S,cv2,rnd){
+  if(cv2===0)return function(){return S};
+  if(cv2===1)return function(){return -S*Math.log(1-rnd())};
+  var p=0.5*(1-Math.sqrt((cv2-1)/(cv2+1))),r1=2*p/S,r2=2*(1-p)/S;
+  return function(){return rnd()<p?-Math.log(1-rnd())/r1:-Math.log(1-rnd())/r2};
+}
+var DEF={n:8,workers:4,lambda:320,S:80,cv2:1,strategy:'rr',d:2,view:'exact',tau:0,
+         mult:null,failFast:null,failMs:1,duration:600000,warmup:60000,seed:1};
+
+/* headless batch run — identical logic to the live engine below */
+function simulate(cfg){
+  var C={};for(var k in DEF)C[k]=DEF[k];for(var k2 in cfg)C[k2]=cfg[k2];
+  var rnd=mulberry32((C.seed*2654435761)>>>0),svc=makeService(C.S,C.cv2,rnd),n=C.n;
+  var mult=C.mult||new Array(n).fill(1),ff=C.failFast||[];
+  var shared=C.strategy==='shared';
+  var q=[],qh=new Array(n).fill(0),busy=new Array(n).fill(0),inflight=new Array(n).fill(0);
+  for(var i=0;i<n;i++)q.push([]);
+  var sq=[],sqh=0,view=new Array(n).fill(0),ewma=new Array(n).fill(C.S),rr=(rnd()*n)|0;
+  var H=new Heap(),t=0,arr=makeService(1000/C.lambda,1,rnd);
+  H.push({t:arr(),type:0});
+  if(C.view==='stale'&&C.tau>0)H.push({t:C.tau,type:2});
+  var lat=[],per=new Array(n).fill(0),served=0,errs=0,maxQ=0;
+  function pick(){
+    var v=C.view==='stale'?view:inflight,b,bv,i2,s;
+    switch(C.strategy){
+      case 'random':return (rnd()*n)|0;
+      case 'rr':return (rr++)%n;
+      case 'leastconn':b=0;bv=Infinity;for(i2=0;i2<n;i2++){if(v[i2]<bv||(v[i2]===bv&&rnd()<0.5)){bv=v[i2];b=i2}}return b;
+      case 'leastresp':b=0;bv=Infinity;for(i2=0;i2<n;i2++){s=ewma[i2]*(v[i2]+1);if(s<bv){bv=s;b=i2}}return b;
+      case 'po2':case 'pod':{var d=C.strategy==='po2'?2:C.d;b=-1;bv=Infinity;
+        for(var k3=0;k3<d;k3++){var j=(rnd()*n)|0;if(v[j]<bv){bv=v[j];b=j}}return b}
+    }
+    return 0;
+  }
+  function start(i3){
+    while(busy[i3]<C.workers){
+      var job;
+      if(shared){if(sqh>=sq.length)return;job=sq[sqh++];if(sqh>4096){sq.splice(0,sqh);sqh=0}}
+      else{if(qh[i3]>=q[i3].length)return;job=q[i3][qh[i3]++];if(qh[i3]>4096){q[i3].splice(0,qh[i3]);qh[i3]=0}}
+      busy[i3]++;
+      var bad=ff.indexOf(i3)>=0,dur=bad?C.failMs:svc()*mult[i3];
+      H.push({t:t+dur,type:1,b:i3,job:job,err:bad});
+    }
+  }
+  while(H.size()){
+    var e=H.pop();if(e.t>C.duration)break;t=e.t;
+    if(e.type===2){for(var i4=0;i4<n;i4++)view[i4]=inflight[i4];H.push({t:t+C.tau,type:2});continue}
+    if(e.type===0){
+      if(shared){sq.push({t0:t});for(var i5=0;i5<n;i5++)start(i5)}
+      else{var b2=pick();q[b2].push({t0:t});inflight[b2]++;per[b2]++;
+        if(q[b2].length-qh[b2]>maxQ)maxQ=q[b2].length-qh[b2];start(b2)}
+      H.push({t:t+arr(),type:0});continue;
+    }
+    var i6=e.b;busy[i6]--;if(!shared)inflight[i6]--;
+    var L=t-e.job.t0;
+    if(t>C.warmup){if(e.err)errs++;else{served++;lat.push(L)}}
+    ewma[i6]=0.8*ewma[i6]+0.2*L;
+    start(i6);
+  }
+  lat.sort(function(a,b){return a-b});
+  var sum=0;for(var i7=0;i7<lat.length;i7++)sum+=lat[i7];
+  return {mean:sum/(lat.length||1),p50:pct(lat,0.5),p99:pct(lat,0.99),p999:pct(lat,0.999),
+          per:per,maxQ:maxQ,errFrac:errs/((served+errs)||1)};
+}
+function multi(cfg,seeds){
+  seeds=seeds||3;var rs=[],s;
+  for(s=1;s<=seeds;s++){var c={};for(var k in cfg)c[k]=cfg[k];c.seed=s;rs.push(simulate(c))}
+  var out={},keys=['mean','p50','p99','p999','maxQ','errFrac'],i;
+  for(i=0;i<keys.length;i++){var a=0;for(var j=0;j<rs.length;j++)a+=rs[j][keys[i]];out[keys[i]]=a/rs.length}
+  out.per=rs[0].per.map(function(_,ix){var a=0;for(var j=0;j<rs.length;j++)a+=rs[j].per[ix];return a/rs.length});
+  return out;
+}
+
+/* live, animatable engine — advances simulated time in bounded windows */
+function Live(cfg){this.cfg={};for(var k in DEF)this.cfg[k]=DEF[k];for(var k2 in cfg)this.cfg[k2]=cfg[k2];this.reset()}
+Live.prototype.reset=function(){
+  var C=this.cfg,n=C.n;
+  this.rnd=mulberry32(((C.seed||1)*2654435761)>>>0);
+  this.svc=makeService(C.S,C.cv2,this.rnd);
+  this.arr=makeService(1000/C.lambda,1,this.rnd);
+  this.q=[];this.busy=[];this.inflight=new Array(n).fill(0);this.view=new Array(n).fill(0);
+  this.ewma=new Array(n).fill(C.S);this.per=new Array(n).fill(0);
+  for(var i=0;i<n;i++){this.q.push([]);this.busy.push([])}
+  this.rr=(this.rnd()*n)|0;
+  this.t=0;this.nextArr=this.arr();this.nextView=C.tau>0?C.tau:Infinity;
+  this.lat=[];this.errs=0;this.served=0;this.lastPick=-1;this.pickFlash=new Array(n).fill(0);
+  this.ext=null; this.extIdx=0;
+};
+Live.prototype.mult=function(i){var m=this.cfg.mult;return m?m[i]:1};
+Live.prototype.isBad=function(i){var f=this.cfg.failFast;return !!f&&f.indexOf(i)>=0};
+Live.prototype.pick=function(){
+  var C=this.cfg,n=C.n,v=C.view==='stale'?this.view:this.inflight,b,bv,i,s;
+  switch(C.strategy){
+    case 'random':return (this.rnd()*n)|0;
+    case 'rr':return (this.rr++)%n;
+    case 'leastconn':b=0;bv=Infinity;for(i=0;i<n;i++){if(v[i]<bv||(v[i]===bv&&this.rnd()<0.5)){bv=v[i];b=i}}return b;
+    case 'leastresp':b=0;bv=Infinity;for(i=0;i<n;i++){s=this.ewma[i]*(v[i]+1);if(s<bv){bv=s;b=i}}return b;
+    case 'po2':{b=-1;bv=Infinity;for(var k=0;k<2;k++){var j=(this.rnd()*n)|0;if(v[j]<bv){bv=v[j];b=j}}return b}
+  }
+  return 0;
+};
+Live.prototype.startAll=function(i){
+  var C=this.cfg;
+  while(this.busy[i].length<C.workers&&this.q[i].length){
+    var job=this.q[i].shift(),bad=this.isBad(i);
+    var dur=bad?C.failMs:this.svc()*this.mult(i);
+    this.busy[i].push({end:this.t+dur,job:job,err:bad});
+  }
+};
+/* advance to `until` (simulated ms). If an external arrival stream is set, use it. */
+Live.prototype.advance=function(until){
+  var C=this.cfg,n=C.n;
+  for(;;){
+    var tn=Infinity,kind=-1,bi=-1,wi=-1,i,j;
+    if(this.nextArr<tn){tn=this.nextArr;kind=0}
+    if(this.nextView<tn){tn=this.nextView;kind=2}
+    for(i=0;i<n;i++)for(j=0;j<this.busy[i].length;j++)
+      if(this.busy[i][j].end<tn){tn=this.busy[i][j].end;kind=1;bi=i;wi=j}
+    if(tn>until){this.t=until;return}
+    this.t=tn;
+    if(kind===2){for(i=0;i<n;i++)this.view[i]=this.inflight[i];this.nextView=this.t+C.tau;continue}
+    if(kind===0){
+      var size;
+      if(this.ext){var a=this.ext[this.extIdx++];if(!a){this.nextArr=Infinity;continue}size=a.size;this.nextArr=this.ext[this.extIdx]?this.ext[this.extIdx].t:Infinity}
+      else{size=null;this.nextArr=this.t+this.arr()}
+      var b=this.pick();
+      this.q[b].push({t0:this.t,size:size});this.inflight[b]++;this.per[b]++;
+      this.lastPick=b;this.pickFlash[b]=6;
+      this.startAll(b);continue;
+    }
+    var w=this.busy[bi].splice(wi,1)[0];
+    this.inflight[bi]--;
+    var L=this.t-w.job.t0;
+    this.ewma[bi]=0.8*this.ewma[bi]+0.2*L;
+    if(w.err)this.errs++;else{this.served++;this.lat.push(L);if(this.lat.length>4000)this.lat.shift()}
+    this.startAll(bi);
+  }
+};
+/* with an external stream, request sizes come from the stream, so override the sampler */
+Live.prototype.useStream=function(stream){
+  this.ext=stream;this.extIdx=0;this.nextArr=stream.length?stream[0].t:Infinity;
+  var self=this;
+  this.startAll=function(i){
+    var C=self.cfg;
+    while(self.busy[i].length<C.workers&&self.q[i].length){
+      var job=self.q[i].shift(),bad=self.isBad(i);
+      var dur=bad?C.failMs:(job.size!=null?job.size:self.svc())*self.mult(i);
+      self.busy[i].push({end:self.t+dur,job:job,err:bad});
+    }
+  };
+};
+Live.prototype.p99=function(){if(this.lat.length<50)return NaN;var s=this.lat.slice().sort(function(a,b){return a-b});return pct(s,0.99)};
+Live.prototype.p50=function(){if(this.lat.length<50)return NaN;var s=this.lat.slice().sort(function(a,b){return a-b});return pct(s,0.5)};
+Live.prototype.depth=function(i){return this.q[i].length+this.busy[i].length};
+Live.prototype.spread=function(){
+  var n=this.cfg.n,mx=0,su=0;for(var i=0;i<n;i++){var d=this.depth(i);if(d>mx)mx=d;su+=d}
+  var av=su/n;return av>0?mx/av:1;
+};
+function makeStream(lambda,S,cv2,durMs,seed){
+  var rnd=mulberry32(((seed||7)*2654435761)>>>0),ia=makeService(1000/lambda,1,rnd),sv=makeService(S,cv2,rnd);
+  var out=[],t=ia();
+  while(t<durMs){out.push({t:t,size:sv()});t+=ia()}
+  return out;
+}
+
+/* ============================== ui plumbing ============================== */
+var $=function(id){return document.getElementById(id)};
+/* Sizing a canvas while its panel is display:none gives clientWidth 0 and leaves the
+   element stuck at its intrinsic pixel height. Bail out while hidden; redraw on show. */
+function fitCanvas(c,H){
+  var W=c.clientWidth;
+  if(!W)return null;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  c.width=W*dpr;c.height=H*dpr;c.style.height=H+'px';
+  var g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  return {g:g,W:W,H:H};
+}
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function f1(x){return isFinite(x)?(Math.round(x*10)/10).toFixed(1):'—'}
+function f0(x){return isFinite(x)?Math.round(x).toLocaleString():'—'}
+function ms(x){return isFinite(x)?(x>=10000?(x/1000).toFixed(1)+' s':Math.round(x)+' ms'):'—'}
+var NAMES=['A','B','C','D','E','F','G','H'];
+var RULE_LABEL={random:'Random',rr:'Round robin',po2:'Ask two',leastconn:'Ask all eight',leastresp:'Fastest observed'};
+
+$('themebtn').onclick=function(){
+  var r=document.documentElement,cur=r.getAttribute('data-theme');
+  var dark=cur?cur==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
+  r.setAttribute('data-theme',dark?'light':'dark');
+  drawS1();drawS3();
+};
+var tabs=$('tabs');
+tabs.addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  [].forEach.call(tabs.children,function(x){x.setAttribute('aria-selected',String(x===b))});
+  ['p1','p2','p3','p4'].forEach(function(p){$(p).classList.toggle('on',p===b.dataset.p)});
+  ACTIVE=b.dataset.p;
+  drawS1();drawS3();   /* a canvas cannot be sized while its panel is hidden */
+});
+var ACTIVE='p1';
+function seg(id,cb){
+  var el=$(id);
+  el.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    [].forEach.call(el.children,function(x){x.setAttribute('aria-pressed',String(x===b))});
+    cb(b.dataset.v);
+  });
+  return function(){var s=el.querySelector('[aria-pressed="true"]');return s?s.dataset.v:null};
+}
+function buildLanes(laneId,labelId,workerId,n){
+  var L=$(laneId);L.innerHTML='';
+  for(var i=0;i<n;i++){
+    var d=document.createElement('div');d.className='lane';
+    d.innerHTML='<div class="track"><div class="pickflash"></div><div class="fill" style="height:0%"></div></div>';
+    L.appendChild(d);
+  }
+  if(labelId){var B=$(labelId);B.innerHTML='';
+    for(var j=0;j<n;j++){var s=document.createElement('div');s.innerHTML='<b>0</b>'+NAMES[j];B.appendChild(s)}}
+  if(workerId){var W=$(workerId);W.innerHTML='';
+    for(var k=0;k<n;k++){var w=document.createElement('div');
+      for(var m=0;m<4;m++)w.appendChild(document.createElement('i'));W.appendChild(w)}}
+}
+function paintLanes(eng,laneId,labelId,workerId,scale){
+  var n=eng.cfg.n,L=$(laneId).children,B=labelId?$(labelId).children:null,W=workerId?$(workerId).children:null;
+  var su=0,i;for(i=0;i<n;i++)su+=eng.depth(i);
+  var av=su/n;
+  for(i=0;i<n;i++){
+    var d=eng.depth(i),el=L[i];
+    el.querySelector('.fill').style.height=Math.min(100,100*d/scale)+'%';
+    el.classList.toggle('hot',av>0&&d>Math.max(3,av*2));
+    el.classList.toggle('broken',eng.isBad(i)||eng.mult(i)>1);
+    if(eng.pickFlash[i]>0){el.classList.add('picked');eng.pickFlash[i]--}else el.classList.remove('picked');
+    if(B){B[i].firstChild.textContent=d;
+      B[i].classList.toggle('hot',av>0&&d>Math.max(3,av*2));
+      B[i].classList.toggle('broken',eng.isBad(i)||eng.mult(i)>1)}
+    if(W){var dots=W[i].children;for(var j=0;j<dots.length;j++)dots[j].classList.toggle('on',j<eng.busy[i].length)}
+  }
+}
+/* one animation clock drives whichever panel is visible */
+/* The hero readout follows whichever panel is on screen, so it never shows a frozen
+   number from a tab you left. `extra` overrides the two right-hand cells where a panel
+   has something better to put there. */
+function header(eng,lambda,label){
+  var n=eng.cfg.n,i,mx=0,su=0,idle=0;
+  for(i=0;i<n;i++){var d=eng.depth(i);if(d>mx)mx=d;su+=d;if(d===0)idle++}
+  $('r-off').textContent=Math.round(lambda)+'/s';
+  $('r-rho').textContent=label;
+  $('r-p50').textContent=ms(eng.p50());
+  $('r-p99').textContent=ms(eng.p99());
+  $('r-spread').textContent=f1(eng.spread())+'×';
+  $('r-idle').textContent=idle+' of '+n;
+  return {mx:mx,su:su,idle:idle,avg:su/n};
+}
+
+var SPEED=45; /* simulated ms per animation frame */
+var paused={p1:false,p2:false,p3:false,p4:false};
+var SWEEPING=false;
+/* Run a list of jobs without freezing the page. Browsers throttle chained timers
+   hard (and freeze them entirely in a hidden tab), so we do as much work as fits in
+   one ~120 ms slice and yield only between slices. */
+function runJobs(jobs,doOne,onProgress,onDone){
+  var total=jobs.length,done=0;
+  SWEEPING=true;
+  (function slice(){
+    var t0=Date.now();
+    do{
+      if(!jobs.length){SWEEPING=false;onDone();return}
+      doOne(jobs.shift());done++;
+    }while(Date.now()-t0<120);
+    onProgress(done,total);
+    setTimeout(slice,0);
+  })();
+}
+
+
+/* ============================== panel 1 ============================== */
+var s1={rule:'rr',rho:0.90,cv2:1,eng:null};
+function s1make(){s1.eng=new Live({strategy:s1.rule,lambda:400*s1.rho,cv2:s1.cv2,seed:3})}
+buildLanes('s1lanes','s1labels','s1workers',8);s1make();
+var s1rule=seg('s1rule',function(v){s1.rule=v;s1make()});
+seg('s1cv',function(v){s1.cv2=+v;s1make()});
+$('s1rho').oninput=function(){s1.rho=this.value/100;$('s1rho-v').textContent=s1.rho.toFixed(2);
+  $('s1lam').textContent=Math.round(400*s1.rho);s1make()};
+$('s1pause').onclick=function(){paused.p1=!paused.p1;this.textContent=paused.p1?'Resume':'Pause'};
+$('s1reset').onclick=function(){s1make()};
+function s1tick(){
+  var e=s1.eng;e.advance(e.t+SPEED);
+  paintLanes(e,'s1lanes','s1labels','s1workers',16);
+  var h=header(e,400*s1.rho,'fleet is '+Math.round(s1.rho*100)+'% busy · capacity 400/s');
+  var mx=h.mx,su=h.su,idle=h.idle,n=8;
+  $('s1max').textContent=mx;$('s1avg').textContent=h.avg.toFixed(1);$('s1idlen').textContent=idle;
+  var v=$('s1verdict');
+  if(mx>=8&&idle>=1){v.className='verdict bad';
+    v.innerHTML='<strong>'+mx+' requests waiting on one server while '+idle+' servers sit idle.</strong> '+
+      'Nothing is broken. Every server is healthy, and the fleet average queue is '+(su/n).toFixed(1)+
+      '. A customer does not experience the average.';}
+  else if(e.spread()>1.6){v.className='verdict warn';
+    v.innerHTML='<strong>The busiest server has '+f1(e.spread())+'× the average queue.</strong> '+
+      'This is the number that goes bad before latency does.';}
+  else{v.className='verdict';
+    v.innerHTML='<strong>Queues are even.</strong> Push the load slider up, or switch to a rule that '+
+      'ignores what the servers are doing, and watch the spread open.';}
+}
+
+/* load sweep chart */
+var s1data=null,s1jobs=null;
+var RHOS=[0.3,0.5,0.7,0.8,0.9,0.95];
+var SERIES=[{k:'shared',c:'--muted',dash:true},{k:'random',c:'--bad'},{k:'rr',c:'--warn'},{k:'po2',c:'--cool'},{k:'leastconn',c:'--good'}];
+$('s1sweep').onclick=function(){
+  var btn=this;btn.disabled=true;btn.textContent='Running…';
+  s1data={};SERIES.forEach(function(s){s1data[s.k]=new Array(RHOS.length).fill(null)});
+  s1jobs=[];
+  SERIES.forEach(function(s){RHOS.forEach(function(r,ri){s1jobs.push({k:s.k,ri:ri,rho:r})})});
+  runJobs(s1jobs,
+    function(j){s1data[j.k][j.ri]=multi({strategy:j.k,lambda:400*j.rho,cv2:1,duration:360000,warmup:60000},3).p99},
+    function(done,total){btn.textContent='Running… '+Math.round(100*done/total)+'%';drawS1()},
+    function(){
+      drawS1();btn.disabled=false;btn.textContent='Run the load sweep';
+      $('s1sverdict').className='verdict';
+      $('s1sverdict').innerHTML='<strong>At 50% load every rule is within 4% of a shared queue, and '+
+        'within 5% of every other rule.</strong> At 95% the gap is 4.3×. The algorithm only matters when '+
+        'you are already in trouble — which is also the day you cannot safely change it.';
+    });
+};
+function drawS1(){
+  var c=$('s1chart');if(!c)return;
+  var fit=fitCanvas(c,430);if(!fit)return;
+  var g=fit.g,W=fit.W,H=fit.H;
+  var L=54,R=14,T=16,Bm=40,pw=W-L-R,ph=H-T-Bm;
+  var maxY=2000;
+  g.fillStyle=css('--sunk');g.fillRect(L,T,pw,ph);
+  g.font='11px "IBM Plex Mono",monospace';g.fillStyle=css('--muted');
+  var yt=[0,500,1000,1500,2000],i;
+  for(i=0;i<yt.length;i++){
+    var y=T+ph-(yt[i]/maxY)*ph;
+    g.strokeStyle=css('--rule');g.beginPath();g.moveTo(L,y);g.lineTo(L+pw,y);g.stroke();
+    g.textAlign='right';g.fillText(yt[i]===0?'0':(yt[i]/1000).toFixed(1)+'s',L-8,y+4);
+  }
+  g.textAlign='center';
+  for(i=0;i<RHOS.length;i++){
+    var x=L+(i/(RHOS.length-1))*pw;
+    g.fillStyle=css('--muted');g.fillText(Math.round(RHOS[i]*100)+'%',x,H-16);
+  }
+  g.fillStyle=css('--muted');g.textAlign='center';
+  g.font='600 10.5px "Public Sans",sans-serif';
+  g.fillText('HOW BUSY THE FLEET IS',L+pw/2,H-3);
+  if(!s1data)return;
+  SERIES.forEach(function(s){
+    var pts=s1data[s.k];g.strokeStyle=css(s.c);g.lineWidth=s.dash?2:2.4;
+    g.setLineDash(s.dash?[5,4]:[]);g.beginPath();var started=false;
+    for(var i2=0;i2<pts.length;i2++){
+      if(pts[i2]==null)continue;
+      var x2=L+(i2/(RHOS.length-1))*pw,y2=T+ph-Math.min(1,pts[i2]/maxY)*ph;
+      if(!started){g.moveTo(x2,y2);started=true}else g.lineTo(x2,y2);
+    }
+    g.stroke();g.setLineDash([]);
+    g.fillStyle=css(s.c);
+    for(var i3=0;i3<pts.length;i3++){
+      if(pts[i3]==null)continue;
+      var x3=L+(i3/(RHOS.length-1))*pw,y3=T+ph-Math.min(1,pts[i3]/maxY)*ph;
+      g.beginPath();g.arc(x3,y3,3,0,7);g.fill();
+    }
+  });
+}
+
+/* ============================== panel 2 ============================== */
+var s2={a:'rr',b:'leastconn',cv2:1,rho:0.9,ea:null,eb:null,stream:null};
+var CVMAP=[0,1,4,16],CVNAME=['all identical','normal','wide','heavy tail'];
+buildLanes('s2alanes','s2alabels',null,8);buildLanes('s2blanes','s2blabels',null,8);
+function s2make(){
+  s2.stream=makeStream(400*s2.rho,80,s2.cv2,600000,11);
+  s2.ea=new Live({strategy:s2.a,lambda:400*s2.rho,cv2:s2.cv2,seed:5});
+  s2.eb=new Live({strategy:s2.b,lambda:400*s2.rho,cv2:s2.cv2,seed:5});
+  s2.ea.useStream(s2.stream);s2.eb.useStream(s2.stream);
+  $('s2alab').textContent=RULE_LABEL[s2.a];$('s2blab').textContent=RULE_LABEL[s2.b];
+}
+seg('s2a',function(v){s2.a=v;s2make()});
+seg('s2b',function(v){s2.b=v;s2make()});
+$('s2cv').oninput=function(){s2.cv2=CVMAP[+this.value];$('s2cv-v').textContent=CVNAME[+this.value];s2make()};
+$('s2rho').oninput=function(){s2.rho=this.value/100;$('s2rho-v').textContent=s2.rho.toFixed(2);s2make()};
+$('s2pause').onclick=function(){paused.p2=!paused.p2;this.textContent=paused.p2?'Resume':'Pause'};
+$('s2reset').onclick=function(){s2make()};
+$('s2scen').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  s2.a=b.dataset.a;s2.b=b.dataset.b;s2.cv2=CVMAP[+b.dataset.cv];
+  $('s2cv').value=b.dataset.cv;$('s2cv-v').textContent=CVNAME[+b.dataset.cv];
+  [].forEach.call($('s2a').children,function(x){x.setAttribute('aria-pressed',String(x.dataset.v===s2.a))});
+  [].forEach.call($('s2b').children,function(x){x.setAttribute('aria-pressed',String(x.dataset.v===s2.b))});
+  s2make();
+});
+s2make();
+function s2tick(){
+  s2.ea.advance(s2.ea.t+SPEED);s2.eb.advance(s2.eb.t+SPEED);
+  paintLanes(s2.ea,'s2alanes','s2alabels',null,16);
+  paintLanes(s2.eb,'s2blanes','s2blabels',null,16);
+  header(s2.ea,400*s2.rho,'left fleet · '+Math.round(s2.rho*100)+'% busy · both fleets get identical traffic');
+  $('s2ap99').textContent=ms(s2.ea.p99());$('s2bp99').textContent=ms(s2.eb.p99());
+  $('s2aspread').textContent=f1(s2.ea.spread())+'×';
+  $('s2bspread').textContent=f1(s2.eb.spread())+'×';
+  var pa=s2.ea.p99(),pb=s2.eb.p99(),v=$('s2verdict');
+  if(!isFinite(pa)||!isFinite(pb)){v.className='verdict';v.innerHTML='Collecting…';return}
+  var r=pa/pb;
+  if(r>1.15){v.className='verdict bad';
+    v.innerHTML='<strong>'+RULE_LABEL[s2.b]+' is '+f1(r)+'× better on the tail</strong>, on the identical '+
+      'requests, at the identical moments, with the identical sizes. Nothing but the rule differs.';}
+  else if(r<0.87){v.className='verdict bad';
+    v.innerHTML='<strong>'+RULE_LABEL[s2.a]+' is '+f1(1/r)+'× better on the tail</strong>, on the identical traffic.';}
+  else{v.className='verdict';
+    v.innerHTML='<strong>They are within '+Math.round(Math.abs(r-1)*100)+'% of each other.</strong> '+
+      (s2.cv2===0?'With every request costing the same, taking turns is exactly as good as looking at the queues — it <em>is</em> the shared queue.'
+                 :'At this load and this spread the rule is not the thing that matters. Raise the load, or widen the request-size spread.');}
+}
+
+/* ============================== panel 3 ============================== */
+var s3={rule:'leastconn',tau:250,eng:null,scale:12};
+buildLanes('s3lanes','s3labels',null,8);buildLanes('s3vlanes','s3vlabels',null,8);
+function s3make(){
+  s3.eng=new Live({strategy:s3.rule,lambda:360,cv2:1,seed:9,
+                   view:s3.tau>0?'stale':'exact',tau:s3.tau});
+}
+s3make();
+seg('s3rule',function(v){s3.rule=v;s3make()});
+$('s3tau').oninput=function(){s3.tau=+this.value;$('s3tau-v').textContent=s3.tau;s3make()};
+$('s3pause').onclick=function(){paused.p3=!paused.p3;this.textContent=paused.p3?'Resume':'Pause'};
+$('s3reset').onclick=function(){s3make()};
+function s3tick(){
+  var e=s3.eng;e.advance(e.t+SPEED);
+  /* both rows share one slowly-decaying scale, so "true" and "believed" stay comparable */
+  var i,peak=0;
+  for(i=0;i<8;i++){peak=Math.max(peak,e.depth(i),s3.tau>0?e.view[i]:0)}
+  s3.scale=Math.max(12,peak,(s3.scale||12)*0.997);
+  paintLanes(e,'s3lanes','s3labels',null,s3.scale);
+  /* belief row */
+  var L=$('s3vlanes').children,B=$('s3vlabels').children,mn=Infinity,mni=0;
+  var use=s3.tau>0?e.view:e.inflight;
+  for(i=0;i<8;i++){if(use[i]<mn){mn=use[i];mni=i}}
+  for(i=0;i<8;i++){
+    L[i].querySelector('.fill').style.height=Math.min(100,100*use[i]/s3.scale)+'%';
+    L[i].classList.toggle('target',i===mni&&s3.rule==='leastconn');
+    B[i].firstChild.textContent=use[i];
+  }
+  var mx=0;for(i=0;i<8;i++)mx=Math.max(mx,e.depth(i));
+  header(e,360,'90% busy · view refreshed every '+s3.tau+' ms');
+  $('s3max').textContent=mx;$('s3p99').textContent=ms(e.p99());
+  $('s3pick').textContent=s3.rule==='leastconn'?('server '+NAMES[mni]+' — every request, until the next refresh')
+                                               :'whichever of two random servers looks shorter';
+  var v=$('s3verdict');
+  if(s3.tau===0){v.className='verdict';
+    v.innerHTML='<strong>The two rows are the same picture.</strong> This is the textbook case and it '+
+      'does not exist: it requires one dispatcher with a live feed of every queue. Push the staleness slider.';}
+  else if(s3.rule==='leastconn'){v.className='verdict bad';
+    v.innerHTML='<strong>Every arrival for the next '+s3.tau+' ms goes to server '+NAMES[mni]+'</strong>, '+
+      'because the belief row still says it is empty. That is roughly '+Math.round(360*s3.tau/1000)+
+      ' requests onto one server before the dispatcher finds out. Then the snapshot updates and the whole '+
+      'stream swings onto the next victim.';}
+  else{v.className='verdict';
+    v.innerHTML='<strong>A fresh random pair every request.</strong> There is no single "best" server for '+
+      'everyone to stampede onto, so stale information costs far less. At 500 ms of staleness this rule is '+
+      '6× better than asking all eight.';}
+}
+var TAUS=[0,50,100,250,500,1000],s3data=null;
+$('s3sweep').onclick=function(){
+  var btn=this;btn.disabled=true;btn.textContent='Running…';
+  s3data={leastconn:new Array(TAUS.length).fill(null),po2:new Array(TAUS.length).fill(null),random:null};
+  var jobs=[{k:'random'}];
+  ['leastconn','po2'].forEach(function(k){TAUS.forEach(function(t,ti){jobs.push({k:k,ti:ti,tau:t})})});
+  runJobs(jobs,
+    function(j){
+      if(j.k==='random'){s3data.random=multi({strategy:'random',lambda:360,duration:360000,warmup:60000},3).p99;return}
+      s3data[j.k][j.ti]=multi({strategy:j.k,lambda:360,duration:360000,warmup:60000,
+                               view:j.tau>0?'stale':'exact',tau:j.tau},3).p99;
+    },
+    function(done,total){btn.textContent='Running… '+Math.round(100*done/total)+'%';drawS3()},
+    function(){
+      drawS3();btn.disabled=false;btn.textContent='Run the staleness sweep';
+      $('s3sverdict').className='verdict bad';
+      $('s3sverdict').innerHTML='<strong>The crossover is around 30 ms.</strong> Below it, asking all eight '+
+        'wins. Above it, asking two wins — and past about 100 ms, asking all eight is worse than knowing '+
+        'nothing at all. Thirty milliseconds is less than one metrics scrape, less than one gossip round, '+
+        'less in most systems than a single network round trip.';
+    });
+};
+function drawS3(){
+  var c=$('s3chart');if(!c)return;
+  var fit=fitCanvas(c,400);if(!fit)return;
+  var g=fit.g,W=fit.W,H=fit.H;
+  var L=54,R=14,T=16,Bm=40,pw=W-L-R,ph=H-T-Bm,maxY=7000,i;
+  g.fillStyle=css('--sunk');g.fillRect(L,T,pw,ph);
+  g.font='11px "IBM Plex Mono",monospace';
+  for(i=0;i<=7;i++){
+    var y=T+ph-(i*1000/maxY)*ph;
+    g.strokeStyle=css('--rule');g.beginPath();g.moveTo(L,y);g.lineTo(L+pw,y);g.stroke();
+    g.fillStyle=css('--muted');g.textAlign='right';g.fillText(i+'s',L-8,y+4);
+  }
+  g.textAlign='center';
+  for(i=0;i<TAUS.length;i++){
+    var x=L+(i/(TAUS.length-1))*pw;
+    g.fillStyle=css('--muted');g.fillText(TAUS[i]+'ms',x,H-16);
+  }
+  g.font='600 10.5px "Public Sans",sans-serif';g.fillStyle=css('--muted');
+  g.fillText('HOW OLD THE DISPATCHER’S INFORMATION IS',L+pw/2,H-3);
+  if(!s3data)return;
+  if(s3data.random!=null){
+    var yr=T+ph-Math.min(1,s3data.random/maxY)*ph;
+    g.strokeStyle=css('--muted');g.setLineDash([5,4]);g.lineWidth=2;
+    g.beginPath();g.moveTo(L,yr);g.lineTo(L+pw,yr);g.stroke();g.setLineDash([]);
+    g.fillStyle=css('--muted');g.textAlign='left';g.font='11px "IBM Plex Mono",monospace';
+    g.fillText('random: '+Math.round(s3data.random)+'ms',L+6,yr-6);
+  }
+  [{k:'leastconn',c:'--bad'},{k:'po2',c:'--good'}].forEach(function(s){
+    var pts=s3data[s.k];g.strokeStyle=css(s.c);g.lineWidth=2.4;g.beginPath();var st=false;
+    for(var i2=0;i2<pts.length;i2++){
+      if(pts[i2]==null)continue;
+      var x2=L+(i2/(TAUS.length-1))*pw,y2=T+ph-Math.min(1,pts[i2]/maxY)*ph;
+      if(!st){g.moveTo(x2,y2);st=true}else g.lineTo(x2,y2);
+    }
+    g.stroke();g.fillStyle=css(s.c);
+    for(var i3=0;i3<pts.length;i3++){
+      if(pts[i3]==null)continue;
+      var x3=L+(i3/(TAUS.length-1))*pw,y3=T+ph-Math.min(1,pts[i3]/maxY)*ph;
+      g.beginPath();g.arc(x3,y3,3,0,7);g.fill();
+    }
+  });
+}
+
+/* ============================== panel 4 ============================== */
+var s4={fail:'none',rule:'po2',eng:null,scale:12};
+buildLanes('s4lanes','s4labels',null,8);
+(function(){var B=$('s4bars');B.innerHTML='';
+  for(var i=0;i<8;i++){
+    var d=document.createElement('div');d.className='bar';
+    d.innerHTML='<span>Server '+NAMES[i]+(i===0?' <b style="color:var(--muted)">(the faulty one)</b>':'')+
+      '</span><div class="track"><div class="fair" style="left:12.5%"></div><div class="fill" style="width:0%"></div></div><span class="pc">0.0%</span>';
+    B.appendChild(d);
+  }})();
+function s4make(){
+  var cfg={strategy:s4.rule,lambda:320,cv2:1,seed:4};
+  if(s4.fail==='slow')cfg.mult=[5,1,1,1,1,1,1,1];
+  if(s4.fail==='fast')cfg.failFast=[0];
+  s4.eng=new Live(cfg);
+}
+s4make();
+seg('s4fail',function(v){s4.fail=v;s4make()});
+seg('s4rule',function(v){s4.rule=v;s4make()});
+$('s4pause').onclick=function(){paused.p4=!paused.p4;this.textContent=paused.p4?'Resume':'Pause'};
+$('s4reset').onclick=function(){s4make()};
+function s4tick(){
+  var e=s4.eng;e.advance(e.t+SPEED);
+  var pk=0;for(var z=0;z<8;z++)pk=Math.max(pk,e.depth(z));
+  s4.scale=Math.max(12,pk,(s4.scale||12)*0.997);
+  paintLanes(e,'s4lanes','s4labels',null,s4.scale);
+  var tot=0,i;for(i=0;i<8;i++)tot+=e.per[i];
+  var B=$('s4bars').children;
+  for(i=0;i<8;i++){
+    var sh=tot?100*e.per[i]/tot:0;
+    var fill=B[i].querySelector('.fill');
+    fill.style.width=Math.min(100,sh*2)+'%';
+    fill.style.background=(i===0&&s4.fail!=='none')?css('--bad'):(sh>18?css('--warn'):css('--cool'));
+    B[i].querySelector('.pc').textContent=f1(sh)+'%';
+  }
+  header(e,320,'80% busy · '+(s4.fail==='none'?'all eight healthy':'server A is '+(s4.fail==='slow'?'5× slower':'erroring in 1 ms')));
+  $('s4p99').textContent=ms(e.p99());
+  var ef=e.errs/((e.errs+e.served)||1);
+  $('s4err').textContent=f1(100*ef)+'%';
+  var share=tot?100*e.per[0]/tot:0,v=$('s4verdict');
+  if(s4.fail==='none'){v.className='verdict';
+    v.innerHTML='<strong>All eight healthy.</strong> Every rule gives A roughly its fair 12.5%. Now break it.';}
+  else if(s4.fail==='fast'){
+    v.className=share>20?'verdict bad':'verdict';
+    v.innerHTML='<strong>A is broken and it is getting '+f1(share)+'% of all traffic</strong> — a fair share '+
+      'is 12.5%. It answers in 1 ms because it is failing, and every rule that chases speed reads that as '+
+      'the healthiest server in the fleet. '+
+      (s4.rule==='rr'?'Round robin knows nothing and is, in this one scenario, the safest thing on the page.'
+                     :'Switch to round robin and watch the share fall to 12.5%.');}
+  else{
+    v.className=share>8?'verdict bad':'verdict';
+    v.innerHTML='<strong>A is five times slower and it is getting '+f1(share)+'% of all traffic.</strong> '+
+      'It can finish 10 requests a second. '+
+      (s4.rule==='rr'?'Round robin is sending it 40, so its queue grows forever — on a fleet running at 80%.'
+                     :'The rule noticed within milliseconds and backed off, because a slow server’s queue stays long.');}
+}
+$('s4run').onclick=function(){
+  var btn=this;btn.disabled=true;btn.textContent='Running…';
+  var rules=['rr','random','po2','leastconn','leastresp'],res={};
+  var jobs=[];rules.forEach(function(r){jobs.push({r:r,m:'slow'});jobs.push({r:r,m:'fast'})});
+  runJobs(jobs,
+    function(j){
+      /* shares settle far faster than percentiles do, so this needs a much shorter run
+         than the latency sweeps: 4 simulated minutes and 2 seeds reproduces the document's
+         ten-minute, six-seed figures to within 0.2 percentage points. */
+      var cfg={strategy:j.r,lambda:320,cv2:1,duration:240000,warmup:60000};
+      if(j.m==='slow')cfg.mult=[5,1,1,1,1,1,1,1];else cfg.failFast=[0];
+      var m=multi(cfg,2),tot=0;for(var i=0;i<8;i++)tot+=m.per[i];
+      res[j.r+j.m]=tot?100*m.per[0]/tot:0;
+    },
+    function(done,total){btn.textContent='Running… '+Math.round(100*done/total)+'%'},
+    function(){
+      var tb=$('s4tbl').querySelector('tbody');tb.innerHTML='';
+      rules.forEach(function(r){
+        var tr=document.createElement('tr');
+        var sl=res[r+'slow'],fa=res[r+'fast'];
+        if(r==='rr'||r==='leastresp')tr.className='lo';
+        tr.innerHTML='<td>'+RULE_LABEL[r]+'</td><td class="num">'+f1(sl)+'%</td><td class="num">'+f1(fa)+'%</td>';
+        tb.appendChild(tr);
+      });
+      $('s4tverdict').className='verdict bad';
+      $('s4tverdict').innerHTML='<strong>The two columns point in opposite directions, and that is the point.</strong> '+
+        'Round robin is the worst rule for a slow server (12.5% of traffic onto a machine that can take 3%) and the '+
+        'best for a broken one. Fastest-observed-response is the exact reverse: 1% to the slow server — the best '+
+        'protection on the page — and <b>100%</b> to the '+
+        'broken one. No dispatch rule can tell broken from fast, because broken <em>is</em> fast. '+
+        'That is what health checks and outlier ejection are for, and it is why they are a separate mechanism.';
+      btn.disabled=false;btn.textContent='Run the comparison';
+    });
+};
+
+/* ============================== clock ============================== */
+function frame(){
+  try{
+    if(SWEEPING){/* a headless sweep owns the main thread */}
+    else if(ACTIVE==='p1'&&!paused.p1)s1tick();
+    else if(ACTIVE==='p2'&&!paused.p2)s2tick();
+    else if(ACTIVE==='p3'&&!paused.p3)s3tick();
+    else if(ACTIVE==='p4'&&!paused.p4)s4tick();
+  }catch(err){console.error(err)}
+  requestAnimationFrame(frame);
+}
+drawS1();drawS3();
+window.addEventListener('resize',function(){drawS1();drawS3()});
+requestAnimationFrame(frame);
+</script>

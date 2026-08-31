@@ -1,0 +1,694 @@
+<title>The Two Trees</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F2F4F1; --surface: #FBFCFA; --surface2: #E9EDE8;
+    --text: #1C2620; --muted: #5B6862; --line: #CDD5CE;
+    --accent: #2E7D5B; --accent-ink: #FFFFFF;
+    --good: #2E7D5B; --warn: #B07C2A; --bad: #B3453E;
+    --good-bg: #E2EFE7; --warn-bg: #F4EAD8; --bad-bg: #F3E0DE;
+    --hot: #2E7D5B; --path: #33628C; --tomb: #B3453E; --skip: #7A5AA0;
+    --shadow: 0 1px 3px rgba(28,38,32,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121815; --surface: #1A211D; --surface2: #232C27;
+      --text: #D7E0DA; --muted: #93A29A; --line: #35403A;
+      --accent: #58A97F; --accent-ink: #0E140F;
+      --good: #6FB899; --warn: #D9A75B; --bad: #DE8A82;
+      --good-bg: #1D3229; --warn-bg: #38301C; --bad-bg: #3A2422;
+      --hot: #58A97F; --path: #7FA8CE; --tomb: #DE8A82; --skip: #AF97CF;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121815; --surface: #1A211D; --surface2: #232C27;
+    --text: #D7E0DA; --muted: #93A29A; --line: #35403A;
+    --accent: #58A97F; --accent-ink: #0E140F;
+    --good: #6FB899; --warn: #D9A75B; --bad: #DE8A82;
+    --good-bg: #1D3229; --warn-bg: #38301C; --bad-bg: #3A2422;
+    --hot: #58A97F; --path: #7FA8CE; --tomb: #DE8A82; --skip: #AF97CF;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    font-size: 16px; line-height: 1.55; margin: 0; padding: 0 16px 64px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1, h2, h3, .mono { font-family: "IBM Plex Mono","SF Mono",Menlo,Consolas,monospace; }
+  h1 { font-size: 1.7rem; font-weight: 600; letter-spacing: -.02em; margin: 40px 0 6px; text-wrap: balance; }
+  h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 10px; }
+  h3 { font-size: .95rem; font-weight: 600; margin: 14px 0 8px; }
+  .tagline { color: var(--muted); max-width: 64ch; margin: 0 0 4px; }
+  .story { max-width: 68ch; margin: 10px 0 0; }
+  .kicker { font-family: "IBM Plex Mono",monospace; font-size: .72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .14em; color: var(--accent); margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 18px 0 0; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .legend .chip { display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono",monospace; font-size: .74rem; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  nav.tabs { display: flex; gap: 6px; margin: 26px 0 0; border-bottom: 2px solid var(--line);
+    position: sticky; top: 0; background: var(--bg); z-index: 5; padding-top: 6px; }
+  nav.tabs button { font-family: "IBM Plex Mono",monospace; font-size: .85rem; font-weight: 600;
+    background: none; border: none; color: var(--muted); padding: 10px 14px 12px; cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  nav.tabs button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  section.tab { display: none; padding-top: 26px; }
+  section.tab.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 20px; margin: 0 0 18px; box-shadow: var(--shadow); }
+  .card p { max-width: 70ch; }
+  .btn { font-family: "IBM Plex Mono",monospace; font-size: .82rem; font-weight: 600;
+    background: var(--surface2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 8px 14px; cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .controls label { font-size: .82rem; color: var(--muted); }
+  select, input[type="number"] { font-family: "IBM Plex Mono",monospace; font-size: .82rem;
+    padding: 7px 8px; background: var(--surface2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 7px; width: auto; }
+  input[type="number"] { width: 84px; }
+
+  /* tree rendering */
+  .tree { overflow-x: auto; padding: 6px 2px 10px; }
+  .tree-level { display: flex; justify-content: center; gap: 10px; margin-bottom: 18px; min-width: max-content; }
+  .pg { font-family: "IBM Plex Mono",monospace; font-size: .8rem;
+    border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface2);
+    padding: 5px 9px; white-space: nowrap; }
+  .pg.leafpg { background: var(--surface); }
+  .pg.hot { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
+  .pg.path { border-color: var(--path); box-shadow: 0 0 0 2px var(--path); }
+  .pg .sep { color: var(--muted); }
+  .chainhint { text-align: center; font-size: .72rem; color: var(--muted); font-family: "IBM Plex Mono",monospace; }
+
+  /* lsm rendering */
+  .lsmrow { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .lsmbox { border: 1px solid var(--line); border-radius: 8px; background: var(--surface2);
+    padding: 10px 12px; min-width: 180px; }
+  .lsmbox h3 { margin: 0 0 6px; }
+  .lsmbox.memb { border-style: dashed; }
+  .entry { font-family: "IBM Plex Mono",monospace; font-size: .78rem; padding: 1px 0; }
+  .entry.tomb { color: var(--tomb); }
+  .sst { border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface);
+    padding: 6px 10px; margin-bottom: 8px; }
+  .sst.hot { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
+  .sst.skipped { border-color: var(--skip); box-shadow: 0 0 0 2px var(--skip); }
+  .sst.probed { border-color: var(--path); box-shadow: 0 0 0 2px var(--path); }
+  .sst .slabel { font-family: "IBM Plex Mono",monospace; font-size: .68rem; color: var(--muted); }
+  .walbox { font-family: "IBM Plex Mono",monospace; font-size: .72rem; color: var(--muted); }
+
+  .counter { font-family: "IBM Plex Mono",monospace; font-size: .82rem; margin-top: 8px; }
+  .counter b { font-size: 1rem; }
+  .verdict { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--surface);
+    border: 1px dashed var(--line); font-size: .95rem; min-height: 1.4em; }
+  .verdict.decided { border-style: solid; border-color: var(--accent); }
+  .predict { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; margin: 12px 0; }
+  .predict .pq { font-weight: 600; margin: 0 0 8px; }
+  .predict .p-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .predict .presult { margin: 10px 0 0; font-size: .9rem; display: none; }
+  .predict .presult.show { display: block; }
+  .eventlog { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; margin-top: 12px; max-height: 200px; overflow-y: auto; font-size: .85rem; }
+  .eventlog p { margin: 4px 0; max-width: none; }
+  .eventlog p b.mono { font-size: .78rem; color: var(--muted); font-weight: 500; }
+  footer { margin-top: 48px; color: var(--muted); font-size: .85rem; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+  <p class="kicker">btree-and-lsm lab · interactive companion</p>
+  <h1>The Two Trees</h1>
+  <p class="tagline">Every database keeps its data in one of two machines. Grow both with your own hands
+    and watch where each one pays.</p>
+  <p class="story"><strong>The story</strong> (from the lab's README): Kabir files invoices all day and must find any
+    of them instantly. Sorted order makes finding cheap but makes every insert expensive — so there are exactly two
+    famous escapes: <b>the filing cabinet</b> (small sorted pages with slack; a full page splits — the B-tree) and
+    <b>the inbox tray</b> (pile writes up in memory, flush them as immutable sorted files, merge later — the LSM-tree).
+    Machine 1 lets you grow the cabinet; Machine 2 runs the tray. Both are deterministic: <b>Step back</b> replays
+    history to any point.</p>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:var(--hot)"></span>just changed</span>
+    <span class="chip"><span class="dot" style="background:var(--path)"></span>read path / probed</span>
+    <span class="chip"><span class="dot" style="background:var(--skip)"></span>skipped by bloom filter</span>
+    <span class="chip"><span class="dot" style="background:var(--tomb)"></span>tombstone (deleted marker)</span>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="btree">1 · The B-tree floor</button>
+    <button role="tab" aria-selected="false" data-tab="lsm">2 · The LSM floor</button>
+  </nav>
+
+  <section class="tab active" id="tab-btree">
+    <div class="card">
+      <h2>Machine 1 — grow a B+ tree, watch it split</h2>
+      <p>Pages hold at most 4 keys (real pages hold hundreds — the logic is identical). Top box = root,
+        middle boxes = signpost pages routing by separator keys, bottom row = leaves holding the data,
+        chained left→right. Insert keys and watch: a full leaf <b>splits</b>, promoting a separator upward —
+        and when the promotion reaches a full root, the root itself splits and <b>the tree grows a level from
+        the top</b>. That is the only way it ever gets taller, and why it never needs rebalancing.</p>
+      <div class="controls">
+        <label for="bt-order">Key order:</label>
+        <select id="bt-order">
+          <option value="seq">Sequential (auto-increment style)</option>
+          <option value="rnd">Random (UUID style)</option>
+        </select>
+        <input type="number" id="bt-custom" min="1" max="999" placeholder="key">
+        <button class="btn" id="bt-insert-custom">Insert that key</button>
+      </div>
+      <div class="predict" id="bt-predict">
+        <p class="pq">🔮 Predict — insert 24 sequential keys into an empty tree: where does the tree gain height?</p>
+        <div class="p-opts" id="bt-predict-opts"></div>
+        <p class="presult" id="bt-predict-r"></p>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="bt-run">▶ Run 24 inserts for me</button>
+        <button class="btn" id="bt-step">Insert next</button>
+        <button class="btn" id="bt-back">Step back</button>
+        <button class="btn" id="bt-reset">Reset</button>
+        <input type="number" id="bt-search-key" min="1" max="999" placeholder="key">
+        <button class="btn" id="bt-search">Find a key</button>
+      </div>
+      <div class="tree" id="bt-tree"></div>
+      <p class="chainhint" id="bt-chain">leaves are chained left → right: range scans just walk this row</p>
+      <p class="counter">height: <b id="bt-height">1</b> · pages: <b id="bt-pages">1</b> ·
+        splits so far: <b id="bt-splits">0</b> · leaf fill: <b id="bt-fill">0%</b> ·
+        keys: <b id="bt-keys">0</b></p>
+      <div class="verdict" id="bt-verdict">Insert a few keys — the first split happens at key #5.</div>
+      <div class="eventlog" id="bt-log"><p>Machine 1 ready. Every event is narrated here, newest first.</p></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-lsm">
+    <div class="card">
+      <h2>Machine 2 — the LSM floor: tray, log, shelf</h2>
+      <p>Writes go to the <b>write-ahead log</b> (crash insurance) and the <b>memtable</b> (the sorted tray in RAM).
+        At 6 entries the memtable <b>flushes</b> to the shelf as an immutable sorted file — an <b>SSTable</b>, newest
+        on top. Files are never edited: an overwrite just shadows the old value, and a <b>delete writes a tombstone</b>.
+        Reading races top-down: memtable first, then each file — unless its <b>bloom filter</b> says
+        “definitely not here” and the file is skipped. <b>Compact</b> merges the shelf into one file, dropping
+        shadowed values and tombstones. Watch the disk-bytes counter: it only ever grows on writes — and shrinks
+        only when you compact.</p>
+      <div class="predict" id="lsm-predict">
+        <p class="pq">🔮 Predict — key <span class="mono">k07</span> was flushed into a file on the shelf, and you now
+          delete it. What does the disk physically contain afterwards?</p>
+        <div class="p-opts" id="lsm-predict-opts"></div>
+        <p class="presult" id="lsm-predict-r"></p>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="lsm-run">▶ Run the whole story for me</button>
+        <button class="btn" id="lsm-put">Write next invoice</button>
+        <button class="btn" id="lsm-over">Overwrite k07</button>
+        <button class="btn" id="lsm-del">Delete k07</button>
+        <button class="btn" id="lsm-get">Read k07</button>
+        <button class="btn" id="lsm-miss">Read a key that never existed</button>
+        <button class="btn" id="lsm-compact">Compact the shelf</button>
+        <button class="btn" id="lsm-back">Step back</button>
+        <button class="btn" id="lsm-reset">Reset</button>
+      </div>
+      <div class="lsmrow">
+        <div class="lsmbox memb" style="flex:1">
+          <h3>memtable (RAM) — flushes at 6</h3>
+          <div id="lsm-mem"></div>
+          <div class="walbox" id="lsm-wal"></div>
+        </div>
+        <div class="lsmbox" style="flex:2">
+          <h3>the shelf — immutable SSTables, newest on top</h3>
+          <div id="lsm-shelf"></div>
+        </div>
+      </div>
+      <p class="counter">disk bytes (modeled): <b id="lsm-bytes">0</b> · SSTables: <b id="lsm-tables">0</b> ·
+        flushes: <b id="lsm-flushes">0</b> · compactions: <b id="lsm-compactions">0</b> ·
+        last read checked <b id="lsm-checked">–</b></p>
+      <div class="verdict" id="lsm-verdict">Write a few invoices — the first flush happens at 6.</div>
+      <div class="eventlog" id="lsm-log"><p>Machine 2 ready. Every event is narrated here, newest first.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Companion to the <span class="mono">btree-and-lsm</span> lab. The same machines exist as runnable Python in
+      <span class="mono">src/</span> — and <span class="mono">experiments/</span> measures what you see here in real
+      numbers (write amp 118.7 vs 2.5; bloom filters eliminating 98.2% of absent-key I/O on this lab's machine).
+      Sibling page: <em>The Query Shape Machine</em> from the database-landscape lab.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll("section.tab").forEach((s) => s.classList.remove("active"));
+    $("tab-" + b.dataset.tab).classList.add("active");
+  });
+});
+
+/* =====================================================================
+   MACHINE 1 — B+ tree. Pure replay: the state is just the key list;
+   the tree is rebuilt from it, so Step back is trivial and exact.
+   ===================================================================== */
+const MAX_KEYS = 4;
+let pageIdCounter = 0;
+
+function newPage(leaf) {
+  return { id: ++pageIdCounter, leaf, keys: [], children: [], next: null };
+}
+
+function buildTree(keys, captureFrom) {
+  // captureFrom: index of the first insert whose effects we record (usually
+  // the last one) — touched pages + narration events for highlighting.
+  const t = { root: newPage(true), splits: 0, touched: new Set(), events: [] };
+  keys.forEach((k, idx) => {
+    const rec = idx >= captureFrom;
+    if (rec) { t.touched = new Set(); t.events = []; }
+    const res = insertInto(t, t.root, k, rec);
+    if (res) {
+      const nr = newPage(false);
+      nr.keys = [res[0]];
+      nr.children = [t.root, res[1]];
+      t.root = nr;
+      if (rec) {
+        t.touched.add(nr.id);
+        t.events.push(`The ROOT itself was full and split — a new root was created above it. The tree grew a level FROM THE TOP; every leaf is still at the same depth.`);
+      }
+    }
+  });
+  return t;
+}
+
+function insertInto(t, page, key, rec) {
+  if (page.leaf) {
+    let i = page.keys.findIndex((k) => k >= key);
+    if (i === -1) i = page.keys.length;
+    if (page.keys[i] === key) return null; // no duplicates in this machine
+    page.keys.splice(i, 0, key);
+    if (rec) t.touched.add(page.id);
+    if (page.keys.length <= MAX_KEYS) {
+      if (rec) t.events.push(`Key ${key} descended to its leaf, which had room — one page touched, done. (Slack space is the whole point of pages.)`);
+      return null;
+    }
+    // split the leaf at its median; the right half's first key is promoted
+    const mid = Math.floor(page.keys.length / 2);
+    const right = newPage(true);
+    right.keys = page.keys.splice(mid);
+    right.next = page.next;
+    page.next = right;
+    t.splits++;
+    if (rec) {
+      t.touched.add(page.id); t.touched.add(right.id);
+      t.events.push(`Key ${key} made its leaf overflow (5 keys in a 4-key page). SPLIT: [${page.keys.join(",")}] | [${right.keys.join(",")}] — separator ${right.keys[0]} promoted to the parent.`);
+    }
+    return [right.keys[0], right];
+  }
+  let i = page.keys.findIndex((k) => key < k);
+  if (i === -1) i = page.keys.length;
+  const res = insertInto(t, page.children[i], key, rec);
+  if (!res) return null;
+  page.keys.splice(i, 0, res[0]);
+  page.children.splice(i + 1, 0, res[1]);
+  if (rec) t.touched.add(page.id);
+  if (page.keys.length <= MAX_KEYS) return null;
+  const mid = Math.floor(page.keys.length / 2);
+  const sep = page.keys[mid];
+  const right = newPage(false);
+  right.keys = page.keys.splice(mid + 1);
+  page.keys.splice(mid, 1);
+  right.children = page.children.splice(mid + 1);
+  t.splits++;
+  if (rec) {
+    t.touched.add(page.id); t.touched.add(right.id);
+    t.events.push(`The promotion overflowed a signpost page too — the SPLIT CASCADED: separator ${sep} moves further up.`);
+  }
+  return [sep, right];
+}
+
+function treeLevels(t) {
+  const levels = [];
+  let row = [t.root];
+  while (row.length) {
+    levels.push(row);
+    row = row[0].leaf ? [] : row.flatMap((p) => p.children);
+  }
+  return levels;
+}
+function treeStats(t) {
+  const levels = treeLevels(t);
+  const leaves = levels[levels.length - 1];
+  const nKeys = leaves.reduce((a, p) => a + p.keys.length, 0);
+  const nPages = levels.reduce((a, l) => a + l.length, 0);
+  return { height: levels.length, pages: nPages, keys: nKeys,
+           fill: leaves.length ? nKeys / (leaves.length * MAX_KEYS) : 0 };
+}
+
+const SEQ_KEYS = Array.from({ length: 40 }, (_, i) => (i + 1) * 5);
+const RND_KEYS = (() => { // deterministic LCG, distinct keys 1..199
+  const out = [], seen = new Set(); let x = 1234;
+  while (out.length < 40) {
+    x = (x * 1103515245 + 12345) % 2147483648;
+    const k = (x % 199) + 1;
+    if (!seen.has(k)) { seen.add(k); out.push(k); }
+  }
+  return out;
+})();
+
+const bt = { keys: [], order: "seq", auto: 0, predicted: null, resolved: false, timer: null, searchPath: null };
+
+function btLog(msg) {
+  const p = document.createElement("p");
+  p.innerHTML = msg;
+  $("bt-log").prepend(p);
+}
+function btNextAutoKey() {
+  const src = bt.order === "seq" ? SEQ_KEYS : RND_KEYS;
+  const used = new Set(bt.keys);
+  for (const k of src) if (!used.has(k)) return k;
+  return null;
+}
+function btRender(narrate) {
+  const t = buildTree(bt.keys, narrate ? bt.keys.length - 1 : bt.keys.length + 1);
+  if (narrate) t.events.forEach((e) => btLog(`<b class="mono">[insert ${bt.keys[bt.keys.length - 1]}]</b> ${e}`));
+  const wrap = $("bt-tree");
+  wrap.innerHTML = "";
+  treeLevels(t).forEach((level) => {
+    const row = document.createElement("div");
+    row.className = "tree-level";
+    level.forEach((p) => {
+      const el = document.createElement("div");
+      el.className = "pg" + (p.leaf ? " leafpg" : "") +
+        (t.touched.has(p.id) && narrate !== false ? " hot" : "") +
+        (bt.searchPath && bt.searchPath.has(p.id) ? " path" : "");
+      el.innerHTML = p.leaf
+        ? p.keys.join(" · ") || "<span class='sep'>empty</span>"
+        : `<span class="sep">⟨</span>${p.keys.join(" · ")}<span class="sep">⟩</span>`;
+      row.appendChild(el);
+    });
+    wrap.appendChild(row);
+  });
+  const s = treeStats(t);
+  $("bt-height").textContent = s.height;
+  $("bt-pages").textContent = s.pages;
+  $("bt-splits").textContent = t.splits;
+  $("bt-fill").textContent = Math.round(s.fill * 100) + "%";
+  $("bt-keys").textContent = s.keys;
+  const v = $("bt-verdict");
+  if (s.keys === 0) { v.className = "verdict"; v.textContent = "Insert a few keys — the first split happens at key #5."; }
+  else {
+    v.className = "verdict" + (s.height >= 3 ? " decided" : "");
+    v.innerHTML = s.height >= 3
+      ? `<b>The tree is now ${s.height} levels tall — and every leaf sits at exactly the same depth.</b> It got here through ${t.splits} splits, each promoting one separator; height only ever changed at the ROOT. A search costs exactly ${s.height} page reads, no matter which key. Fill is ${Math.round(s.fill * 100)}% — the slack is what keeps the next insert cheap.`
+      : `${s.keys} keys across ${s.pages} pages, height ${s.height}. A find costs ${s.height} page read${s.height > 1 ? "s" : ""} — one per level. Keep inserting: watch what happens when a promotion reaches a full root.`;
+  }
+  if (s.height >= 3 && !bt.resolved && bt.predicted !== null) btResolvePredict();
+  return t;
+}
+function btResolvePredict() {
+  bt.resolved = true;
+  const r = $("bt-predict-r");
+  r.className = "presult show";
+  const why = "Height changed only when the ROOT split — new levels appear at the top, never the bottom, which is why all leaves stay at one depth and the tree never needs rebalancing.";
+  r.innerHTML = bt.predicted === 1
+    ? `<b>Your prediction held.</b> ${why}`
+    : `<b>Your prediction didn't hold — the good kind of wrong.</b> ${why}`;
+}
+["The bottom — leaves get subdivided", "The top — the root splits and a new root appears", "The middle — a new signpost row is wedged in"].forEach((txt, i) => {
+  const b = document.createElement("button");
+  b.className = "btn"; b.textContent = txt;
+  b.addEventListener("click", () => {
+    bt.predicted = i;
+    $("bt-predict-opts").querySelectorAll(".btn").forEach((x) => (x.disabled = true));
+    b.classList.add("primary");
+    $("bt-predict-r").className = "presult show";
+    $("bt-predict-r").textContent = "Prediction locked in. Now grow the tree past ~10 keys.";
+  });
+  $("bt-predict-opts").appendChild(b);
+});
+
+function btInsert(key, narrate) {
+  if (bt.keys.includes(key)) { btLog(`Key ${key} is already in the tree — this machine keeps keys unique.`); return; }
+  bt.searchPath = null;
+  bt.keys.push(key);
+  btRender(narrate);
+}
+$("bt-order").addEventListener("change", (e) => { bt.order = e.target.value; });
+$("bt-step").addEventListener("click", () => { const k = btNextAutoKey(); if (k !== null) btInsert(k, true); });
+$("bt-insert-custom").addEventListener("click", () => {
+  const k = parseInt($("bt-custom").value, 10);
+  if (!isNaN(k) && k >= 1 && k <= 999) btInsert(k, true);
+});
+$("bt-back").addEventListener("click", () => {
+  if (!bt.keys.length) return;
+  const k = bt.keys.pop();
+  bt.searchPath = null;
+  btLog(`Stepped back — key ${k} un-inserted by replaying history without it.`);
+  btRender(false);
+});
+$("bt-reset").addEventListener("click", () => {
+  clearInterval(bt.timer); bt.timer = null;
+  bt.keys = []; bt.searchPath = null;
+  $("bt-run").disabled = false;
+  $("bt-log").innerHTML = "<p>Machine 1 reset.</p>";
+  btRender(false);
+});
+$("bt-run").addEventListener("click", () => {
+  clearInterval(bt.timer);
+  $("bt-run").disabled = true;
+  btLog(`<b>Auto-run:</b> inserting 24 ${bt.order === "seq" ? "sequential" : "random"} keys. Watch the leaves fill, split, and push signposts upward.`);
+  let n = 0;
+  bt.timer = setInterval(() => {
+    const k = btNextAutoKey();
+    if (k === null || ++n > 24) { clearInterval(bt.timer); bt.timer = null; $("bt-run").disabled = false; return; }
+    btInsert(k, true);
+  }, 550);
+});
+$("bt-search").addEventListener("click", () => {
+  const k = parseInt($("bt-search-key").value, 10);
+  if (isNaN(k)) return;
+  const t = buildTree(bt.keys, bt.keys.length + 1);
+  const path = new Set();
+  let page = t.root, hops = 0;
+  while (true) {
+    path.add(page.id); hops++;
+    if (page.leaf) break;
+    let i = page.keys.findIndex((s) => k < s);
+    if (i === -1) i = page.keys.length;
+    page = page.children[i];
+  }
+  const found = page.keys.includes(k);
+  bt.searchPath = path;
+  btRender(false);
+  btLog(`<b class="mono">[find ${k}]</b> Walked ${hops} page${hops > 1 ? "s" : ""} (blue path) — exactly the tree's height — and ${found ? `found ${k} in its one true leaf.` : `reached the only leaf where ${k} could live: not there, so it doesn't exist. Same cost as a hit.`}`);
+});
+btRender(false);
+
+/* =====================================================================
+   MACHINE 2 — LSM. State = fold(ops); Step back = replay minus one.
+   Bloom filters are modeled as exact key sets (a real filter adds ~1%
+   false positives — said on the page where it matters).
+   ===================================================================== */
+const MEM_LIMIT = 6, ENTRY_BYTES = 10, TOMB = "⊗ tombstone";
+
+function lsmReplay(ops, narrateFrom) {
+  const st = { mem: new Map(), wal: 0, shelf: [], nextId: 1, disk: 0,
+               flushes: 0, compactions: 0, autoN: 0, overN: 1,
+               log: [], hot: new Set(), skipped: new Set(), probed: new Set(),
+               checked: null };
+  ops.forEach((op, idx) => {
+    const rec = idx >= narrateFrom;
+    if (rec) { st.log = []; st.hot = new Set(); st.skipped = new Set(); st.probed = new Set(); st.checked = null; }
+    applyLsm(st, op, rec);
+  });
+  return st;
+}
+function lsmFlush(st, rec) {
+  const entries = new Map([...st.mem.entries()].sort());
+  const file = { id: st.nextId++, entries, bytes: entries.size * ENTRY_BYTES };
+  st.shelf.unshift(file);           // newest on top
+  st.disk += file.bytes;
+  st.flushes++;
+  st.mem = new Map();
+  st.wal = 0;                        // flushed data is durable: WAL truncated
+  if (rec) {
+    st.hot.add(file.id);
+    st.log.push(`The memtable hit ${MEM_LIMIT} entries and FLUSHED: sorted itself and was written to the shelf as immutable SSTable #${file.id} in one sequential pass. The write-ahead log was truncated — its job is done.`);
+  }
+}
+function applyLsm(st, op, rec) {
+  if (op.t === "put" || op.t === "del") {
+    st.wal++;                        // WAL-before-ack: the log line lands first
+    let k, v;
+    if (op.t === "put" && op.k) { k = op.k; v = `v${++st.overN}`; }
+    else if (op.t === "put") { k = `k${String(++st.autoN).padStart(2, "0")}`; v = `inv-${st.autoN}`; }
+    else { k = op.k; v = TOMB; }
+    st.mem.set(k, v);
+    if (rec) st.log.push(op.t === "del"
+      ? `DELETE ${k}: the shelf's files are immutable — you cannot reach in and erase. The only possible move is to WRITE something newer: a tombstone for ${k} went to the WAL and the memtable.`
+      : `PUT ${k} = ${v}: one WAL append (crash insurance) + one memtable insert. No random disk I/O — this is why LSM writes are cheap.`);
+    if (st.mem.size >= MEM_LIMIT) lsmFlush(st, rec);
+  } else if (op.t === "get") {
+    const k = op.k;
+    let checked = 0, answer = null, where = null;
+    checked++;
+    if (st.mem.has(k)) { answer = st.mem.get(k); where = "the memtable"; }
+    else {
+      for (const f of st.shelf) {
+        if (!f.entries.has(k)) { st.skipped.add(f.id); if (rec) st.log.push(`SSTable #${f.id}'s bloom filter says "definitely not here" — skipped without touching disk. (A real filter also says "maybe" wrongly ~1% of the time.)`); continue; }
+        st.probed.add(f.id); checked++;
+        answer = f.entries.get(k); where = `SSTable #${f.id}`;
+        break;                        // newest wins: first hit is THE answer
+      }
+    }
+    st.checked = checked;
+    if (rec) {
+      if (answer === null) st.log.push(`READ ${k}: not in the memtable, and every file was skipped or probed without a hit — ${k} does not exist. Places checked: ${checked}.`);
+      else if (answer === TOMB) st.log.push(`READ ${k}: found a TOMBSTONE in ${where} first — so the answer is "not found", even though an older value may still sit in a file below. Newest wins; the read stops at the first hit. Places checked: ${checked}.`);
+      else st.log.push(`READ ${k} = "${answer}", found in ${where}. The read raced top-down and stopped at the FIRST hit — anything older is shadowed. Places checked: ${checked}.`);
+    }
+  } else if (op.t === "compact") {
+    if (!st.shelf.length) { if (rec) st.log.push("Nothing on the shelf to compact."); return; }
+    const merged = new Map();
+    for (let i = st.shelf.length - 1; i >= 0; i--)     // oldest→newest: newest overwrites
+      for (const [k, v] of st.shelf[i].entries) merged.set(k, v);
+    let dropped = 0, tombs = 0;
+    for (const [k, v] of [...merged]) if (v === TOMB) { merged.delete(k); tombs++; }
+    const inputBytes = st.shelf.reduce((a, f) => a + f.bytes, 0);
+    const inputCount = st.shelf.reduce((a, f) => a + f.entries.size, 0);
+    dropped = inputCount - merged.size - tombs;
+    const file = { id: st.nextId++, entries: new Map([...merged.entries()].sort()), bytes: merged.size * ENTRY_BYTES };
+    st.disk = st.disk - inputBytes + file.bytes;
+    st.shelf = [file];
+    st.compactions++;
+    if (rec) {
+      st.hot.add(file.id);
+      st.log.push(`COMPACTION: merged the whole shelf into SSTable #${file.id} — ${dropped} shadowed value${dropped === 1 ? "" : "s"} and ${tombs} tombstone${tombs === 1 ? "" : "s"} physically died here (and only here). Disk shrank from ${inputBytes} to ${file.bytes} bytes. Note: the new file was fully written BEFORE the old ones were deleted — the transient 2× disk spike of F-L3.`);
+    }
+  }
+}
+
+const lsm = { ops: [], timer: null, predicted: null, resolved: false };
+function lsmLog(msg) {
+  const p = document.createElement("p");
+  p.innerHTML = msg;
+  $("lsm-log").prepend(p);
+}
+function lsmRender(narrate) {
+  const st = lsmReplay(lsm.ops, narrate ? lsm.ops.length - 1 : lsm.ops.length + 1);
+  if (narrate) st.log.forEach((e) => lsmLog(`<b class="mono">[op ${lsm.ops.length}]</b> ${e}`));
+  const mem = $("lsm-mem");
+  const entries = [...st.mem.entries()].sort();
+  mem.innerHTML = entries.length
+    ? entries.map(([k, v]) => `<div class="entry${v === TOMB ? " tomb" : ""}">${k} → ${v}</div>`).join("")
+    : `<div class="entry" style="opacity:.55">empty</div>`;
+  $("lsm-wal").textContent = `WAL: ${st.wal} unflushed line${st.wal === 1 ? "" : "s"}`;
+  const shelf = $("lsm-shelf");
+  shelf.innerHTML = st.shelf.length ? "" : `<div class="entry" style="opacity:.55">no files yet — nothing has flushed</div>`;
+  st.shelf.forEach((f) => {
+    const d = document.createElement("div");
+    d.className = "sst" + (st.hot.has(f.id) ? " hot" : st.probed.has(f.id) ? " probed" : st.skipped.has(f.id) ? " skipped" : "");
+    const ks = [...f.entries.keys()];
+    d.innerHTML = `<span class="slabel">SSTable #${f.id} · ${f.entries.size} entries · ${f.bytes} bytes · immutable</span>` +
+      [...f.entries.entries()].map(([k, v]) => `<div class="entry${v === TOMB ? " tomb" : ""}">${k} → ${v}</div>`).join("");
+    shelf.appendChild(d);
+  });
+  $("lsm-bytes").textContent = st.disk;
+  $("lsm-tables").textContent = st.shelf.length;
+  $("lsm-flushes").textContent = st.flushes;
+  $("lsm-compactions").textContent = st.compactions;
+  $("lsm-checked").textContent = st.checked === null ? "–" : st.checked + " place" + (st.checked === 1 ? "" : "s");
+  const v = $("lsm-verdict");
+  const shadowed = countShadowed(st);
+  if (!lsm.ops.length) { v.className = "verdict"; v.textContent = "Write a few invoices — the first flush happens at 6."; }
+  else {
+    v.className = "verdict" + (st.compactions > 0 ? " decided" : "");
+    v.innerHTML = `Shelf: ${st.shelf.length} file${st.shelf.length === 1 ? "" : "s"}, ${st.disk} disk bytes` +
+      (shadowed > 0 ? `, of which <b>${shadowed} entr${shadowed === 1 ? "y is" : "ies are"} garbage</b> (shadowed values / tombstones) that only compaction can remove.` : `, no garbage right now.`) +
+      ` A read may check up to ${1 + st.shelf.length} places (memtable + files) — bloom filters skip most. Writes never touched a random disk location.`;
+  }
+  return st;
+}
+function countShadowed(st) {
+  const seen = new Set([...st.mem.keys()]);
+  let garbage = 0;
+  for (const [, v] of st.mem) if (v === TOMB) garbage++;
+  for (const f of st.shelf)
+    for (const [k, v] of f.entries) {
+      if (seen.has(k)) garbage++;
+      else { seen.add(k); if (v === TOMB) garbage++; }
+    }
+  return garbage;
+}
+function lsmDo(op, narrate) {
+  lsm.ops.push(op);
+  const st = lsmRender(narrate);
+  if (op.t === "del" && !lsm.resolved && lsm.predicted !== null) {
+    lsm.resolved = true;
+    const r = $("lsm-predict-r");
+    r.className = "presult show";
+    const why = "Look at the shelf: the old value still sits in its immutable file, and the tombstone is the NEWER record shadowing it. Disk holds BOTH until compaction merges them away — deletes make an LSM temporarily bigger, not smaller (F-L2's whole story).";
+    r.innerHTML = lsm.predicted === 1 ? `<b>Your prediction held.</b> ${why}` : `<b>Your prediction didn't hold — the good kind of wrong.</b> ${why}`;
+  }
+  return st;
+}
+["The old value is erased from the file", "Both the old value AND a new tombstone sit on disk", "The file is rewritten without that key"].forEach((txt, i) => {
+  const b = document.createElement("button");
+  b.className = "btn"; b.textContent = txt;
+  b.addEventListener("click", () => {
+    lsm.predicted = i;
+    $("lsm-predict-opts").querySelectorAll(".btn").forEach((x) => (x.disabled = true));
+    b.classList.add("primary");
+    $("lsm-predict-r").className = "presult show";
+    $("lsm-predict-r").textContent = "Prediction locked in. Write past one flush, then press “Delete k07”.";
+  });
+  $("lsm-predict-opts").appendChild(b);
+});
+
+$("lsm-put").addEventListener("click", () => lsmDo({ t: "put" }, true));
+$("lsm-over").addEventListener("click", () => lsmDo({ t: "put", k: "k07" }, true));
+$("lsm-del").addEventListener("click", () => lsmDo({ t: "del", k: "k07" }, true));
+$("lsm-get").addEventListener("click", () => lsmDo({ t: "get", k: "k07" }, true));
+$("lsm-miss").addEventListener("click", () => lsmDo({ t: "get", k: "zz99" }, true));
+$("lsm-compact").addEventListener("click", () => lsmDo({ t: "compact" }, true));
+$("lsm-back").addEventListener("click", () => {
+  if (!lsm.ops.length) return;
+  lsm.ops.pop();
+  lsmLog("Stepped back — state recomputed by replaying every operation except the last.");
+  lsmRender(false);
+});
+$("lsm-reset").addEventListener("click", () => {
+  clearInterval(lsm.timer); lsm.timer = null;
+  lsm.ops = [];
+  $("lsm-run").disabled = false;
+  $("lsm-log").innerHTML = "<p>Machine 2 reset.</p>";
+  lsmRender(false);
+});
+$("lsm-run").addEventListener("click", () => {
+  clearInterval(lsm.timer);
+  $("lsm-run").disabled = true;
+  lsmLog(`<b>Auto-run:</b> the whole LSM story — writes, a flush, an overwrite, a delete, reads (hit, tombstone, miss), and a compaction. Watch the disk-bytes counter.`);
+  const story = [
+    { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" },   // k01..k06 + flush? (flush at 6)
+    { t: "put" }, { t: "put" },                                                            // k07,k08
+    { t: "get", k: "k07" },
+    { t: "put", k: "k07" },                                                                // overwrite
+    { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" },                                // fill to flush
+    { t: "del", k: "k07" },
+    { t: "get", k: "k07" },
+    { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" }, { t: "put" },                  // flush tombstone
+    { t: "get", k: "zz99" },
+    { t: "compact" },
+    { t: "get", k: "k07" },
+  ];
+  let i = 0;
+  lsm.timer = setInterval(() => {
+    if (i >= story.length) { clearInterval(lsm.timer); lsm.timer = null; $("lsm-run").disabled = false; return; }
+    lsmDo(story[i++], true);
+  }, 900);
+});
+lsmRender(false);
+</script>

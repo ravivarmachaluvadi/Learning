@@ -1,0 +1,705 @@
+<title>The Padlock And The Seal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:   #F6F3EE;
+    --card:    #FFFFFF;
+    --sunk:    #EDE8E0;
+    --ink:     #1E1A16;
+    --ink-soft:#463E36;
+    --muted:   #787066;
+    --rule:    #DCD5CA;
+    --rule-soft:#E9E3DA;
+    --seal:    #8A5A2B;
+    --seal-dim:#F2E7D8;
+    --yes:     #2F6B43;
+    --yes-dim: #DFEDE2;
+    --no:      #A32F2A;
+    --no-dim:  #F6E1DF;
+    --wait:    #7A6A2E;
+    --wait-dim:#F0EBD4;
+    --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif:"Spectral", Georgia, "Times New Roman", serif;
+    --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --shadow: 0 1px 2px rgba(30,26,22,.05), 0 4px 14px rgba(30,26,22,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#15130F; --card:#1E1B16; --sunk:#191612; --ink:#EFE9E0; --ink-soft:#CFC6BA;
+      --muted:#8E857A; --rule:#332D26; --rule-soft:#272219; --seal:#D69A5C; --seal-dim:#2E2317;
+      --yes:#6FBF88; --yes-dim:#152619; --no:#E8877F; --no-dim:#2E1917; --wait:#CBB55F;
+      --wait-dim:#282312;
+      --shadow: 0 1px 2px rgba(0,0,0,.45), 0 4px 16px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#15130F; --card:#1E1B16; --sunk:#191612; --ink:#EFE9E0; --ink-soft:#CFC6BA;
+    --muted:#8E857A; --rule:#332D26; --rule-soft:#272219; --seal:#D69A5C; --seal-dim:#2E2317;
+    --yes:#6FBF88; --yes-dim:#152619; --no:#E8877F; --no-dim:#2E1917; --wait:#CBB55F;
+    --wait-dim:#282312;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 4px 16px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+         font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:26px 20px 70px; }
+  p { margin:0; } h1,h2,h3 { margin:0; text-wrap:balance; }
+  h1 { font-family:var(--serif); font-size:clamp(1.9rem,1.4rem + 2vw,2.7rem); font-weight:700;
+       line-height:1.08; letter-spacing:-.01em; }
+  h2 { font-family:var(--serif); font-size:1.24rem; font-weight:600; }
+  .eyebrow { font-family:var(--mono); font-size:.67rem; letter-spacing:.15em;
+             text-transform:uppercase; color:var(--muted); }
+  .lede { color:var(--ink-soft); max-width:70ch; margin-top:10px; }
+  header.top { border-bottom:1px solid var(--rule); padding-bottom:18px; }
+
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow); }
+  .panel-h { padding:11px 15px; border-bottom:1px solid var(--rule-soft); display:flex;
+             align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .panel-b { padding:15px; }
+
+  .bench { display:grid; grid-template-columns:274px minmax(0,1fr); gap:16px; align-items:start; margin-top:22px; }
+  @media (max-width:960px){ .bench{ grid-template-columns:1fr; } }
+  .rail { display:flex; flex-direction:column; gap:14px; position:sticky; top:14px; }
+  @media (max-width:960px){ .rail{ position:static; } }
+  .stack { display:flex; flex-direction:column; gap:16px; min-width:0; }
+
+  .field { display:flex; flex-direction:column; gap:5px; margin-bottom:13px; }
+  .field:last-child { margin-bottom:0; }
+  .field > label { font-size:.8rem; font-weight:600; }
+  .hint { font-size:.74rem; color:var(--muted); line-height:1.42; }
+  select { width:100%; font-family:var(--sans); font-size:.82rem; color:var(--ink);
+           background:var(--sunk); border:1px solid var(--rule); border-radius:5px; padding:6px 8px; }
+  .check { display:flex; align-items:flex-start; gap:8px; font-size:.82rem; padding:5px 0; cursor:pointer; }
+  .check input { margin-top:3px; accent-color:var(--seal); flex:none; }
+  .check .nm { font-family:var(--mono); font-size:.76rem; }
+
+  .btn { font-family:var(--sans); font-size:.82rem; font-weight:600; padding:8px 13px;
+         border-radius:5px; cursor:pointer; border:1px solid var(--rule); background:var(--sunk);
+         color:var(--ink); transition:border-color .15s,color .15s; }
+  .btn:hover:not(:disabled){ border-color:var(--seal); color:var(--seal); }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .btn.primary { background:var(--seal); border-color:var(--seal); color:var(--card); }
+  .btn.primary:hover:not(:disabled){ filter:brightness(1.1); color:var(--card); }
+  .btn-row { display:flex; gap:7px; flex-wrap:wrap; }
+  :focus-visible { outline:2px solid var(--seal); outline-offset:2px; }
+
+  /* ---- the two lamps: the whole lesson ---- */
+  .lamps { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:620px){ .lamps{ grid-template-columns:1fr; } }
+  .lamp { border:1px solid var(--rule); border-radius:8px; padding:14px 15px; background:var(--sunk);
+          transition:background .3s, border-color .3s; }
+  .lamp .k { font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase;
+             color:var(--muted); }
+  .lamp .v { font-family:var(--serif); font-size:1.3rem; font-weight:600; margin-top:4px; line-height:1.2; }
+  .lamp .d { font-size:.78rem; color:var(--ink-soft); margin-top:5px; line-height:1.4; }
+  .lamp.on  { background:var(--yes-dim); border-color:var(--yes); }
+  .lamp.on  .v { color:var(--yes); }
+  .lamp.off { background:var(--sunk); }
+  .lamp.off .v { color:var(--muted); }
+  .lamp.bad { background:var(--no-dim); border-color:var(--no); }
+  .lamp.bad .v { color:var(--no); }
+
+  /* ---- handshake timeline ---- */
+  .hs { display:flex; flex-direction:column; gap:0; }
+  .msg { display:grid; grid-template-columns:1fr 30px 1fr; gap:8px; align-items:center;
+         padding:7px 0; border-bottom:1px solid var(--rule-soft); opacity:.32; transition:opacity .25s; }
+  .msg:last-child { border-bottom:none; }
+  .msg.done { opacity:1; }
+  .msg.cur { opacity:1; background:var(--seal-dim); border-radius:5px; }
+  .msg .bub { font-family:var(--mono); font-size:.72rem; padding:6px 9px; border-radius:5px;
+              border:1px solid var(--rule); background:var(--sunk); }
+  .msg .bub.enc { border-color:var(--yes); background:var(--yes-dim); color:var(--yes); }
+  .msg.l .bub { grid-column:1; text-align:left; }
+  .msg.r .bub { grid-column:3; text-align:right; }
+  .msg .arrow { grid-column:2; text-align:center; font-family:var(--mono); color:var(--muted); font-size:.8rem; }
+  .msg .say { grid-column:1 / -1; font-size:.8rem; color:var(--ink-soft); padding-top:4px; line-height:1.42; }
+  .ends { display:grid; grid-template-columns:1fr 30px 1fr; gap:8px; padding-bottom:8px;
+          border-bottom:2px solid var(--rule); margin-bottom:8px; }
+  .ends div { font-family:var(--serif); font-weight:600; font-size:.92rem; }
+  .ends div:last-child { text-align:right; }
+
+  /* ---- chain of trust ---- */
+  .chain { display:flex; flex-direction:column; gap:0; align-items:stretch; }
+  .cert { border:1px solid var(--rule); border-left:4px solid var(--rule); border-radius:6px;
+          padding:10px 12px; background:var(--sunk); }
+  .cert.root.trusted { border-left-color:var(--yes); background:var(--yes-dim); }
+  .cert.root.untrusted { border-left-color:var(--no); background:var(--no-dim); }
+  .cert.leaf { border-left-color:var(--seal); }
+  .cert .cn { font-family:var(--mono); font-size:.8rem; font-weight:500; }
+  .cert .row { font-family:var(--mono); font-size:.69rem; color:var(--muted); margin-top:3px; }
+  .cert .tag { font-size:.68rem; font-family:var(--mono); letter-spacing:.06em; text-transform:uppercase; }
+  .link { text-align:center; font-family:var(--mono); font-size:.68rem; color:var(--muted); padding:5px 0; }
+
+  /* ---- checks ---- */
+  .checks { display:flex; flex-direction:column; gap:7px; }
+  .chk { display:grid; grid-template-columns:24px 1fr; gap:9px; align-items:start;
+         padding:8px 10px; border-radius:5px; border:1px solid var(--rule-soft); background:var(--sunk); }
+  .chk.pass { border-color:var(--yes); background:var(--yes-dim); }
+  .chk.fail { border-color:var(--no); background:var(--no-dim); }
+  .chk.skip { opacity:.5; }
+  .chk .mark { font-family:var(--mono); font-weight:500; text-align:center; }
+  .chk.pass .mark { color:var(--yes); } .chk.fail .mark { color:var(--no); }
+  .chk .t { font-size:.84rem; font-weight:500; }
+  .chk .w { font-size:.77rem; color:var(--ink-soft); margin-top:2px; line-height:1.42; }
+
+  pre.code { font-family:var(--mono); font-size:.72rem; line-height:1.6; margin:0; background:var(--sunk);
+             border:1px solid var(--rule-soft); border-left:3px solid var(--no); border-radius:0 5px 5px 0;
+             padding:11px 12px; overflow-x:auto; color:var(--ink-soft); white-space:pre-wrap; }
+  pre.code.good { border-left-color:var(--yes); }
+
+  .predict { border-left:3px solid var(--wait); background:var(--wait-dim); }
+  .predict .q { font-family:var(--serif); font-size:1.18rem; font-weight:600; }
+  .opts { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .opt { text-align:left; font-family:var(--sans); font-size:.84rem; padding:9px 11px; border-radius:5px;
+         border:1px solid var(--rule); background:var(--card); color:var(--ink); cursor:pointer; }
+  .opt:hover { border-color:var(--seal); }
+  .opt.right { border-color:var(--yes); background:var(--yes-dim); color:var(--yes); }
+  .opt.wrong { border-color:var(--no); background:var(--no-dim); color:var(--no); }
+  .why { margin-top:12px; font-size:.87rem; color:var(--ink-soft); line-height:1.55; }
+
+  .verdictline { font-family:var(--serif); font-size:1.06rem; line-height:1.45; }
+  footer.foot { margin-top:32px; padding-top:14px; border-top:1px solid var(--rule);
+                font-size:.77rem; color:var(--muted); }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Transport Layer Security</p>
+    <h1>The padlock and the seal</h1>
+    <p class="lede">
+      A padlock means <em>nobody else can read this</em>. It does not mean
+      <em>you are talking to who you think you are</em>. Those are two different
+      jobs, they are finished at two different moments, and only one of them can
+      be broken without anything looking wrong. Step through a real handshake and
+      watch the two guarantees arrive separately.
+    </p>
+  </header>
+
+  <div class="bench">
+
+    <div class="rail">
+      <div class="panel">
+        <div class="panel-h"><h2>Run the handshake</h2></div>
+        <div class="panel-b">
+          <div class="btn-row" style="margin-bottom:11px">
+            <button class="btn primary" id="btn-play">Play it through</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btn-back">&larr; Back</button>
+            <button class="btn" id="btn-step">Step &rarr;</button>
+            <button class="btn" id="btn-reset">Reset</button>
+          </div>
+          <p class="hint" style="margin-top:10px">
+            Step <strong id="stepno">0</strong> of <span id="steptotal">7</span>.
+            Watch the two lamps above the timeline — they do not turn on together.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>Change the situation</h2></div>
+        <div class="panel-b">
+
+          <div class="field">
+            <label for="c-scen">Which server answers?</label>
+            <select id="c-scen">
+              <option value="good" selected>The real one — our CA signed it</option>
+              <option value="selfsigned">One that signed its own certificate</option>
+              <option value="wronghost">One holding a certificate for another name</option>
+              <option value="expired">One whose certificate ran out last month</option>
+              <option value="mitm">An impostor with its own certificate authority</option>
+            </select>
+            <span class="hint" id="scen-hint">These are the exact certificates <code>certs.sh</code> builds.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-host">Which name did you ask for?</label>
+            <select id="c-host">
+              <option value="localhost" selected>localhost</option>
+              <option value="other.example">other.example</option>
+            </select>
+            <span class="hint">The certificate is checked against this. Change it and watch a rejection become an acceptance.</span>
+          </div>
+
+          <div class="field">
+            <label>Which authorities do you trust?</label>
+            <label class="check"><input type="checkbox" id="t-lab" checked>
+              <span><span class="nm">TLS Lab Root CA</span><br><span class="hint">the one we set up ourselves</span></span></label>
+            <label class="check"><input type="checkbox" id="t-int">
+              <span><span class="nm">Interceptor Root CA</span><br><span class="hint">tick this to let the impostor through</span></span></label>
+            <span class="hint">This list is the <em>only</em> thing that decides who you are willing to believe.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-ver">Protocol version</label>
+            <select id="c-ver">
+              <option value="13" selected>TLS 1.3 — one round trip</option>
+              <option value="12">TLS 1.2 — two round trips</option>
+            </select>
+            <span class="hint">Changes how many messages, and when encryption starts.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-verify">Check the certificate at all?</label>
+            <select id="c-verify">
+              <option value="on" selected>Yes — normal client</option>
+              <option value="off">No — "trust everything" (the copy-pasted fix)</option>
+            </select>
+            <span class="hint">This is the bug in <code>BrokenTrust.java</code>. Try it with the impostor.</span>
+          </div>
+
+          <div class="field">
+            <label for="c-predict">Ask me to predict first</label>
+            <select id="c-predict">
+              <option value="on" selected>Yes — on the three sharpest cases</option>
+              <option value="off">No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+
+      <div class="panel">
+        <div class="panel-h">
+          <h2>The two guarantees</h2>
+          <span class="eyebrow" id="phase-note">not started</span>
+        </div>
+        <div class="panel-b">
+          <div class="lamps">
+            <div class="lamp off" id="lamp-enc">
+              <p class="k">Nobody else can read this</p>
+              <p class="v" id="enc-v">not yet</p>
+              <p class="d" id="enc-d">The first messages travel in the clear.</p>
+            </div>
+            <div class="lamp off" id="lamp-id">
+              <p class="k">You are talking to who you think</p>
+              <p class="v" id="id-v">not yet</p>
+              <p class="d" id="id-d">No certificate has been checked.</p>
+            </div>
+          </div>
+          <p class="verdictline" id="verdict" style="margin-top:14px">
+            Press <strong>Play it through</strong> to watch a handshake happen.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel predict" id="predict-box" hidden>
+        <div class="panel-b">
+          <p class="eyebrow" style="color:var(--wait)">Predict before you run it</p>
+          <p class="q" id="predict-q"></p>
+          <div class="opts" id="predict-opts"></div>
+          <p class="why" id="predict-why" hidden></p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>The conversation</h2></div>
+        <div class="panel-b">
+          <div class="ends"><div>Your client</div><div></div><div>The server</div></div>
+          <div class="hs" id="hs"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h">
+          <h2>The certificate, and who vouches for it</h2>
+          <span class="eyebrow" id="chain-note">not presented yet</span>
+        </div>
+        <div class="panel-b">
+          <div class="chain" id="chain"></div>
+          <div class="checks" id="checks" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>What your code sees</h2></div>
+        <div class="panel-b"><pre class="code" id="code-out">Nothing yet.</pre></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="foot">
+    Companion to the <code style="font-family:var(--mono)">tls</code> lab. The certificates,
+    the four verification checks and the exception text are the real ones — every scenario here
+    corresponds to a keystore that <code style="font-family:var(--mono)">certs.sh</code> builds
+    and <code style="font-family:var(--mono)">TlsLab.java</code> actually connects to. The message
+    sequence is a faithful but simplified TLS 1.3 / 1.2 flow: key-schedule detail, extensions and
+    alert protocol are omitted.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ------------------------------------------------------------------
+     The certificates. These mirror pki/ exactly — same subjects, same
+     issuers, same dates as the ones keytool generates.
+     ------------------------------------------------------------------ */
+  // The real current date, so the "is it in date?" check stays honest as time
+  // passes — including for the certificate that is valid today.
+  var TODAY = new Date().toISOString().slice(0, 10);
+  var CERTS = {
+    good:       { cn:"localhost",     san:["localhost","127.0.0.1"], issuer:"TLS Lab Root CA",
+                  from:"2026-08-28", to:"2027-08-28", selfSigned:false },
+    selfsigned: { cn:"localhost",     san:["localhost","127.0.0.1"], issuer:"localhost (itself)",
+                  from:"2026-08-28", to:"2027-08-28", selfSigned:true },
+    wronghost:  { cn:"other.example", san:["other.example"],         issuer:"TLS Lab Root CA",
+                  from:"2026-08-28", to:"2027-08-28", selfSigned:false },
+    expired:    { cn:"localhost",     san:["localhost","127.0.0.1"], issuer:"TLS Lab Root CA",
+                  from:"2025-07-24", to:"2026-07-24", selfSigned:false },
+    mitm:       { cn:"localhost",     san:["localhost","127.0.0.1"], issuer:"Interceptor Root CA",
+                  from:"2026-08-28", to:"2027-08-28", selfSigned:false }
+  };
+
+  var SCEN_HINT = {
+    good:"The certificate our own authority issued for localhost. The control case.",
+    selfsigned:"Nobody vouches for it but itself. Common in dev environments, and the reason people reach for the broken fix.",
+    wronghost:"A genuine certificate, correctly signed and in date — just issued for a different name.",
+    expired:"Was perfectly valid until last month. Nothing about trust is wrong.",
+    mitm:"CN says localhost, but a different authority signed it. This is what a TLS-inspecting proxy looks like."
+  };
+
+  var PREDICTS = {
+    mitm:{
+      q:"An impostor holds a certificate that says CN=localhost, signed by its own authority. You have not trusted that authority. How far does the handshake get?",
+      opts:[
+        {s:"It fails immediately — nothing is ever encrypted",ok:false,
+         why:"Encryption is agreed BEFORE identity is checked. Keys are established at the ServerHello, and the certificate is not even sent until after that. So the connection genuinely does become encrypted first, and is then torn down."},
+        {s:"It becomes encrypted, then fails when the certificate is checked",ok:true,
+         why:"Exactly, and this ordering is the whole point. The two lamps light at different moments: encryption at step 2, identity at step 5. In between you have a perfectly private channel to a party you have not verified. That is why encryption alone is worth so much less than people assume."},
+        {s:"It succeeds — the certificate says localhost, which is what we asked for",ok:false,
+         why:"The name matches, but names are free — anyone can put localhost in a certificate. What cannot be forged is a signature from an authority you already trust, and that is the check this fails."}
+      ]
+    },
+    wronghost:{
+      q:"This certificate was signed by an authority you trust, and it has not expired. You asked for localhost; the certificate says other.example. Accept or reject?",
+      opts:[
+        {s:"Accept — a trusted authority signed it",ok:false,
+         why:"If a trusted signature were enough, then any certificate that authority ever issued would work for any site. Someone who legitimately owns other.example could impersonate your bank. The name check is what stops one valid certificate from working everywhere."},
+        {s:"Reject — the name does not match",ok:true,
+         why:"Right. Trust answers 'is this certificate genuine'; the name check answers 'is it genuine for the site I asked for'. Both must hold. Now switch the hostname control to other.example and watch the same certificate become acceptable — nothing about the certificate changed, only what you asked for."},
+        {s:"Accept, but warn",ok:false,
+         why:"Browsers show a warning because a human can judge; a library cannot. In Java this is a hard failure, and TlsLab experiment 2 shows the exact exception."}
+      ]
+    },
+    expired:{
+      q:"A certificate from an authority you trust, for exactly the right name — but it expired last month. What is actually wrong?",
+      opts:[
+        {s:"The server is compromised",ok:false,
+         why:"Expiry is not evidence of compromise. It usually means a renewal job failed or nobody owned the calendar entry."},
+        {s:"Nothing about trust or identity — only the clock",ok:true,
+         why:"Trust is intact and the name is right. Expiry exists so that a stolen key has a deadline and so revocation checking need not be perfect. Note the other side of this: if YOUR clock is wrong, a perfectly good certificate looks expired or not-yet-valid — which is why this failure sometimes lives on your machine, not the server."},
+        {s:"The certificate authority revoked it",ok:false,
+         why:"Revocation is a separate mechanism with separate failures. Expiry is just a date passing, and it needs no announcement from anyone."}
+      ]
+    }
+  };
+
+  /* ------------------------------------------------------------------
+     Handshake message scripts. Faithful in ordering and in WHEN each
+     guarantee is established; simplified in cryptographic detail.
+     ------------------------------------------------------------------ */
+  function script(ver) {
+    if (ver === "13") return [
+      { side:"l", label:"ClientHello", enc:false,
+        say:"Your client opens with the versions and ciphers it supports, a fresh key share, and — in the clear — the name it is looking for." },
+      { side:"r", label:"ServerHello", enc:false,
+        say:"The server picks one version and one cipher, and sends its own key share. Both sides can now compute the same secret key, so everything after this point is encrypted." },
+      { side:"r", label:"Certificate", enc:true,
+        say:"The server sends its certificate chain. Note that this is already encrypted — and note that you still have no idea whether to believe it." },
+      { side:"r", label:"CertificateVerify", enc:true,
+        say:"The server signs a transcript of the conversation with its private key. This is what proves it actually holds the key its certificate claims, rather than having copied someone else's certificate." },
+      { side:"l", label:"(verify)", enc:true, verify:true,
+        say:"Your client now checks the certificate: does the chain reach an authority I trust, is it for the name I asked for, and is it in date?" },
+      { side:"l", label:"Finished", enc:true,
+        say:"Both sides confirm that nobody tampered with the handshake messages themselves." },
+      { side:"l", label:"Application data", enc:true, app:true,
+        say:"Only now does your actual request move." }
+    ];
+    return [
+      { side:"l", label:"ClientHello", enc:false,
+        say:"Same opening: supported versions, ciphers, and the name being requested, all in the clear." },
+      { side:"r", label:"ServerHello + Certificate", enc:false,
+        say:"In TLS 1.2 the certificate arrives UNENCRYPTED — an eavesdropper sees exactly which server you are talking to, in full detail." },
+      { side:"l", label:"(verify)", enc:false, verify:true,
+        say:"Your client checks the certificate before it can proceed." },
+      { side:"l", label:"ClientKeyExchange", enc:false,
+        say:"The client sends its key material. This is the second round trip — the extra one TLS 1.3 removed." },
+      { side:"l", label:"ChangeCipherSpec + Finished", enc:true,
+        say:"Only now do the keys come into effect. Encryption starts later in 1.2 than in 1.3." },
+      { side:"r", label:"ChangeCipherSpec + Finished", enc:true,
+        say:"The server switches too and confirms the handshake was not tampered with." },
+      { side:"l", label:"Application data", enc:true, app:true,
+        say:"Your request finally moves — one full round trip later than TLS 1.3." }
+    ];
+  }
+
+  /* ------------------------------------------------------------------
+     The four checks a client performs. This is the real list.
+     ------------------------------------------------------------------ */
+  function runChecks(cfg) {
+    var c = CERTS[cfg.scen];
+    var out = [];
+    if (!cfg.verify) {
+      return [{ t:"Certificate checking is switched off", state:"fail",
+                w:"Every check below was skipped. Any certificate from anyone is accepted, so the identity guarantee does not exist — while the connection still reports as encrypted." }];
+    }
+    var trustedRoot = c.selfSigned ? false : cfg.trust.indexOf(c.issuer) !== -1;
+    out.push({ t:"Does the chain reach an authority I already trust?", state: trustedRoot ? "pass":"fail",
+      w: c.selfSigned
+          ? "No. This certificate signed itself, so the only thing vouching for it is itself."
+          : trustedRoot
+            ? "Yes. “" + c.issuer + "” is in the trust store, and it signed this certificate."
+            : "No. It was signed by “" + c.issuer + "”, which is not in the trust store." });
+    if (!trustedRoot) { out.push(skip("Is it issued for the name I asked for?")); out.push(skip("Is it in date?")); out.push(skip("Does the server hold the matching private key?")); return out; }
+
+    var nameOk = c.san.indexOf(cfg.host) !== -1;
+    out.push({ t:"Is it issued for the name I asked for?", state: nameOk ? "pass":"fail",
+      w: nameOk ? "Yes. “" + cfg.host + "” is listed in the certificate."
+                : "No. You asked for “" + cfg.host + "”, but the certificate covers only " + c.san.map(q).join(", ") + "." });
+    if (!nameOk) { out.push(skip("Is it in date?")); out.push(skip("Does the server hold the matching private key?")); return out; }
+
+    var dateOk = c.from <= TODAY && TODAY <= c.to;
+    out.push({ t:"Is it in date?", state: dateOk ? "pass":"fail",
+      w: dateOk ? "Yes. Valid " + c.from + " to " + c.to + ", and today is " + TODAY + "."
+                : "No. It ran from " + c.from + " to " + c.to + ", and today is " + TODAY + "." });
+    if (!dateOk) { out.push(skip("Does the server hold the matching private key?")); return out; }
+
+    out.push({ t:"Does the server hold the matching private key?", state:"pass",
+      w:"Yes — it signed the handshake transcript, which only the holder of that private key could do. Without this step, anyone could copy a public certificate and pretend to be its owner." });
+    return out;
+  }
+  function skip(t){ return { t:t, state:"skip", w:"Not reached — an earlier check already failed." }; }
+  function q(s){ return "“" + s + "”"; }
+
+  function exceptionFor(cfg, checks) {
+    if (!cfg.verify) return null;
+    for (var i=0;i<checks.length;i++) {
+      var c = checks[i];
+      if (c.state !== "fail") continue;
+      if (i === 0) return "javax.net.ssl.SSLHandshakeException: PKIX path building failed\n"
+        + "  sun.security.provider.certpath.SunCertPathBuilderException:\n"
+        + "    unable to find valid certification path to requested target";
+      if (i === 1) return "javax.net.ssl.SSLHandshakeException:\n"
+        + "  java.security.cert.CertificateException:\n"
+        + "    No subject alternative DNS name matching " + cfg.host + " found.";
+      if (i === 2) return "javax.net.ssl.SSLHandshakeException:\n"
+        + "  java.security.cert.CertificateExpiredException:\n"
+        + "    NotAfter: " + CERTS[cfg.scen].to;
+    }
+    return null;
+  }
+
+  /* ---- state ---- */
+  var cfg = { scen:"good", host:"localhost", trust:["TLS Lab Root CA"], ver:"13", verify:true, predict:"on" };
+  var step = 0, timer = null, pending = null, asked = {};
+
+  function steps(){ return script(cfg.ver); }
+  function verifyIndex(){ var s = steps(); for (var i=0;i<s.length;i++) if (s[i].verify) return i; return -1; }
+
+  function render() {
+    var s = steps(), vi = verifyIndex(), checks = runChecks(cfg);
+    var failed = checks.some(function(c){ return c.state==="fail"; });
+    var reachedVerify = step > vi;
+    // encryption turns on at the first message flagged encrypted
+    var encOn = false;
+    for (var i=0;i<step;i++) if (s[i].enc) { encOn = true; break; }
+    var dead = reachedVerify && failed;
+
+    $("stepno").textContent = step;
+    $("steptotal").textContent = s.length;
+
+    // lamps
+    var le=$("lamp-enc"), li=$("lamp-id");
+    le.className = "lamp " + (encOn ? "on" : "off");
+    $("enc-v").textContent = encOn ? "yes" : "not yet";
+    $("enc-d").textContent = encOn
+      ? "Keys were agreed at step " + (firstEnc(s)) + ". Everything after that is unreadable to an observer."
+      : "The first messages travel in the clear.";
+
+    var idOn = reachedVerify && !failed;
+    li.className = "lamp " + (dead ? "bad" : idOn ? "on" : "off");
+    $("id-v").textContent = dead ? "REFUSED" : idOn ? "yes" : "not yet";
+    $("id-d").textContent = dead
+      ? "A check failed, so the client tears the connection down rather than continue."
+      : idOn ? "The certificate chain reached a trusted authority, matched the name, and is in date."
+             : (step > 0 && step <= vi ? "The certificate has not been checked yet." : "No certificate has been checked.");
+
+    $("phase-note").textContent = step === 0 ? "not started"
+      : dead ? "handshake aborted" : step >= s.length ? "connected" : "in progress";
+
+    // verdict
+    var v = $("verdict");
+    if (step === 0) v.innerHTML = 'Press <strong>Play it through</strong> to watch a handshake happen.';
+    else if (dead) v.innerHTML = 'Encrypted, then <strong>refused</strong>. The channel was private — but the client could not prove who was on the other end, so it hung up before sending anything.';
+    else if (!reachedVerify) v.innerHTML = encOn
+        ? 'Encrypted, <strong>identity still unknown</strong>. This is the window most people do not realise exists.'
+        : 'Nothing is protected yet. These opening messages are readable by anyone on the path.';
+    else if (!cfg.verify) v.innerHTML = '<strong>Connected, and completely unverified.</strong> Encryption is working perfectly. You have no idea who is on the other end — and it looks identical to a correct connection.';
+    else v.innerHTML = 'Connected, encrypted, and <strong>identity proved</strong>. Both guarantees now hold.';
+
+    renderHs(s, vi, dead);
+    renderChain(checks, dead);
+    $("checks").innerHTML = reachedVerify ? checks.map(chkHtml).join("")
+      : '<p class="hint">The certificate has not been checked yet — keep stepping.</p>';
+
+    var ex = reachedVerify ? exceptionFor(cfg, checks) : null;
+    var pre = $("code-out");
+    if (step === 0) { pre.className="code"; pre.textContent="Nothing yet."; }
+    else if (ex) { pre.className="code"; pre.textContent = ex; }
+    else if (reachedVerify && !cfg.verify) {
+      pre.className="code"; pre.textContent =
+        "(no exception — the handshake completed)\n\nsession.getCipherSuite() -> TLS_AES_256_GCM_SHA384\nsession.getPeerPrincipal() -> CN=" + CERTS[cfg.scen].cn
+        + "\n\n// nothing checked who signed that.";
+    }
+    else if (reachedVerify) { pre.className="code good"; pre.textContent =
+        "session.getProtocol()     -> " + (cfg.ver==="13"?"TLSv1.3":"TLSv1.2")
+      + "\nsession.getCipherSuite()  -> TLS_AES_256_GCM_SHA384"
+      + "\nsession.getPeerPrincipal()-> CN=" + CERTS[cfg.scen].cn + ", O=TLS Lab"; }
+    else { pre.className="code"; pre.textContent = "(handshake still in progress)"; }
+
+    $("btn-step").disabled = step >= s.length || dead || !!pending;
+    $("btn-back").disabled = step === 0;
+    $("btn-play").textContent = timer ? "Pause" : (step >= s.length || dead ? "Play again" : "Play it through");
+  }
+
+  function firstEnc(s){ for (var i=0;i<s.length;i++) if (s[i].enc) return i+1; return "-"; }
+
+  function renderHs(s, vi, dead) {
+    var host = $("hs"); host.innerHTML = "";
+    s.forEach(function (m, i) {
+      var d = document.createElement("div");
+      var state = i < step ? (i === step-1 ? "cur" : "done") : "";
+      d.className = "msg " + m.side + " " + state;
+      var bub = '<span class="bub' + (m.enc ? ' enc' : '') + '">'
+              + (m.enc ? '🔒 ' : '') + esc(m.label) + '</span>';
+      var arrow = m.verify ? '<span class="arrow">?</span>'
+                : '<span class="arrow">' + (m.side === "l" ? "→" : "←") + '</span>';
+      d.innerHTML = (m.side === "l" ? bub + arrow + '<span></span>' : '<span></span>' + arrow + bub)
+                  + (i < step ? '<span class="say">' + esc(m.say) + '</span>' : '');
+      host.appendChild(d);
+    });
+    if (dead) {
+      var x = document.createElement("div");
+      x.className = "msg cur";
+      x.innerHTML = '<span class="say" style="color:var(--no);font-weight:600">'
+        + 'The client sends a fatal alert and closes. No application data is ever sent.</span>';
+      host.appendChild(x);
+    }
+  }
+
+  function renderChain(checks, dead) {
+    var c = CERTS[cfg.scen], host = $("chain");
+    var vi = verifyIndex();
+    if (step <= vi) {
+      host.innerHTML = '<p class="hint">The server has not presented its certificate yet.</p>';
+      $("chain-note").textContent = "not presented yet";
+      return;
+    }
+    $("chain-note").textContent = dead ? "rejected" : "accepted";
+    var trusted = !c.selfSigned && cfg.trust.indexOf(c.issuer) !== -1;
+    var html = '<div class="cert leaf"><div class="cn">CN=' + esc(c.cn) + '</div>'
+      + '<div class="row">valid for: ' + c.san.map(esc).join(", ") + '</div>'
+      + '<div class="row">in date: ' + c.from + " → " + c.to + '</div>'
+      + '<div class="row tag" style="color:var(--seal)">the server’s own certificate</div></div>';
+    html += '<div class="link">↑ signed by</div>';
+    if (c.selfSigned) {
+      html += '<div class="cert root untrusted"><div class="cn">itself</div>'
+            + '<div class="row">no independent authority vouches for this</div>'
+            + '<div class="row tag" style="color:var(--no)">not in your trust store</div></div>';
+    } else {
+      html += '<div class="cert root ' + (trusted ? "trusted" : "untrusted") + '">'
+            + '<div class="cn">' + esc(c.issuer) + '</div>'
+            + '<div class="row">a certificate authority</div>'
+            + '<div class="row tag" style="color:var(--' + (trusted ? "yes" : "no") + ')">'
+            + (trusted ? "in your trust store — believed" : "NOT in your trust store — ignored") + '</div></div>';
+    }
+    host.innerHTML = html;
+  }
+
+  function chkHtml(c) {
+    var mark = c.state === "pass" ? "✓" : c.state === "fail" ? "✗" : "–";
+    return '<div class="chk ' + c.state + '"><span class="mark">' + mark + '</span>'
+         + '<span><span class="t">' + esc(c.t) + '</span><span class="w">' + esc(c.w) + '</span></span></div>';
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+    return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]; }); }
+  function reduced(){ return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* ---- actions ---- */
+  function doStep() {
+    if (pending) return;
+    if (step === 0 && cfg.predict === "on" && PREDICTS[cfg.scen] && !asked[cfg.scen]) {
+      stopPlay(); showPredict(cfg.scen); return;
+    }
+    var s = steps(), vi = verifyIndex();
+    var checks = runChecks(cfg), failed = checks.some(function(c){return c.state==="fail";});
+    if (step > vi && failed) { stopPlay(); return; }
+    if (step < s.length) step++;
+    render();
+    if (step >= s.length) stopPlay();
+    if (step > vi && failed) stopPlay();
+  }
+  function doBack(){ stopPlay(); if (step>0) step--; render(); }
+  function reset(){ stopPlay(); step=0; pending=null; $("predict-box").hidden=true; render(); }
+  function startPlay(){ if (step>=steps().length) step=0; timer=setInterval(doStep, reduced()?500:1250); render(); }
+  function stopPlay(){ if (timer){ clearInterval(timer); timer=null; } render(); }
+
+  function showPredict(scen) {
+    pending = scen;
+    var p = PREDICTS[scen];
+    $("predict-box").hidden = false;
+    $("predict-q").textContent = p.q;
+    $("predict-why").hidden = true;
+    var opts = $("predict-opts"); opts.innerHTML = "";
+    p.opts.forEach(function (o, j) {
+      var b = document.createElement("button");
+      b.className = "opt"; b.textContent = o.s;
+      b.onclick = function () {
+        Array.prototype.forEach.call(opts.children, function(c){ c.disabled = true; });
+        b.classList.add(o.ok ? "right" : "wrong");
+        if (!o.ok) p.opts.forEach(function(oo,k){ if (oo.ok) opts.children[k].classList.add("right"); });
+        var w = $("predict-why"); w.hidden = false;
+        w.innerHTML = "<strong>" + (o.ok ? "Right. " : "Not quite. ") + "</strong>" + esc(o.why)
+                    + "<br><br><em>Now step through and watch it.</em>";
+        asked[scen] = true; pending = null; render();
+      };
+      opts.appendChild(b);
+    });
+    if (!reduced()) $("predict-box").scrollIntoView({behavior:"smooth",block:"nearest"});
+    render();
+  }
+
+  $("btn-step").onclick = doStep;
+  $("btn-back").onclick = doBack;
+  $("btn-reset").onclick = reset;
+  $("btn-play").onclick = function(){ timer ? stopPlay() : startPlay(); };
+
+  $("c-scen").onchange = function(e){ cfg.scen=e.target.value; $("scen-hint").textContent=SCEN_HINT[cfg.scen]; reset(); };
+  $("c-host").onchange = function(e){ cfg.host=e.target.value; reset(); };
+  $("c-ver").onchange  = function(e){ cfg.ver=e.target.value; reset(); };
+  $("c-verify").onchange = function(e){ cfg.verify = e.target.value === "on"; reset(); };
+  $("c-predict").onchange = function(e){ cfg.predict = e.target.value; };
+  function trustChanged(){
+    cfg.trust = [];
+    if ($("t-lab").checked) cfg.trust.push("TLS Lab Root CA");
+    if ($("t-int").checked) cfg.trust.push("Interceptor Root CA");
+    reset();
+  }
+  $("t-lab").onchange = trustChanged;
+  $("t-int").onchange = trustChanged;
+
+  render();
+})();
+</script>

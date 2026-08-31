@@ -1,0 +1,1480 @@
+<title>The Epoch Ledger</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#e9edf2; --card:#fbfcfe; --card2:#f0f3f7; --ink:#151d28; --muted:#5b6a7c; --line:#ccd5e0;
+  --accent:#9c5522; --accent-soft:#f6e9dd;
+  --good:#1c7a63; --good-soft:#dcefe9;
+  --bad:#b0242b; --bad-soft:#f8e2e2;
+  --warn:#a8760f; --warn-soft:#f7ecd5;
+  --e1:#2f6f9e; --e1s:#e2eef5;
+  --e2:#5a5bb0; --e2s:#e7e7f6;
+  --e3:#8a4a9e; --e3s:#f0e6f4;
+  --e4:#b0438a; --e4s:#f8e4f1;
+  --wire:#9aa8b8; --chip:#e6ebf1; --dead:#8c97a4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f151c; --card:#171f28; --card2:#1d2732; --ink:#dde5ee; --muted:#8d9cad; --line:#2a3542;
+    --accent:#d08a4e; --accent-soft:#33220f;
+    --good:#4fb497; --good-soft:#0f2a24;
+    --bad:#e2696f; --bad-soft:#3a1a1c;
+    --warn:#d3a552; --warn-soft:#332810;
+    --e1:#5b9dcb; --e1s:#12293a;
+    --e2:#8b8ce0; --e2s:#1e1e3c;
+    --e3:#bd82d0; --e3s:#2c1a33;
+    --e4:#e07ac0; --e4s:#3a1830;
+    --wire:#4a5866; --chip:#212c37; --dead:#5c6a78;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f151c; --card:#171f28; --card2:#1d2732; --ink:#dde5ee; --muted:#8d9cad; --line:#2a3542;
+  --accent:#d08a4e; --accent-soft:#33220f;
+  --good:#4fb497; --good-soft:#0f2a24;
+  --bad:#e2696f; --bad-soft:#3a1a1c;
+  --warn:#d3a552; --warn-soft:#332810;
+  --e1:#5b9dcb; --e1s:#12293a;
+  --e2:#8b8ce0; --e2s:#1e1e3c;
+  --e3:#bd82d0; --e3s:#2c1a33;
+  --e4:#e07ac0; --e4s:#3a1830;
+  --wire:#4a5866; --chip:#212c37; --dead:#5c6a78;
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); margin:0; padding:22px 20px 64px;
+  font:15px/1.55 "Chivo",system-ui,-apple-system,sans-serif;}
+.wrap{max-width:1400px; margin:0 auto;}
+h1{font-family:"Zilla Slab",Georgia,serif; font-weight:700; font-size:40px; margin:0;
+  letter-spacing:-.2px; text-wrap:balance; line-height:1.05;}
+h1 .sub{display:block; font-family:"Chivo",sans-serif; font-size:15px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:7px;}
+.lede{color:var(--muted); max-width:76ch; margin:10px 0 0; font-size:15.5px;}
+.lede b{color:var(--ink); font-weight:600;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+.cols{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:18px;}
+.stagecol{flex:1 1 720px; min-width:560px; display:flex; flex-direction:column; gap:14px;}
+.rail{flex:1 1 360px; min-width:335px; display:flex; flex-direction:column; gap:14px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:5px; padding:14px 15px;}
+.card > h3{margin:0 0 11px; font-family:"Chivo",sans-serif; font-size:11.5px;
+  text-transform:uppercase; letter-spacing:.13em; color:var(--muted); font-weight:700;
+  border-bottom:1px solid var(--line); padding-bottom:8px;}
+.card > h3 .r{float:right; text-transform:none; letter-spacing:0; font-weight:400; font-size:12px;}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.spread{justify-content:space-between;}
+button{font:inherit; font-weight:600; color:var(--ink); background:var(--card2);
+  border:1px solid var(--line); border-radius:4px; padding:6px 11px; cursor:pointer;
+  transition:border-color .12s, color .12s;}
+button:hover:not(:disabled){border-color:var(--accent); color:var(--accent);}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+button.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+button.primary:hover:not(:disabled){color:#fff; filter:brightness(1.09);}
+button:disabled{opacity:.38; cursor:default;}
+button.tiny{padding:3px 8px; font-size:12.5px; font-weight:600;}
+.seg{display:flex; flex-direction:column; gap:5px;}
+.seg button{text-align:left; padding:8px 10px; font-size:13.5px; line-height:1.3; font-weight:600;}
+.seg button .hint{display:block; font-weight:400; font-size:12px; color:var(--muted); margin-top:3px;}
+.seg button.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+.seg button.on .hint{color:var(--accent); opacity:.9;}
+.clock{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:14px; padding:5px 9px;
+  background:var(--chip); border-radius:4px; color:var(--muted);}
+label.f{display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.08em; font-weight:700; flex:1 1 132px;}
+select,input[type=range]{font:inherit; width:100%;}
+select{padding:5px 7px; border:1px solid var(--line); border-radius:4px; background:var(--card2);
+  color:var(--ink); font-size:13.5px; text-transform:none; letter-spacing:0; font-weight:400;}
+input[type=range]{accent-color:var(--accent); padding:0; margin:5px 0 0;}
+.sw{display:flex; align-items:flex-start; gap:8px; font-size:13.5px; text-transform:none;
+  letter-spacing:0; font-weight:400; color:var(--ink); cursor:pointer; line-height:1.35;}
+.sw input{accent-color:var(--accent); width:16px; height:16px; margin:2px 0 0; flex:none;}
+.sw .why{display:block; font-size:12px; color:var(--muted); margin-top:2px;}
+.sw.broken input:checked ~ span{color:var(--bad); font-weight:600;}
+/* ---- verdict ---- */
+.verdict{border-radius:5px; padding:13px 14px; border:1px solid var(--line); background:var(--card);
+  border-left:5px solid var(--accent);}
+.verdict.ok{border-left-color:var(--good);}
+.verdict.bad{border-left-color:var(--bad); background:var(--bad-soft);}
+.verdict.warn{border-left-color:var(--warn);}
+.verdict .vtitle{font-family:"Zilla Slab",Georgia,serif; font-size:19px; font-weight:700; line-height:1.25;}
+.verdict .vsub{color:var(--muted); font-size:13.5px; margin-top:5px;}
+.verdict.bad .vsub{color:var(--bad);}
+.chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+.chip{font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 8px; border-radius:3px; background:var(--good-soft); color:var(--good);
+  border:1px solid transparent;}
+.chip.no{background:var(--bad-soft); color:var(--bad); border-color:var(--bad);}
+/* ---- stage grid ---- */
+.stage{overflow-x:auto;}
+.grid{display:grid; grid-template-columns:190px 118px 1fr; gap:0; min-width:620px;}
+.gh{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted);
+  font-weight:700; padding:0 0 7px 2px; border-bottom:1px solid var(--line);}
+.noderow{border-bottom:1px solid var(--line); padding:9px 8px 9px 2px; display:flex;
+  flex-direction:column; gap:3px; cursor:pointer;}
+.noderow:hover{background:var(--card2);}
+.noderow.sel{background:var(--accent-soft);}
+.noderow .nname{font-family:"Zilla Slab",Georgia,serif; font-weight:700; font-size:16px;
+  display:flex; align-items:center; gap:7px;}
+.pill{font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  padding:2px 6px; border-radius:3px; border:1px solid;}
+.pill.lead{background:var(--accent-soft); color:var(--accent); border-color:var(--accent);}
+.pill.foll{background:var(--chip); color:var(--muted); border-color:var(--line);}
+.pill.look{background:var(--warn-soft); color:var(--warn); border-color:var(--warn);}
+.pill.down{background:var(--bad-soft); color:var(--bad); border-color:var(--bad);}
+.nmeta{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted);}
+.nmeta b{color:var(--ink); font-weight:500;}
+.side{font-size:10.5px; font-weight:700; padding:1px 5px; border-radius:3px; border:1px solid var(--line);
+  background:var(--card2); color:var(--muted);}
+.side.B{background:var(--warn-soft); color:var(--warn); border-color:var(--warn);}
+.wirecell{border-bottom:1px solid var(--line); position:relative;}
+.ledgerrow{border-bottom:1px solid var(--line); display:flex; gap:4px; align-items:center;
+  padding:9px 4px; min-height:58px;}
+.ledgerhead{display:flex; gap:4px; align-items:flex-end; padding:0 4px 5px;
+  border-bottom:1px solid var(--line);}
+.colh{width:52px; flex:none; text-align:center; font-family:"IBM Plex Mono",monospace;
+  font-size:11px; color:var(--muted); font-weight:500;}
+.cell{width:52px; height:40px; flex:none; border-radius:4px; border:1.5px dashed transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+  font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1.15;}
+.cell.none{border:1.5px dashed var(--line); opacity:.35;}
+.cell .v{font-weight:600; font-size:12.5px;}
+.cell .k{font-size:9.5px; opacity:.75; text-transform:uppercase; letter-spacing:.04em;}
+.cell.prop{border-style:dashed; background:transparent;}
+.cell.comm{border-style:solid;}
+.cell.trunc{background:repeating-linear-gradient(45deg,var(--bad-soft),var(--bad-soft) 4px,transparent 4px,transparent 8px);
+  border:1.5px solid var(--bad); color:var(--bad); text-decoration:line-through;}
+.cell.flash{animation:pop .55s ease-out;}
+@keyframes pop{0%{transform:scale(1.22); box-shadow:0 0 0 4px var(--accent-soft);}100%{transform:scale(1);}}
+@media (prefers-reduced-motion:reduce){.cell.flash{animation:none} .dot{transition:none}}
+.dead{opacity:.4;}
+/* ---- log ---- */
+.log{max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:9px;}
+.ev{border-left:3px solid var(--line); padding:1px 0 1px 9px; font-size:13.3px; line-height:1.4;}
+.ev .tt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); font-weight:500;}
+.ev .why{color:var(--muted); font-size:12.3px; margin-top:2px;}
+.ev .tech{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); margin-top:2px;}
+.ev.hi{border-left-color:var(--accent);}
+.ev.bad{border-left-color:var(--bad);} .ev.bad .why{color:var(--bad);}
+.ev.good{border-left-color:var(--good);}
+.ev.warn{border-left-color:var(--warn);}
+/* ---- predict ---- */
+.predict{background:var(--card2); border:1px dashed var(--accent); border-radius:5px; padding:12px 13px;}
+.predict .q{font-weight:700; font-size:14.5px; margin-bottom:9px; line-height:1.35;}
+.predict button{width:100%; text-align:left; margin-bottom:6px; font-weight:400; font-size:13.4px;}
+.predict button.picked{border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600;}
+.result{margin-top:9px; padding:10px 11px; border-radius:4px; font-size:13.4px; line-height:1.45;}
+.result.right{background:var(--good-soft); color:var(--good);}
+.result.wrong{background:var(--bad-soft); color:var(--bad);}
+.result b{font-weight:700;}
+/* ---- legend / misc ---- */
+.legend{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:9px 18px; font-size:13px;}
+.lg{display:flex; gap:9px; align-items:flex-start;}
+.swatch{width:32px; height:22px; flex:none; border-radius:3px; margin-top:1px;}
+.lg .t{color:var(--muted); line-height:1.35;}
+.lg .t b{color:var(--ink); font-weight:600; display:block;}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:13px;
+  font-family:"IBM Plex Mono",monospace;}
+.kv .k{color:var(--muted);}
+.note{font-size:12.5px; color:var(--muted); line-height:1.45;}
+.note b{color:var(--ink);}
+.hr{height:1px; background:var(--line); margin:11px 0;}
+.dot{transition:cx .16s linear, cy .16s linear;}
+footer{margin-top:26px; padding-top:14px; border-top:1px solid var(--line);
+  color:var(--muted); font-size:12.5px; max-width:80ch;}
+</style>
+<div class="wrap">
+
+<header>
+  <h1><span class="sub">ZooKeeper Atomic Broadcast</span>The Epoch Ledger</h1>
+  <p class="lede">Five servers keep one shared list of changes. One of them — the <b>primary</b> — is the only
+  one allowed to write, and every change it writes gets stamped with a two-part serial number:
+  <span class="mono">epoch.counter</span>. Epoch says <i>which primary wrote it</i>; counter says
+  <i>which change of that primary's it was</i>. The whole protocol exists to guarantee one thing:
+  <b>every server ends up with the same list, in the same order, with no gaps — even when the primary dies
+  mid-sentence.</b> Kill servers, tear the network, and watch whether that holds.</p>
+</header>
+
+<div class="cols">
+
+  <!-- ============ LEFT: stage ============ -->
+  <div class="stagecol">
+
+    <div id="verdict" class="verdict">
+      <div class="vtitle">Press <b>Start</b> to elect a primary.</div>
+      <div class="vsub">Nothing has happened yet. All five servers are looking for a leader.</div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="card stage">
+      <h3>The cluster and its ledger <span class="r" id="clockr"></span></h3>
+      <div class="grid" id="grid">
+        <div class="gh">Server</div>
+        <div class="gh">Messages in flight</div>
+        <div class="gh" id="ledgerheadwrap"><div class="ledgerhead" id="ledgerhead"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>How to read this picture</h3>
+      <div class="legend">
+        <div class="lg"><div class="swatch" style="border:1.5px dashed var(--e1);"></div>
+          <div class="t"><b>Dashed = written down, not yet final</b>The server has the change on disk but has not
+          been told it counts. A client asking about it must not be told it happened.</div></div>
+        <div class="lg"><div class="swatch" style="border:1.5px solid var(--e1); background:var(--e1s);"></div>
+          <div class="t"><b>Solid = committed</b>Delivered to the application. It can never be removed,
+          and every other server must eventually have it too.</div></div>
+        <div class="lg"><div class="swatch" style="border:1.5px solid var(--bad); background:repeating-linear-gradient(45deg,var(--bad-soft),var(--bad-soft) 4px,transparent 4px,transparent 8px);"></div>
+          <div class="t"><b>Hatched = thrown away</b>A new primary told this server to delete it. Only ever
+          happens to changes that were never committed anywhere.</div></div>
+        <div class="lg"><div class="swatch" style="background:linear-gradient(90deg,var(--e1) 25%,var(--e2) 25% 50%,var(--e3) 50% 75%,var(--e4) 75%);"></div>
+          <div class="t"><b>Colour = which primary wrote it</b>One colour per epoch. A colour change in the
+          ledger is a change of management.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Event log — what just happened, and why it matters</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: controls ============ -->
+  <div class="rail">
+
+    <div class="card">
+      <h3>Run it for me</h3>
+      <div class="seg" id="scenarios"></div>
+      <div class="hr"></div>
+      <div class="row spread">
+        <div class="row">
+          <button id="btnBack" title="Step back one tick">&#8592; Back</button>
+          <button id="btnStep">Step &#8594;</button>
+          <button id="btnPlay" class="primary">Start</button>
+        </div>
+        <button id="btnReset" class="tiny">Reset</button>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="f">Speed
+          <select id="selSpeed">
+            <option value="520">Slow</option>
+            <option value="280" selected>Normal</option>
+            <option value="120">Fast</option>
+          </select>
+        </label>
+        <label class="f">Network delay: <span id="latv" class="mono">2</span> ticks
+          <input type="range" id="rngLat" min="1" max="5" value="2">
+        </label>
+        <label class="f">Message loss: <span id="lossv" class="mono">0</span>%
+          <input type="range" id="rngLoss" min="0" max="60" step="5" value="0">
+        </label>
+      </div>
+    </div>
+
+    <div id="predictWrap"></div>
+
+    <div class="card">
+      <h3>Be the client</h3>
+      <div class="note" style="margin-bottom:9px">Every write here is <b>&ldquo;issue the next ticket
+      number&rdquo;</b> &mdash; the primary reads the current number, adds one, and broadcasts
+      <i>the answer</i>, not the instruction. That choice is the heart of ZAB, and scenario 4 shows why.</div>
+      <div class="row">
+        <button id="btnWrite" class="primary">Issue next ticket</button>
+        <button id="btnWrite3" class="tiny">Issue 3 tickets</button>
+      </div>
+      <div class="hr"></div>
+      <div class="row spread" style="margin-bottom:7px">
+        <span class="note" style="font-weight:600;color:var(--ink)">Read the ticket number from:</span>
+      </div>
+      <div class="row" id="readRow"></div>
+      <label class="sw" style="margin-top:9px"><input type="checkbox" id="cbSync">
+        <span>Call <span class="mono">sync()</span> first
+          <span class="why">Forces that server to catch up with the primary before answering. Without it,
+          a ZooKeeper read is served from local memory and can be old.</span></span></label>
+      <div id="readOut" style="margin-top:9px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Break something</h3>
+      <div class="note" style="margin-bottom:9px">Click a server to kill or revive it. Click its side badge
+      to move it across the network tear.</div>
+      <div id="faultRow" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div class="hr"></div>
+      <div class="row">
+        <button class="tiny" data-part="none">Heal the network</button>
+        <button class="tiny" data-part="23">Split 2 | 3</button>
+        <button class="tiny" data-part="14">Isolate one server</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Change the rules <span class="r">(each one is a real ZAB rule)</span></h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="sw broken"><input type="checkbox" id="rElect">
+          <span>Elect the lowest-numbered server instead of the most up-to-date one
+            <span class="why">Real ZAB elects the server holding the highest <span class="mono">zxid</span>,
+            so the new primary never has to be sent anything it is missing.</span></span></label>
+        <label class="sw broken"><input type="checkbox" id="rSync">
+          <span>Let a new primary start writing before republishing its predecessor's changes
+            <span class="why">Real ZAB makes the new primary commit its whole inherited history first
+            (the NEWLEADER round). This is the rule that ZAB exists for.</span></span></label>
+        <label class="sw broken"><input type="checkbox" id="rEpoch">
+          <span>Accept proposals from an old epoch
+            <span class="why">Real followers refuse any message stamped with an epoch below the one they
+            have accepted. This is what makes a returning zombie primary harmless.</span></span></label>
+        <label class="sw broken"><input type="checkbox" id="rTrunc">
+          <span>Never delete a change, even one no new primary has
+            <span class="why">Real ZAB sends TRUNC and the follower deletes. Keeping it means two servers
+            disagree about what happened, forever.</span></span></label>
+        <label class="sw broken"><input type="checkbox" id="rQuorum">
+          <span>Let 2 of 5 servers be enough instead of 3
+            <span class="why">Two groups of two do not have to share a member, so both can &ldquo;win&rdquo;
+            and both can commit different things.</span></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Server inspector <span class="r" id="inspName"></span></h3>
+      <div id="inspector" class="note">Click any server row on the left to open it.</div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  A teaching model of ZAB, the protocol inside Apache ZooKeeper. It is faithful about the parts this page
+  is teaching &mdash; the two-part <span class="mono">zxid</span>, the four phases, quorum acknowledgement,
+  DIFF/TRUNC/SNAP synchronisation, epoch rejection, and the NEWLEADER round that commits an inherited
+  history. It simplifies elsewhere: real Fast Leader Election runs several rounds of notifications with
+  back-off, real servers fsync to a transaction log before acknowledging, and real snapshots are fuzzy.
+  Each simplification is named in the lab's README.
+</footer>
+</div>
+<script>
+"use strict";
+/* ==========================================================================
+   ZAB — a teaching simulator.
+   State is one plain object S. step() is a pure-ish reducer over it, and every
+   tick is snapshotted as JSON so "Back" is a pop, not a re-simulation.
+   ========================================================================== */
+const NN = 5, IDS = [0,1,2,3,4], NAME = i => 'S' + (i+1);
+const cfg = { lat:2, loss:0, speed:280,
+              bElect:false, bSync:false, bEpoch:false, bTrunc:false, bQuorum:false };
+const Q = () => cfg.bQuorum ? 2 : Math.floor(NN/2) + 1;
+
+const zn = z => z.e * 1000 + z.c;
+const zs = z => z.e + '.' + z.c;
+const lastZ = n => n.hist.length ? n.hist[n.hist.length-1] : {e:0,c:0};
+const ticketOf = n => n.appliedIdx > 0 ? n.hist[n.appliedIdx-1].val : 0;
+/* What the primary computes a new transaction FROM: its delivered state, plus the changes it has
+   itself already proposed in the current epoch (ZooKeeper's outstandingChanges list). Inherited
+   changes from an earlier epoch count only once the NEWLEADER round has delivered them. */
+function genFrom(L){
+  let v = ticketOf(L);
+  L.hist.forEach(e => { if (e.e === L.ce && !e.committed && e.val > v) v = e.val; });
+  return v;
+}
+const alive = () => S.nodes.filter(n => n.up);
+const leaderNode = () => S.nodes.filter(n => n.up && n.role==='LEADING' && n.phase==='BROADCAST')
+                                .sort((a,b)=>b.ce-a.ce)[0] || null;
+const anyLeader = () => S.nodes.filter(n => n.up && n.role==='LEADING').sort((a,b)=>b.ce-a.ce)[0] || null;
+const reach = (a,b) => S.nodes[a].side === S.nodes[b].side;
+
+let S, snaps = [], playTimer = null, sel = null, predictPick = null;
+
+function mkNode(id){
+  return { id, up:true, role:'LOOKING', ae:0, ce:0, hist:[], gone:[], leader:null,
+           vote:null, notifs:{}, timer:0, phase:'', newEpoch:0, counter:0,
+           fi:{}, ae2:{}, ackld:{}, pend:{}, appliedIdx:0, side:0, lastFrom:{},
+           synced:false, beat:0, since:0, elRound:0, est:{}, readyAt:null, maxDelivered:0 };
+}
+function fresh(scId){
+  return { t:0, mid:1, nodes:IDS.map(mkNode), msgs:[], log:[], flash:[], drops:0,
+           everCommitted:{}, acked:[], violations:[], warn:[], scId: scId||0, scStep:0, scT0:0,
+           scDone:false, pendingRead:null, readOut:null, started:false };
+}
+
+/* ---------------------------------------------------------------- logging */
+function say(text, why, tech, tag){
+  S.log.unshift({ t:S.t, text, why:why||'', tech:tech||'', tag:tag||'' });
+  if (S.log.length > 160) S.log.pop();
+}
+
+/* --------------------------------------------------------------- messages */
+function send(from, to, type, b){
+  if (!S.nodes[from].up) return;
+  if (from !== to && (!reach(from,to) || Math.random()*100 < cfg.loss)) { S.drops++; return; }
+  S.msgs.push({ id:S.mid++, from, to, type, b:b||{}, sent:S.t, arrive:S.t + (from===to?0:cfg.lat) });
+}
+function bcast(from, type, b){ IDS.forEach(i => { if (i !== from) send(from, i, type, b); }); }
+
+/* ------------------------------------------------------------- elections */
+function better(a, b){
+  if (!b) return true;
+  if (cfg.bElect) return a.sid < b.sid;              // broken variant
+  if (a.e !== b.e) return a.e > b.e;
+  if (zn(a.zx) !== zn(b.zx)) return zn(a.zx) > zn(b.zx);
+  return a.sid > b.sid;
+}
+function goLooking(n, why){
+  n.role = 'LOOKING'; n.leader = null; n.phase = ''; n.synced = false; n.timer = 0;
+  n.notifs = {}; n.est = {}; n.fi = {}; n.ae2 = {}; n.ackld = {}; n.pend = {};
+  n.elRound = (n.elRound || 0) + 1;
+  n.vote = { e:n.ce, zx:lastZ(n), sid:n.id };
+  n.notifs[n.id] = n.vote; n.readyAt = null;
+  say(NAME(n.id) + ' is looking for a primary.', why || '',
+      'vote = (epoch ' + n.ce + ', zxid ' + zs(lastZ(n)) + ', server ' + NAME(n.id) + ')', 'warn');
+  bcast(n.id, 'NOTIF', { vote:n.vote, r:n.elRound, st:'LOOKING' });
+}
+function checkElection(n){
+  if (n.role !== 'LOOKING' || !n.vote) return;
+  const votes = Object.values(n.notifs).filter(v => v.sid === n.vote.sid).length;
+  if (votes < Q()){ n.readyAt = null; return; }
+  if (n.readyAt == null){ n.readyAt = S.t; return; }
+  if (S.t - n.readyAt < 4) return;         // ZooKeeper's finalizeWait, in ticks
+  if (n.vote.sid === n.id) becomeLeader(n);
+  else becomeFollower(n, n.vote.sid);
+}
+function becomeLeader(n){
+  n.role = 'LEADING'; n.phase = 'DISCOVERY'; n.leader = n.id; n.synced = false;
+  n.fi = {}; n.fi[n.id] = n.ae; n.ae2 = {}; n.ackld = {}; n.pend = {}; n.beat = 0;
+  IDS.forEach(i => n.lastFrom[i] = S.t); n.since = S.t;
+  say(NAME(n.id) + ' has been elected primary and is asking everyone what they have.',
+      'It won because ' + (cfg.bElect ? 'it has the lowest server number — the broken rule you switched on.'
+        : 'no reachable server holds a change newer than its own. That is what makes it safe for it to lead: '
+          + 'it can never be missing something that was already committed.'),
+      'ends up LEADING · last zxid ' + zs(lastZ(n)) + ' · phase 1 DISCOVERY', 'hi');
+}
+function becomeFollower(n, lid){
+  n.role = 'FOLLOWING'; n.leader = lid; n.phase = 'SYNC'; n.timer = 0; n.synced = false;
+  say(NAME(n.id) + ' accepts ' + NAME(lid) + ' as primary and reports its own position.',
+      '', 'FOLLOWERINFO(acceptedEpoch=' + n.ae + ')');
+  send(n.id, lid, 'FOLLOWERINFO', { ae:n.ae, zx:lastZ(n) });
+}
+
+/* -------------------------------------------------- synchronisation plan */
+function syncPlan(L, fz){
+  const lz = lastZ(L);
+  if (zn(fz) > zn(lz))
+    return { mode:'TRUNC', truncTo:zn(lz), txns:[] };
+  const idx = L.hist.findIndex(e => zn(e) === zn(fz));
+  if (zn(fz) === zn(lz)) return { mode:'DIFF', truncTo:Infinity, txns:[] };
+  if (zn(fz) === 0)
+    return L.hist.length > 4 ? { mode:'SNAP', truncTo:0, txns:L.hist.map(clone) }
+                             : { mode:'DIFF', truncTo:Infinity, txns:L.hist.map(clone) };
+  if (idx === -1){                                   // follower holds something we never had
+    let cut = 0;
+    L.hist.forEach(e => { if (zn(e) < zn(fz)) cut = zn(e); });
+    return { mode:'TRUNC', truncTo:cut, txns:L.hist.filter(e => zn(e) > cut).map(clone) };
+  }
+  return { mode:'DIFF', truncTo:Infinity, txns:L.hist.slice(idx+1).map(clone) };
+}
+const clone = e => ({ e:e.e, c:e.c, key:e.key, val:e.val, committed:false });
+
+function reindex(n){
+  let k = 0; while (k < n.hist.length && n.hist[k].committed) k++;
+  n.appliedIdx = Math.min(k, n.hist.length);
+}
+function commitPrefix(n, upto){
+  let changed = false;
+  for (let i = 0; i < n.hist.length; i++){
+    if (zn(n.hist[i]) > upto) break;
+    if (!n.hist[i].committed){ n.hist[i].committed = true; changed = true;
+      S.flash.push(n.id + ':' + zs(n.hist[i]));
+      S.everCommitted[zs(n.hist[i])] = { val:n.hist[i].val, by:n.id }; }
+  }
+  let k = 0; while (k < n.hist.length && n.hist[k].committed) k++;
+  n.appliedIdx = k;
+  if (k > 0) n.maxDelivered = Math.max(n.maxDelivered || 0, zn(n.hist[k-1]));
+  return changed;
+}
+
+/* ------------------------------------------------------------- delivery */
+function deliver(m){
+  const n = S.nodes[m.to];
+  if (!n.up) return;
+  if (m.type !== 'NOTIF') n.lastFrom[m.from] = S.t;
+
+  switch (m.type){
+
+  case 'NOTIF': {
+    if (n.role !== 'LOOKING'){                       // tell a latecomer who is already in charge
+      send(n.id, m.from, 'NOTIF', { st:n.role, r:m.b.r,
+           vote:{ e:n.ce, zx:lastZ(n), sid: n.role === 'LEADING' ? n.id : n.leader } });
+      return;
+    }
+    if ((m.b.st || 'LOOKING') !== 'LOOKING'){        // an established server answered
+      const cand = m.b.vote.sid;
+      n.est[m.from] = { sid:cand, lead: m.b.st === 'LEADING' };
+      if (cand == null) return;
+      const agree = Object.values(n.est).filter(v => v.sid === cand).length;
+      const confirmed = n.est[cand] && n.est[cand].lead;   // the candidate itself said "I am leading"
+      if (agree >= Q() - 1 && confirmed){
+        say(NAME(n.id) + ' finds that ' + NAME(cand) + ' is already the primary, and joins it.',
+            'A server coming back from a crash or a partition does not start a new election just because '
+            + 'it is confused. It only joins a primary that has answered for itself — a majority '
+            + 'pointing at a server that has gone silent is not enough.',
+            'FLE: quorum of FOLLOWING/LEADING notifications + leader confirmation');
+        becomeFollower(n, cand);
+      }
+      return;
+    }
+    if (m.b.r > n.elRound){                          // a newer election round supersedes ours
+      n.elRound = m.b.r; n.notifs = {}; n.est = {};
+      n.vote = { e:n.ce, zx:lastZ(n), sid:n.id }; n.notifs[n.id] = n.vote; n.readyAt = null;
+    } else if (m.b.r < n.elRound) return;
+    n.notifs[m.from] = m.b.vote;
+    if (better(m.b.vote, n.vote)){
+      n.vote = m.b.vote; n.notifs[n.id] = n.vote; n.readyAt = null;
+      bcast(n.id, 'NOTIF', { vote:n.vote, r:n.elRound, st:'LOOKING' });
+    }
+    checkElection(n); return;
+  }
+
+  case 'FOLLOWERINFO': {
+    if (n.role !== 'LEADING') return;
+    n.fi[m.from] = m.b.ae;
+    if (n.phase === 'DISCOVERY' && Object.keys(n.fi).length >= Q()){
+      const ne = Math.max(...Object.values(n.fi)) + 1;
+      n.newEpoch = ne; n.ae = ne; n.phase = 'EPOCH';
+      n.ae2 = {}; n.ae2[n.id] = { ce:n.ce, zx:lastZ(n) };
+      say(NAME(n.id) + ' opens epoch ' + ne + ' — a fresh, higher chapter number for the ledger.',
+          'It picked one more than the highest epoch a majority admitted to. From now on anything stamped '
+          + 'with an older epoch is refused everywhere, which is what neutralises the previous primary.',
+          'NEWEPOCH(e=' + ne + ') to all · quorum of CEPOCH reached', 'hi');
+      bcast(n.id, 'LEADERINFO', { e:ne });
+    } else if (n.phase !== 'DISCOVERY'){
+      send(n.id, m.from, 'LEADERINFO', { e:n.newEpoch });
+    }
+    return;
+  }
+
+  case 'LEADERINFO': {
+    if (m.b.e < n.ae && !cfg.bEpoch){
+      say(NAME(n.id) + ' refuses ' + NAME(m.from) + ": its epoch " + m.b.e + ' is older than epoch '
+          + n.ae + ' which ' + NAME(n.id) + ' already accepted.',
+          'This one comparison is what stops an old primary that has been asleep from taking over again.',
+          'reject NEWEPOCH(' + m.b.e + ') < acceptedEpoch(' + n.ae + ')', 'bad');
+      goLooking(n, ''); return;
+    }
+    n.ae = m.b.e; n.leader = m.from; n.role = 'FOLLOWING'; n.timer = 0;
+    send(n.id, m.from, 'ACKEPOCH', { ce:n.ce, zx:lastZ(n) });
+    return;
+  }
+
+  case 'ACKEPOCH': {
+    if (n.role !== 'LEADING' || n.phase === 'BROADCAST') { sendSyncTo(n, m.from, m.b.zx); return; }
+    n.ae2[m.from] = { ce:m.b.ce, zx:m.b.zx };
+    sendSyncTo(n, m.from, m.b.zx);
+    if (Object.keys(n.ae2).length >= Q() && n.phase === 'EPOCH'){
+      n.phase = 'SYNC'; n.ackld = {}; n.ackld[n.id] = 1;
+      if (cfg.bSync){                                // broken variant: skip the NEWLEADER round
+        n.ce = n.newEpoch; n.counter = 0; n.phase = 'BROADCAST'; n.synced = true;
+        say(NAME(n.id) + ' starts taking new writes immediately, without first republishing what it '
+            + 'inherited.', 'You switched off the NEWLEADER round. Its own view of the ticket number is '
+            + 'whatever it had already delivered — which is behind what is sitting in its ledger.',
+            'skipped the NEWLEADER round · delivered ' + n.appliedIdx + ' of ' + n.hist.length
+            + ' changes it holds', 'bad');
+        bcast(n.id, 'UPTODATE', { upto: n.appliedIdx > 0 ? zn(n.hist[n.appliedIdx-1]) : 0 });
+      }
+    }
+    return;
+  }
+
+  case 'SYNC': {
+    const before = n.hist.length;
+    if (m.b.mode === 'TRUNC' && !cfg.bTrunc){
+      const dropped = n.hist.filter(e => zn(e) > m.b.truncTo);
+      dropped.forEach(e => n.gone.push({ e:e.e, c:e.c, val:e.val, wasCommitted:e.committed }));
+      n.hist = n.hist.filter(e => zn(e) <= m.b.truncTo);
+      if (dropped.length) say(NAME(n.id) + ' deletes ' + dropped.length + ' change'
+          + (dropped.length>1?'s':'') + ' the new primary never had: ' + dropped.map(zs).join(', ') + '.',
+          dropped.some(d => d.committed)
+            ? 'One of them had already been committed. Deleting it is a real loss — watch the invariant chips.'
+            : 'None of them was ever committed, so no client was ever told they happened. Deleting them is '
+              + 'how the ledger stays identical everywhere.',
+          'TRUNC to zxid ' + (m.b.truncTo ? zs({e:Math.floor(m.b.truncTo/1000),c:m.b.truncTo%1000}) : '0.0'),
+          dropped.some(d => d.committed) ? 'bad' : 'warn');
+    } else if (m.b.mode === 'TRUNC' && cfg.bTrunc){
+      say(NAME(n.id) + ' keeps the extra change instead of deleting it.',
+          'You switched off truncation. Its ledger now contains something no other server has, and no '
+          + 'later step will ever remove it.', 'TRUNC ignored (broken rule)', 'bad');
+    } else if (m.b.mode === 'SNAP'){
+      n.hist.filter(e => !m.b.txns.some(t => zn(t) === zn(e)))
+            .forEach(e => n.gone.push({ e:e.e, c:e.c, val:e.val, wasCommitted:e.committed }));
+      n.hist = m.b.txns.map(clone); n.appliedIdx = 0;
+      say(NAME(n.id) + ' was too far behind to patch up, so it takes a full copy of the ledger.',
+          'This is the expensive path. Real ZooKeeper ships a snapshot of the whole tree plus the tail of '
+          + 'the transaction log.', 'SNAP · ' + m.b.txns.length + ' transactions', 'warn');
+    }
+    (m.b.txns || []).forEach(t => { if (!n.hist.some(e => zn(e) === zn(t))) n.hist.push(clone(t)); });
+    n.hist.sort((a,b) => zn(a) - zn(b));
+    reindex(n);
+    if (m.b.mode === 'DIFF' && n.hist.length > before)
+      say(NAME(n.id) + ' is sent the ' + (n.hist.length-before) + ' change'
+          + (n.hist.length-before>1?'s':'') + ' it was missing.',
+          'The primary never asks anyone for data — it only ever pushes. That is possible because the '
+          + 'election guaranteed it already holds the most complete ledger.',
+          'DIFF · ' + m.b.txns.map(zs).join(', '));
+    return;
+  }
+
+  case 'NEWLEADER': {
+    if (m.b.e < n.ae && !cfg.bEpoch) return;
+    n.ce = m.b.e; n.ae = m.b.e;
+    send(n.id, m.from, 'ACKLD', {});
+    return;
+  }
+
+  case 'ACKLD': {
+    if (n.role !== 'LEADING') return;
+    if (n.phase === 'BROADCAST'){                    // a straggler that joined mid-epoch
+      send(n.id, m.from, 'UPTODATE',
+           { upto: n.appliedIdx > 0 ? zn(n.hist[n.appliedIdx-1]) : 0 });
+      return;
+    }
+    n.ackld[m.from] = 1;
+    if (Object.keys(n.ackld).length >= Q() && n.phase === 'SYNC'){
+      n.ce = n.newEpoch; n.counter = 0; n.phase = 'BROADCAST'; n.synced = true;
+      const nd = n.hist.filter(e => !e.committed).length;
+      commitPrefix(n, Infinity);
+      say(NAME(n.id) + ' commits its entire inherited ledger before writing anything of its own'
+          + (nd ? ' — ' + nd + ' change' + (nd>1?'s':'') + ' that had been left hanging are now final.'
+               : '.'),
+          'This is the single most important step in ZAB. A majority has confirmed they hold exactly this '
+          + 'ledger, so everything in it is now safe to declare final — and the new primary’s own '
+          + 'first write will be computed on top of it, not on top of a stale picture.',
+          'quorum ACK-LD → currentEpoch=' + n.ce + ' · deliver all · UPTODATE to all · phase 3 BROADCAST',
+          'good');
+      bcast(n.id, 'UPTODATE', {});
+    }
+    return;
+  }
+
+  case 'UPTODATE': {
+    n.synced = true; n.timer = 0;
+    const ch = commitPrefix(n, m.b.upto != null ? m.b.upto : Infinity);
+    if (ch) say(NAME(n.id) + ' is told the whole inherited ledger counts, and starts serving clients again.',
+        '', 'UPTODATE → deliver up to ' + zs(lastZ(n)), 'good');
+    return;
+  }
+
+  case 'PROPOSE': {
+    if (!cfg.bEpoch && m.b.z.e < n.ae){
+      say(NAME(n.id) + ' refuses a write stamped epoch ' + m.b.z.e + ' from ' + NAME(m.from) + '.',
+          NAME(n.id) + ' has already accepted epoch ' + n.ae + '. An old primary that wakes up can shout '
+          + 'all it likes; nobody counts its votes.',
+          'reject PROPOSE zxid ' + zs(m.b.z) + ' · acceptedEpoch=' + n.ae, 'warn');
+      return;
+    }
+    if (cfg.bEpoch && m.b.z.e < n.ae)
+      say(NAME(n.id) + ' accepts a write from the old primary ' + NAME(m.from) + ' at epoch ' + m.b.z.e + '.',
+          'You switched off the epoch check. This server is now writing down history from two different '
+          + 'primaries at once.', 'PROPOSE zxid ' + zs(m.b.z) + ' accepted despite acceptedEpoch='
+          + n.ae, 'bad');
+    if (!n.synced) return;                           // still being brought into step; it will arrive by DIFF
+    const stale = m.b.z.e < n.ae;
+    const lz = lastZ(n);
+    const contiguous = (m.b.z.e === lz.e && m.b.z.c === lz.c + 1)
+                    || (m.b.z.e > lz.e && m.b.z.c === 1);
+    if (!contiguous && !stale && !n.hist.some(e => zn(e) === zn(m.b.z))){
+      say(NAME(n.id) + ' sees a gap: it holds ' + zs(lz) + ' and the next thing to arrive is '
+          + zs(m.b.z) + '. It drops the connection and goes back to looking for a primary.',
+          'A follower and its primary talk over one ordered connection, so proposals cannot overtake or '
+          + 'skip each other. A gap therefore does not mean "a message was lost" — it means the '
+          + 'connection broke, and the only safe response is to start the recovery phases again. That '
+          + 'one assumption is why ZAB needs no per-message sequence repair at all.',
+          'FIFO channel violated · expected ' + lz.e + '.' + (lz.c+1) + ', got ' + zs(m.b.z), 'warn');
+      goLooking(n, ''); return;
+    }
+    if (!n.hist.some(e => zn(e) === zn(m.b.z))){
+      n.hist.push({ e:m.b.z.e, c:m.b.z.c, key:m.b.txn.key, val:m.b.txn.val, committed:false });
+      n.hist.sort((a,b) => zn(a) - zn(b));
+      S.flash.push(n.id + ':' + zs(m.b.z));
+      n.timer = 0;
+      say(NAME(n.id) + ' writes ticket ' + m.b.txn.val + ' into its ledger and says it has it — but does '
+          + 'not yet act on it.', 'Written down is not the same as final. Until the primary says commit, '
+          + 'no client may be shown this value.', 'ACK zxid ' + zs(m.b.z));
+      send(n.id, m.from, 'ACK', { z:m.b.z });
+    }
+    return;
+  }
+
+  case 'ACK': {
+    if (n.role !== 'LEADING' || n.phase !== 'BROADCAST') return;
+    const k = zs(m.b.z);
+    if (!n.pend[k]) return;
+    n.pend[k][m.from] = 1;
+    const cnt = Object.keys(n.pend[k]).length;
+    if (cnt >= Q() && !n.hist.find(e => zs(e) === k).committed){
+      commitPrefix(n, zn(m.b.z));
+      const val = n.hist.find(e => zs(e) === k).val;
+      S.acked.push({ z:k, val });
+      say('Ticket ' + val + ' is now final. ' + NAME(n.id) + ' tells the customer it is theirs.',
+          cnt + ' of ' + NN + ' servers have it written down, and any future majority must overlap with '
+          + 'those ' + cnt + '. From this moment the ticket can never be taken back.',
+          'quorum ACK ' + k + ' (' + cnt + ' ≥ ' + Q() + ') → COMMIT to all', 'good');
+      if (S.suppressCommit){
+        S.suppressCommit = false;
+        say(NAME(n.id) + ' dies at that exact instant — before the word "commit" leaves the building.',
+            'The customer is holding a ticket that only exists as pencil marks on other servers. '
+            + 'Everything from here is about whether ZAB can still honour it.',
+            'crash between local commit and COMMIT broadcast', 'bad');
+        n.up = false; n.role = 'LOOKING'; n.phase = '';
+      } else bcast(n.id, 'COMMIT', { z:m.b.z });
+    }
+    return;
+  }
+
+  case 'COMMIT': {
+    n.timer = 0;
+    if (!n.hist.some(e => zn(e) === zn(m.b.z))) return;
+    if (commitPrefix(n, zn(m.b.z)))
+      say(NAME(n.id) + ' makes ticket ' + (n.hist.find(e=>zn(e)===zn(m.b.z))||{}).val
+          + ' final and will now show it to any client that asks.',
+          '', 'COMMIT ' + zs(m.b.z) + ' · delivered up to index ' + n.appliedIdx);
+    return;
+  }
+
+  case 'PING': { n.timer = 0; if (n.role === 'FOLLOWING') send(n.id, m.from, 'PONG', {}); return; }
+  case 'PONG': return;
+  }
+}
+function sendSyncTo(L, fid, fz){
+  const plan = syncPlan(L, fz);
+  send(L.id, fid, 'SYNC', plan);
+  send(L.id, fid, 'NEWLEADER', { e:L.newEpoch || L.ce });
+}
+
+/* ------------------------------------------------------------ node ticks */
+function tickNode(n){
+  if (n.role === 'LOOKING'){
+    n.beat++;
+    if (!n.vote){ n.vote = { e:n.ce, zx:lastZ(n), sid:n.id }; n.notifs[n.id] = n.vote; }
+    if (n.beat % 4 === 0) bcast(n.id, 'NOTIF', { vote:n.vote, r:n.elRound, st:'LOOKING' });
+    checkElection(n);
+    return;
+  }
+  if (n.role === 'FOLLOWING'){
+    n.timer++;
+    if (n.timer > 12 + n.id){
+      goLooking(n, 'It has heard nothing from ' + NAME(n.leader) + ' for ' + n.timer
+        + ' ticks. Silence is the only failure detector any of these servers has.');
+    }
+    return;
+  }
+  if (n.role === 'LEADING'){
+    n.beat++;
+    if (n.beat % 4 === 0) bcast(n.id, 'PING', {});
+    if (S.t - n.since > 14){
+      const live = IDS.filter(i => i !== n.id && S.t - (n.lastFrom[i] ?? -99) <= 14).length + 1;
+      if (live < Q()){
+        say(NAME(n.id) + ' resigns: it can no longer reach a majority.',
+            'A ZooKeeper primary that loses touch with a quorum shuts itself down rather than keep taking '
+            + 'writes it can never make final. This is why the small side of a network tear goes read-only '
+            + 'instead of inventing its own history.',
+            'reachable ' + live + ' < quorum ' + Q(), 'warn');
+        goLooking(n, '');
+      }
+    }
+  }
+}
+
+/* -------------------------------------------------------------- the tick */
+function step(){
+  snaps.push(JSON.stringify(S)); if (snaps.length > 500) snaps.shift();
+  S.t++; S.flash = []; S.drops = 0;
+  const due = S.msgs.filter(m => m.arrive <= S.t);
+  S.msgs = S.msgs.filter(m => m.arrive > S.t);
+  due.forEach(deliver);
+  S.nodes.forEach(n => { if (n.up) tickNode(n); });
+  if (S.drops > 0 && S.t % 4 === 0)
+    say(S.drops + ' message' + (S.drops>1?'s':'') + ' went nowhere this tick.',
+        'Either the network is torn or the loss dial is turned up. ZAB never treats a missing message as '
+        + 'an answer — it just waits, and a timer eventually fires.', '', 'warn');
+  if (S.pendingRead){
+    const n = S.nodes[S.pendingRead.id];
+    if (ticketOf(n) >= S.pendingRead.need || S.t - S.pendingRead.t0 > 40){
+      S.readOut = { t: NAME(n.id) + ' answers after sync(): ticket ' + ticketOf(n) + '.',
+        why:'sync() cost ' + (S.t - S.pendingRead.t0) + ' ticks and a round trip to the primary. That is '
+          + 'the price of a read you can trust — which is why ZooKeeper makes you ask for it explicitly.' };
+      S.pendingRead = null;
+    }
+  }
+  scTick();
+  check();
+}
+function check(){
+  const v = [], w = [];
+  for (let i = 0; i < NN; i++) for (let j = i+1; j < NN; j++){
+    const a = S.nodes[i], b = S.nodes[j];
+    const m = Math.min(a.appliedIdx, b.appliedIdx, a.hist.length, b.hist.length);
+    for (let k = 0; k < m; k++)
+      if (zs(a.hist[k]) !== zs(b.hist[k]) || a.hist[k].val !== b.hist[k].val){
+        v.push(NAME(i) + ' and ' + NAME(j) + ' disagree about change number ' + (k+1) + ': '
+               + NAME(i) + ' has ' + zs(a.hist[k]) + ' (ticket ' + a.hist[k].val + '), '
+               + NAME(j) + ' has ' + zs(b.hist[k]) + ' (ticket ' + b.hist[k].val + ').'); break;
+      }
+  }
+  const L = leaderNode();
+  if (L) Object.keys(S.everCommitted).forEach(k => {
+    if (!L.hist.some(e => zs(e) === k))
+      v.push('Ticket ' + S.everCommitted[k].val + ' (change ' + k + ') was committed, and the current '
+             + 'primary ' + NAME(L.id) + ' does not have it. A finished change has been lost.');
+  });
+  S.nodes.forEach(n => {
+    for (let k = 1; k < Math.min(n.appliedIdx, n.hist.length); k++)
+      if (n.hist[k].val <= n.hist[k-1].val){
+        v.push('Ticket ' + n.hist[k].val + ' was issued twice — ' + NAME(n.id) + ' has it as change '
+               + zs(n.hist[k-1]) + ' and again as change ' + zs(n.hist[k])
+               + '. Two customers are holding the same number.'); break;
+      }
+  });
+  // Once a change has been delivered to clients it must stay delivered, on that server, forever.
+  S.nodes.forEach(n => {
+    if (!n.maxDelivered) return;
+    const still = n.hist.slice(0, n.appliedIdx).some(e => zn(e) === n.maxDelivered);
+    if (!still){
+      const e = Math.floor(n.maxDelivered/1000), c = n.maxDelivered % 1000;
+      v.push(NAME(n.id) + ' had already made change ' + e + '.' + c + ' final and shown it to clients, '
+             + 'and now does not count it as final any more. A delivered change cannot be un-delivered.');
+    }
+  });
+  const claiming = S.nodes.filter(n => n.up && n.role === 'LEADING' && (n.newEpoch || n.ce) > 0);
+  for (let i = 0; i < claiming.length; i++) for (let j = i+1; j < claiming.length; j++){
+    const ea = claiming[i].newEpoch || claiming[i].ce, eb = claiming[j].newEpoch || claiming[j].ce;
+    if (ea === eb)
+      v.push(NAME(claiming[i].id) + ' and ' + NAME(claiming[j].id) + ' are both primary for epoch '
+             + ea + '. Two majorities always share a member, so they can never both be elected — two '
+             + 'groups of two need not share anybody.');
+  }
+  const leads = S.nodes.filter(n => n.up && n.role === 'LEADING' && n.phase === 'BROADCAST');
+  if (leads.length > 1)
+    w.push('Two servers currently believe they are the primary (' + leads.map(n=>NAME(n.id)).join(' and ')
+           + '). ZAB does not prevent that — it makes the stale one unable to do harm.');
+  S.violations = [...new Set(v)]; S.warn = w;
+  if (S.violations.length && !S.hadViol){
+    S.hadViol = true;
+    say('A guarantee has just been broken. ' + S.violations[0],
+        'Scroll down through this log: every line above is the chain of events that produced it. In a '
+        + 'real cluster this is the moment somebody files a support ticket.', '', 'bad');
+  }
+}
+
+/* --------------------------------------------------------- client & faults */
+function clientWrite(targetId){
+  const L = targetId != null ? S.nodes[targetId] : leaderNode();
+  if (!L || !L.up || L.role !== 'LEADING'){
+    say('There is no primary able to take a write, so the request is refused.',
+        'ZooKeeper would rather say no than accept a write it may not be able to honour. Refusing writes '
+        + 'while there is no quorum is the whole of what "CP" costs you.', '', 'warn');
+    return;
+  }
+  const cur = genFrom(L), val = cur + 1;
+  L.counter++;
+  const z = { e:L.ce, c:L.counter };
+  L.hist.push({ e:z.e, c:z.c, key:'ticket', val, committed:false });
+  L.hist.sort((a,b) => zn(a) - zn(b));
+  L.pend[zs(z)] = {}; L.pend[zs(z)][L.id] = 1;
+  S.flash.push(L.id + ':' + zs(z));
+  say('A customer asks for a ticket. ' + NAME(L.id) + ' reads its own counter (' + cur
+      + '), adds one, and writes down the answer: ticket ' + val + '.',
+      'Look at what goes out: the answer, not the instruction. Every server will store "ticket = ' + val
+      + '", so replaying that record twice changes nothing. This is what makes ZAB a primary-backup '
+      + 'protocol rather than a replicated state machine — and it is exactly why the order of primaries '
+      + 'has to be respected.',
+      'PROPOSE zxid ' + zs(z) + ' · txn: set ticket=' + val, 'hi');
+  bcast(L.id, 'PROPOSE', { z, txn:{ key:'ticket', val } });
+}
+function toggleNode(id){
+  const n = S.nodes[id];
+  if (n.up){
+    n.up = false; n.role = 'LOOKING'; n.phase = ''; n.leader = null;
+    say(NAME(id) + ' is switched off.',
+        'Its ledger, its accepted epoch and its current epoch are all on disk, so they survive. That is '
+        + 'not a detail: an epoch a server has already accepted must never be forgotten, or it could be '
+        + 'talked into accepting an old primary again.', 'crash', 'warn');
+  } else {
+    n.up = true; n.notifs = {}; n.vote = null; n.synced = false; n.timer = 0; n.beat = 0;
+    say(NAME(id) + ' comes back, and starts by asking who is in charge.',
+        'It reboots holding epoch ' + n.ae + ' and ledger up to ' + zs(lastZ(n)) + ' — read back off disk.',
+        'restart · LOOKING', 'warn');
+    goLooking(n, '');
+  }
+}
+function setSides(groupB){
+  S.nodes.forEach(n => n.side = groupB.includes(n.id) ? 1 : 0);
+  const b = S.nodes.filter(n=>n.side===1).map(n=>NAME(n.id));
+  const a = S.nodes.filter(n=>n.side===0).map(n=>NAME(n.id));
+  if (groupB.length === 0)
+    say('The network is whole again.',
+        'Now watch the reconciliation: whichever side has the newer epoch wins, and the other side is '
+        + 'made to match it — including deleting anything it wrote alone.', '', 'good');
+  else
+    say('The network tears: {' + a.join(', ') + '} can no longer talk to {' + b.join(', ') + '}.',
+        'Neither side can tell whether the other is dead or merely unreachable. Only one of them contains '
+        + Q() + ' servers, and only that one may make progress.', '', 'warn');
+}
+function readFrom(id){
+  const n = S.nodes[id];
+  if (!n.up){ S.readOut = { bad:true, t:NAME(id) + ' is down; the client session drops and reconnects '
+              + 'to another server.' }; return; }
+  const L = leaderNode();
+  const truth = L ? ticketOf(L) : Math.max(0, ...Object.values(S.everCommitted).map(x=>x.val));
+  if (document.getElementById('cbSync').checked){
+    S.pendingRead = { id, need:truth, t0:S.t };
+    S.readOut = { t:'sync() sent to ' + NAME(id) + '; the client is waiting.',
+      why:'sync() is queued to the primary and comes back down the same ordered channel, so when it '
+        + 'returns, this server has everything the primary had already committed.' };
+    return;
+  }
+  const v = ticketOf(n);
+  S.readOut = { bad: v !== truth, t: NAME(id) + ' answers: ticket ' + v + '.',
+    why: v === truth ? 'That is the same value the primary has committed.'
+      : 'The primary has already committed ticket ' + truth + '. This answer is ' + (truth - v)
+        + ' change' + (truth-v>1?'s':'') + ' old — and ZooKeeper calls that correct, because a read is '
+        + 'served straight from that server’s memory with no round trip to anyone.' };
+}
+
+/* ------------------------------------------------------------- scenarios */
+const laggard = () => S.nodes.filter(n => n.up && n.role === 'FOLLOWING')
+                             .sort((a,b) => a.appliedIdx - b.appliedIdx)[0];
+function delayProposalsFrom(id, ticks){
+  let k = 0;
+  S.msgs.forEach(m => { if (m.from === id && m.type === 'PROPOSE'){ m.arrive = S.t + ticks; k++; } });
+  if (k) say('The ' + k + ' proposal' + (k>1?'s':'') + ' ' + NAME(id) + ' just sent get stuck in a '
+      + 'network buffer somewhere and will arrive much later.',
+      'This is the real threat model. A message does not have to be lost to be dangerous; it only has to '
+      + 'be late enough to arrive in a world that has moved on.', 'delayed by ' + ticks + ' ticks', 'warn');
+}
+function setRule(k, v){
+  cfg[k] = v;
+  const map = { bElect:'rElect', bSync:'rSync', bEpoch:'rEpoch', bTrunc:'rTrunc', bQuorum:'rQuorum' };
+  const el = document.getElementById(map[k]); if (el) el.checked = v;
+}
+function done(t){ S.scDone = true; S.scVerdict = t; playing(false); }
+
+const SC = [
+{ name:'Free play', hint:'Elect a primary, then break whatever you like.', steps:[] },
+
+{ name:'1 · One write, from start to finish',
+  hint:'Watch PROPOSE → a majority writes it down → COMMIT.',
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length > 0 },
+    { wait:7, then:() => done('All five servers hold change 1.1 and agree it is ticket 1. Three of them '
+        + 'had it written down before the customer was told anything — that majority is the whole '
+        + 'guarantee.') }
+  ]},
+
+{ name:'2 · The primary dies one breath too early',
+  hint:'A majority stored the write. The customer was told yes. Then the primary died.',
+  q:{ text:'Three of five servers have ticket 2 written down, and the customer has been told it is theirs. '
+        + 'The primary then dies before the word "commit" reaches anybody. What happens to ticket 2?',
+      opts:[ { t:'It is lost. The customer holds a ticket no server will admit to.' },
+             { t:'It survives — whoever becomes primary next is guaranteed to have it, and publishes it.', ok:true },
+             { t:'It survives only if the next primary happens to be one of the three that had it.' } ],
+      why:'The next primary needs votes from a majority, and any two majorities share at least one server. '
+        + 'So the electing group always contains someone who has ticket 2 — and the rule "the most '
+        + 'up-to-date candidate wins" means the winner is at least as complete as that someone. It is not '
+        + 'luck. It is arithmetic: the winner cannot be missing it.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:6, then:() => { S.suppressCommit = true; clientWrite(); } },
+    { wait:26 },
+    { until:() => leaderNode() && leaderNode().phase === 'BROADCAST' },
+    { wait:9, then:() => done('Ticket 2 survived. The new primary found it sitting undelivered in its own '
+        + 'ledger and made it final in the NEWLEADER round, before it was allowed to write anything of '
+        + 'its own. Nothing the customer was promised was lost.') }
+  ]},
+
+{ name:'3 · The primary dies with one witness',
+  hint:'Only one follower had the write. Nobody was promised anything.',
+  q:{ text:'The primary gets a write down onto exactly one follower, then dies. The customer was never '
+        + 'told it succeeded. What should the cluster do with that half-written change?',
+      opts:[ { t:'Keep it — it is real data that somebody took the trouble to write.' },
+             { t:'Delete it — no one was ever promised it, and keeping it would leave one server telling a different story.', ok:true },
+             { t:'Hold a vote about whether to keep it.' } ],
+      why:'This is the asymmetry that makes consensus affordable. A change that reached a majority must '
+        + 'survive; a change that did not may be deleted freely, because no promise was ever made about '
+        + 'it. ZAB deletes with TRUNC, and the deletion is what keeps every ledger identical.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:5, then:() => { const L = leaderNode(); const f = IDS.find(i => i !== L.id);
+        setSides([L.id, f]); S.scL = L.id; } },
+    { wait:2, then:() => clientWrite(S.scL) },
+    { wait:6, then:() => toggleNode(S.scL) },
+    { wait:3, then:() => setSides([]) },
+    { until:() => leaderNode() && leaderNode().id !== S.scL && leaderNode().phase === 'BROADCAST' },
+    { wait:24, then:() => done('The half-written change was deleted with TRUNC, and every ledger is '
+        + 'identical again. Nothing was lost, because nothing had been promised. Notice that ZAB did not '
+        + 'need to know whether the old primary was dead or merely slow — the answer is the same either '
+        + 'way.') }
+  ]},
+
+{ name:'4 · The new primary jumps the gun',
+  hint:'Switches OFF the rule that ZAB exists for. Two customers, one ticket.',
+  setup:() => setRule('bSync', true),
+  q:{ text:'A new primary takes over holding a change from the old one that was never committed. You have '
+        + 'switched off the rule that makes it publish its inherited ledger before writing its own. The '
+        + 'next customer asks for a ticket. What number comes out?',
+      opts:[ { t:'The next number in sequence. The pending change is still there, so nothing is lost.' },
+             { t:'The same number the pending change already used — two customers, one ticket.', ok:true },
+             { t:'The write is rejected until the ledger is clean.' } ],
+      why:'The primary computes the answer from what it has *delivered*, not from what is lying in its '
+        + 'ledger. Skip the NEWLEADER round and it is computing on a stale picture. This is the exact '
+        + 'failure ZAB was designed to prevent and Paxos on its own does not: it is not enough for the '
+        + 'changes to arrive in order, the new primary must have *acted on* its predecessor’s changes '
+        + 'before producing its own.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:5, then:() => { const L = leaderNode(); const f = IDS.find(i => i !== L.id);
+        setSides([L.id, f]); S.scL = L.id; S.scF = f; } },
+    { wait:2, then:() => clientWrite(S.scL) },
+    { wait:6, then:() => toggleNode(S.scL) },
+    { wait:3, then:() => setSides([]) },
+    { until:() => leaderNode() && leaderNode().id !== S.scL },
+    { wait:3, then:() => clientWrite() },
+    { wait:24, then:() => done('Two changes in the ledger now say "ticket 2". Turn the rule back on and '
+        + 'run this again: the new primary will deliver the inherited change first, see 2, and issue 3.') }
+  ]},
+
+{ name:'5 · Electing a server that is behind',
+  hint:'Switches the election rule to "lowest number wins" halfway through.',
+  q:{ text:'S1 is cut off while two tickets are committed by the others. You then change the election rule '
+        + 'so the lowest-numbered server wins, and kill the primary. S1 wins. What happens to those two '
+        + 'committed tickets?',
+      opts:[ { t:'S1 asks the others what it missed and catches itself up.' },
+             { t:'They are deleted from every server — two finished changes disappear.', ok:true },
+             { t:'S1 refuses to lead because it can see it is behind.' } ],
+      why:'A ZAB primary never pulls, only pushes. Synchronisation is one-directional by design, which is '
+        + 'what makes it fast and simple — and it is only safe because the election guarantees the winner '
+        + 'already holds everything. Break that guarantee and the one-directional push becomes a '
+        + 'one-directional delete.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => { setSides([0]); } },
+    { wait:3, then:() => clientWrite() },
+    { wait:8, then:() => clientWrite() },
+    { until:() => S.acked.length >= 2 },
+    { wait:4, then:() => { setRule('bElect', true); setSides([]);
+        say('You have changed the election rule: the lowest-numbered server now wins, whatever it holds.',
+            'Everything that follows is the consequence of that one line.', '', 'bad'); } },
+    { wait:4, then:() => { const L = leaderNode(); if (L) toggleNode(L.id); } },
+    { until:() => leaderNode() && leaderNode().phase === 'BROADCAST' },
+    { wait:10, then:() => done('S1 had nothing, became primary, and pushed its empty ledger onto everyone '
+        + 'else. Two tickets that customers were told were theirs are now hatched out of every ledger. '
+        + 'This is what the phrase "the most up-to-date candidate wins" is actually buying you.') }
+  ]},
+
+{ name:'6 · A tear, with the primary on the small side',
+  hint:'Two servers on one side, three on the other. Who may still write?',
+  q:{ text:'The network tears three-against-two, and the primary is among the two. A customer on that side '
+        + 'asks for a ticket. What happens?',
+      opts:[ { t:'They get it — the primary is right there and it is still the primary.' },
+             { t:'They wait, get nothing, and the primary eventually resigns on its own.', ok:true },
+             { t:'They get it, and it is merged back in when the network heals.' } ],
+      why:'The primary can write the change into its own ledger, but it can never collect acknowledgements '
+        + 'from three servers, so it can never say the word commit. And because a primary that cannot '
+        + 'reach a majority shuts itself down, the small side stops answering rather than drifting. '
+        + '"Merged back in later" is not on the menu: there is no merge in ZAB, only a single ledger.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:5, then:() => { const L = leaderNode(); const f = IDS.find(i => i !== L.id);
+        setSides([L.id, f]); S.scL = L.id; } },
+    { wait:2, then:() => clientWrite(S.scL) },
+    { until:() => leaderNode() && leaderNode().id !== S.scL && leaderNode().phase === 'BROADCAST' },
+    { wait:3, then:() => clientWrite() },
+    { wait:6, then:() => setSides([]) },
+    { wait:34, then:() => done('The small side never committed anything, its primary resigned, and when '
+        + 'the cable came back its lone half-written change was deleted. The majority side never stopped '
+        + 'working. Note what the customers on the small side experienced: not a wrong answer — no '
+        + 'answer.') }
+  ]},
+
+{ name:'7 · Reading an old answer, on purpose',
+  hint:'ZooKeeper reads are local. This is a feature, and it will surprise you.',
+  q:{ text:'The primary has just committed ticket 3. A client is connected to a follower whose COMMIT '
+        + 'message is still crossing the network, and calls getData(). What does ZooKeeper return?',
+      opts:[ { t:'Ticket 3. Reads go through the primary, so they are always current.' },
+             { t:'Ticket 2 — the old value — and ZooKeeper considers that correct.', ok:true },
+             { t:'An error, because that server knows it is behind.' } ],
+      why:'Every ZooKeeper server answers reads out of its own memory with no round trip. That is how one '
+        + 'ensemble serves hundreds of thousands of reads a second, and the price is that a read can be '
+        + 'behind. Writes are linearizable; reads are not, unless you pay for sync() first. If you have '
+        + 'ever seen a distributed lock behave strangely, this is usually why.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => { cfg.lat = 5; document.getElementById('rngLat').value = 5;
+        document.getElementById('latv').textContent = 5;
+        say('Network delay is turned up to 5 ticks so the gap is easy to see.', '', '', 'warn'); } },
+    { wait:2, then:() => clientWrite() },
+    { wait:2, then:() => clientWrite() },
+    { until:() => S.acked.length >= 2 },
+    { then:() => { const f = laggard(); S.scF = f ? f.id : 1; readFrom(S.scF); } },
+    { wait:12, then:() => { readFrom(S.scF);
+        done('The same server, asked the same question twice, gave two different answers — and both were '
+        + 'correct ZooKeeper behaviour. Tick the sync() box and read again to see what a guaranteed-fresh '
+        + 'read costs.'); } }
+  ]},
+
+{ name:'8 · The change nobody deleted',
+  hint:'Switches OFF truncation, then lets the odd one out come home.',
+  setup:() => setRule('bTrunc', true),
+  q:{ text:'A server is cut off holding a change that never reached a majority. While it is away a new '
+        + 'primary takes over and makes a different change final in that same position. You have switched '
+        + 'off truncation. What happens when the odd one out comes back?',
+      opts:[ { t:'It quietly catches up like any other server that has been away.' },
+             { t:'It keeps its orphan change, and its ledger disagrees with everyone else’s from that point on — permanently.', ok:true },
+             { t:'It is refused entry to the cluster until an operator wipes it.' } ],
+      why:'Deleting is not a tidy-up; it is the only way back into agreement. Synchronisation in ZAB is '
+        + 'one-directional — the primary pushes and never asks — so a follower holding something the '
+        + 'primary does not have has exactly one safe option: drop it. That is what TRUNC is, and it is '
+        + 'only ever allowed to drop changes that no majority ever confirmed, which is why deleting it '
+        + 'costs nobody anything.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:6, then:() => { const L = leaderNode(); const f = IDS.find(i => i !== L.id);
+        S.scL = L.id; S.scF = f; setSides([L.id, f]); } },
+    { wait:3, then:() => clientWrite(S.scL) },
+    { wait:6, then:() => { toggleNode(S.scL); toggleNode(S.scF); } },
+    { wait:3, then:() => setSides([]) },
+    { until:() => leaderNode() && leaderNode().id !== S.scL && leaderNode().id !== S.scF },
+    { wait:5, then:() => toggleNode(S.scF) },
+    { wait:34, then:() => clientWrite() },
+    { wait:26, then:() => done('The returning server kept its orphan change, so it has one extra entry '
+        + 'that nobody else has — and every change after it now sits at a different position on that '
+        + 'server than on the others. Two servers asked the same question will give different answers '
+        + 'forever. Switch truncation back on and run it again: you will see one TRUNC line and no '
+        + 'consequences at all.') }
+  ]},
+
+{ name:'9 · A message from a dead primary arrives late',
+  hint:'Switches OFF the epoch check, then lets an old proposal land.',
+  setup:() => setRule('bEpoch', true),
+  q:{ text:'An old primary sent a proposal that got stuck in a network buffer. By the time it arrives, a '
+        + 'new primary has taken over at a higher epoch. You have switched off the epoch check. What does '
+        + 'that old proposal do?',
+      opts:[ { t:'Nothing — a follower can tell it is stale from the data itself.' },
+             { t:'It is written down as though it were current, and the ledger ends up with two changes claiming the same ticket.', ok:true },
+             { t:'It triggers a new election.' } ],
+      why:'Nothing in the data says "I am stale". The only thing that marks it is the epoch in the zxid, '
+        + 'and the only defence is a follower comparing that number against the highest epoch it has '
+        + 'accepted and refusing anything lower. One integer comparison is the entire defence against '
+        + 'every zombie in the system — which is why the accepted epoch must reach disk before it is used.' },
+  steps:[
+    { until:() => leaderNode() },
+    { wait:3, then:() => clientWrite() },
+    { until:() => S.acked.length >= 1 },
+    { wait:5, then:() => { const L = leaderNode(); S.scL = L.id; clientWrite(L.id); } },
+    { then:() => { delayProposalsFrom(S.scL, 55); setSides([S.scL]); } },
+    { until:() => leaderNode() && leaderNode().id !== S.scL && leaderNode().phase === 'BROADCAST' },
+    { wait:2, then:() => { setSides([]); clientWrite(); } },
+    { wait:55, then:() => done('The stale proposal landed and was written down, because you removed the '
+        + 'only thing that could have recognised it — and it slotted in *underneath* a change the new '
+        + 'primary had already made final, so two changes now claim the same ticket. Switch the epoch '
+        + 'rule back on and run this again: a follower refuses it in one line and nothing else in the '
+        + 'cluster even notices.') }
+  ]}
+];
+function scTick(){
+  const sc = SC[S.scId]; if (!sc || S.scDone) return;
+  const st = sc.steps[S.scStep];
+  if (!st){ if (!S.scVerdict) S.scDone = true; return; }
+  const elapsed = S.t - S.scT0;
+  const ready = st.wait != null ? elapsed >= st.wait : (st.until ? !!st.until() : true);
+  if (ready){ S.scStep++; S.scT0 = S.t; if (st.then) st.then(); }
+  else if (elapsed > 220) { S.scStep++; S.scT0 = S.t; }
+}
+
+/* ------------------------------------------------------------- rendering */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const eCol = e => e <= 0 ? 'var(--muted)' : 'var(--e' + (((e-1) % 4) + 1) + ')';
+const eSoft = e => e <= 0 ? 'var(--chip)'  : 'var(--e' + (((e-1) % 4) + 1) + 's)';
+const ROWH = 62;
+
+function allZ(){
+  const m = {};
+  S.nodes.forEach(n => { n.hist.forEach(e => m[zs(e)] = e); n.gone.forEach(e => m[zs(e)] = e); });
+  return Object.keys(m).sort((a,b) => zn(m[a]) - zn(m[b])).map(k => m[k]);
+}
+function roleOf(n){
+  if (!n.up) return ['DOWN','down'];
+  if (n.role === 'LEADING')   return [n.phase === 'BROADCAST' ? 'PRIMARY' : 'PRIMARY-ELECT','lead'];
+  if (n.role === 'FOLLOWING') return [n.synced ? 'BACKUP' : 'SYNCING','foll'];
+  return ['LOOKING','look'];
+}
+function renderGrid(){
+  const cols = allZ();
+  const g = $('grid');
+  g.style.gridTemplateRows = 'auto repeat(' + NN + ',' + ROWH + 'px)';
+  let h = '<div class="gh" style="grid-column:1;grid-row:1">Server</div>'
+        + '<div class="gh" style="grid-column:2;grid-row:1">In flight</div>'
+        + '<div class="gh" style="grid-column:3;grid-row:1"><div class="ledgerhead">'
+        + (cols.length ? cols.map(z => '<div class="colh">' + zs(z) + '</div>').join('')
+                       : '<div class="colh" style="width:auto;text-align:left">the ledger is empty</div>')
+        + '</div></div>';
+  S.nodes.forEach((n, i) => {
+    const [lbl, cls] = roleOf(n);
+    h += '<div class="noderow' + (sel === i ? ' sel' : '') + (n.up ? '' : ' dead')
+       + '" data-node="' + i + '" style="grid-column:1;grid-row:' + (i+2) + '">'
+       + '<div class="nname">' + NAME(i) + ' <span class="pill ' + cls + '">' + lbl + '</span>'
+       + '<span class="side ' + (n.side ? 'B' : 'A') + '" data-side="' + i + '">'
+       + (n.side ? 'side B' : 'side A') + '</span></div>'
+       + '<div class="nmeta">epoch <b>' + n.ce + '</b> · accepted <b>' + n.ae + '</b> · last <b>'
+       + zs(lastZ(n)) + '</b></div>'
+       + '<div class="nmeta">ticket it will show a client: <b>' + ticketOf(n) + '</b></div></div>';
+    h += '<div class="ledgerrow" style="grid-column:3;grid-row:' + (i+2) + '">';
+    cols.forEach(z => {
+      const k = zs(z);
+      const e = n.hist.find(x => zs(x) === k);
+      const gone = n.gone.find(x => zs(x) === k);
+      const fl = S.flash.includes(i + ':' + k) ? ' flash' : '';
+      if (e){
+        const idx = n.hist.indexOf(e), fin = idx < n.appliedIdx;
+        h += '<div class="cell ' + (fin ? 'comm' : 'prop') + fl + '" style="border-color:' + eCol(e.e)
+           + ';color:' + eCol(e.e) + ';background:' + (fin ? eSoft(e.e) : 'transparent') + '">'
+           + '<span class="v">' + e.val + '</span><span class="k">' + (fin ? 'final' : 'pencil')
+           + '</span></div>';
+      } else if (gone){
+        h += '<div class="cell trunc"><span class="v">' + gone.val + '</span>'
+           + '<span class="k">gone</span></div>';
+      } else h += '<div class="cell none"></div>';
+    });
+    h += '</div>';
+  });
+  h += '<div class="wirecell" style="grid-column:2;grid-row:2/span ' + NN + '">'
+     + renderWires() + '</div>';
+  g.innerHTML = h;
+  g.querySelectorAll('.noderow').forEach(el => el.onclick = ev => {
+    const i = +el.dataset.node;
+    if (ev.target.dataset.side != null){
+      S.nodes[i].side = S.nodes[i].side ? 0 : 1;
+      setSides(S.nodes.filter(x => x.side === 1).map(x => x.id));
+    } else sel = i;
+    render();
+  });
+}
+function renderWires(){
+  const H = NN * ROWH, W = 112;
+  const shown = S.msgs.filter(m => m.type !== 'PING' && m.type !== 'PONG').slice(0, 9);
+  const pings = S.msgs.length - shown.length;
+  let s = '<svg width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" '
+        + 'preserveAspectRatio="none" style="position:absolute;inset:0">';
+  shown.forEach(m => {
+    const y1 = m.from * ROWH + ROWH/2, y2 = m.to * ROWH + ROWH/2;
+    const cx = 96, cy = (y1 + y2) / 2;
+    const span = Math.max(1, m.arrive - m.sent);
+    const t = Math.min(1, Math.max(0, (S.t - m.sent) / span));
+    const px = (1-t)*(1-t)*4 + 2*(1-t)*t*cx + t*t*4;
+    const py = (1-t)*(1-t)*y1 + 2*(1-t)*t*cy + t*t*y2;
+    let col = 'var(--accent)';
+    if (m.type === 'NOTIF') col = 'var(--warn)';
+    if (m.type === 'PROPOSE' || m.type === 'ACK' || m.type === 'COMMIT')
+      col = eCol(m.b.z ? m.b.z.e : 1);
+    s += '<path d="M4,' + y1 + ' Q' + cx + ',' + cy + ' 4,' + y2 + '" fill="none" stroke="' + col
+       + '" stroke-width="1" opacity=".3"/>'
+       + '<circle class="dot" cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="3.4" fill="'
+       + col + '"/>'
+       + '<text x="' + Math.min(px + 6, 46) + '" y="' + (py - 5) + '" font-size="8.5" fill="' + col
+       + '" font-family="IBM Plex Mono,monospace">' + m.type.slice(0,9) + '</text>';
+  });
+  s += '</svg>';
+  if (pings > 0)
+    s += '<div style="position:absolute;bottom:3px;left:3px;font-size:10px;color:var(--muted)">+'
+       + pings + ' heartbeat' + (pings>1?'s':'') + '</div>';
+  return s;
+}
+function renderVerdict(){
+  const v = $('verdict'), L = leaderNode(), any = anyLeader();
+  let cls = 'verdict', title, sub;
+  if (S.violations.length){
+    cls += ' bad';
+    title = S.violations[0];
+    sub = 'This is a real breakage, not a delay. Read the log below from the bottom up to see the chain '
+        + 'of events that caused it.';
+  } else if (S.scVerdict){
+    cls += ' ok'; title = 'Scenario finished.'; sub = S.scVerdict;
+  } else if (L){
+    const n = Object.keys(S.everCommitted).length;
+    const holders = S.nodes.filter(x => x.up && x.appliedIdx > 0
+      && zs(lastZ(x)) === zs(L.hist[L.appliedIdx-1] || {e:0,c:0})).length;
+    title = NAME(L.id) + ' is the primary, writing under epoch ' + L.ce + '.';
+    sub = n === 0 ? 'No tickets issued yet. Press "Issue next ticket" and watch the three-step round.'
+        : 'Ticket ' + ticketOf(L) + ' is the latest final answer (' + n + ' change'
+          + (n>1?'s':'') + ' in the ledger, ' + holders + ' of ' + NN
+          + ' servers fully caught up). Nothing promised has been lost.';
+  } else if (any){
+    cls += ' warn';
+    title = NAME(any.id) + ' has won the election and is bringing everyone into step.';
+    sub = 'It is in the recovery phases: agree a new epoch, then make every follower’s ledger identical '
+        + 'to its own. No client writes are accepted until that is done.';
+  } else if (S.started){
+    cls += ' warn';
+    title = 'There is no primary. The cluster is not accepting writes.';
+    sub = alive().length < Q()
+      ? 'Only ' + alive().length + ' of ' + NN + ' servers are up, and ' + Q()
+        + ' are needed. This cluster cannot recover on its own — and it will not guess.'
+      : 'The servers are exchanging votes. Each one names the most up-to-date server it has heard of; '
+        + 'when a majority names the same one, that one becomes primary.';
+  } else {
+    title = 'Press Start to elect a primary.';
+    sub = 'Five servers, all with empty ledgers, all looking for someone to follow.';
+  }
+  v.className = cls;
+  let chips = '';
+  const ok = (t, good) => '<span class="chip' + (good ? '' : ' no') + '">' + t + '</span>';
+  const div = S.violations.some(x => x.includes('disagree'));
+  const lost = S.violations.some(x => x.includes('lost') || x.includes('un-delivered'));
+  const dup = S.violations.some(x => x.includes('twice'));
+  chips += ok(div ? 'ledgers disagree' : 'one ledger, everywhere', !div);
+  chips += ok(lost ? 'a finished change was lost' : 'nothing finished has been lost', !lost);
+  chips += ok(dup ? 'a number was issued twice' : 'each answer built on the last', !dup);
+  S.warn.forEach(w => chips += '<span class="chip" style="background:var(--warn-soft);color:var(--warn)">'
+    + 'two primaries live</span>');
+  v.innerHTML = '<div class="vtitle">' + esc(title) + '</div><div class="vsub">' + esc(sub)
+    + (S.warn.length ? ' ' + esc(S.warn[0]) : '') + '</div><div class="chips">' + chips + '</div>';
+}
+function renderLog(){
+  $('log').innerHTML = S.log.slice(0, 60).map(e =>
+    '<div class="ev ' + e.tag + '"><span class="tt">tick ' + e.t + '</span><br>' + esc(e.text)
+    + (e.why ? '<div class="why">' + esc(e.why) + '</div>' : '')
+    + (e.tech ? '<div class="tech">' + esc(e.tech) + '</div>' : '') + '</div>').join('')
+    || '<div class="note">Nothing yet.</div>';
+}
+function renderInspector(){
+  if (sel == null){ $('inspector').innerHTML = 'Click any server row on the left to open it.';
+                    $('inspName').textContent = ''; return; }
+  const n = S.nodes[sel], [lbl] = roleOf(n);
+  $('inspName').textContent = NAME(sel);
+  const rows = [
+    ['what it is now', lbl.toLowerCase()],
+    ['highest epoch it has accepted', n.ae + '  (acceptedEpoch, on disk)'],
+    ['epoch it is actually running', n.ce + '  (currentEpoch, on disk)'],
+    ['changes in its ledger', n.hist.length],
+    ['of those, delivered to clients', n.appliedIdx],
+    ['newest change it holds', zs(lastZ(n))],
+    ['ticket it would answer with', ticketOf(n)],
+    ['who it follows', n.role === 'LEADING' ? 'itself' : (n.leader != null ? NAME(n.leader) : 'nobody')],
+    ['ticks since it heard from the primary', n.role === 'FOLLOWING' ? n.timer : '—'],
+    ['side of the network', n.side ? 'B' : 'A']
+  ];
+  $('inspector').innerHTML = '<div class="kv">' + rows.map(r =>
+    '<div class="k">' + esc(r[0]) + '</div><div>' + esc(r[1]) + '</div>').join('') + '</div>'
+    + '<div class="note" style="margin-top:9px">' + (n.hist.length
+      ? 'Ledger: ' + n.hist.map((e,i) => zs(e) + '=' + e.val + (i < n.appliedIdx ? '' : '?')).join('  ')
+        + (n.gone.length ? '<br>Deleted: ' + n.gone.map(e => zs(e) + '=' + e.val).join('  ') : '')
+        + '<br><span style="opacity:.75">A “?” marks a change written down but not yet delivered.</span>'
+      : 'Its ledger is empty.') + '</div>';
+}
+function renderFaults(){
+  $('faultRow').innerHTML = S.nodes.map(n =>
+    '<div class="row spread" style="gap:6px"><span style="font-weight:600">' + NAME(n.id)
+    + ' <span class="nmeta">' + roleOf(n)[0].toLowerCase() + '</span></span><span class="row">'
+    + '<button class="tiny" data-kill="' + n.id + '">' + (n.up ? 'Kill' : 'Revive') + '</button>'
+    + '<button class="tiny" data-flip="' + n.id + '">side ' + (n.side ? 'B' : 'A') + '</button>'
+    + '</span></div>').join('');
+  $('faultRow').querySelectorAll('[data-kill]').forEach(b => b.onclick = () => {
+    toggleNode(+b.dataset.kill); check(); render(); });
+  $('faultRow').querySelectorAll('[data-flip]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.flip; S.nodes[i].side = S.nodes[i].side ? 0 : 1;
+    setSides(S.nodes.filter(x => x.side === 1).map(x => x.id)); render(); });
+  $('readRow').innerHTML = S.nodes.map(n =>
+    '<button class="tiny" data-read="' + n.id + '">' + NAME(n.id) + '</button>').join('');
+  $('readRow').querySelectorAll('[data-read]').forEach(b => b.onclick = () => {
+    readFrom(+b.dataset.read); render(); });
+  const r = S.readOut;
+  $('readOut').innerHTML = r ? '<div class="result ' + (r.bad ? 'wrong' : 'right') + '">'
+    + esc(r.t) + (r.why ? '<br><span style="opacity:.9">' + esc(r.why) + '</span>' : '') + '</div>' : '';
+}
+function renderPredict(){
+  const sc = SC[S.scId], w = $('predictWrap');
+  if (!sc || !sc.q){ w.innerHTML = ''; return; }
+  let h = '<div class="card"><h3>Predict first</h3><div class="predict"><div class="q">'
+        + esc(sc.q.text) + '</div>';
+  sc.q.opts.forEach((o, i) => h += '<button data-opt="' + i + '"'
+    + (predictPick === i ? ' class="picked"' : '') + '>' + esc(o.t) + '</button>');
+  if (predictPick != null && S.scDone){
+    const right = !!sc.q.opts[predictPick].ok;
+    const answer = sc.q.opts.findIndex(o => o.ok);
+    h += '<div class="result ' + (right ? 'right' : 'wrong') + '"><b>'
+      + (right ? 'You had it.' : 'Not quite — the answer is: ' + esc(sc.q.opts[answer].t))
+      + '</b><br>' + esc(sc.q.why) + '</div>';
+  } else if (predictPick != null){
+    h += '<div class="note" style="margin-top:9px">Running it now. The answer appears when it finishes.</div>';
+  } else {
+    h += '<div class="note" style="margin-top:9px">Pick one and it will run.</div>';
+  }
+  w.innerHTML = h + '</div></div>';
+  w.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => {
+    predictPick = +b.dataset.opt; render(); playing(true); });
+}
+function renderScenarios(){
+  $('scenarios').innerHTML = SC.map((s, i) =>
+    '<button data-sc="' + i + '"' + (S.scId === i ? ' class="on"' : '') + '>' + esc(s.name)
+    + '<span class="hint">' + esc(s.hint) + '</span></button>').join('');
+  $('scenarios').querySelectorAll('[data-sc]').forEach(b => b.onclick = () => selectScenario(+b.dataset.sc));
+}
+function render(){
+  $('clockr').textContent = 'tick ' + S.t + ' · ' + S.msgs.length + ' in flight · quorum = ' + Q()
+    + ' of ' + NN;
+  renderVerdict(); renderGrid(); renderLog(); renderInspector(); renderFaults(); renderPredict();
+  $('btnBack').disabled = snaps.length === 0;
+  $('btnPlay').textContent = playTimer ? 'Pause' : (S.t === 0 ? 'Start' : 'Play');
+}
+
+/* ------------------------------------------------------------------ wiring */
+function playing(v){
+  if (v && !playTimer){ playTimer = setInterval(() => { step(); render(); }, cfg.speed); S.started = true; }
+  if (!v && playTimer){ clearInterval(playTimer); playTimer = null; }
+  if ($('btnPlay')) $('btnPlay').textContent = playTimer ? 'Pause' : (!S || S.t === 0 ? 'Start' : 'Play');
+}
+function selectScenario(i){
+  playing(false); predictPick = null; snaps = [];
+  ['bElect','bSync','bEpoch','bTrunc','bQuorum'].forEach(k => setRule(k, false));
+  cfg.lat = 2; cfg.loss = 0;
+  if ($('rngLat')){ $('rngLat').value = 2; $('latv').textContent = 2;
+                    $('rngLoss').value = 0; $('lossv').textContent = 0; }
+  S = fresh(i);
+  if (SC[i].setup) SC[i].setup();
+  S.nodes.forEach(n => { n.vote = { e:0, zx:{e:0,c:0}, sid:n.id }; n.notifs[n.id] = n.vote; });
+  say('Scenario loaded: ' + SC[i].name + '.',
+      SC[i].q ? 'Answer the prediction on the right and it will run itself.'
+              : 'Press Start. Then break something.', '', 'hi');
+  check(); render();
+  if (i > 0 && !SC[i].q) playing(true);
+}
+window.addEventListener('DOMContentLoaded', () => {
+  $('btnStep').onclick  = () => { playing(false); step(); S.started = true; render(); };
+  $('btnPlay').onclick  = () => playing(!playTimer);
+  $('btnReset').onclick = () => selectScenario(S.scId);
+  $('btnBack').onclick  = () => { playing(false);
+    if (snaps.length){ S = JSON.parse(snaps.pop()); render(); } };
+  $('btnWrite').onclick  = () => { clientWrite(); check(); render(); };
+  $('btnWrite3').onclick = () => { let k = 0; const iv = setInterval(() => {
+    clientWrite(); check(); render(); if (++k === 3) clearInterval(iv); }, 900); playing(true); };
+  $('selSpeed').onchange = e => { cfg.speed = +e.target.value;
+    if (playTimer){ playing(false); playing(true); } };
+  $('rngLat').oninput  = e => { cfg.lat = +e.target.value; $('latv').textContent = cfg.lat; };
+  $('rngLoss').oninput = e => { cfg.loss = +e.target.value; $('lossv').textContent = cfg.loss; };
+  [['rElect','bElect'],['rSync','bSync'],['rEpoch','bEpoch'],['rTrunc','bTrunc'],['rQuorum','bQuorum']]
+    .forEach(([id,k]) => $(id).onchange = e => { cfg[k] = e.target.checked; render(); });
+  document.querySelectorAll('[data-part]').forEach(b => b.onclick = () => {
+    const p = b.dataset.part;
+    if (p === 'none') setSides([]);
+    else if (p === '23'){ const L = anyLeader(); const l = L ? L.id : 0;
+      setSides([l, IDS.find(i => i !== l)]); }
+    else setSides([anyLeader() ? anyLeader().id : 0]);
+    render();
+  });
+  selectScenario(0);
+});
+</script>

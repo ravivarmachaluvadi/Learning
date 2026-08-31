@@ -1,0 +1,1545 @@
+<title>The Reader Pays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --ground:#F1F1F6; --panel:#FBFBFD; --panel-2:#E9E9F1; --rule:#CFCFDE; --rule-soft:#E2E2ED;
+  --ink:#191A22; --ink-2:#4A4C5E; --ink-3:#74768A;
+  --past:#0E7C6B; --past-soft:#D3ECE6;
+  --uncertain:#B8730A; --uncertain-soft:#F6E6C8;
+  --future:#5B5E75; --future-soft:#E1E1EA;
+  --intent:#6A4FBF; --intent-soft:#E6E0F7;
+  --bad:#AF2338; --bad-soft:#F8DDE1;
+  --good:#0E7C6B; --good-soft:#D3ECE6;
+  --true:#2C4E9A; --true-soft:#DCE4F6;
+  --shadow:0 1px 2px rgba(25,26,34,.07), 0 6px 18px rgba(25,26,34,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131219; --panel:#1B1A24; --panel-2:#22212D; --rule:#3A3948; --rule-soft:#2B2A36;
+    --ink:#E7E6EE; --ink-2:#AEADBF; --ink-3:#83829A;
+    --past:#45C4AC; --past-soft:#123A34;
+    --uncertain:#E5A94F; --uncertain-soft:#3E3016;
+    --future:#8C8FA8; --future-soft:#2A2937;
+    --intent:#A992F0; --intent-soft:#2C2444;
+    --bad:#F26D82; --bad-soft:#42171F;
+    --good:#45C4AC; --good-soft:#123A34;
+    --true:#7FA0E8; --true-soft:#1C2539;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131219; --panel:#1B1A24; --panel-2:#22212D; --rule:#3A3948; --rule-soft:#2B2A36;
+  --ink:#E7E6EE; --ink-2:#AEADBF; --ink-3:#83829A;
+  --past:#45C4AC; --past-soft:#123A34;
+  --uncertain:#E5A94F; --uncertain-soft:#3E3016;
+  --future:#8C8FA8; --future-soft:#2A2937;
+  --intent:#A992F0; --intent-soft:#2C2444;
+  --bad:#F26D82; --bad-soft:#42171F;
+  --good:#45C4AC; --good-soft:#123A34;
+  --true:#7FA0E8; --true-soft:#1C2539;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:14px; line-height:1.5;
+}
+.wrap{max-width:1500px; margin:0 auto; padding:22px 18px 60px}
+h1,h2,h3{margin:0; text-wrap:balance}
+p{margin:0}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header.top{border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:18px}
+.eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+h1{font-size:clamp(26px,4vw,40px); font-weight:700; letter-spacing:-.02em; line-height:1.05; margin:6px 0 8px}
+.standfirst{font-family:"IBM Plex Serif",Georgia,serif; font-size:15.5px; color:var(--ink-2); max-width:66ch; line-height:1.6}
+.standfirst b{color:var(--ink); font-weight:600}
+
+/* ---------- verdict ---------- */
+.verdict{
+  border:1px solid var(--rule); border-left:5px solid var(--good); background:var(--panel);
+  padding:13px 16px; margin-bottom:16px; box-shadow:var(--shadow); border-radius:3px;
+}
+.verdict.bad{border-left-color:var(--bad)}
+.verdict.warn{border-left-color:var(--uncertain)}
+.verdict .vhead{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:4px}
+.verdict .vmain{font-size:17px; font-weight:600; letter-spacing:-.01em}
+.verdict.bad .vmain{color:var(--bad)}
+.verdict.good .vmain{color:var(--good)}
+.verdict .vdetail{font-family:"IBM Plex Serif",Georgia,serif; color:var(--ink-2); margin-top:5px; font-size:14px; max-width:80ch}
+.vcounts{display:flex; gap:16px; flex-wrap:wrap; margin-top:9px; padding-top:9px; border-top:1px solid var(--rule-soft)}
+.vcount{font-size:11.5px; color:var(--ink-3)}
+.vcount b{display:block; font-family:"IBM Plex Mono",monospace; font-size:17px; color:var(--ink); font-weight:600}
+
+/* ---------- console grid ---------- */
+.console{display:grid; grid-template-columns:minmax(0,352px) minmax(0,1fr); gap:16px; align-items:start}
+@media (max-width:1080px){ .console{grid-template-columns:1fr} }
+.rail{display:flex; flex-direction:column; gap:14px; min-width:0}
+.stage{display:flex; flex-direction:column; gap:14px; min-width:0}
+
+.panel{background:var(--panel); border:1px solid var(--rule); border-radius:3px; box-shadow:var(--shadow); overflow:hidden}
+.panel > .ph{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+  padding:9px 13px; border-bottom:1px solid var(--rule-soft); background:var(--panel-2);
+}
+.ph h2{font-size:11px; letter-spacing:.13em; text-transform:uppercase; font-weight:600; color:var(--ink-2)}
+.ph .hint{font-size:11px; color:var(--ink-3)}
+.pb{padding:13px}
+.pb.tight{padding:9px 13px}
+
+/* ---------- scenario list ---------- */
+.scn{display:flex; flex-direction:column}
+.scn button{
+  display:block; width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--rule-soft);
+  padding:9px 13px; cursor:pointer; font:inherit; color:var(--ink); transition:background .12s;
+}
+.scn button:last-child{border-bottom:0}
+.scn button:hover{background:var(--panel-2)}
+.scn button[aria-current="true"]{background:var(--intent-soft); box-shadow:inset 3px 0 0 var(--intent)}
+.scn .n{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); font-weight:600}
+.scn .t{font-weight:600; font-size:13.5px; display:block; letter-spacing:-.01em}
+.scn .d{font-size:11.5px; color:var(--ink-3); display:block; line-height:1.4}
+
+/* ---------- predict card ---------- */
+.predict{background:var(--uncertain-soft); border:1px solid var(--uncertain); border-radius:3px; padding:12px}
+.predict .q{font-family:"IBM Plex Serif",Georgia,serif; font-size:14.5px; font-weight:600; margin-bottom:9px; line-height:1.45}
+.predict .opts{display:flex; flex-direction:column; gap:6px}
+.predict .opts button{
+  text-align:left; padding:7px 10px; border:1px solid var(--rule); background:var(--panel);
+  border-radius:3px; cursor:pointer; font:inherit; font-size:12.5px; color:var(--ink); line-height:1.4;
+}
+.predict .opts button:hover{border-color:var(--ink-2)}
+.predict .opts button.picked{border-color:var(--ink); border-width:2px; padding:6px 9px}
+.predict .opts button.right{background:var(--good-soft); border-color:var(--good)}
+.predict .opts button.wrong{background:var(--bad-soft); border-color:var(--bad)}
+.predict .resolve{margin-top:10px; font-family:"IBM Plex Serif",Georgia,serif; font-size:13px; line-height:1.55; border-top:1px solid var(--uncertain); padding-top:9px}
+.predict .resolve strong{font-family:"IBM Plex Sans",sans-serif}
+
+/* ---------- controls ---------- */
+.transport{display:flex; gap:6px; flex-wrap:wrap}
+button.ctl{
+  font:inherit; font-size:12.5px; font-weight:500; padding:6px 11px; border:1px solid var(--rule);
+  background:var(--panel-2); color:var(--ink); border-radius:3px; cursor:pointer; transition:background .12s,border-color .12s;
+}
+button.ctl:hover:not(:disabled){background:var(--intent-soft); border-color:var(--intent)}
+button.ctl:disabled{opacity:.4; cursor:not-allowed}
+button.ctl.primary{background:var(--ink); color:var(--panel); border-color:var(--ink)}
+button.ctl.primary:hover{background:var(--intent); border-color:var(--intent); color:#fff}
+.stepline{margin-top:10px; padding-top:10px; border-top:1px solid var(--rule-soft)}
+.stepline .idx{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); letter-spacing:.05em}
+.stepline .ttl{font-weight:600; font-size:14px; margin-top:2px; letter-spacing:-.01em}
+
+.row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid var(--rule-soft)}
+.row:last-child{border-bottom:0}
+.row .lbl{font-size:12.5px; line-height:1.35}
+.row .lbl small{display:block; color:var(--ink-3); font-size:11px; line-height:1.35}
+.row .val{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-2); white-space:nowrap}
+input[type=range]{width:120px; accent-color:var(--intent)}
+.switch{position:relative; display:inline-flex; align-items:center; cursor:pointer; gap:7px; font-size:12.5px}
+.switch input{position:absolute; opacity:0; width:0; height:0}
+.track{width:34px; height:19px; border-radius:10px; background:var(--rule); transition:background .15s; flex:none; position:relative}
+.track::after{content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--panel); transition:transform .15s; box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.switch input:checked + .track{background:var(--intent)}
+.switch input:checked + .track::after{transform:translateX(15px)}
+.switch input:focus-visible + .track{outline:2px solid var(--ink); outline-offset:2px}
+:focus-visible{outline:2px solid var(--intent); outline-offset:2px}
+
+/* ---------- cluster ---------- */
+.cluster{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+@media (max-width:640px){ .cluster{grid-template-columns:1fr} }
+.node{border:1px solid var(--rule); border-radius:3px; padding:9px 11px; background:var(--panel-2); position:relative}
+.node.dead{opacity:.55; border-style:dashed; background:var(--bad-soft)}
+.node .nm{font-weight:600; font-size:13.5px; display:flex; align-items:center; gap:6px}
+.node .dot{width:8px; height:8px; border-radius:50%; background:var(--good); flex:none}
+.node.dead .dot{background:var(--bad)}
+.node .clk{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2); margin-top:3px}
+.node .clk b{color:var(--ink)}
+.node .off{font-family:"IBM Plex Mono",monospace; font-size:11px; margin-top:2px}
+.node .off.fast{color:var(--bad)} .node .off.slow{color:var(--true)} .node .off.zero{color:var(--ink-3)}
+.node .lhs{margin-top:6px; display:flex; flex-wrap:wrap; gap:4px}
+.chip{font-family:"IBM Plex Mono",monospace; font-size:10px; padding:1px 5px; border-radius:2px; border:1px solid var(--rule); background:var(--panel); color:var(--ink-2)}
+.chip.lh{background:var(--intent-soft); border-color:var(--intent); color:var(--intent); font-weight:600}
+.node .why{font-size:11px; color:var(--bad); margin-top:5px; line-height:1.35}
+
+/* ---------- timeline ---------- */
+.tlwrap{overflow-x:auto}
+svg.tl{display:block; min-width:640px; width:100%}
+svg.tl text{font-family:"IBM Plex Mono",monospace; font-size:10.5px; fill:var(--ink-3)}
+svg.tl text.klabel{font-family:"IBM Plex Sans",sans-serif; font-size:11.5px; fill:var(--ink-2); font-weight:500}
+svg.tl text.lane{font-family:"IBM Plex Sans",sans-serif; font-size:10px; fill:var(--ink-3); letter-spacing:.1em; text-transform:uppercase; font-weight:600}
+svg.tl text.val{font-family:"IBM Plex Mono",monospace; font-size:10px; fill:var(--ink)}
+
+.legend{display:flex; flex-wrap:wrap; gap:11px; padding:9px 13px; border-top:1px solid var(--rule-soft); background:var(--panel-2)}
+.lg{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-2)}
+.lg i{width:11px; height:11px; display:inline-block; flex:none}
+.lg i.dot{border-radius:50%}
+.lg i.dia{transform:rotate(45deg); width:9px; height:9px}
+.lg i.band{width:16px; height:11px; border:1px solid var(--uncertain); background:var(--uncertain-soft)}
+.lg i.line{width:2px; height:12px}
+
+/* ---------- log ---------- */
+.log{max-height:330px; overflow-y:auto}
+.ev{padding:8px 13px; border-bottom:1px solid var(--rule-soft); display:grid; grid-template-columns:56px 1fr; gap:10px}
+.ev:last-child{border-bottom:0}
+.ev.now{background:var(--intent-soft)}
+.ev .tt{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); padding-top:1px}
+.ev .sen{font-size:13px; line-height:1.45}
+.ev .tec{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); margin-top:3px; line-height:1.45; overflow-wrap:anywhere}
+.ev.k-bad .sen{color:var(--bad); font-weight:500}
+.ev.k-good .sen{color:var(--good)}
+.ev.k-warn .sen{color:var(--uncertain)}
+
+/* ---------- txn inspector ---------- */
+.txn{border-bottom:1px solid var(--rule-soft); padding:9px 13px}
+.txn:last-child{border-bottom:0}
+.txn .th{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.txn .tn{font-weight:600; font-size:13px}
+.txn .tn small{font-weight:400; color:var(--ink-3); display:block; font-size:11px}
+.badge{font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600; padding:2px 6px; border-radius:2px; letter-spacing:.04em; white-space:nowrap}
+.badge.PENDING{background:var(--future-soft); color:var(--future)}
+.badge.STAGING{background:var(--uncertain-soft); color:var(--uncertain)}
+.badge.COMMITTED{background:var(--good-soft); color:var(--good)}
+.badge.ABORTED{background:var(--bad-soft); color:var(--bad)}
+.badge.RETRY{background:var(--bad-soft); color:var(--bad)}
+.badge.NONE{background:var(--panel-2); color:var(--ink-3)}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:2px 10px; margin-top:6px; font-size:11.5px}
+.kv dt{color:var(--ink-3)}
+.kv dd{margin:0; font-family:"IBM Plex Mono",monospace; color:var(--ink-2); overflow-wrap:anywhere}
+
+.rules{margin-top:26px; border-top:1px solid var(--rule); padding-top:16px; color:var(--ink-2); font-size:12.5px; line-height:1.6; max-width:78ch}
+.rules h3{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px}
+.rules ul{margin:0 0 10px; padding-left:18px}
+.rules li{margin-bottom:4px}
+.rules code{background:var(--panel-2); padding:1px 4px; border-radius:2px; font-size:11.5px}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">CockroachDB · how a database works without an atomic clock</div>
+  <h1>The Reader Pays</h1>
+  <p class="standfirst">
+    Three machines in three cities. Each keeps its own cheap clock, and no two agree.
+    Every write is stamped with the clock of whichever machine happened to handle it — so a write that
+    <i>really</i> happened first can carry a <i>later</i> number than one that happened after it.
+    Google's Spanner fixes this by buying atomic clocks and making every writer <b>wait</b>.
+    CockroachDB buys nothing, and instead makes the <b>reader</b> say
+    "a value stamped anywhere in the next half second might secretly be in my past — I'd better look again."
+    Press <b>Run it for me</b> below and watch what that costs, and what it buys.
+  </p>
+</header>
+
+<div class="verdict good" id="verdict">
+  <div class="vhead">Verdict right now</div>
+  <div class="vmain" id="vmain">Pick a scenario to begin.</div>
+  <div class="vdetail" id="vdetail">Every scenario below starts from the same three-city cluster and the same five ranges of data.</div>
+  <div class="vcounts" id="vcounts"></div>
+</div>
+
+<div class="console">
+
+  <!-- ================= LEFT RAIL ================= -->
+  <aside class="rail">
+
+    <section class="panel">
+      <div class="ph"><h2>Scenarios</h2><span class="hint">predict, then run</span></div>
+      <div class="scn" id="scnList"></div>
+    </section>
+
+    <section class="panel" id="predictPanel" hidden>
+      <div class="ph"><h2>Before you run it</h2><span class="hint">commit to a guess</span></div>
+      <div class="pb"><div class="predict" id="predict"></div></div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>Transport</h2><span class="hint" id="stepCount"></span></div>
+      <div class="pb">
+        <div class="transport">
+          <button class="ctl primary" id="btnAuto">▶ Run it for me</button>
+          <button class="ctl" id="btnBack">← Back</button>
+          <button class="ctl" id="btnFwd">Step →</button>
+          <button class="ctl" id="btnEnd">Skip to end</button>
+          <button class="ctl" id="btnReset">Reset</button>
+        </div>
+        <div class="stepline">
+          <div class="idx" id="stepIdx"></div>
+          <div class="ttl" id="stepTtl">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>Dials you can turn</h2><span class="hint">everything recomputes</span></div>
+      <div class="pb">
+        <div class="row">
+          <div class="lbl">Maximum clock offset<small>The number you promise your clocks stay within. This is the width of every reader's doubt.</small></div>
+          <div style="text-align:right"><input type="range" id="sMax" min="0" max="900" step="50" value="500"><div class="val" id="vMax">500 ms</div></div>
+        </div>
+        <div class="row">
+          <div class="lbl">Mumbai's clock is off by<small>Nobody in the cluster can measure this. Only this simulator knows it.</small></div>
+          <div style="text-align:right"><input type="range" id="sN1" min="-400" max="900" step="20" value="180"><div class="val" id="vN1">+180 ms</div></div>
+        </div>
+        <div class="row">
+          <div class="lbl">Frankfurt's clock is off by</div>
+          <div style="text-align:right"><input type="range" id="sN2" min="-400" max="900" step="20" value="0"><div class="val" id="vN2">0 ms</div></div>
+        </div>
+        <div class="row">
+          <div class="lbl">Ohio's clock is off by</div>
+          <div style="text-align:right"><input type="range" id="sN3" min="-400" max="900" step="20" value="-120"><div class="val" id="vN3">−120 ms</div></div>
+        </div>
+        <div class="row">
+          <div class="lbl">Round trip between cities<small>How long one round of agreement between two regions takes.</small></div>
+          <div style="text-align:right"><input type="range" id="sWan" min="10" max="180" step="10" value="60"><div class="val" id="vWan">60 ms</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>Switches you can throw</h2><span class="hint">turn one off to see why it exists</span></div>
+      <div class="pb">
+        <div class="row"><label class="switch"><input type="checkbox" id="cPC" checked><span class="track"></span><span class="lbl">Parallel commits<small>Announce the commit while the writes are still in flight, instead of after.</small></span></label></div>
+        <div class="row"><label class="switch"><input type="checkbox" id="cObs" checked><span class="track"></span><span class="lbl">Remember each machine's clock<small>Once you've spoken to a machine, anything it stamps later is provably in your future.</small></span></label></div>
+        <div class="row"><label class="switch"><input type="checkbox" id="cRef" checked><span class="track"></span><span class="lbl">Re-check reads when pushed<small>Off, this behaves like snapshot isolation — and write skew comes back.</small></span></label></div>
+        <div class="row"><label class="switch"><input type="checkbox" id="cKill" checked><span class="track"></span><span class="lbl">Machines shut themselves down<small>A node that finds its clock more than 80% of the budget out of step kills itself.</small></span></label></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>Transactions</h2><span class="hint">live state</span></div>
+      <div id="txnList"></div>
+    </section>
+
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <main class="stage">
+
+    <section class="panel">
+      <div class="ph"><h2>The cluster</h2><span class="hint" id="trueClock"></span></div>
+      <div class="pb"><div class="cluster" id="cluster"></div></div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>What really happened, and what the database thinks happened</h2><span class="hint">one shared millisecond scale</span></div>
+      <div class="tlwrap"><svg class="tl" id="tl" viewBox="0 0 900 420" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Timeline of true events and database timestamps"></svg></div>
+      <div class="legend">
+        <span class="lg"><i class="line" style="background:var(--true)"></i>real time, which no node can see</span>
+        <span class="lg"><i class="dot" style="background:var(--past)"></i>committed value, in the reader's past</span>
+        <span class="lg"><i class="dot" style="background:var(--uncertain)"></i>committed value, <b>inside the doubt</b></span>
+        <span class="lg"><i class="dot" style="background:var(--future)"></i>committed value, in the reader's future</span>
+        <span class="lg"><i class="dia" style="background:var(--intent)"></i>write intent (pencil, not ink)</span>
+        <span class="lg"><i class="band"></i>the reader's window of doubt</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>What happened, in order</h2><span class="hint">plain sentence first, machine detail second</span></div>
+      <div class="log" id="log"></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="rules">
+  <h3>The rules this simulator actually follows</h3>
+  <ul>
+    <li><b>Three nodes, five ranges.</b> Mumbai, Frankfurt and Ohio each hold a copy of every range; one of the three is that range's <i>leaseholder</i> and answers its reads without asking the others.</li>
+    <li><b>Clocks.</b> A node's hybrid-logical clock reads <code>true time + that node's offset</code>. The offsets are the sliders. No node can see its own offset — only this simulator can.</li>
+    <li><b>Timestamps.</b> A transaction takes its read timestamp from the clock of the node the client connected to. Its commit timestamp starts equal to that and only ever moves <i>up</i>.</li>
+    <li><b>Doubt.</b> A reader treats any committed value stamped in <code>(read_ts, read_ts + max_offset]</code> as possibly-in-my-past and restarts above it — unless it has already spoken to that value's node at a clock reading below the value's timestamp, in which case the value is provably in the reader's future and is skipped.</li>
+    <li><b>Latency.</b> Reaching agreement on any range costs one cross-region round trip (the slider, default 60&nbsp;ms), because a majority always needs a second region. Reading from a leaseholder in your own city costs 1&nbsp;ms.</li>
+    <li><b>What is faked.</b> There is no real Raft here, no storage engine, no SQL parser and no network. Every trace on this page is computed from the rules above, and they are a deliberate simplification of the real thing — the lab's write-up says exactly which corners are cut.</li>
+  </ul>
+</div>
+
+</div>
+
+<script>
+/* ==ENGINE-START== */
+"use strict";
+
+var NODES = [
+  { id: "n1", name: "Mumbai" },
+  { id: "n2", name: "Frankfurt" },
+  { id: "n3", name: "Ohio" }
+];
+var RANGES = [
+  { id: "r1", span: "/payments/…",  lh: "n1" },
+  { id: "r2", span: "/accounts/a–m", lh: "n2" },
+  { id: "r3", span: "/accounts/n–z", lh: "n3" },
+  { id: "r4", span: "/oncall/a–m",   lh: "n2" },
+  { id: "r5", span: "/oncall/n–z",   lh: "n1" }
+];
+var KEYRANGE = {
+  "/payments/p1": "r1",
+  "/payments/p2": "r1",
+  "/accounts/asha": "r2",
+  "/accounts/raj": "r3",
+  "/oncall/dr_mehta": "r4",
+  "/oncall/dr_qureshi": "r5"
+};
+var NODENAME = { n1: "Mumbai", n2: "Frankfurt", n3: "Ohio" };
+
+var DEFAULT_CFG = {
+  maxOffset: 500,
+  off: { n1: 180, n2: 0, n3: -120 },
+  wan: 60,
+  local: 1,
+  parallelCommits: true,
+  observedTs: true,
+  readRefresh: true,
+  selfCheck: true
+};
+
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function hlc(cfg, node, trueT) { return trueT + cfg.off[node]; }
+function fmtTs(v) {
+  if (v === null || v === undefined) return "—";
+  return (v % 1 !== 0) ? (Math.floor(v) + "⁺") : String(v);
+}
+function fmtOff(v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v) + " ms"; }
+
+/* ---------- state ---------- */
+function baseState(cfg) {
+  var s = {
+    cfg: clone(cfg), trueTime: 0,
+    nodes: {}, ranges: {}, keys: {}, txns: {}, order: [],
+    log: [],
+    metrics: { restarts: 0, staleReads: 0, refreshFails: 0, retries: 0, ackMs: null, ackMsAlt: null, consensus: 0 },
+    verdict: { tone: "good", main: "", detail: "" },
+    view: { keys: [], bars: [], readers: [] },
+    stepTitle: "Ready", stepSentence: "", stepTech: ""
+  };
+  NODES.forEach(function (n) { s.nodes[n.id] = { alive: true, note: null }; });
+  RANGES.forEach(function (r) { s.ranges[r.id] = { lh: r.lh, leader: r.lh, tsCache: {}, lowWater: null }; });
+  return s;
+}
+function seedKey(s, key, versions) {
+  s.keys[key] = { versions: versions.slice(), intent: null };
+  if (s.view.keys.indexOf(key) < 0) s.view.keys.push(key);
+}
+function newTxn(s, id, label, node, readTs, unc) {
+  s.txns[id] = {
+    id: id, label: label, node: node, status: "PENDING",
+    readTs: readTs, commitTs: readTs, unc: unc,
+    observed: {}, reads: [], inflight: [], restarts: 0,
+    implicit: false, note: null, ackAt: null
+  };
+  s.order.push(id);
+  return s.txns[id];
+}
+function say(s, t, sen, tech, kind) { s.log.push({ t: t, sen: sen, tech: tech || "", kind: kind || "" }); }
+function newestBelow(s, key, ts) {
+  var vs = s.keys[key].versions, best = null;
+  for (var i = 0; i < vs.length; i++) if (vs[i].ts <= ts && (!best || vs[i].ts > best.ts)) best = vs[i];
+  return best;
+}
+function newestAny(s, key) {
+  var vs = s.keys[key].versions, best = null;
+  for (var i = 0; i < vs.length; i++) if (!best || vs[i].ts > best.ts) best = vs[i];
+  return best;
+}
+
+/* Classify a committed version against a reader. Returns
+   "past" | "uncertain" | "future-observed" | "future" */
+function classify(cfg, txn, node, vts) {
+  if (vts <= txn.readTs) return "past";
+  if (vts > txn.unc) return "future";
+  if (cfg.observedTs && txn.observed[node] !== undefined && vts > txn.observed[node]) return "future-observed";
+  return "uncertain";
+}
+
+/* ---------- scenarios ---------- */
+var SCENARIOS = [];
+
+/* ===== 1. THE TRANSFER ===== */
+SCENARIOS.push({
+  id: "transfer",
+  title: "A transfer, end to end",
+  blurb: "Two accounts, two continents, one transaction. Watch the pencil marks and the master card.",
+  question: "The transfer touches two ranges whose leaseholders are 60 ms apart. Classic two-phase commit needs two rounds of agreement, so about 120 ms. CockroachDB's parallel commits announce the commit before anyone has written the word COMMITTED anywhere. How can that be safe?",
+  options: [
+    { text: "It isn't fully safe — there is a small window where the client is told OK and the data can still be lost.", correct: false, why: "No data is at risk. The client's OK is backed by a majority-agreed fact on every key involved." },
+    { text: "“Committed” is redefined as a property of the data — record says STAGING and all the writes it lists have been agreed — so nobody has to write it down for it to be true.", correct: true, why: "Exactly. The commit stops being an event someone performs and becomes a condition anyone can check." },
+    { text: "The coordinator holds a lock on both ranges until it writes COMMITTED, so nobody can see the half-state.", correct: false, why: "There is a lock of sorts — the write intents — but locks are not what makes the early acknowledgement safe. The redefinition of ‘committed’ is." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), L = cfg.local, W = cfg.wan, t0 = 1000;
+    seedKey(s, "/accounts/asha", [{ ts: 200, val: "₹2,000" }]);
+    seedKey(s, "/accounts/raj", [{ ts: 300, val: "₹500" }]);
+    var readTs = hlc(cfg, "n2", t0), unc = readTs + cfg.maxOffset;
+    var tRaj = t0 + L + W, tAck1 = tRaj + W, tAck2 = tRaj + 2 * W;
+    var pc = cfg.parallelCommits;
+    var steps = [];
+
+    steps.push({
+      t: t0, title: "The client opens a transaction",
+      sentence: "A client connected to Frankfurt asks to move ₹500 from Asha to Raj. Frankfurt's clock reads " + readTs + ", so that becomes the transaction's read timestamp — the single instant of the database this transaction is allowed to see.",
+      tech: "BEGIN on Frankfurt · read_ts = HLC(Frankfurt) = " + readTs + " · uncertainty limit = " + unc,
+      apply: function (st) {
+        newTxn(st, "T1", "Transfer ₹500 Asha → Raj", "n2", readTs, unc);
+        st.view.bars.push({ txn: "T1", label: "Transfer", t0: t0, t1: null, node: "n2", stamp: readTs });
+        st.view.readers.push({ txn: "T1", label: "T1 reads at", readTs: readTs, unc: unc });
+      }
+    });
+    steps.push({
+      t: t0 + L, title: "Read Asha — without leaving the city",
+      sentence: "Asha's row lives in the range /accounts/a–m, and Frankfurt happens to hold that range's lease. A leaseholder may answer a read from its own copy without asking anyone, so this read costs 1 ms instead of a trip across an ocean.",
+      tech: "GET /accounts/asha @ r2 (leaseholder Frankfurt) → ₹2,000 @ ts 200 · " + L + " ms · timestamp cache[r2:/accounts/asha] = " + readTs,
+      apply: function (st) {
+        var T = st.txns.T1;
+        T.observed.n2 = hlc(cfg, "n2", t0 + L);
+        T.reads.push({ key: "/accounts/asha", ts: 200, val: "₹2,000" });
+        st.ranges.r2.tsCache["/accounts/asha"] = { ts: readTs, txn: "T1" };
+      }
+    });
+    steps.push({
+      t: tRaj, title: "Read Raj — which does leave the city",
+      sentence: "Raj's row is in /accounts/n–z, whose leaseholder is in Ohio. Frankfurt has to ask, and wait: one round trip. On the way, Frankfurt notes what Ohio's clock said when the request landed — that note will matter later.",
+      tech: "GET /accounts/raj @ r3 (leaseholder Ohio) → ₹500 @ ts 300 · " + W + " ms · observed_ts[Ohio] = " + hlc(cfg, "n3", t0 + L + W / 2),
+      apply: function (st) {
+        var T = st.txns.T1;
+        T.observed.n3 = hlc(cfg, "n3", t0 + L + W / 2);
+        T.reads.push({ key: "/accounts/raj", ts: 300, val: "₹500" });
+        st.ranges.r3.tsCache["/accounts/raj"] = { ts: readTs, txn: "T1" };
+      }
+    });
+    steps.push({
+      t: tRaj, title: pc ? "Send everything at once" : "Send the provisional values, then wait",
+      sentence: pc
+        ? "Frankfurt sends three messages simultaneously: a provisional value for Asha, a provisional value for Raj, and a transaction record that says STAGING and lists the two keys it is waiting on. Nothing says COMMITTED yet."
+        : "Frankfurt sends two provisional values and settles in to wait. Until both are agreed by a majority, it may not write the transaction record.",
+      tech: pc
+        ? "PUT intent /accounts/asha=₹1,500 @ " + readTs + " · PUT intent /accounts/raj=₹1,000 @ " + readTs + " · PUT txn record {STAGING, in-flight:[/accounts/asha,/accounts/raj]} — all three in parallel"
+        : "PUT intent /accounts/asha=₹1,500 @ " + readTs + " · PUT intent /accounts/raj=₹1,000 @ " + readTs + " · txn record stays PENDING",
+      apply: function (st) {
+        var T = st.txns.T1;
+        st.keys["/accounts/asha"].intent = { ts: readTs, val: "₹1,500", txn: "T1" };
+        st.keys["/accounts/raj"].intent = { ts: readTs, val: "₹1,000", txn: "T1" };
+        if (pc) { T.status = "STAGING"; T.inflight = ["/accounts/asha", "/accounts/raj"]; }
+        st.metrics.consensus = 1;
+      }
+    });
+    if (pc) {
+      steps.push({
+        t: tAck1, title: "Committed — because the data says so",
+        sentence: "All three messages have been agreed by a majority. The record says STAGING and every key it named is present at the right timestamp. That combination is the definition of committed, so the transaction is committed now — and Frankfurt tells the client OK after a single round of agreement.",
+        tech: "implicit commit condition satisfied · client ack at true t=" + tAck1 + " · elapsed " + (tAck1 - t0) + " ms · rounds of consensus: 1",
+        apply: function (st) {
+          var T = st.txns.T1; T.implicit = true; T.ackAt = tAck1;
+          st.metrics.ackMs = tAck1 - t0; st.metrics.ackMsAlt = tAck2 - t0;
+          var b = st.view.bars[0]; b.t1 = tAck1;
+        }
+      });
+      steps.push({
+        t: tAck1 + 5, title: "Tidying up, off the critical path",
+        sentence: "Only now does anyone write the word COMMITTED, and turn the two pencil marks into ink. The client left long ago. If the coordinator died at this exact moment, the transaction would still be committed — the next reader to come along would work that out and finish the tidying itself.",
+        tech: "txn record STAGING → COMMITTED · resolve intents → committed values @ ts " + readTs,
+        apply: function (st) {
+          var T = st.txns.T1; T.status = "COMMITTED";
+          st.keys["/accounts/asha"].versions.push({ ts: readTs, val: "₹1,500" });
+          st.keys["/accounts/raj"].versions.push({ ts: readTs, val: "₹1,000" });
+          st.keys["/accounts/asha"].intent = null; st.keys["/accounts/raj"].intent = null;
+          st.verdict = { tone: "good", main: "₹500 moved from Asha to Raj, atomically, across two continents.",
+            detail: "The client waited " + st.metrics.ackMs + " ms. With parallel commits switched off the same transfer would have made the client wait " + st.metrics.ackMsAlt + " ms — a second full round of agreement spent writing down a fact that was already true." };
+        }
+      });
+    } else {
+      steps.push({
+        t: tAck1, title: "Both provisional values are agreed",
+        sentence: "A majority of replicas has each provisional value. Nobody outside this transaction can read them as real yet — they are pencil marks pointing at a master card that still says PENDING.",
+        tech: "both intents replicated · true t=" + tAck1 + " · rounds of consensus so far: 1",
+        apply: function (st) { st.metrics.consensus = 1; }
+      });
+      steps.push({
+        t: tAck2, title: "Second round: write the commit down",
+        sentence: "Only now can Frankfurt write COMMITTED and only now may it tell the client OK. That second round of agreement is pure waiting — the outcome was already determined a round ago.",
+        tech: "txn record PENDING → COMMITTED · client ack at true t=" + tAck2 + " · elapsed " + (tAck2 - t0) + " ms · rounds of consensus: 2",
+        apply: function (st) {
+          var T = st.txns.T1; T.status = "COMMITTED"; T.ackAt = tAck2;
+          st.metrics.consensus = 2; st.metrics.ackMs = tAck2 - t0; st.metrics.ackMsAlt = tAck1 - t0;
+          st.view.bars[0].t1 = tAck2;
+          st.keys["/accounts/asha"].versions.push({ ts: readTs, val: "₹1,500" });
+          st.keys["/accounts/raj"].versions.push({ ts: readTs, val: "₹1,000" });
+          st.keys["/accounts/asha"].intent = null; st.keys["/accounts/raj"].intent = null;
+          st.verdict = { tone: "warn", main: "Correct, and " + (st.metrics.ackMs - st.metrics.ackMsAlt) + " ms slower than it needed to be.",
+            detail: "Two rounds of agreement: " + st.metrics.ackMs + " ms. Switch parallel commits back on and the client waits " + st.metrics.ackMsAlt + " ms for exactly the same guarantee." };
+        }
+      });
+    }
+    return { init: s, steps: steps };
+  }
+});
+/* ==ENGINE-PART-1-END== */
+
+/* ===== 2. THE COORDINATOR DIES ===== */
+SCENARIOS.push({
+  id: "orphan",
+  title: "The coordinator dies right after saying OK",
+  blurb: "A STAGING record, two intents, and nobody left who knows the answer. Parallel commits are forced on here.",
+  question: "The client has been told the transfer succeeded. One millisecond later the coordinator machine dies — before writing COMMITTED anywhere, and before turning either pencil mark into ink. Is the money moved?",
+  options: [
+    { text: "No. Nothing said COMMITTED, so recovery will roll it back and the client was told a lie.", correct: false, why: "The client was not lied to. ‘Committed’ was already true; writing it down was only bookkeeping." },
+    { text: "It is genuinely ambiguous, and a human has to decide — the way an in-doubt XA transaction works.", correct: false, why: "That is exactly the blocking problem CockroachDB avoids. The outcome is a computable fact, not a judgement call." },
+    { text: "Yes. Any reader that stumbles on the record can prove the commit for itself by checking the keys it lists.", correct: true, why: "The commit condition lives in the data. The first passer-by finishes the paperwork." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), L = cfg.local, W = cfg.wan, t0 = 1000;
+    seedKey(s, "/accounts/asha", [{ ts: 200, val: "₹2,000" }]);
+    seedKey(s, "/accounts/raj", [{ ts: 300, val: "₹500" }]);
+    var readTs = hlc(cfg, "n2", t0), unc = readTs + cfg.maxOffset;
+    var tRaj = t0 + L + W, tAck = tRaj + W, tDie = tAck + 1, tRead = tAck + 200;
+    var steps = [];
+    steps.push({
+      t: t0, title: "The transfer runs as before",
+      sentence: "Same transfer, same two ranges. Frankfurt reads both balances, then fires the two provisional values and a STAGING record listing them, all at once.",
+      tech: "read_ts = " + readTs + " · intents on /accounts/asha and /accounts/raj · txn record {STAGING, in-flight:[/accounts/asha, /accounts/raj]}",
+      apply: function (st) {
+        var T = newTxn(st, "T1", "Transfer ₹500 Asha → Raj", "n2", readTs, unc);
+        T.status = "STAGING"; T.inflight = ["/accounts/asha", "/accounts/raj"];
+        T.reads = [{ key: "/accounts/asha", ts: 200, val: "₹2,000" }, { key: "/accounts/raj", ts: 300, val: "₹500" }];
+        st.keys["/accounts/asha"].intent = { ts: readTs, val: "₹1,500", txn: "T1" };
+        st.keys["/accounts/raj"].intent = { ts: readTs, val: "₹1,000", txn: "T1" };
+        st.view.bars.push({ txn: "T1", label: "Transfer", t0: t0, t1: null, node: "n2", stamp: readTs });
+      }
+    });
+    steps.push({
+      t: tAck, title: "Client told OK",
+      sentence: "Both provisional values and the record are agreed by majorities. The commit condition holds, so Frankfurt tells the client the transfer succeeded.",
+      tech: "implicit commit satisfied at true t=" + tAck + " · elapsed " + (tAck - t0) + " ms",
+      apply: function (st) { st.txns.T1.implicit = true; st.txns.T1.ackAt = tAck; st.view.bars[0].t1 = tAck; st.metrics.ackMs = tAck - t0; }
+    });
+    steps.push({
+      t: tDie, title: "Frankfurt dies",
+      sentence: "The coordinator machine is gone: no COMMITTED written, no intents resolved, and no process anywhere that remembers this transaction. The two other cities still hold copies of both ranges, so no data is lost — but the paperwork is stranded.",
+      tech: "node Frankfurt down · leases for r2 and r4 move to surviving replicas · txn record left in STAGING",
+      apply: function (st) {
+        st.nodes.n2.alive = false; st.nodes.n2.note = "crashed — its ranges' leases move on";
+        st.ranges.r2.lh = "n1"; st.ranges.r2.leader = "n1";
+        st.ranges.r4.lh = "n1"; st.ranges.r4.leader = "n1";
+        st.verdict = { tone: "warn", main: "The client holds a receipt that nothing in the database confirms.", detail: "A transaction record stuck in STAGING and two unresolved pencil marks. Nobody is coming back for them. The next paragraph is the whole point of the design." };
+      }
+    });
+    steps.push({
+      t: tRead, title: "A stranger arrives",
+      sentence: "An unrelated client in Ohio asks for Raj's balance and finds a pencil mark on the row instead of a value. The mark names the transaction record it belongs to, so the reader goes and looks at it.",
+      tech: "GET /accounts/raj → intent{ts=" + readTs + ", txn=T1} · fetch txn record → {STAGING, in-flight:[/accounts/asha, /accounts/raj]}",
+      apply: function (st) {
+        var rt = hlc(cfg, "n3", tRead);
+        newTxn(st, "T2", "Read Raj's balance", "n3", rt, rt + cfg.maxOffset);
+        st.view.bars.push({ txn: "T2", label: "Balance check", t0: tRead, t1: null, node: "n3", stamp: rt });
+        st.view.readers.push({ txn: "T2", label: "T2 reads at", readTs: rt, unc: rt + cfg.maxOffset });
+      }
+    });
+    steps.push({
+      t: tRead + W, title: "The reader finishes someone else's transaction",
+      sentence: "The record is STAGING, so the reader runs the recovery procedure: for each key the record lists, is there an agreed provisional value at that timestamp? Asha: yes. Raj: yes. That is the commit condition, so the transaction committed — a fact the reader can establish without asking anybody's permission. It writes COMMITTED, turns both marks into ink, and only then reads the value.",
+      tech: "status recovery: all in-flight writes present → implicitly committed → record STAGING → COMMITTED · intents resolved @ ts " + readTs + " · GET /accounts/raj → ₹1,000",
+      apply: function (st) {
+        st.txns.T1.status = "COMMITTED";
+        st.keys["/accounts/asha"].versions.push({ ts: readTs, val: "₹1,500" });
+        st.keys["/accounts/raj"].versions.push({ ts: readTs, val: "₹1,000" });
+        st.keys["/accounts/asha"].intent = null; st.keys["/accounts/raj"].intent = null;
+        st.txns.T2.reads.push({ key: "/accounts/raj", ts: readTs, val: "₹1,000" });
+        st.txns.T2.status = "COMMITTED";
+        st.view.bars[1].t1 = tRead + W;
+        st.verdict = { tone: "good", main: "The receipt was true. A passing stranger proved it.", detail: "Nothing waited for the dead machine, and no human was asked to adjudicate an in-doubt transaction. The commit was a property of the data all along; recovery only reads it off." };
+      }
+    });
+    steps.push({
+      t: tRead + W + 1, title: "Counterfactual — suppose one write had never landed",
+      sentence: "Rewind, and imagine the provisional value for Raj had never reached a majority before Frankfurt died. Now the recovery procedure finds a key missing. It does not guess: it makes the missing write impossible forever, by raising the barrier on that key above the transaction's timestamp, and only then marks the record ABORTED. Neither half is visible. Still atomic — the other way.",
+      tech: "status recovery: /accounts/raj intent absent → bump timestamp cache[r3:/accounts/raj] above ts " + readTs + " → record ABORTED → both intents discarded",
+      apply: function (st) {
+        st.txns.T1.status = "ABORTED"; st.txns.T1.note = "counterfactual branch";
+        st.keys["/accounts/asha"].versions = [{ ts: 200, val: "₹2,000" }];
+        st.keys["/accounts/raj"].versions = [{ ts: 300, val: "₹500" }];
+        st.ranges.r3.tsCache["/accounts/raj"] = { ts: readTs + 0.001, txn: "recovery" };
+        st.txns.T2.reads = [{ key: "/accounts/raj", ts: 300, val: "₹500" }];
+        st.verdict = { tone: "good", main: "Both outcomes are atomic, and the same procedure produces both.", detail: "The recovery procedure never guesses and never asks. It looks at the keys the record named, and whichever answer it finds, it makes that answer permanent before anyone else can find a different one." };
+      }
+    });
+    return { init: s, steps: steps };
+  },
+  force: { parallelCommits: true }
+});
+
+/* ===== 3. THE STALE READ ===== */
+SCENARIOS.push({
+  id: "stale",
+  title: "The stale read, and the doubt that prevents it",
+  blurb: "Asha's payment settles in Mumbai. She telephones Ben in Ohio. Drag the doubt to zero and watch it break.",
+  question: "Mumbai's clock runs 300 ms ahead of Ohio's — well inside the 500 ms budget, so neither machine is faulty. Asha's payment is acknowledged, she phones Ben, and Ben's dashboard in Ohio reads the row. What does Ben see?",
+  options: [
+    { text: "SETTLED. Ohio's read timestamp is lower than the payment's, but the payment falls inside Ohio's window of doubt, so Ohio looks again at a higher timestamp.", correct: true, why: "The restart is the entire mechanism, and the whole bill: one extra round trip, paid by the reader." },
+    { text: "PENDING. The payment carries a bigger timestamp than Ben's read, so it is simply in Ben's future and invisible.", correct: false, why: "That is exactly what happens with the doubt set to zero — drag the max-offset slider to 0 and run it again to see it." },
+    { text: "SETTLED, because Mumbai waited before acknowledging Asha, the way Spanner does.", correct: false, why: "Nobody waited. CockroachDB acknowledges immediately and pushes the cost onto Ben." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan;
+    seedKey(s, "/payments/p1", [{ ts: 100, val: "PENDING" }]);
+    var tW = 1000, wTs = hlc(cfg, "n1", tW), tAck = tW + W;
+    var tR = tAck + 20, rTs = hlc(cfg, "n3", tR), unc = rTs + cfg.maxOffset;
+    var tArrive = tR + 1 + W / 2, obsN1 = hlc(cfg, "n1", tArrive), tBack = tR + 1 + W;
+    var skew = cfg.off.n1 - cfg.off.n3, gap = tR - tW, budget = cfg.maxOffset + gap;
+    var steps = [];
+    steps.push({
+      t: tW, title: "Asha's payment settles in Mumbai",
+      sentence: "The payment row lives in a range whose leaseholder is Mumbai, so Mumbai stamps it with its own clock — which happens to read " + wTs + ", although the real instant is " + tW + ". Nothing here is broken; Mumbai simply cannot know its clock is fast.",
+      tech: "T1 on Mumbai · read_ts = commit_ts = HLC(Mumbai) = " + wTs + " · PUT intent /payments/p1 = SETTLED",
+      apply: function (st) {
+        var T = newTxn(st, "T1", "Asha's payment", "n1", wTs, wTs + cfg.maxOffset);
+        st.keys["/payments/p1"].intent = { ts: wTs, val: "SETTLED", txn: "T1" };
+        st.view.bars.push({ txn: "T1", label: "Payment settles", t0: tW, t1: null, node: "n1", stamp: wTs });
+      }
+    });
+    steps.push({
+      t: tAck, title: "Asha is told the money has gone",
+      sentence: "A majority agrees, the value becomes real at timestamp " + wTs + ", and Asha gets her confirmation. Mumbai did not pause for a single millisecond before saying so.",
+      tech: "committed @ ts " + wTs + " · client ack at true t=" + tAck + " · no commit-wait",
+      apply: function (st) {
+        st.txns.T1.status = "COMMITTED"; st.txns.T1.ackAt = tAck;
+        st.keys["/payments/p1"].versions.push({ ts: wTs, val: "SETTLED" });
+        st.keys["/payments/p1"].intent = null;
+        st.view.bars[0].t1 = tAck;
+      }
+    });
+    steps.push({
+      t: tR - 10, title: "Asha telephones Ben",
+      sentence: "“It's gone through.” This message travels by a route the database cannot see or timestamp — the same hole every clock-based design has to plug, because the database is not the only channel between two people.",
+      tech: "out-of-band causal edge · invisible to the cluster",
+      apply: function (st) { }
+    });
+    steps.push({
+      t: tR, title: "Ben's dashboard reads the row from Ohio",
+      sentence: "Ben's client is in Ohio, whose clock reads " + rTs + " — lower than the payment's stamp, because Ohio's clock is slow and Mumbai's is fast. On its own that number would hide the payment. But the read also carries a window of doubt " + cfg.maxOffset + " ms wide, reaching up to " + unc + ".",
+      tech: "T2 on Ohio · read_ts = " + rTs + " · uncertainty interval = (" + rTs + ", " + unc + "]",
+      apply: function (st) {
+        newTxn(st, "T2", "Ben checks the payment", "n3", rTs, unc);
+        st.view.bars.push({ txn: "T2", label: "Ben's read", t0: tR, t1: null, node: "n3", stamp: rTs });
+        st.view.readers.push({ txn: "T2", label: "Ben reads at", readTs: rTs, unc: unc });
+      }
+    });
+    var cls = classify(cfg, { readTs: rTs, unc: unc, observed: { n1: obsN1 } }, "n1", wTs);
+    if (cls === "uncertain") {
+      var newTs = wTs + 0.001;
+      steps.push({
+        t: tBack, title: "The value lands inside the doubt",
+        sentence: "Mumbai returns the payment stamped " + wTs + ". That is above Ben's read timestamp but inside his window of doubt, which means Ohio genuinely cannot tell whether it is a write from Ben's future or a write from Ben's past wearing a fast clock's number. Returning PENDING might be a lie, so the read refuses to answer and restarts higher.",
+        tech: "ReadWithinUncertaintyIntervalError · value ts " + wTs + " ∈ (" + rTs + ", " + unc + "] · observed_ts[Mumbai] = " + obsN1 + " (does not clear it) · retry at " + fmtTs(newTs),
+        apply: function (st) {
+          var T = st.txns.T2; T.readTs = newTs; T.commitTs = newTs; T.restarts = 1; T.observed.n1 = obsN1;
+          T.note = "restarted once, on Mumbai";
+          st.metrics.restarts = 1;
+          st.view.readers[0].readTs = newTs;
+        }
+      });
+      steps.push({
+        t: tBack + 1, title: "Ben sees SETTLED",
+        sentence: "At the higher timestamp the payment is plainly in the past, and Ben's dashboard shows what Asha told him on the telephone. Notice what the restart did not change: the top of the window stayed at " + unc + ", so the doubt is now " + Math.round(unc - newTs) + " ms wide instead of " + cfg.maxOffset + ". Doubt only ever shrinks.",
+        tech: "GET /payments/p1 @ ts " + fmtTs(newTs) + " → SETTLED · window now (" + fmtTs(newTs) + ", " + unc + "] · cost: one extra round trip (" + W + " ms)",
+        apply: function (st) {
+          var T = st.txns.T2; T.status = "COMMITTED"; T.reads.push({ key: "/payments/p1", ts: wTs, val: "SETTLED" });
+          st.view.bars[1].t1 = tBack + 1;
+          st.verdict = { tone: "good", main: "Ben sees SETTLED. The reader paid one round trip for it.",
+            detail: "Mumbai's clock is " + skew + " ms ahead of Ohio's. Ben's window covers " + cfg.maxOffset + " ms of disagreement, and it gets " + gap + " ms of slack for free, because Mumbai took its timestamp " + gap + " ms of real time before Ben took his. A stale read needs the clock gap to beat " + budget + " ms; " + skew + " does not come close." };
+        }
+      });
+    } else if (cls === "past") {
+      steps.push({
+        t: tBack, title: "No doubt arises at all",
+        sentence: "At these clock settings Ohio's read timestamp of " + rTs + " is already above the payment's stamp of " + wTs + ", so the payment is plainly in Ben's past and simply visible. This is the easy case, and it is the case you get whenever the reader's clock is not behind the writer's. Drag Mumbai's clock up, or Ohio's down, to make it interesting.",
+        tech: "value ts " + wTs + " ≤ read_ts " + rTs + " → past → visible · no restart · GET /payments/p1 → SETTLED",
+        apply: function (st) {
+          var T = st.txns.T2; T.status = "COMMITTED"; T.reads.push({ key: "/payments/p1", ts: wTs, val: "SETTLED" });
+          st.view.bars[1].t1 = tBack;
+          st.verdict = { tone: "good", main: "Ben sees SETTLED, and it cost nothing.",
+            detail: "Ohio's clock is not behind Mumbai's here, so the payment's timestamp lands below Ben's read timestamp and no doubt arises. The window of doubt is insurance: most of the time it is not needed, and it is never free to carry — the reader still has to consider every value against it." };
+        }
+      });
+    } else {
+      steps.push({
+        t: tBack, title: "Nothing looks suspicious, and that is the problem",
+        sentence: "Mumbai returns the payment stamped " + wTs + ", which is outside Ben's window of doubt entirely — so Ohio classifies it as a write from Ben's future and skips it without comment. Ben's dashboard says the payment has not arrived, thirty milliseconds after Asha was told it had. No error is raised. Nothing is logged. Nobody finds out.",
+        tech: "value ts " + wTs + " > uncertainty limit " + unc + " → treated as future → invisible · GET /payments/p1 → PENDING · STALE READ",
+        apply: function (st) {
+          var T = st.txns.T2; T.status = "COMMITTED"; T.reads.push({ key: "/payments/p1", ts: 100, val: "PENDING" });
+          T.note = "returned a stale answer"; st.metrics.staleReads = 1;
+          st.view.bars[1].t1 = tBack;
+          st.verdict = { tone: "bad", main: "Ben is told the payment has not arrived. It arrived " + (tR - tAck) + " ms ago.",
+            detail: "Mumbai's clock is " + skew + " ms ahead of Ohio's, and the window covers only " + budget + " ms (the " + cfg.maxOffset + " ms budget plus the " + gap + " ms of real time between Mumbai taking its timestamp and Ben taking his). A stale read needs the clock gap to beat that number — and here it does, silently." };
+        }
+      });
+    }
+    return { init: s, steps: steps };
+  }
+});
+
+/* ===== 4. RESTARTS, AND WHY THEY STOP ===== */
+SCENARIOS.push({
+  id: "restarts",
+  title: "Why the restarts stop",
+  blurb: "A report reads four rows while the cluster keeps writing. Turn off the clock-memory switch and count the difference.",
+  question: "A long report reads rows whose leaseholders keep committing new versions. Each value inside the window of doubt costs a restart. What stops a busy report from restarting forever?",
+  options: [
+    { text: "Nothing structural — CockroachDB gives up after a fixed number of retries and returns an error to the client.", correct: false, why: "There is a deadline, but it is not what bounds the restarts. The bound is a property of the rule itself." },
+    { text: "The top of the window never moves, and after one conversation with a machine anything it stamps later is provably in the future — so at most one restart per machine.", correct: true, why: "Two independent brakes: a window that only shrinks, and a per-machine memory that turns doubt into certainty." },
+    { text: "Restarts only happen on the first read of a transaction; later reads use the timestamp already established.", correct: false, why: "Any read can restart. What is bounded is how many times each machine can force one." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan, M = cfg.maxOffset;
+    var tsAsha = hlc(cfg, "n2", 995), tsRaj = hlc(cfg, "n3", 900);
+    var tsP1 = hlc(cfg, "n1", 980), tsP2old = hlc(cfg, "n1", 400), tsP2 = hlc(cfg, "n1", 1105);
+    seedKey(s, "/accounts/asha", [{ ts: tsAsha, val: "₹2,000" }]);
+    seedKey(s, "/accounts/raj", [{ ts: tsRaj, val: "₹500" }]);
+    seedKey(s, "/payments/p1", [{ ts: tsP1, val: "SETTLED" }]);
+    seedKey(s, "/payments/p2", [{ ts: tsP2old, val: "PENDING" }, { ts: tsP2, val: "REFUNDED" }]);
+    var t0 = 1000, readTs = hlc(cfg, "n2", t0), unc = readTs + M;
+    var obsN2 = hlc(cfg, "n2", t0 + 1);
+    var tRajArr = t0 + 2 + W / 2, obsN3 = hlc(cfg, "n3", tRajArr), tRajBack = t0 + 2 + W;
+    var tP1Arr = tRajBack + W / 2, obsN1 = hlc(cfg, "n1", tP1Arr), tP1Back = tRajBack + W;
+    var tP2Back = tP1Back + 60 + W;
+    var steps = [], live = { readTs: readTs, unc: unc, observed: {} };
+
+    steps.push({
+      t: t0, title: "A report opens on Frankfurt",
+      sentence: "One transaction will read four rows spread over three cities. Frankfurt's clock gives it a read timestamp of " + readTs + " and a window of doubt reaching " + unc + ".",
+      tech: "read_ts = " + readTs + " · uncertainty interval = (" + readTs + ", " + unc + "]",
+      apply: function (st) {
+        newTxn(st, "TR", "Nightly report", "n2", readTs, unc);
+        st.view.bars.push({ txn: "TR", label: "Report", t0: t0, t1: null, node: "n2", stamp: readTs });
+        st.view.readers.push({ txn: "TR", label: "Report reads at", readTs: readTs, unc: unc });
+      }
+    });
+    steps.push({
+      t: t0 + 1, title: "Asha's row: plainly in the past",
+      sentence: "Frankfurt holds this range's lease and its own clock wrote the newest version, at " + tsAsha + ", below the read timestamp. No doubt arises, and nothing costs a round trip.",
+      tech: "GET /accounts/asha → ₹2,000 @ ts " + tsAsha + " (≤ read_ts) · observed_ts[Frankfurt] = " + obsN2,
+      apply: function (st) { var T = st.txns.TR; T.observed.n2 = obsN2; live.observed.n2 = obsN2; T.reads.push({ key: "/accounts/asha", ts: tsAsha, val: "₹2,000" }); }
+    });
+    steps.push({
+      t: tRajBack, title: "Raj's row: written by a slow clock, so it looks old",
+      sentence: "Ohio's clock runs behind, so a write Ohio made recently carries the small timestamp " + tsRaj + ". It is comfortably below the report's read timestamp and is simply visible. A slow clock makes your writes look older than they are — which is harmless for readers, and is exactly the direction that hides writes from strangers.",
+      tech: "GET /accounts/raj @ Ohio → ₹500 @ ts " + tsRaj + " · observed_ts[Ohio] = " + obsN3,
+      apply: function (st) { var T = st.txns.TR; T.observed.n3 = obsN3; live.observed.n3 = obsN3; T.reads.push({ key: "/accounts/raj", ts: tsRaj, val: "₹500" }); }
+    });
+    var c1 = classify(cfg, { readTs: readTs, unc: unc, observed: { n1: obsN1 } }, "n1", tsP1);
+    var afterFirst = (c1 === "uncertain") ? tsP1 + 0.001 : readTs;
+    steps.push({
+      t: tP1Back, title: c1 === "uncertain" ? "First payment row: restart number one" : "First payment row: no restart needed",
+      sentence: c1 === "uncertain"
+        ? "Mumbai's clock runs fast, so its recent write carries the large timestamp " + tsP1 + " — above the read timestamp and inside the doubt. The report cannot tell whether that value belongs in its past, so it restarts at " + fmtTs(afterFirst) + ". The top of the window does not move: the doubt has just narrowed from " + M + " ms to " + Math.round(unc - afterFirst) + " ms."
+        : "Mumbai's write at " + tsP1 + " falls outside the window of doubt at these clock settings, so the report classifies it without hesitating and carries on.",
+      tech: c1 === "uncertain"
+        ? "ReadWithinUncertaintyIntervalError on /payments/p1 (ts " + tsP1 + ") · retry at " + fmtTs(afterFirst) + " · uncertainty limit unchanged at " + unc + " · observed_ts[Mumbai] = " + obsN1
+        : "value ts " + tsP1 + " classified " + c1 + " · observed_ts[Mumbai] = " + obsN1,
+      apply: function (st) {
+        var T = st.txns.TR; T.observed.n1 = obsN1; live.observed.n1 = obsN1;
+        if (c1 === "uncertain") { T.readTs = afterFirst; T.commitTs = afterFirst; T.restarts += 1; st.metrics.restarts += 1; st.view.readers[0].readTs = afterFirst; }
+        T.reads.push({ key: "/payments/p1", ts: tsP1, val: "SETTLED" });
+      }
+    });
+    var c2 = classify(cfg, { readTs: afterFirst, unc: unc, observed: cfg.observedTs ? { n1: obsN1 } : {} }, "n1", tsP2);
+    var afterSecond = (c2 === "uncertain") ? tsP2 + 0.001 : afterFirst;
+    steps.push({
+      t: tP2Back, title: c2 === "future-observed" ? "Second payment row: doubt dissolved by memory"
+        : c2 === "uncertain" ? "Second payment row: restart number two" : "Second payment row: no doubt",
+      sentence: c2 === "future-observed"
+        ? "Mumbai has meanwhile stamped a newer version at " + tsP2 + ", which is inside the window and would normally force another restart. But the report already spoke to Mumbai, and Mumbai's clock read " + obsN1 + " at that moment. A value stamped " + tsP2 + " must therefore have been written after the report contacted Mumbai — it is provably in the report's future, not merely possibly. No restart. The report reads the older version instead."
+        : c2 === "uncertain"
+          ? "Mumbai has stamped a newer version at " + tsP2 + ", inside the window again. With the clock-memory switch off, the report has no way to tell this apart from a write that belongs in its past, so it restarts a second time — on the same machine that already forced one."
+          : "The newer version at " + tsP2 + " falls outside the window at these settings and is skipped without argument.",
+      tech: c2 === "future-observed"
+        ? "value ts " + tsP2 + " > observed_ts[Mumbai] " + obsN1 + " → provably future → skipped · read older version @ ts " + tsP2old
+        : c2 === "uncertain"
+          ? "ReadWithinUncertaintyIntervalError on /payments/p2 (ts " + tsP2 + ") · retry at " + fmtTs(afterSecond) + " · restarts on Mumbai: 2"
+          : "value ts " + tsP2 + " classified " + c2,
+      apply: function (st) {
+        var T = st.txns.TR;
+        if (c2 === "uncertain") { T.readTs = afterSecond; T.commitTs = afterSecond; T.restarts += 1; st.metrics.restarts += 1; st.view.readers[0].readTs = afterSecond; T.reads.push({ key: "/payments/p2", ts: tsP2, val: "REFUNDED" }); }
+        else { T.reads.push({ key: "/payments/p2", ts: tsP2old, val: "PENDING" }); }
+        T.status = "COMMITTED";
+        st.view.bars[0].t1 = tP2Back;
+        var n = st.metrics.restarts;
+        st.verdict = cfg.observedTs
+          ? { tone: "good", main: n + " restart" + (n === 1 ? "" : "s") + " — and Mumbai can never force another one.",
+              detail: "Two brakes are working at once. The top of the window is fixed at " + unc + ", so every restart makes the remaining doubt smaller. And once the report has spoken to a machine, anything that machine stamps above the clock reading it saw is provably in the future — so each machine gets at most one chance to force a restart. Three machines, at most three restarts, ever." }
+          : { tone: "warn", main: n + " restart" + (n === 1 ? "" : "s") + " — Mumbai forced " + (c2 === "uncertain" ? "two" : "one") + " on its own.",
+              detail: "With the clock-memory switch off, the only brake left is the fixed top of the window. Restarts are still bounded, but a machine that keeps writing can keep forcing them. Turn the switch back on and watch the second restart disappear — and notice that the report then returns a different, older, equally serializable answer." };
+      }
+    });
+    return { init: s, steps: steps };
+  }
+});
+
+/* ===== 5. WRITE SKEW ===== */
+SCENARIOS.push({
+  id: "skew",
+  title: "Two doctors, and the rule that saves them",
+  blurb: "Both on call, both trying to go off, on ranges 60 ms apart. Snapshot isolation loses this one.",
+  question: "Dr Mehta and Dr Qureshi are both on call. Each opens a transaction, sees the other is on call, and books themselves off. Their rows live on different ranges, so neither write touches the other's data. What happens?",
+  options: [
+    { text: "Both commit. Neither wrote what the other read, so there is no conflict to detect.", correct: false, why: "That is snapshot isolation's answer — and it is the classic write skew. Switch off ‘re-check reads when pushed’ to watch it happen." },
+    { text: "One of them is refused with error 40001, because committing would have invalidated a read the other one already made.", correct: true, why: "Reads leave a mark too. The second writer is pushed above that mark, and then has to prove its own reads still hold." },
+    { text: "One of them blocks until the other commits, then sees the new value and gives up.", correct: false, why: "Nobody blocks. The conflict is discovered at commit time, not prevented at read time." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan;
+    seedKey(s, "/oncall/dr_mehta", [{ ts: 500, val: "ON CALL" }]);
+    seedKey(s, "/oncall/dr_qureshi", [{ ts: 500, val: "ON CALL" }]);
+    var tsA = hlc(cfg, "n2", 1000), tsB = hlc(cfg, "n3", 1010);
+    var commitA = (tsB >= tsA) ? tsB + 0.001 : tsA, pushedA = commitA !== tsA;
+    var cacheQ = pushedA ? commitA : tsA;
+    var commitB = (cacheQ >= tsB) ? cacheQ + 0.001 : tsB;
+    var refreshFails = commitA > tsB && commitA <= commitB;
+    var steps = [];
+    steps.push({
+      t: 1000, title: "Both doctors look",
+      sentence: "Dr Mehta's client is on Frankfurt and reads at " + tsA + "; Dr Qureshi's is on Ohio and reads at " + tsB + ". Each reads both rows and sees the other on call. Crucially, each read leaves a mark on the row saying “somebody read me, at this timestamp” — the timestamp cache.",
+      tech: "T_A read_ts=" + tsA + " · T_B read_ts=" + tsB + " · timestamp cache: /oncall/dr_mehta ← max(" + tsA + "," + tsB + "), /oncall/dr_qureshi ← max(" + tsA + "," + tsB + ")",
+      apply: function (st) {
+        var A = newTxn(st, "TA", "Dr Mehta books off", "n2", tsA, tsA + cfg.maxOffset);
+        var B = newTxn(st, "TB", "Dr Qureshi books off", "n3", tsB, tsB + cfg.maxOffset);
+        A.reads = [{ key: "/oncall/dr_mehta", ts: 500, val: "ON CALL" }, { key: "/oncall/dr_qureshi", ts: 500, val: "ON CALL" }];
+        B.reads = [{ key: "/oncall/dr_mehta", ts: 500, val: "ON CALL" }, { key: "/oncall/dr_qureshi", ts: 500, val: "ON CALL" }];
+        st.ranges.r4.tsCache["/oncall/dr_mehta"] = { ts: Math.max(tsA, tsB), txn: tsA >= tsB ? "TA" : "TB" };
+        st.ranges.r5.tsCache["/oncall/dr_qureshi"] = { ts: Math.max(tsA, tsB), txn: tsA >= tsB ? "TA" : "TB" };
+        st.view.bars.push({ txn: "TA", label: "Mehta", t0: 1000, t1: null, node: "n2", stamp: tsA });
+        st.view.bars.push({ txn: "TB", label: "Qureshi", t0: 1010, t1: null, node: "n3", stamp: tsB });
+        st.view.readers.push({ txn: "TA", label: "T_A reads at", readTs: tsA, unc: tsA + cfg.maxOffset });
+        st.view.readers.push({ txn: "TB", label: "T_B reads at", readTs: tsB, unc: tsB + cfg.maxOffset });
+      }
+    });
+    steps.push({
+      t: 1200, title: "Dr Mehta commits" + (pushedA ? " — after being pushed" : ""),
+      sentence: pushedA
+        ? "Mehta's write lands on a row that Qureshi's transaction read at a higher timestamp, so it is pushed up to " + fmtTs(commitA) + ". Being pushed means the transaction is now claiming to have happened later than it read, so it must re-check its own reads over the gap. Nothing has changed yet, so it commits."
+        : "Nobody else has read Mehta's row at a higher timestamp, so the write commits at " + fmtTs(commitA) + " without being pushed. Dr Mehta is off call.",
+      tech: "PUT /oncall/dr_mehta = OFF @ " + fmtTs(commitA) + (pushedA ? " (pushed from " + tsA + ") · read refresh over (" + tsA + ", " + fmtTs(commitA) + "] → clean" : "") + " · COMMITTED",
+      apply: function (st) {
+        st.txns.TA.commitTs = commitA; st.txns.TA.status = "COMMITTED"; st.txns.TA.ackAt = 1200;
+        st.keys["/oncall/dr_mehta"].versions.push({ ts: commitA, val: "OFF" });
+        st.view.bars[0].t1 = 1200;
+        if (pushedA) { st.ranges.r4.tsCache["/oncall/dr_mehta"] = { ts: commitA, txn: "TA" }; st.ranges.r5.tsCache["/oncall/dr_qureshi"] = { ts: commitA, txn: "TA" }; }
+      }
+    });
+    steps.push({
+      t: 1260, title: "Dr Qureshi's write is pushed",
+      sentence: "Qureshi's write lands on a row that Mehta's transaction read at " + fmtTs(cacheQ) + ". A write is never allowed to slip in underneath a read that has already happened, so Qureshi's whole transaction is shoved up to " + fmtTs(commitB) + ". No lock, no waiting: the write simply gets a later timestamp than it wanted.",
+      tech: "timestamp cache[/oncall/dr_qureshi] = " + fmtTs(cacheQ) + " ≥ commit_ts " + tsB + " → push commit_ts to " + fmtTs(commitB),
+      apply: function (st) { st.txns.TB.commitTs = commitB; st.txns.TB.note = "pushed from " + tsB; }
+    });
+    if (cfg.readRefresh && refreshFails) {
+      steps.push({
+        t: 1265, title: "And now it has to prove its reads still hold",
+        sentence: "Qureshi's transaction read at " + tsB + " but is now claiming to commit at " + fmtTs(commitB) + ". Everything it read has to still be true over that gap. It is not: Mehta's row changed at " + fmtTs(commitA) + ", right inside the gap. The transaction is refused.",
+        tech: "read refresh over (" + tsB + ", " + fmtTs(commitB) + "] · /oncall/dr_mehta changed at " + fmtTs(commitA) + " → refresh FAILED · RETRY_SERIALIZABLE, SQLSTATE 40001",
+        kind: "bad",
+        apply: function (st) {
+          st.txns.TB.status = "ABORTED"; st.txns.TB.note = "RETRY_SERIALIZABLE (40001)";
+          st.metrics.refreshFails = 1; st.metrics.retries = 1;
+          st.view.bars[1].t1 = 1265;
+        }
+      });
+      steps.push({
+        t: 1330, title: "The retry sees the truth",
+        sentence: "The client's retry loop runs the transaction again at a fresh timestamp. This time it reads Mehta as OFF, so the application's own rule — never take the last doctor off call — refuses. One of the two doctors stays on call, which is the answer a single-machine database would have given.",
+        tech: "retry at read_ts " + fmtTs(commitB + 0.001) + " → /oncall/dr_mehta = OFF → application aborts · invariant holds",
+        apply: function (st) {
+          st.verdict = { tone: "good", main: "One doctor stays on call. Write skew is closed, without a single lock.",
+            detail: "Neither transaction wrote what the other read, so no write-write conflict existed to find. What caught it was the mark that reads leave behind: the second writer was pushed above it, and a pushed transaction has to prove its own reads still hold. That proof is the difference between snapshot isolation and serializable." };
+        }
+      });
+    } else {
+      steps.push({
+        t: 1265, title: "Nothing re-checks the reads",
+        sentence: "With the re-check switched off, being pushed costs nothing. Qureshi's transaction commits at " + fmtTs(commitB) + " on the strength of a read it made at " + tsB + " — a read that Mehta's commit has since made false.",
+        tech: "no read refresh (snapshot-isolation behaviour) · PUT /oncall/dr_qureshi = OFF @ " + fmtTs(commitB) + " · COMMITTED",
+        kind: "bad",
+        apply: function (st) {
+          st.txns.TB.status = "COMMITTED";
+          st.keys["/oncall/dr_qureshi"].versions.push({ ts: commitB, val: "OFF" });
+          st.view.bars[1].t1 = 1265;
+          st.verdict = { tone: "bad", main: "Nobody is on call. Both transactions committed, and both were individually correct.",
+            detail: "This is write skew, exactly as it appears on a single machine under snapshot isolation. Distribution changed nothing about it. Switch ‘re-check reads when pushed’ back on to close it." };
+        }
+      });
+    }
+    return { init: s, steps: steps };
+  }
+});
+
+/* ===== 6. THE LEASEHOLDER DIES ===== */
+SCENARIOS.push({
+  id: "lease",
+  title: "The leaseholder dies mid-transaction",
+  blurb: "The data survives on two other machines. Something else does not, and it has a strange error message.",
+  question: "A transaction has read a row from Frankfurt. Frankfurt then dies. Two other cities hold complete copies of that range, so no data is lost. When the transaction tries to write, what happens?",
+  options: [
+    { text: "It writes normally against the new leaseholder — the range has a majority, so nothing was interrupted.", correct: false, why: "The data survived. Something else did not, and it lived only in the dead machine's memory." },
+    { text: "It is refused, because the marks that reads leave behind lived only in the dead machine's memory and the new leaseholder cannot prove the write is safe.", correct: true, why: "The timestamp cache is not replicated. A new leaseholder assumes the worst about everything before its lease began." },
+    { text: "It blocks until Frankfurt comes back, because only Frankfurt knows what was read.", correct: false, why: "Nothing blocks on a dead machine. The new leaseholder refuses immediately and the client retries." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan;
+    seedKey(s, "/oncall/dr_mehta", [{ ts: 500, val: "ON CALL" }]);
+    var t0 = 1000, readTs = hlc(cfg, "n2", t0), tDie = 1050, tLease = 1050 + 6 * W, tWrite = tLease + 60;
+    var steps = [];
+    steps.push({
+      t: t0, title: "A transaction reads from Frankfurt",
+      sentence: "Frankfurt holds the lease for /oncall/a–m, so it answers the read from its own copy. It also records, in its own memory only, that this row was read at timestamp " + readTs + ". That record is not replicated anywhere.",
+      tech: "read_ts = " + readTs + " · GET /oncall/dr_mehta @ leaseholder Frankfurt · timestamp cache[r4] updated in Frankfurt's memory only",
+      apply: function (st) {
+        var T = newTxn(st, "TX", "Roster update", "n2", readTs, readTs + cfg.maxOffset);
+        T.reads.push({ key: "/oncall/dr_mehta", ts: 500, val: "ON CALL" });
+        st.ranges.r4.tsCache["/oncall/dr_mehta"] = { ts: readTs, txn: "TX" };
+        st.view.bars.push({ txn: "TX", label: "Roster update", t0: t0, t1: null, node: "n2", stamp: readTs });
+        st.view.readers.push({ txn: "TX", label: "T_X reads at", readTs: readTs, unc: readTs + cfg.maxOffset });
+      }
+    });
+    steps.push({
+      t: tDie, title: "Frankfurt dies",
+      sentence: "The machine is gone. The range itself is fine — Mumbai and Ohio each hold a full copy, which is a majority of three, so the data is neither lost nor unreadable for long.",
+      tech: "node Frankfurt down · r4 replicas on Mumbai and Ohio remain · 2 of 3 = quorum",
+      apply: function (st) { st.nodes.n2.alive = false; st.nodes.n2.note = "down"; }
+    });
+    steps.push({
+      t: tLease, title: "A new leader takes the lease",
+      sentence: "The surviving replicas hold an election, and the winner takes over the right to answer reads for this range. In current CockroachDB the two roles are deliberately fused: whoever leads the range's replication also holds its lease, so a range can never end up with a leader in one place and a lease in another.",
+      tech: "raft election on r4 → leader Mumbai · leader lease acquired · range unavailable for the handover only, not the outage",
+      apply: function (st) { st.ranges.r4.lh = "n1"; st.ranges.r4.leader = "n1"; st.ranges.r4.lowWater = { ts: hlc(cfg, "n1", tLease), why: "lease start" }; st.ranges.r4.tsCache = {}; }
+    });
+    steps.push({
+      t: tWrite, title: "The write is refused",
+      sentence: "The transaction now tries to write the row it read. The new leaseholder has no idea what anyone read before its lease began — that record died with Frankfurt — so it assumes the worst about the entire range and refuses any write from a transaction older than its lease. The client is told to start again.",
+      tech: "PUT /oncall/dr_mehta @ new leaseholder Mumbai · timestamp cache low-water mark = " + hlc(cfg, "n1", tLease) + " > txn read_ts " + readTs + " · ABORT_REASON_NEW_LEASE_PREVENTS_TXN (40001)",
+      kind: "bad",
+      apply: function (st) { st.txns.TX.status = "ABORTED"; st.txns.TX.note = "ABORT_REASON_NEW_LEASE_PREVENTS_TXN"; st.metrics.retries = 1; st.view.bars[0].t1 = tWrite; }
+    });
+    steps.push({
+      t: tWrite + 80, title: "The retry succeeds",
+      sentence: "Run again from the top, against the new leaseholder, the transaction reads and writes normally. Nothing incorrect was ever returned; one transaction's work was thrown away to make sure of that.",
+      tech: "retry from BEGIN · read_ts = " + hlc(cfg, "n1", tWrite + 80) + " · COMMITTED",
+      apply: function (st) {
+        st.txns.TX.status = "COMMITTED"; st.txns.TX.note = "succeeded on retry";
+        st.keys["/oncall/dr_mehta"].versions.push({ ts: hlc(cfg, "n1", tWrite + 80), val: "OFF" });
+        st.verdict = { tone: "good", main: "Safety kept, one transaction spent.",
+          detail: "The unusual thing here is which piece of state was fatal. The data is replicated three ways and survived easily. The record of what had been read was never replicated at all — it is a performance structure, not a durable one — and losing it forces the new leaseholder to distrust every transaction that started before it took over. This is why a retry loop is not optional in CockroachDB: perfectly healthy transactions get thrown away by ordinary events like a machine restart." };
+      }
+    });
+    return { init: s, steps: steps };
+  }
+});
+
+/* ===== 7. THE CLOCK THAT LIED ===== */
+SCENARIOS.push({
+  id: "liar",
+  title: "The clock that lied",
+  blurb: "Selecting this scenario pushes Mumbai's clock to +600 ms — outside the budget. The guarantee is only as true as that number.",
+  question: "The whole design rests on one promise: no clock is more than max-offset away from any other. Suppose Mumbai's clock quietly drifts 600 ms fast, past a 500 ms budget. What does the cluster do?",
+  options: [
+    { text: "Mumbai notices it disagrees with most of the others by more than 80% of the budget, and shuts itself down.", correct: true, why: "The assumption is made self-enforcing: a machine that cannot keep the promise removes itself before it can break it." },
+    { text: "Reads start returning errors, so the operator finds out immediately.", correct: false, why: "Nothing errors. Switch off the self-check and watch a wrong answer come back in silence." },
+    { text: "Nothing — the window of doubt is there precisely to absorb clock drift of any size.", correct: false, why: "The window absorbs drift up to the budget and not one millisecond more. Beyond it, correctness ends without a sound." }
+  ],
+  preset: { off: { n1: 600, n2: 0, n3: -150 } },
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan, M = cfg.maxOffset;
+    seedKey(s, "/payments/p1", [{ ts: 100, val: "PENDING" }]);
+    var thresh = 0.8 * M;
+    var disagree = 0;
+    ["n2", "n3"].forEach(function (o) { if (Math.abs(cfg.off.n1 - cfg.off[o]) > thresh) disagree++; });
+    var suicide = cfg.selfCheck && disagree >= 1;
+    var steps = [];
+    steps.push({
+      t: 950, title: "Mumbai's clock drifts",
+      sentence: "Mumbai's clock is now " + fmtOff(cfg.off.n1) + " away from real time. Nobody in the cluster can see that number directly. What they can see is that Mumbai's readings disagree with theirs — and the rule is that a machine which disagrees with at least half the others by more than 80% of the budget (" + Math.round(thresh) + " ms here) must stop.",
+      tech: "|off(Mumbai) − off(Frankfurt)| = " + Math.abs(cfg.off.n1 - cfg.off.n2) + " ms · |off(Mumbai) − off(Ohio)| = " + Math.abs(cfg.off.n1 - cfg.off.n3) + " ms · threshold = " + Math.round(thresh) + " ms",
+      apply: function (st) { }
+    });
+    if (suicide) {
+      steps.push({
+        t: 960, title: "Mumbai removes itself",
+        sentence: "Mumbai terminates. Its ranges' leases move to machines whose clocks still keep the promise. Losing a node is an availability event and everyone notices it; returning a wrong answer is a correctness event and nobody notices it. The design chooses the one you can see.",
+        tech: "clock offset exceeds 80% of max-offset vs a majority of peers → node terminates · leases for r1, r5 move to surviving replicas",
+        kind: "warn",
+        apply: function (st) {
+          st.nodes.n1.alive = false; st.nodes.n1.note = "shut itself down: clock outside the budget";
+          st.ranges.r1.lh = "n2"; st.ranges.r1.leader = "n2";
+          st.ranges.r5.lh = "n2"; st.ranges.r5.leader = "n2";
+        }
+      });
+      steps.push({
+        t: 1000, title: "The payment settles on an honest clock",
+        sentence: "Frankfurt now holds the lease and stamps the payment with a clock that is inside the budget. Ben's read a moment later finds it exactly as the earlier scenario did. The guarantee survived because the liar was removed, not because the liar was tolerated.",
+        tech: "T1 on Frankfurt · commit_ts = " + hlc(cfg, "n2", 1000) + " · Ben reads on Ohio at " + hlc(cfg, "n3", 1080) + ", window (" + hlc(cfg, "n3", 1080) + ", " + (hlc(cfg, "n3", 1080) + M) + "] → value inside → restart → SETTLED",
+        apply: function (st) {
+          var wTs = hlc(cfg, "n2", 1000);
+          newTxn(st, "T1", "Asha's payment", "n2", wTs, wTs + M);
+          st.txns.T1.status = "COMMITTED"; st.txns.T1.ackAt = 1000 + W;
+          st.keys["/payments/p1"].versions.push({ ts: wTs, val: "SETTLED" });
+          st.view.bars.push({ txn: "T1", label: "Payment", t0: 1000, t1: 1000 + W, node: "n2", stamp: wTs });
+          var rTs = hlc(cfg, "n3", 1080);
+          newTxn(st, "T2", "Ben's read", "n3", rTs, rTs + M);
+          st.txns.T2.status = "COMMITTED"; st.txns.T2.restarts = 1; st.metrics.restarts = 1;
+          st.txns.T2.reads.push({ key: "/payments/p1", ts: wTs, val: "SETTLED" });
+          st.view.readers.push({ txn: "T2", label: "Ben reads at", readTs: wTs + 0.001, unc: rTs + M });
+          st.view.bars.push({ txn: "T2", label: "Ben's read", t0: 1080, t1: 1080 + W, node: "n3", stamp: rTs });
+          st.verdict = { tone: "good", main: "The cluster lost a machine and kept its guarantee.",
+            detail: "Notice what the 80% is for. The budget is 500 ms, and a machine is removed at 400 ms of disagreement — the margin exists so the removal happens before the promise is broken, not after. The correctness argument never mentions how accurate the clocks are; it only requires that a machine which stops being accurate stops being a machine." };
+        }
+      });
+    } else {
+      var wTs = hlc(cfg, "n1", 1000), tAck = 1000 + W, tR = tAck + 20;
+      var rTs = hlc(cfg, "n3", tR), unc = rTs + M;
+      var hidden = wTs > unc;
+      steps.push({
+        t: 1000, title: "The payment settles, stamped by the liar",
+        sentence: "With the self-check switched off, Mumbai stays in the cluster and stamps Asha's payment " + wTs + " — a number " + fmtOff(cfg.off.n1) + " away from the truth. Asha is told her money has gone.",
+        tech: "T1 on Mumbai · commit_ts = " + wTs + " · acked at true t=" + tAck,
+        apply: function (st) {
+          newTxn(st, "T1", "Asha's payment", "n1", wTs, wTs + M);
+          st.txns.T1.status = "COMMITTED"; st.txns.T1.ackAt = tAck;
+          st.keys["/payments/p1"].versions.push({ ts: wTs, val: "SETTLED" });
+          st.view.bars.push({ txn: "T1", label: "Payment", t0: 1000, t1: tAck, node: "n1", stamp: wTs });
+        }
+      });
+      steps.push({
+        t: tR, title: hidden ? "Ben is told the payment has not arrived" : "The doubt still catches it, this time",
+        sentence: hidden
+          ? "Ben reads on Ohio at " + rTs + ", with doubt reaching " + unc + ". The payment is stamped " + wTs + " — above the top of the window, so it is filed as a write from Ben's future and skipped. Ben's dashboard says PENDING. There is no error, no warning and no log line anywhere in the cluster. This is what a broken guarantee looks like: nothing."
+          : "Ben reads on Ohio at " + rTs + ", with doubt reaching " + unc + ". The payment at " + wTs + " still falls inside the window, so Ben restarts and sees it. At this particular combination of offsets the budget is still wide enough — push Mumbai's slider further and it will not be.",
+        tech: "read_ts = " + rTs + " · uncertainty limit = " + unc + " · value ts = " + wTs + " → " + (hidden ? "OUTSIDE the window → invisible → STALE READ" : "inside the window → restart → SETTLED"),
+        kind: hidden ? "bad" : "good",
+        apply: function (st) {
+          newTxn(st, "T2", "Ben's read", "n3", hidden ? rTs : wTs + 0.001, unc);
+          st.txns.T2.status = "COMMITTED";
+          st.view.bars.push({ txn: "T2", label: "Ben's read", t0: tR, t1: tR + W, node: "n3", stamp: rTs });
+          st.view.readers.push({ txn: "T2", label: "Ben reads at", readTs: hidden ? rTs : wTs + 0.001, unc: unc });
+          if (hidden) {
+            st.txns.T2.reads.push({ key: "/payments/p1", ts: 100, val: "PENDING" });
+            st.txns.T2.note = "returned a stale answer"; st.metrics.staleReads = 1;
+            st.verdict = { tone: "bad", main: "A wrong answer, delivered in perfect silence.",
+              detail: "Every mechanism in this database worked exactly as designed. The window of doubt was applied, the value was classified, the answer was returned. The guarantee failed because it was never a guarantee about the world — it was a guarantee conditional on one number, and the number was wrong. This is why the clock-offset gauge on a CockroachDB cluster is a correctness alarm, not a performance one." };
+          } else {
+            st.txns.T2.reads.push({ key: "/payments/p1", ts: wTs, val: "SETTLED" });
+            st.txns.T2.restarts = 1; st.metrics.restarts = 1;
+            st.verdict = { tone: "warn", main: "Still correct — but only because the gap has not beaten the budget yet.",
+              detail: "Mumbai is " + (cfg.off.n1 - cfg.off.n3) + " ms ahead of Ohio and the window covers " + (M + (tR - 1000)) + " ms. Push Mumbai's slider higher, or pull the max-offset slider down, until the first number beats the second, and the answer turns wrong with no error at all." };
+          }
+        }
+      });
+    }
+    return { init: s, steps: steps };
+  }
+});
+
+/* ===== 8. THE CAUSAL REVERSE ===== */
+SCENARIOS.push({
+  id: "reverse",
+  title: "The causal reverse — where the guarantee ends",
+  blurb: "Three transactions, two of them touching nothing in common. Serializable holds. Real time does not.",
+  question: "The Mumbai office marks invoice 88 PAID. A colleague in Ohio sees that confirmation and, because of it, raises Raj's credit limit. A long-running audit reads both rows. Can the audit see the credit limit raised, while still seeing the invoice unpaid?",
+  options: [
+    { text: "No. The window of doubt exists precisely to stop a reader missing an already-acknowledged write.", correct: false, why: "The window protects a reader against writes acknowledged before the reader started. This audit started earlier than that." },
+    { text: "Yes — and it is not a bug. CockroachDB guarantees serializability, not that the serial order matches real time.", correct: true, why: "This is the gap Spanner spends money to close and CockroachDB deliberately leaves open." },
+    { text: "Only if a clock is outside the budget — with honest clocks the order always matches real time.", correct: false, why: "Every clock here is well inside the budget. The anomaly needs no faulty hardware at all." }
+  ],
+  build: function (cfg) {
+    var s = baseState(cfg), W = cfg.wan, M = cfg.maxOffset;
+    seedKey(s, "/payments/p1", [{ ts: 100, val: "UNPAID" }]);
+    seedKey(s, "/accounts/raj", [{ ts: 300, val: "limit ₹1,000" }]);
+    var t3 = 600, rTs = hlc(cfg, "n2", t3), unc = rTs + M;
+    var obsN1 = hlc(cfg, "n1", 610 + W / 2);
+    var ts1 = hlc(cfg, "n1", 1000), ack1 = 1000 + W;
+    var ts2 = hlc(cfg, "n3", 1080), ack2 = 1080 + W;
+    var obsN3 = hlc(cfg, "n3", 1160 + W / 2);
+    var cB = classify(cfg, { readTs: rTs, unc: unc, observed: cfg.observedTs ? { n1: obsN1 } : {} }, "n3", ts2);
+    var rTs2 = (cB === "uncertain") ? ts2 + 0.001 : rTs;
+    var cA = classify(cfg, { readTs: rTs2, unc: unc, observed: cfg.observedTs ? { n1: obsN1, n3: obsN3 } : {} }, "n1", ts1);
+    var sawB = (ts2 <= rTs2);
+    var missedA = (cA === "future" || cA === "future-observed");
+    var anomaly = sawB && missedA && (ack1 < 1080);
+    var steps = [];
+    steps.push({
+      t: t3, title: "A long audit begins",
+      sentence: "An audit opens on Frankfurt at " + rTs + " and will run for most of a second. Its window of doubt reaches " + unc + ", and — this is the part that matters — that ceiling never rises for the rest of the transaction.",
+      tech: "T_audit read_ts = " + rTs + " · uncertainty limit = " + unc + " (fixed for the life of the transaction)",
+      apply: function (st) {
+        newTxn(st, "T3", "Audit of invoice 88", "n2", rTs, unc);
+        st.view.bars.push({ txn: "T3", label: "Audit", t0: t3, t1: null, node: "n2", stamp: rTs });
+        st.view.readers.push({ txn: "T3", label: "Audit reads at", readTs: rTs, unc: unc });
+      }
+    });
+    steps.push({
+      t: 610 + W, title: "The audit reads the invoice — still unpaid",
+      sentence: "Invoice 88 has not been touched for ages, so the audit reads the old value without hesitation.",
+      tech: "GET /payments/p1 @ Mumbai → UNPAID @ ts 100 · observed_ts[Mumbai] = " + obsN1,
+      apply: function (st) { var T = st.txns.T3; T.observed.n1 = obsN1; T.reads.push({ key: "/payments/p1", ts: 100, val: "UNPAID" }); }
+    });
+    steps.push({
+      t: 1000, title: "Mumbai marks the invoice PAID, and says so",
+      sentence: "Mumbai's clock runs fast, so this write gets the large timestamp " + ts1 + ". It is acknowledged at real time " + ack1 + ". Note that " + ts1 + " is " + (ts1 > unc ? "above" : "below") + " the audit's ceiling of " + unc + ".",
+      tech: "T1 on Mumbai · commit_ts = " + ts1 + " · acked at true t=" + ack1,
+      apply: function (st) {
+        newTxn(st, "T1", "Mark invoice 88 PAID", "n1", ts1, ts1 + M);
+        st.txns.T1.status = "COMMITTED"; st.txns.T1.ackAt = ack1;
+        st.keys["/payments/p1"].versions.push({ ts: ts1, val: "PAID" });
+        st.view.bars.push({ txn: "T1", label: "Invoice → PAID", t0: 1000, t1: ack1, node: "n1", stamp: ts1 });
+      }
+    });
+    steps.push({
+      t: 1080, title: "Because of that, Ohio raises Raj's limit",
+      sentence: "A person sees the PAID confirmation and reacts to it. The second transaction begins at real time 1080, strictly after the first was acknowledged at " + ack1 + " — but Ohio's clock is slow, so it is stamped " + ts2 + ", which is " + (ts2 < ts1 ? "smaller" : "larger") + " than the invoice's " + ts1 + ". The database has just recorded an effect as older than its cause, and nothing in it is wrong.",
+      tech: "T2 on Ohio · commit_ts = " + ts2 + " · acked at true t=" + ack2 + " · T2 reads nothing T1 wrote",
+      apply: function (st) {
+        newTxn(st, "T2", "Raise Raj's limit", "n3", ts2, ts2 + M);
+        st.txns.T2.status = "COMMITTED"; st.txns.T2.ackAt = ack2;
+        st.keys["/accounts/raj"].versions.push({ ts: ts2, val: "limit ₹5,000" });
+        st.view.bars.push({ txn: "T2", label: "Limit → ₹5,000", t0: 1080, t1: ack2, node: "n3", stamp: ts2 });
+      }
+    });
+    steps.push({
+      t: 1160 + W, title: cB === "uncertain" ? "The audit reads Raj's row, and restarts once" : "The audit reads Raj's row",
+      sentence: cB === "uncertain"
+        ? "The new limit is stamped " + ts2 + " — inside the audit's window — so the audit restarts at " + fmtTs(rTs2) + " and then sees it. The ceiling stays at " + unc + "."
+        : "The new limit at " + ts2 + " is " + (ts2 <= rTs ? "below the audit's read timestamp and simply visible" : "outside the window and skipped") + ".",
+      tech: "GET /accounts/raj @ Ohio → ts " + ts2 + " classified " + cB + (cB === "uncertain" ? " → restart at " + fmtTs(rTs2) + " · ceiling still " + unc : "") + " · observed_ts[Ohio] = " + obsN3,
+      apply: function (st) {
+        var T = st.txns.T3; T.observed.n3 = obsN3;
+        if (cB === "uncertain") { T.readTs = rTs2; T.commitTs = rTs2; T.restarts += 1; st.metrics.restarts += 1; st.view.readers[0].readTs = rTs2; }
+        if (sawB) T.reads.push({ key: "/accounts/raj", ts: ts2, val: "limit ₹5,000" });
+        else T.reads.push({ key: "/accounts/raj", ts: 300, val: "limit ₹1,000" });
+      }
+    });
+    steps.push({
+      t: 1160 + W + 40, title: missedA ? "And re-checks the invoice: still unpaid" : "And re-checks the invoice: now paid",
+      sentence: missedA
+        ? "At its new timestamp the audit looks at invoice 88 again. The PAID version is stamped " + ts1 + ", above the ceiling of " + unc + " that was fixed when the audit began — so it is filed as a write from the audit's future and skipped, correctly and by the rules. The audit reports an unpaid invoice and a raised credit limit."
+        : "At its new timestamp the PAID version at " + ts1 + " falls inside the window, so the audit restarts again and sees it. At these clock settings the anomaly does not appear.",
+      tech: "re-read /payments/p1 @ " + fmtTs(rTs2) + " → ts " + ts1 + " classified " + cA + (missedA ? " → skipped" : " → visible"),
+      kind: anomaly ? "warn" : "good",
+      apply: function (st) {
+        var T = st.txns.T3; T.status = "COMMITTED";
+        if (!missedA) { T.reads = T.reads.filter(function (r) { return r.key !== "/payments/p1"; }); T.reads.push({ key: "/payments/p1", ts: ts1, val: "PAID" }); }
+        st.view.bars[0].t1 = 1160 + W + 40;
+        st.verdict = anomaly
+          ? { tone: "warn", main: "Serializable: yes. Matching real time: no.",
+              detail: "There is a perfectly good serial order — raise the limit, run the audit, mark the invoice paid — and every transaction's reads are consistent with it. What the order does not match is the wall clock: marking the invoice was acknowledged at real time " + ack1 + ", and raising the limit did not even begin until " + 1080 + ". Closing this gap is what Spanner's commit-wait buys, and what CockroachDB declines to pay for. It takes three transactions, two of which touch nothing in common: had the Ohio transaction so much as read the invoice row, its own window of doubt would have caught the write and the anomaly would be impossible." }
+          : { tone: "good", main: "At these clock settings the anomaly does not appear.",
+              detail: "The audit's ceiling happens to be high enough to catch the invoice write. Return the sliders to their starting positions — Mumbai +180, Ohio −120 — to see the reverse. Nothing about those settings is faulty: both clocks are well inside the budget." };
+      }
+    });
+    return { init: s, steps: steps };
+  }
+});
+
+/* ---------- runner ---------- */
+function runScenario(scen, cfg) {
+  var c = clone(cfg);
+  if (scen.force) for (var k in scen.force) c[k] = scen.force[k];
+  var built = scen.build(c);
+  var states = [clone(built.init)];
+  var cur = built.init;
+  for (var i = 0; i < built.steps.length; i++) {
+    cur = clone(cur);
+    var st = built.steps[i];
+    st.apply(cur);
+    cur.trueTime = st.t;
+    cur.stepTitle = st.title;
+    cur.stepSentence = st.sentence;
+    cur.stepTech = st.tech;
+    say(cur, st.t, st.sentence, st.tech, st.kind || "");
+    states.push(clone(cur));
+  }
+  return { states: states, steps: built.steps, cfg: c };
+}
+/* ==ENGINE-END== */
+
+/* =========================================================================
+   UI LAYER
+   ========================================================================= */
+var UI = { cfg: clone(DEFAULT_CFG), scen: 0, idx: 0, run: null, picked: null, timer: null };
+var el = function (id) { return document.getElementById(id); };
+
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function rebuild(keepIdx) {
+  var scen = SCENARIOS[UI.scen];
+  UI.run = runScenario(scen, UI.cfg);
+  var max = UI.run.states.length - 1;
+  UI.idx = keepIdx ? Math.min(UI.idx, max) : 0;
+  render();
+}
+function cur() { return UI.run.states[UI.idx]; }
+
+/* ---------- scenario list ---------- */
+function renderScenarios() {
+  var h = "";
+  for (var i = 0; i < SCENARIOS.length; i++) {
+    var s = SCENARIOS[i];
+    h += '<button data-i="' + i + '" aria-current="' + (i === UI.scen) + '">' +
+      '<span class="n">' + (i + 1) + '</span> <span class="t">' + esc(s.title) + '</span>' +
+      '<span class="d">' + esc(s.blurb) + '</span></button>';
+  }
+  el("scnList").innerHTML = h;
+  Array.prototype.forEach.call(el("scnList").querySelectorAll("button"), function (b) {
+    b.onclick = function () {
+      UI.scen = +b.dataset.i; UI.picked = null; stopAuto();
+      var sc = SCENARIOS[UI.scen];
+      if (sc.preset) {
+        if (sc.preset.off) for (var k in sc.preset.off) UI.cfg.off[k] = sc.preset.off[k];
+        if (sc.preset.maxOffset !== undefined) UI.cfg.maxOffset = sc.preset.maxOffset;
+        syncDials();
+      }
+      rebuild(false); renderScenarios();
+    };
+  });
+}
+
+/* ---------- prediction ---------- */
+function renderPredict() {
+  var s = SCENARIOS[UI.scen];
+  if (!s.question) { el("predictPanel").hidden = true; return; }
+  el("predictPanel").hidden = false;
+  var h = '<div class="q">' + esc(s.question) + '</div><div class="opts">';
+  for (var i = 0; i < s.options.length; i++) {
+    var o = s.options[i], cls = "";
+    if (UI.picked !== null) cls = (i === UI.picked ? "picked " : "") + (o.correct ? "right" : (i === UI.picked ? "wrong" : ""));
+    h += '<button data-i="' + i + '" class="' + cls.trim() + '">' + esc(o.text) + '</button>';
+  }
+  h += "</div>";
+  if (UI.picked !== null) {
+    var o = s.options[UI.picked];
+    h += '<div class="resolve"><strong>' + (o.correct ? "That holds up. " : "Not quite. ") + '</strong>' + esc(o.why) +
+      (o.correct ? "" : " The green option is the one to watch for.") + ' Now step through it.</div>';
+  }
+  el("predict").innerHTML = h;
+  Array.prototype.forEach.call(el("predict").querySelectorAll(".opts button"), function (b) {
+    b.onclick = function () { UI.picked = +b.dataset.i; renderPredict(); };
+  });
+}
+
+/* ---------- cluster ---------- */
+function renderCluster() {
+  var s = cur(), cfg = UI.run.cfg, h = "";
+  for (var i = 0; i < NODES.length; i++) {
+    var n = NODES[i], st = s.nodes[n.id];
+    var off = cfg.off[n.id];
+    var cls = off > 0 ? "fast" : off < 0 ? "slow" : "zero";
+    var chips = "";
+    for (var j = 0; j < RANGES.length; j++) {
+      var r = RANGES[j];
+      var isLH = s.ranges[r.id].lh === n.id;
+      chips += '<span class="chip' + (isLH ? " lh" : "") + '" title="' + (isLH ? "leaseholder for " : "replica of ") + r.span + '">' + esc(r.span) + (isLH ? " ★" : "") + "</span>";
+    }
+    h += '<div class="node' + (st.alive ? "" : " dead") + '">' +
+      '<div class="nm"><span class="dot"></span>' + n.name + "</div>" +
+      '<div class="clk">clock reads <b>' + (s.trueTime ? hlc(cfg, n.id, s.trueTime) : "—") + "</b></div>" +
+      '<div class="off ' + cls + '">' + fmtOff(off) + " from real time</div>" +
+      '<div class="lhs">' + chips + "</div>" +
+      (st.note ? '<div class="why">' + esc(st.note) + "</div>" : "") +
+      "</div>";
+  }
+  el("cluster").innerHTML = h;
+  el("trueClock").textContent = s.trueTime ? ("real time " + s.trueTime + " ms · ★ = holds the lease") : "★ = holds the lease";
+}
+
+/* ---------- timeline ---------- */
+function renderTimeline() {
+  var s = cur(), cfg = UI.run.cfg;
+  var W = 900, PL = 138, PR = 26;
+  var times = [];
+  s.view.bars.forEach(function (b) { times.push(b.t0); if (b.t1 !== null) times.push(b.t1); times.push(b.stamp); });
+  s.view.keys.forEach(function (k) {
+    s.keys[k].versions.forEach(function (v) { times.push(v.ts); });
+    if (s.keys[k].intent) times.push(s.keys[k].intent.ts);
+  });
+  s.view.readers.forEach(function (r) { times.push(r.readTs); times.push(r.unc); });
+  if (!times.length) times = [0, 1000];
+  var lo = Math.min.apply(null, times), hi = Math.max.apply(null, times);
+  if (hi - lo < 50) { hi = lo + 50; }
+  var pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  var x = function (t) { return PL + (t - lo) / (hi - lo) * (W - PL - PR); };
+
+  var barH = 15, barGap = 7, laneATop = 30;
+  var nb = Math.max(s.view.bars.length, 1);
+  var laneAH = nb * (barH + barGap) + 6;
+  var divY = laneATop + laneAH + 16;
+  var laneBTop = divY + 40, rowH = 34;
+  var nk = s.view.keys.length;
+  var H = laneBTop + nk * rowH + 46;
+
+  var primary = s.view.readers.length ? s.view.readers[s.view.readers.length - 1] : null;
+  var g = [];
+  g.push('<text class="lane" x="6" y="16">Real time — what actually happened</text>');
+
+  /* real-time bars */
+  s.view.bars.forEach(function (b, i) {
+    var y = laneATop + i * (barH + barGap);
+    var x0 = x(b.t0), x1 = x(b.t1 === null ? b.t0 + (hi - lo) * 0.012 : b.t1);
+    if (x1 - x0 < 4) x1 = x0 + 4;
+    g.push('<rect x="' + x0.toFixed(1) + '" y="' + y + '" width="' + (x1 - x0).toFixed(1) + '" height="' + barH + '" rx="2" style="fill:var(--true-soft);stroke:var(--true);stroke-width:1"></rect>');
+    g.push('<text x="' + (PL - 8) + '" y="' + (y + 11) + '" text-anchor="end" class="klabel">' + esc(b.label) + "</text>");
+    var xs = x(b.stamp);
+    g.push('<line x1="' + x0.toFixed(1) + '" y1="' + (y + barH) + '" x2="' + xs.toFixed(1) + '" y2="' + divY + '" style="stroke:var(--true);stroke-width:1;stroke-dasharray:2 3;opacity:.6"></line>');
+    var disp = b.stamp - b.t0;
+    g.push('<text x="' + ((x0 + xs) / 2).toFixed(1) + '" y="' + (divY - 5) + '" text-anchor="middle" style="fill:var(--true)">' + (disp >= 0 ? "+" : "−") + Math.abs(Math.round(disp)) + " ms</text>");
+  });
+  g.push('<line x1="0" y1="' + divY + '" x2="' + W + '" y2="' + divY + '" style="stroke:var(--rule);stroke-width:1"></line>');
+  g.push('<text class="lane" x="6" y="' + (divY + 18) + '">Database timestamps — what the cluster believes' + (primary ? ", coloured for " + esc(primary.label.replace(/ reads at$/, "")) : "") + "</text>");
+
+  /* uncertainty bands + reader lines */
+  s.view.readers.forEach(function (r, i) {
+    var isP = (primary && r === primary);
+    var xa = x(r.readTs), xb = x(r.unc);
+    g.push('<rect x="' + xa.toFixed(1) + '" y="' + (laneBTop - 12) + '" width="' + Math.max(0, xb - xa).toFixed(1) + '" height="' + (nk * rowH + 8) + '" style="fill:var(--uncertain-soft);opacity:' + (isP ? ".7" : ".3") + '"></rect>');
+    g.push('<line x1="' + xb.toFixed(1) + '" y1="' + (laneBTop - 12) + '" x2="' + xb.toFixed(1) + '" y2="' + (laneBTop + nk * rowH - 4) + '" style="stroke:var(--uncertain);stroke-width:1;stroke-dasharray:3 3"></line>');
+    g.push('<line x1="' + xa.toFixed(1) + '" y1="' + (laneBTop - 12) + '" x2="' + xa.toFixed(1) + '" y2="' + (laneBTop + nk * rowH - 4) + '" style="stroke:var(--uncertain);stroke-width:' + (isP ? 2 : 1) + '"></line>');
+    if (isP) {
+      g.push('<text x="' + xa.toFixed(1) + '" y="' + (laneBTop - 17) + '" text-anchor="middle" style="fill:var(--uncertain);font-weight:600">' + esc(r.label) + " " + fmtTs(r.readTs) + "</text>");
+      g.push('<text x="' + xb.toFixed(1) + '" y="' + (laneBTop + nk * rowH + 12) + '" text-anchor="middle" style="fill:var(--uncertain)">doubt ends ' + fmtTs(r.unc) + "</text>");
+    }
+  });
+
+  /* key rows */
+  s.view.keys.forEach(function (k, i) {
+    var y = laneBTop + i * rowH + 8;
+    g.push('<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" style="stroke:var(--rule-soft);stroke-width:1"></line>');
+    g.push('<text x="' + (PL - 8) + '" y="' + (y + 4) + '" text-anchor="end" class="klabel">' + esc(k) + "</text>");
+    s.keys[k].versions.forEach(function (v) {
+      var c = primary ? classify(cfg, { readTs: primary.readTs, unc: primary.unc, observed: {} }, KEYRANGE[k] ? s.ranges[KEYRANGE[k]].lh : "n1", v.ts) : "past";
+      var col = c === "past" ? "var(--past)" : c === "uncertain" ? "var(--uncertain)" : "var(--future)";
+      g.push('<circle cx="' + x(v.ts).toFixed(1) + '" cy="' + y + '" r="5.5" style="fill:' + col + '"></circle>');
+      g.push('<text class="val" x="' + x(v.ts).toFixed(1) + '" y="' + (y - 9) + '" text-anchor="middle">' + esc(v.val) + "</text>");
+      g.push('<text x="' + x(v.ts).toFixed(1) + '" y="' + (y + 16) + '" text-anchor="middle">' + v.ts + "</text>");
+    });
+    var it = s.keys[k].intent;
+    if (it) {
+      var xi = x(it.ts);
+      g.push('<rect x="' + (xi - 5).toFixed(1) + '" y="' + (y - 5) + '" width="10" height="10" transform="rotate(45 ' + xi.toFixed(1) + " " + y + ')" style="fill:none;stroke:var(--intent);stroke-width:2"></rect>');
+      g.push('<text class="val" x="' + xi.toFixed(1) + '" y="' + (y - 11) + '" text-anchor="middle" style="fill:var(--intent)">' + esc(it.val) + " (intent)</text>");
+      g.push('<text x="' + xi.toFixed(1) + '" y="' + (y + 17) + '" text-anchor="middle" style="fill:var(--intent)">' + it.ts + "</text>");
+    }
+  });
+  var tl = el("tl");
+  tl.setAttribute("viewBox", "0 0 " + W + " " + H);
+  tl.style.height = Math.round(H * 1.02) + "px";
+  tl.innerHTML = g.join("");
+}
+
+/* ---------- log, txns, verdict ---------- */
+function renderLog() {
+  var s = cur(), h = "";
+  for (var i = 0; i < s.log.length; i++) {
+    var e = s.log[i];
+    h += '<div class="ev ' + (i === s.log.length - 1 ? "now " : "") + (e.kind ? "k-" + e.kind : "") + '">' +
+      '<div class="tt">' + e.t + " ms</div><div><div class=\"sen\">" + esc(e.sen) + "</div>" +
+      (e.tec ? '<div class="tec">' + esc(e.tec) + "</div>" : "") + "</div></div>";
+  }
+  if (!h) h = '<div class="ev"><div class="tt">—</div><div class="sen">Nothing has happened yet. Press <b>Step →</b>, or <b>Run it for me</b>.</div></div>';
+  var box = el("log"); box.innerHTML = h;
+  var now = box.querySelector(".ev.now"); if (now) now.scrollIntoView({ block: "nearest" });
+}
+function renderTxns() {
+  var s = cur(), h = "";
+  for (var i = 0; i < s.order.length; i++) {
+    var T = s.txns[s.order[i]];
+    var badge = T.status === "STAGING" && T.implicit ? "COMMITTED" : T.status;
+    var label = T.status === "STAGING" ? (T.implicit ? "STAGING (implicitly committed)" : "STAGING") : T.status;
+    h += '<div class="txn"><div class="th"><div class="tn">' + esc(T.label) + "<small>on " + NODENAME[T.node] + (T.note ? " · " + esc(T.note) : "") + '</small></div><span class="badge ' + badge + '">' + esc(label) + "</span></div>" +
+      '<dl class="kv">' +
+      "<dt>reads at</dt><dd>" + fmtTs(T.readTs) + "</dd>" +
+      "<dt>commits at</dt><dd>" + fmtTs(T.commitTs) + "</dd>" +
+      "<dt>doubt ends</dt><dd>" + fmtTs(T.unc) + "</dd>" +
+      "<dt>restarts</dt><dd>" + T.restarts + "</dd>" +
+      (Object.keys(T.observed).length ? "<dt>clocks seen</dt><dd>" + Object.keys(T.observed).map(function (n) { return NODENAME[n] + " " + T.observed[n]; }).join(", ") + "</dd>" : "") +
+      (T.inflight.length ? "<dt>in flight</dt><dd>" + T.inflight.join(", ") + "</dd>" : "") +
+      (T.reads.length ? "<dt>saw</dt><dd>" + T.reads.map(function (r) { return r.key.split("/").pop() + "=" + r.val + " @" + r.ts; }).join("<br>") + "</dd>" : "") +
+      "</dl></div>";
+  }
+  el("txnList").innerHTML = h || '<div class="pb tight" style="color:var(--ink-3);font-size:12.5px">No transactions yet.</div>';
+}
+function renderVerdict() {
+  var s = cur(), v = s.verdict;
+  var box = el("verdict");
+  box.className = "verdict " + (v.tone || "good");
+  el("vmain").textContent = v.main || SCENARIOS[UI.scen].title;
+  el("vdetail").textContent = v.detail || SCENARIOS[UI.scen].blurb;
+  var m = s.metrics;
+  var counts = [
+    ["Uncertainty restarts", m.restarts],
+    ["Stale reads", m.staleReads],
+    ["Failed read re-checks", m.refreshFails],
+    ["Transactions thrown away", m.retries],
+    ["Client waited", m.ackMs === null ? "—" : m.ackMs + " ms"]
+  ];
+  el("vcounts").innerHTML = counts.map(function (c) {
+    return '<div class="vcount">' + c[0] + "<b>" + c[1] + "</b></div>";
+  }).join("");
+}
+function render() {
+  var s = cur(), max = UI.run.states.length - 1;
+  renderPredict(); renderCluster(); renderTimeline(); renderLog(); renderTxns(); renderVerdict();
+  el("stepIdx").textContent = "Step " + UI.idx + " of " + max;
+  el("stepTtl").textContent = UI.idx === 0 ? "Ready — nothing has run yet" : s.stepTitle;
+  el("stepCount").textContent = max + " steps";
+  el("btnBack").disabled = UI.idx === 0;
+  el("btnFwd").disabled = UI.idx >= max;
+  el("btnEnd").disabled = UI.idx >= max;
+}
+
+/* ---------- transport & dials ---------- */
+function stopAuto() { if (UI.timer) { clearInterval(UI.timer); UI.timer = null; el("btnAuto").textContent = "▶ Run it for me"; } }
+function startAuto() {
+  stopAuto();
+  if (UI.idx >= UI.run.states.length - 1) UI.idx = 0;
+  el("btnAuto").textContent = "❚❚ Pause";
+  render();
+  UI.timer = setInterval(function () {
+    if (UI.idx >= UI.run.states.length - 1) { stopAuto(); return; }
+    UI.idx++; render();
+  }, 2600);
+}
+function syncDials() {
+  el("sMax").value = UI.cfg.maxOffset; el("vMax").textContent = UI.cfg.maxOffset + " ms";
+  el("sN1").value = UI.cfg.off.n1; el("vN1").textContent = fmtOff(UI.cfg.off.n1);
+  el("sN2").value = UI.cfg.off.n2; el("vN2").textContent = fmtOff(UI.cfg.off.n2);
+  el("sN3").value = UI.cfg.off.n3; el("vN3").textContent = fmtOff(UI.cfg.off.n3);
+  el("sWan").value = UI.cfg.wan; el("vWan").textContent = UI.cfg.wan + " ms";
+}
+function wire() {
+  el("btnFwd").onclick = function () { stopAuto(); if (UI.idx < UI.run.states.length - 1) { UI.idx++; render(); } };
+  el("btnBack").onclick = function () { stopAuto(); if (UI.idx > 0) { UI.idx--; render(); } };
+  el("btnEnd").onclick = function () { stopAuto(); UI.idx = UI.run.states.length - 1; render(); };
+  el("btnReset").onclick = function () { stopAuto(); UI.idx = 0; UI.picked = null; render(); };
+  el("btnAuto").onclick = function () { if (UI.timer) stopAuto(); else startAuto(); };
+
+  var dial = function (id, out, set, fmt) {
+    el(id).oninput = function () { stopAuto(); set(+this.value); el(out).textContent = fmt(+this.value); rebuild(true); };
+  };
+  dial("sMax", "vMax", function (v) { UI.cfg.maxOffset = v; }, function (v) { return v + " ms"; });
+  dial("sN1", "vN1", function (v) { UI.cfg.off.n1 = v; }, fmtOff);
+  dial("sN2", "vN2", function (v) { UI.cfg.off.n2 = v; }, fmtOff);
+  dial("sN3", "vN3", function (v) { UI.cfg.off.n3 = v; }, fmtOff);
+  dial("sWan", "vWan", function (v) { UI.cfg.wan = v; }, function (v) { return v + " ms"; });
+
+  var sw = function (id, key) { el(id).onchange = function () { stopAuto(); UI.cfg[key] = this.checked; rebuild(true); }; };
+  sw("cPC", "parallelCommits"); sw("cObs", "observedTs"); sw("cRef", "readRefresh"); sw("cKill", "selfCheck");
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === "ArrowRight") { e.preventDefault(); el("btnFwd").click(); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); el("btnBack").click(); }
+  });
+}
+
+if (typeof document !== "undefined" && document.getElementById("scnList")) {
+  syncDials(); wire(); renderScenarios(); rebuild(false);
+}
+</script>

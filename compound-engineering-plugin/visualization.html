@@ -1,0 +1,1590 @@
+<title>The Compounding Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- tokens: light is the base set ---------------------------------- */
+  :root {
+    --paper:      #F4F5F7;
+    --card:       #FFFFFF;
+    --card-sunk:  #ECEEF2;
+    --ink:        #1B2028;
+    --ink-soft:   #454E5A;
+    --muted:      #6B7683;
+    --rule:       #D8DCE3;
+    --rule-soft:  #E7EAEF;
+    --accent:     #2F5D8C;
+    --accent-dim: #E3EAF3;
+    --kept:       #2E7D5B;
+    --kept-dim:   #E0EFE7;
+    --lost:       #B4472F;
+    --lost-dim:   #F6E4DF;
+    --stale:      #96690F;
+    --stale-dim:  #F6EDD8;
+    --shadow:     0 1px 2px rgba(27,32,40,.06), 0 4px 14px rgba(27,32,40,.05);
+    --shadow-lift:0 2px 6px rgba(27,32,40,.10), 0 14px 32px rgba(27,32,40,.10);
+
+    --step: clamp(.82rem, .78rem + .18vw, .92rem);
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --slab: "Zilla Slab", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #11151B;
+      --card:       #1A2029;
+      --card-sunk:  #141A22;
+      --ink:        #E5E9EF;
+      --ink-soft:   #C2CAD4;
+      --muted:      #8A95A3;
+      --rule:       #2C3540;
+      --rule-soft:  #232B35;
+      --accent:     #86B3E2;
+      --accent-dim: #1D2B3A;
+      --kept:       #6FC79B;
+      --kept-dim:   #172B22;
+      --lost:       #E58A6E;
+      --lost-dim:   #32201A;
+      --stale:      #D8AC55;
+      --stale-dim:  #2C2415;
+      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+      --shadow-lift:0 2px 6px rgba(0,0,0,.5), 0 14px 32px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #11151B;
+    --card:       #1A2029;
+    --card-sunk:  #141A22;
+    --ink:        #E5E9EF;
+    --ink-soft:   #C2CAD4;
+    --muted:      #8A95A3;
+    --rule:       #2C3540;
+    --rule-soft:  #232B35;
+    --accent:     #86B3E2;
+    --accent-dim: #1D2B3A;
+    --kept:       #6FC79B;
+    --kept-dim:   #172B22;
+    --lost:       #E58A6E;
+    --lost-dim:   #32201A;
+    --stale:      #D8AC55;
+    --stale-dim:  #2C2415;
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.5), 0 14px 32px rgba(0,0,0,.45);
+  }
+
+  /* ---- base ----------------------------------------------------------- */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 72px; }
+
+  h1, h2, h3 { font-family: var(--slab); font-weight: 600; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(1.55rem, 1.2rem + 1.5vw, 2.15rem); letter-spacing: -.012em; line-height: 1.15; }
+  h2 { font-size: 1.18rem; letter-spacing: -.005em; }
+  h3 { font-size: .98rem; }
+  p  { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: .68rem; font-weight: 500;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--muted);
+  }
+  .lede { color: var(--ink-soft); max-width: 66ch; margin-top: 10px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---- header --------------------------------------------------------- */
+  header.top { border-bottom: 1px solid var(--rule); padding-bottom: 18px; }
+  .tabs { display: flex; gap: 4px; margin-top: 22px; flex-wrap: wrap; }
+  .tab {
+    font-family: var(--sans); font-size: .84rem; font-weight: 500;
+    padding: 7px 14px; border: 1px solid var(--rule); border-radius: 999px;
+    background: transparent; color: var(--ink-soft); cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+  .tab:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .view[hidden] { display: none; }
+  .view { padding-top: 26px; }
+
+  /* ---- generic panel -------------------------------------------------- */
+  .panel {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 10px; box-shadow: var(--shadow);
+  }
+  .panel-h {
+    padding: 13px 16px; border-bottom: 1px solid var(--rule-soft);
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .panel-b { padding: 16px; }
+
+  /* ---- simulator layout ----------------------------------------------- */
+  .bench { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .bench { grid-template-columns: 1fr; } }
+
+  .rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+  @media (max-width: 900px) { .rail { position: static; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field > label { font-size: .78rem; font-weight: 600; color: var(--ink); }
+  .field .hint { font-size: .73rem; color: var(--muted); line-height: 1.4; }
+  select, input[type="range"] { width: 100%; }
+  select {
+    font-family: var(--sans); font-size: .82rem; color: var(--ink);
+    background: var(--card-sunk); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 6px 8px;
+  }
+  input[type="range"] { accent-color: var(--accent); }
+
+  .btn {
+    font-family: var(--sans); font-size: .82rem; font-weight: 500;
+    padding: 7px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--rule); background: var(--card-sunk); color: var(--ink);
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: .42; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary { color: #10151B; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #10151B; } }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+  :root[data-theme="dark"] .btn.primary:hover:not(:disabled) { color: #10151B; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ---- the incoming task ---------------------------------------------- */
+  .task-card { border-left: 3px solid var(--accent); }
+  .task-quote {
+    font-family: var(--slab); font-size: 1.06rem; line-height: 1.4;
+    color: var(--ink); margin-top: 8px;
+  }
+  .task-meta { font-family: var(--mono); font-size: .72rem; color: var(--muted); margin-top: 10px; }
+
+  /* ---- verdict -------------------------------------------------------- */
+  .verdict { display: grid; gap: 10px; }
+  .verdict-line { font-size: .92rem; line-height: 1.5; color: var(--ink); }
+  .scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .score {
+    background: var(--card-sunk); border: 1px solid var(--rule-soft);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .score .n { font-family: var(--slab); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .score .k { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+  .score.bad .n { color: var(--lost); }
+  .score.good .n { color: var(--kept); }
+
+  /* ---- repo columns --------------------------------------------------- */
+  .repos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .repos { grid-template-columns: 1fr; } }
+
+  .repo-h { display: flex; align-items: center; gap: 8px; }
+  .dotmark { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+  .outcome {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: .72rem; font-weight: 500;
+    padding: 4px 9px; border-radius: 999px; border: 1px solid transparent;
+  }
+  .outcome.avoided { background: var(--kept-dim);  color: var(--kept);  border-color: var(--kept); }
+  .outcome.incident{ background: var(--lost-dim);  color: var(--lost);  border-color: var(--lost); }
+  .outcome.misled  { background: var(--stale-dim); color: var(--stale); border-color: var(--stale); }
+  .outcome.idle    { background: var(--card-sunk); color: var(--muted); border-color: var(--rule); }
+
+  /* ---- the store: index cards ----------------------------------------- */
+  .store {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 8px; min-height: 60px;
+  }
+  .store-empty {
+    grid-column: 1 / -1; font-size: .8rem; color: var(--muted);
+    border: 1px dashed var(--rule); border-radius: 8px; padding: 18px 12px; text-align: center;
+  }
+  .lcard {
+    position: relative; text-align: left; cursor: pointer;
+    background: var(--card-sunk); border: 1px solid var(--rule);
+    border-top: 3px solid var(--rule); border-radius: 5px;
+    padding: 7px 8px 8px; font-family: var(--mono); font-size: .66rem; line-height: 1.35;
+    color: var(--muted); transition: transform .18s, box-shadow .18s, border-color .18s, background .18s, opacity .18s;
+  }
+  .lcard .lt { color: var(--ink-soft); font-weight: 500; display: block; }
+  .lcard .lm { display: block; margin-top: 4px; letter-spacing: .02em; }
+  .lcard:hover { border-color: var(--accent); }
+  .lcard.dim { opacity: .3; }
+  .lcard.candidate { border-color: var(--accent); background: var(--accent-dim); }
+  .lcard.read { border-color: var(--accent); border-top-color: var(--accent); background: var(--accent-dim); }
+  .lcard.applied {
+    border-color: var(--kept); border-top-color: var(--kept); background: var(--kept-dim);
+    transform: translateY(-2px); box-shadow: var(--shadow-lift);
+  }
+  .lcard.applied .lt { color: var(--kept); }
+  .lcard.stale { border-top-color: var(--stale); }
+  .lcard.stale::after {
+    content: "rot"; position: absolute; top: 5px; right: 6px;
+    font-size: .58rem; color: var(--stale); letter-spacing: .06em;
+  }
+  .lcard.fresh { animation: drop .45s ease-out; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: none } }
+  @media (prefers-reduced-motion: reduce) {
+    .lcard, .lcard.fresh { animation: none !important; transition: none !important; }
+  }
+
+  /* ---- legend --------------------------------------------------------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .73rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 20px; height: 10px; border-radius: 3px; border: 1px solid var(--rule); flex: none; }
+
+  /* ---- meter ---------------------------------------------------------- */
+  .meter-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: .72rem; }
+  .meter-track { flex: 1; height: 7px; border-radius: 4px; background: var(--card-sunk); border: 1px solid var(--rule-soft); overflow: hidden; }
+  .meter-fill { height: 100%; background: var(--accent); transition: width .35s ease; }
+  .meter-fill.wide { background: var(--lost); }
+
+  /* ---- predict -------------------------------------------------------- */
+  .predict { border-left: 3px solid var(--stale); background: var(--stale-dim); }
+  .predict .q { font-family: var(--slab); font-size: 1.02rem; color: var(--ink); }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .predict .opt {
+    text-align: left; font-family: var(--sans); font-size: .82rem;
+    padding: 9px 11px; border-radius: 6px; border: 1px solid var(--rule);
+    background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .predict .opt:hover { border-color: var(--accent); }
+  .predict .opt.right { border-color: var(--kept); background: var(--kept-dim); color: var(--kept); }
+  .predict .opt.wrong { border-color: var(--lost); background: var(--lost-dim); color: var(--lost); }
+  .predict .why { margin-top: 12px; font-size: .85rem; color: var(--ink-soft); line-height: 1.5; }
+
+  /* ---- log ------------------------------------------------------------ */
+  .log { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 0; }
+  .log-e { padding: 9px 0; border-bottom: 1px solid var(--rule-soft); }
+  .log-e:first-child { border-bottom: none; }
+  .log-e .sentence { font-size: .86rem; color: var(--ink); line-height: 1.45; }
+  .log-e .tech { font-family: var(--mono); font-size: .7rem; color: var(--muted); margin-top: 3px; }
+  .log-e .tick { font-family: var(--mono); font-size: .66rem; color: var(--muted); letter-spacing: .06em; }
+  .log-e.hi .sentence { color: var(--kept); }
+  .log-e.warn .sentence { color: var(--stale); }
+  .log-e.bad .sentence { color: var(--lost); }
+
+  /* ---- inspector ------------------------------------------------------ */
+  .inspect pre {
+    font-family: var(--mono); font-size: .72rem; line-height: 1.55; margin: 0;
+    background: var(--card-sunk); border: 1px solid var(--rule-soft);
+    border-radius: 6px; padding: 11px 12px; overflow-x: auto; color: var(--ink-soft);
+  }
+  .inspect .k { color: var(--accent); }
+
+  /* ---- loop view ------------------------------------------------------ */
+  .loopgrid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .loopgrid { grid-template-columns: 1fr; } }
+  .ringwrap { overflow-x: auto; padding-bottom: 4px; }
+  svg.ring { width: 100%; height: auto; display: block; }
+
+  .node { cursor: pointer; }
+  .node rect { fill: var(--card-sunk); stroke: var(--rule); stroke-width: 1.5; transition: fill .18s, stroke .18s; }
+  .node circle.badge { fill: var(--rule-soft); stroke: var(--rule); stroke-width: 1; transition: fill .18s, stroke .18s; }
+  .node text.bnum { font-family: var(--mono); font-size: 10px; font-weight: 600; fill: var(--muted); }
+  .node text.nm { font-family: var(--mono); font-size: 11.5px; fill: var(--ink); font-weight: 500; }
+  .node text.rl { font-family: var(--sans); font-size: 9.5px; fill: var(--muted); }
+  .node:hover rect, .node.sel rect { stroke: var(--accent); fill: var(--accent-dim); }
+  .node:hover circle.badge, .node.sel circle.badge { stroke: var(--accent); fill: var(--card); }
+  .node:hover text.bnum, .node.sel text.bnum { fill: var(--accent); }
+  .node.human rect { stroke-dasharray: 5 3; }
+  .node.human:hover rect, .node.human.sel rect { stroke: var(--stale); fill: var(--stale-dim); }
+  .node.human:hover circle.badge, .node.human.sel circle.badge { stroke: var(--stale); }
+  .node.human:hover text.bnum, .node.human.sel text.bnum { fill: var(--stale); }
+  .node.compound:hover rect, .node.compound.sel rect { stroke: var(--kept); fill: var(--kept-dim); }
+  .node.compound:hover circle.badge, .node.compound.sel circle.badge { stroke: var(--kept); }
+  .node.compound:hover text.bnum, .node.compound.sel text.bnum { fill: var(--kept); }
+  .node:focus-visible rect { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .flow { stroke: var(--rule); stroke-width: 1.5; fill: none; color: var(--rule); }
+
+  .arcg { cursor: pointer; }
+  .arc { fill: none; stroke-width: 1.6; stroke-dasharray: 5 3; opacity: .72; transition: opacity .18s, stroke-width .18s; }
+  .arcg:hover .arc, .arcg.sel .arc { opacity: 1; stroke-width: 2.6; stroke-dasharray: none; }
+  .arclab { font-family: var(--mono); font-size: 8px; letter-spacing: .04em; opacity: .8; }
+  .arcg:hover .arclab, .arcg.sel .arclab { opacity: 1; font-weight: 600; }
+  .arcg:focus-visible .arc { stroke-width: 3; }
+  .tok { fill: var(--accent); }
+
+  .skilldoc h3 { margin-bottom: 3px; }
+  .skilldoc .row { padding: 11px 0; border-bottom: 1px solid var(--rule-soft); }
+  .skilldoc .row:last-child { border-bottom: none; }
+  .skilldoc .lbl { font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .skilldoc .val { font-size: .86rem; color: var(--ink-soft); margin-top: 2px; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-dim);
+    border-radius: 0 8px 8px 0; padding: 13px 15px; font-size: .87rem;
+    color: var(--ink-soft); line-height: 1.55;
+  }
+  .callout strong { color: var(--ink); }
+  footer.foot { margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: .76rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Compound engineering &middot; the mechanism</p>
+    <h1>The Compounding Loop</h1>
+    <p class="lede">
+      Every finished task teaches you something. Almost all of it evaporates when the
+      session ends. This page runs two versions of the same team through the same
+      fourteen tasks &mdash; one that writes down what it learns in a way a machine can
+      find again, and one that doesn't &mdash; so you can watch the difference appear,
+      and then watch it break.
+    </p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-sim"  aria-selected="true"  aria-controls="view-sim">Watch it compound</button>
+      <button class="tab" role="tab" id="tab-loop" aria-selected="false" aria-controls="view-loop">The loop, end to end</button>
+    </div>
+  </header>
+
+  <!-- ================= SIMULATOR ================= -->
+  <section class="view" id="view-sim" role="tabpanel" aria-labelledby="tab-sim">
+    <div class="bench">
+
+      <!-- control rail -->
+      <div class="rail">
+        <div class="panel">
+          <div class="panel-h"><h2>Run it</h2></div>
+          <div class="panel-b">
+            <div class="btn-row" style="margin-bottom:12px">
+              <button class="btn primary" id="btn-auto">Run all 14 tasks</button>
+            </div>
+            <div class="btn-row">
+              <button class="btn" id="btn-back">&larr; Back</button>
+              <button class="btn" id="btn-step">Next task &rarr;</button>
+              <button class="btn" id="btn-reset">Reset</button>
+            </div>
+            <p class="hint" style="margin-top:10px">
+              Each step is one piece of work arriving at both teams at once.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>Change the world</h2></div>
+          <div class="panel-b">
+
+            <div class="field">
+              <label for="c-capture">Does the team write the learning down?</label>
+              <select id="c-capture">
+                <option value="always" selected>Every time &mdash; runs /ce-compound after each task</option>
+                <option value="sometimes">Half the time &mdash; when someone remembers</option>
+                <option value="never">Never &mdash; knowledge stays in the session</option>
+              </select>
+              <span class="hint">The closing step of the loop. Skipping it is the single most common way the loop dies.</span>
+            </div>
+
+            <div class="field">
+              <label for="c-vocab">How is the next task described?</label>
+              <select id="c-vocab">
+                <option value="house" selected>In the team's own words ("N+1 in payments")</option>
+                <option value="outsider">In symptom words ("the orders page is slow")</option>
+              </select>
+              <span class="hint">Retrieval only ever sees labels. If the words don't meet, the document is invisible.</span>
+            </div>
+
+            <div class="field">
+              <label for="c-concepts">Is there a shared vocabulary file?</label>
+              <select id="c-concepts">
+                <option value="on" selected>Yes &mdash; CONCEPTS.md maps symptoms to house terms</option>
+                <option value="off">No</option>
+              </select>
+              <span class="hint">Only matters when the task is described in symptom words.</span>
+            </div>
+
+            <div class="field">
+              <label for="c-batch">One learning per document?</label>
+              <select id="c-batch">
+                <option value="one" selected>Yes &mdash; one problem, one file</option>
+                <option value="batch">No &mdash; one "lessons this week" file</option>
+              </select>
+              <span class="hint">A file carries one module and one problem type. A file about five problems can only be labelled for one of them.</span>
+            </div>
+
+            <div class="field">
+              <label for="c-retrieval">How does the next task consult the past?</label>
+              <select id="c-retrieval">
+                <option value="grep" selected>Search the labels, read the best few</option>
+                <option value="all">Read every document, then decide</option>
+              </select>
+              <span class="hint">Both find the right document. Watch the reading cost.</span>
+            </div>
+
+            <div class="field">
+              <label>Break something</label>
+              <div class="btn-row">
+                <button class="btn" id="btn-rot">Rename the payments module</button>
+                <button class="btn" id="btn-refresh">Run /ce-compound-refresh</button>
+              </div>
+              <span class="hint">A rename makes old documents point at files that no longer exist. They still get retrieved.</span>
+            </div>
+
+            <div class="field">
+              <label for="c-predict">Ask me to predict first</label>
+              <select id="c-predict">
+                <option value="on" selected>Yes &mdash; pause at the three twists</option>
+                <option value="off">No</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- main stage -->
+      <div style="display:flex; flex-direction:column; gap:14px; min-width:0">
+
+        <div class="panel task-card">
+          <div class="panel-b">
+            <p class="eyebrow" id="task-n">Task 0 of 14 &mdash; not started</p>
+            <p class="task-quote" id="task-text">Press <strong>Run all 14 tasks</strong> and watch the right-hand team pull ahead.</p>
+            <p class="task-meta" id="task-meta">&nbsp;</p>
+          </div>
+        </div>
+
+        <div class="panel predict" id="predict-box" hidden>
+          <div class="panel-b">
+            <p class="eyebrow" style="color:var(--stale)">Predict before you look</p>
+            <p class="q" id="predict-q"></p>
+            <div class="opts" id="predict-opts"></div>
+            <p class="why" id="predict-why" hidden></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h">
+            <h2>Where the two teams stand</h2>
+            <span class="eyebrow" id="verdict-tick">after 0 tasks</span>
+          </div>
+          <div class="panel-b verdict">
+            <div class="scoreboard">
+              <div class="score bad">
+                <div class="n tnum" id="s-nomem">0</div>
+                <div class="k">times the forgetful team hit a trap it had already hit before</div>
+              </div>
+              <div class="score good">
+                <div class="n tnum" id="s-comp">0</div>
+                <div class="k">times the compounding team hit a trap it had already hit before</div>
+              </div>
+            </div>
+            <p class="verdict-line" id="verdict">Nothing has happened yet.</p>
+            <div class="meter-row">
+              <span style="min-width:120px; color:var(--muted)">reading cost</span>
+              <span class="meter-track"><span class="meter-fill" id="cost-bar" style="width:0%"></span></span>
+              <span class="tnum" id="cost-n" style="min-width:104px; text-align:right">0 tokens</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="repos">
+          <div class="panel">
+            <div class="panel-h">
+              <div class="repo-h">
+                <span class="dotmark" style="background:var(--lost)"></span>
+                <h2>No memory</h2>
+              </div>
+              <span class="outcome idle" id="out-nomem">waiting</span>
+            </div>
+            <div class="panel-b">
+              <p class="hint" style="font-size:.78rem; color:var(--muted)">
+                Everything this team learns lives in the session that learned it.
+                When the session ends, the knowledge does too.
+              </p>
+              <div class="store" id="store-nomem" style="margin-top:12px">
+                <div class="store-empty">Nothing is ever written down.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h">
+              <div class="repo-h">
+                <span class="dotmark" style="background:var(--kept)"></span>
+                <h2>Compounding</h2>
+              </div>
+              <span class="outcome idle" id="out-comp">waiting</span>
+            </div>
+            <div class="panel-b">
+              <p class="hint" style="font-size:.78rem; color:var(--muted)">
+                <span class="tnum" id="store-count">0</span> documents in <code style="font-family:var(--mono); font-size:.74rem">docs/solutions/</code>.
+                Click any card to read its labels.
+              </p>
+              <div class="store" id="store-comp" style="margin-top:12px">
+                <div class="store-empty">Empty. The first task has nothing to consult.</div>
+              </div>
+              <div class="legend" style="margin-top:14px">
+                <span><i class="swatch" style="background:var(--card-sunk)"></i>stored</span>
+                <span><i class="swatch" style="background:var(--accent-dim); border-color:var(--accent)"></i>label matched, read</span>
+                <span><i class="swatch" style="background:var(--kept-dim); border-color:var(--kept)"></i>prevented the trap</span>
+                <span><i class="swatch" style="background:var(--card-sunk); border-top:3px solid var(--stale)"></i>points at deleted code</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel inspect" id="inspector" hidden>
+          <div class="panel-h">
+            <h2>Inside one learning</h2>
+            <button class="btn" id="btn-close-inspect">Close</button>
+          </div>
+          <div class="panel-b">
+            <p class="hint" style="margin-bottom:10px; color:var(--muted); font-size:.78rem">
+              Only the block between the dashes is searched. The prose below it is
+              never read unless this document makes the shortlist.
+            </p>
+            <pre id="inspect-body"></pre>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>What just happened</h2></div>
+          <div class="panel-b">
+            <div class="log" id="log">
+              <div class="log-e"><p class="sentence">The log fills in from the bottom up as tasks run.</p></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LOOP VIEW ================= -->
+  <section class="view" id="view-loop" role="tabpanel" aria-labelledby="tab-loop" hidden>
+    <div class="loopgrid">
+      <div class="panel">
+        <div class="panel-h">
+          <h2>Ten steps, and five ways back</h2>
+          <button class="btn" id="btn-trace">Walk it top to bottom</button>
+        </div>
+        <div class="panel-b">
+          <p style="color:var(--ink-soft); margin-bottom:6px">
+            A PRD arrives from a product manager and a merged pull request comes out the
+            other end. Each step leaves a named file behind &mdash; that file, not a
+            conversation, is what the next step reads.
+          </p>
+          <p style="color:var(--ink-soft); margin-bottom:14px">
+            <strong>The curved arrows on the left are the loops.</strong> Work goes
+            backwards in five different places for five different reasons. Click any
+            step or any arrow.
+          </p>
+          <div class="legend" style="margin-bottom:12px">
+            <span><i class="swatch" style="background:var(--accent-dim); border-color:var(--accent)"></i>a skill runs</span>
+            <span><i class="swatch" style="background:var(--stale-dim); border-color:var(--stale)"></i>a human decides</span>
+            <span><i class="swatch" style="background:var(--kept-dim); border-color:var(--kept)"></i>the compounding step</span>
+          </div>
+          <div class="ringwrap">
+            <svg class="ring" id="pipe-svg" role="img"
+                 aria-label="The compound engineering pipeline as ten numbered steps from PRD to merged PR, with five feedback loops drawn to the left showing where work returns to an earlier step">
+              <defs>
+                <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g id="pipe-arcs"></g>
+              <g id="pipe-flows"></g>
+              <g id="pipe-nodes"></g>
+              <circle id="tracer" class="tok" r="5" cx="0" cy="0" opacity="0"></circle>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div class="panel skilldoc">
+          <div class="panel-h"><h2 id="sd-title">Pick a step or a loop</h2></div>
+          <div class="panel-b" id="sd-body">
+            <p style="color:var(--ink-soft)">
+              Steps are numbered in the order they run. Loops are lettered A&ndash;E, and
+              each one exists for a different reason &mdash; the cheapest place to discover
+              you were wrong is different at every stage.
+            </p>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Which loop is the compounding one?</strong> Loop E, and only loop E.
+          The other four fix <em>this</em> piece of work. E is the only one that changes
+          what the <em>next</em> piece of work knows &mdash; which is why the plugin is
+          named after it.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Companion to the <code style="font-family:var(--mono)">compound-engineering-plugin</code> lab.
+    The simulation is a teaching model: relevance here is word overlap, while the real
+    plugin asks a language model, so these hit rates are a floor rather than a forecast.
+    The failure modes, the document schema and the search order are the real ones.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =====================================================================
+     THE MODEL
+     Mirrors CompoundLab.java: learnings are labelled files, retrieval only
+     ever sees the labels, and a task is "avoided" when retrieval surfaces a
+     document about the same trap in the same module.
+     ===================================================================== */
+
+  var TOPICS = {
+    nplus1: {
+      label: "N+1 query", type: "performance_issue", cat: "performance-issues",
+      tags: ["n-plus-one", "jpa", "lazy-loading"],
+      house: "There's an N+1 query when we list %m records with their line items.",
+      outsider: "The %m page takes forever to load and the database looks busy.",
+      recoverable: true,
+      body: "Add a fetch join on the collection. Measure query count in a test,\nnot by eye - the count is the assertion."
+    },
+    outbox: {
+      label: "lost event", type: "integration_issue", cat: "integration-issues",
+      tags: ["outbox", "dual-write", "kafka"],
+      house: "We need to publish an event after saving in %m - classic dual write.",
+      outsider: "After we store the %m record we also have to tell the other service.",
+      recoverable: true,
+      body: "Write the row and the outbox entry in one local transaction, then relay.\nConsumers must be idempotent, because the relay is at-least-once."
+    },
+    idem: {
+      label: "duplicate charge", type: "logic_error", cat: "logic-errors",
+      tags: ["idempotency", "retry", "duplicate"],
+      house: "The %m endpoint creates a duplicate when the client retries.",
+      outsider: "People got charged twice when their connection dropped.",
+      recoverable: true,
+      body: "Take an idempotency key from the client, store it with the result,\nand return the stored result on a repeat rather than redoing the work."
+    },
+    tz: {
+      label: "off-by-one dates", type: "logic_error", cat: "logic-errors",
+      tags: ["timezone", "date-boundary", "utc"],
+      house: "%m dates land one day off - the JVM is UTC and the database is IST.",
+      outsider: "Numbers show up on the wrong day in the %m summary.",
+      recoverable: true,
+      body: "Never truncate an Instant to a date without naming the zone.\nStore the zone with the value if the business day is zone-dependent."
+    },
+    pool: {
+      label: "pool exhaustion", type: "runtime_error", cat: "runtime-errors",
+      tags: ["connection-pool", "hikari", "retry-storm"],
+      house: "The %m job exhausts the connection pool when retries pile up.",
+      outsider: "The %m service stops responding whenever it gets busy.",
+      recoverable: false,
+      body: "Bound the retry budget before you raise the pool size. A bigger pool\nmakes a retry storm last longer instead of ending it."
+    },
+    migration: {
+      label: "blocking migration", type: "database_issue", cat: "database-issues",
+      tags: ["migration", "lock", "zero-downtime"],
+      house: "We're adding a NOT NULL column to the big %m table.",
+      outsider: "We want a new field on a %m table that has a lot of rows.",
+      recoverable: false,
+      body: "Expand, backfill, then contract. Adding the constraint and the column\nin one statement takes a lock for the length of the table scan."
+    }
+  };
+
+  var MODULES = ["payments", "catalog", "jobs"];
+
+  // The script: which trap arrives, in which module, in what order.
+  // Repeats are deliberate - a repeat is the only moment memory can pay off.
+  var TASKS = [
+    { t: "nplus1",    m: "payments" },
+    { t: "outbox",    m: "payments" },
+    { t: "idem",      m: "payments" },
+    { t: "nplus1",    m: "payments" },   // 4  first repeat
+    { t: "tz",        m: "catalog"  },
+    { t: "outbox",    m: "payments" },
+    { t: "pool",      m: "jobs"     },
+    { t: "idem",      m: "payments" },
+    { t: "migration", m: "catalog"  },
+    { t: "nplus1",    m: "catalog"  },   // 10 same trap, different module
+    { t: "pool",      m: "jobs"     },
+    { t: "tz",        m: "catalog"  },
+    { t: "migration", m: "catalog"  },
+    { t: "outbox",    m: "payments" }
+  ];
+
+  // Deterministic "did someone remember to capture" sequence, so stepping
+  // back and forward always replays identically.
+  var COIN = [1,0,1,1,0,1,0,0,1,0,1,1,0,1];
+
+  var PREDICTS = {
+    4: {
+      q: "Task 4 is the same N+1 trap the team already hit on task 1. What happens now?",
+      opts: [
+        { s: "Both teams avoid it - they only just did this one", ok: false,
+          why: "Recency is a property of a session, not of a repository. The forgetful team's session ended when task 1 ended; nothing carried." },
+        { s: "Only the compounding team avoids it", ok: true,
+          why: "The compounding team wrote a document on task 1 whose labels say payments and performance_issue. Task 4 searches those labels, finds it, and applies it before writing any code. The other team starts from zero, because there is nowhere for its knowledge to have gone." },
+        { s: "Neither avoids it - a document is not a guarantee", ok: false,
+          why: "A document is not a guarantee in general, and later steps here will show it failing. But when the labels match and the code has not moved, retrieval works, and this is that case." }
+      ]
+    },
+    10: {
+      q: "Task 10 is the same N+1 trap - but in catalog, and the stored document is labelled payments. Does it still help?",
+      opts: [
+        { s: "Yes - the trap is the same, so the document applies", ok: true,
+          why: "It is found, because the tags (n-plus-one, jpa) match even though the module does not. This is the good case for tags: they carry the shape of the problem, while module carries where it happened. Had the document only been labelled by module, this transfer would have failed." },
+        { s: "No - a document about payments cannot help catalog", ok: false,
+          why: "That would be true if module were the only label. It isn't: the tags describe the trap independently of where it was found, and this is exactly what they are for." },
+        { s: "It is found but ignored, since the module is wrong", ok: false,
+          why: "Retrieval returns it and it applies cleanly - the fetch-join advice does not depend on which table it is." }
+      ]
+    },
+    12: {
+      q: "You just renamed the payments module. Six stored documents point at files that no longer exist. What does the next payments task get?",
+      opts: [
+        { s: "Nothing - retrieval skips documents whose files are gone", ok: false,
+          why: "Retrieval never opens the code. It matches labels, and the labels still say payments. Nothing in the search path knows the files moved." },
+        { s: "A confident answer that is now partly wrong", ok: true,
+          why: "This is the dangerous case. The document is still found, still reads as authoritative, and now points at paths that do not exist - so it costs reading time and can send the work down a dead path. Worse than a miss, because a miss is obvious. Staleness has to be hunted deliberately: that is what /ce-compound-refresh is for." },
+        { s: "An error, because the document fails validation", ok: false,
+          why: "Validation runs when a document is written and when a maintenance pass is run - not on the retrieval path. Between those two moments, a rotten document behaves exactly like a good one." }
+      ]
+    }
+  };
+
+  /* ---- state ---------------------------------------------------------- */
+
+  function initial() {
+    return {
+      tick: 0,
+      docs: [],            // the compounding team's docs/solutions/
+      nomemHits: 0,
+      compHits: 0,
+      lastCost: 0,
+      lastOutcome: null,   // { nomem, comp, readIds, appliedId }
+      rotted: false,
+      log: []
+    };
+  }
+
+  var cfg = { capture: "always", vocab: "house", concepts: "on", batch: "one", retrieval: "grep", predict: "on" };
+  var state = initial();
+  var history = [];
+  var timer = null;
+  var pendingPredict = null;
+
+  /* ---- retrieval: only labels are visible ----------------------------- */
+
+  // The words a search has to work with, given how the task was described.
+  function queryTerms(task) {
+    var topic = TOPICS[task.t];
+    if (cfg.vocab === "house") return topic.tags.concat([task.m, topic.type]);
+    // Symptom words carry the module but none of the technical vocabulary.
+    if (cfg.concepts === "on" && topic.recoverable) return topic.tags.concat([task.m]);
+    return [task.m];
+  }
+
+  function labelsOf(doc) { return doc.tags.concat([doc.module, doc.type]); }
+
+  function overlap(a, b) {
+    for (var i = 0; i < a.length; i++) if (b.indexOf(a[i]) !== -1) return true;
+    return false;
+  }
+
+  function scoreDoc(doc, q) {
+    var s = 0, L = labelsOf(doc);
+    for (var i = 0; i < q.length; i++) if (L.indexOf(q[i]) !== -1) s += (q[i] === doc.module ? 3 : 4);
+    return s;
+  }
+
+  var FRONTMATTER_CHARS = 210;
+  var BODY_CHARS = 2600;
+  var TOP_K = 3;
+
+  function retrieve(docs, task) {
+    var q = queryTerms(task);
+    var cands = docs.filter(function (d) { return overlap(labelsOf(d), q); });
+    cands.sort(function (a, b) { return scoreDoc(b, q) - scoreDoc(a, q); });
+    var read = cands.slice(0, TOP_K);
+
+    var chars;
+    if (cfg.retrieval === "all") {
+      // Every document enters the context window before anything is judged.
+      chars = docs.length * (FRONTMATTER_CHARS + BODY_CHARS);
+    } else {
+      chars = cands.length * FRONTMATTER_CHARS + read.length * BODY_CHARS;
+    }
+
+    // Does anything read actually address THIS trap?
+    //
+    // Two conditions, and the second one is the whole batching lesson: the
+    // document must contain this problem AND be labelled for it. A weekly
+    // catch-all file contains five problems but carries one set of labels, so
+    // four of them fail this test even while sitting in the shortlist.
+    var applied = null;
+    for (var i = 0; i < read.length; i++) {
+      var hasIt = read[i].topics.indexOf(task.t) !== -1;
+      var labelledForIt = overlap(read[i].tags, TOPICS[task.t].tags);
+      // Third condition: the SEARCH must have had a reason to single this
+      // document out. Matching on "payments" alone puts every payments
+      // document in the pile without saying which trap this is - at real
+      // corpus sizes that is a miss, and it is why symptom words fail.
+      var searchKnewWhy = overlap(read[i].tags, q);
+      if (hasIt && labelledForIt && searchKnewWhy) { applied = read[i]; break; }
+    }
+    return { candidates: cands, read: read, applied: applied, chars: chars };
+  }
+
+  /* ---- one step ------------------------------------------------------- */
+
+  function step(s) {
+    if (s.tick >= TASKS.length) return s;
+    var n = JSON.parse(JSON.stringify(s));
+    var task = TASKS[n.tick];
+    var topic = TOPICS[task.t];
+    var idx = n.tick + 1;
+    var mod = task.m;
+
+    // --- the forgetful team: no store, so every repeat is a fresh injury.
+    var seenBefore = TASKS.slice(0, n.tick).some(function (p) { return p.t === task.t; });
+    var nomem = seenBefore ? "incident" : "first";
+    if (nomem === "incident") n.nomemHits++;
+
+    // --- the compounding team: consult, then act, then capture.
+    var r = retrieve(n.docs, task);
+    n.lastCost = r.chars;
+
+    var comp;
+    if (r.applied && r.applied.stale) {
+      comp = "misled";
+      if (seenBefore) n.compHits++;
+    } else if (r.applied) {
+      comp = "avoided";
+    } else {
+      comp = seenBefore ? "incident" : "first";
+      if (comp === "incident") n.compHits++;
+    }
+
+    n.lastOutcome = {
+      nomem: nomem, comp: comp,
+      readIds: r.read.map(function (d) { return d.id; }),
+      candIds: r.candidates.map(function (d) { return d.id; }),
+      appliedId: r.applied ? r.applied.id : null
+    };
+
+    // --- narrate, in full sentences.
+    var say = [];
+    var taskLine = "Task " + idx + ": " + phrase(task);
+    say.push({ tick: idx, sentence: taskLine, tech: "query labels -> " + queryTerms(task).join(", "), kind: "" });
+
+    if (n.docs.length === 0) {
+      say.push({ tick: idx, sentence: "There is nothing stored yet, so both teams work it out from scratch.", tech: "docs/solutions/ is empty", kind: "" });
+    } else if (r.candidates.length === 0) {
+      say.push({
+        tick: idx,
+        sentence: "The search found nothing. " + n.docs.length + " documents were scanned and none of their labels shared a word with this task.",
+        tech: "0 of " + n.docs.length + " matched", kind: "warn"
+      });
+    } else if (r.applied && comp === "misled") {
+      say.push({
+        tick: idx,
+        sentence: "A document was found and applied - but it points at code that was renamed away, so the team followed advice about files that no longer exist.",
+        tech: r.applied.path + "  (stale)", kind: "warn"
+      });
+    } else if (r.applied) {
+      say.push({
+        tick: idx,
+        sentence: "The compounding team read a document it wrote on an earlier task and avoided the trap before writing any code.",
+        tech: "applied " + r.applied.path, kind: "hi"
+      });
+    } else {
+      say.push({
+        tick: idx,
+        sentence: r.candidates.length + " documents matched on a label, but none of them was about this trap, so they cost reading time and changed nothing.",
+        tech: "read " + r.read.length + " bodies, 0 relevant", kind: "warn"
+      });
+    }
+
+    if (nomem === "incident" && comp !== "incident" && comp !== "misled") {
+      say.push({
+        tick: idx,
+        sentence: "The forgetful team hit this exact trap for the " + ordinal(countPrev(n.tick, task.t) + 1) + " time. It has no record that the first time ever happened.",
+        tech: "no store", kind: "bad"
+      });
+    }
+
+    // --- capture: the closing step of the loop.
+    var wantCapture = cfg.capture === "always" || (cfg.capture === "sometimes" && COIN[n.tick] === 1);
+    var alreadyCovered = n.docs.some(function (d) { return d.topics.indexOf(task.t) !== -1 && d.module === mod; });
+
+    if (wantCapture && !alreadyCovered) {
+      if (cfg.batch === "batch") {
+        var weekly = n.docs.filter(function (d) { return d.batched; })[0];
+        if (!weekly) {
+          weekly = mkDoc(task, topic, n.docs.length, true);
+          weekly.path = "docs/solutions/best-practices/lessons-this-week.md";
+          weekly.title = "Assorted fixes and lessons from this week";
+          n.docs.push(weekly);
+          say.push({ tick: idx, sentence: "The team started a single weekly document and wrote this learning into it.", tech: "created " + weekly.path, kind: "" });
+        } else {
+          // The prose grows; the labels cannot. This is the whole failure.
+          weekly.topics.push(task.t);
+          weekly.bodyCount++;
+          say.push({
+            tick: idx,
+            sentence: "This learning was appended to the weekly document. Its labels still describe the first problem in the file, so this one is now stored but unfindable.",
+            tech: "appended to " + weekly.path + " (labels unchanged: " + weekly.module + " / " + weekly.type + ")",
+            kind: "warn"
+          });
+        }
+      } else {
+        var doc = mkDoc(task, topic, n.docs.length, false);
+        doc.fresh = true;
+        n.docs.push(doc);
+        say.push({
+          tick: idx,
+          sentence: "The team closed the loop: it wrote one document about this one problem, labelled so a future task can find it.",
+          tech: "wrote " + doc.path, kind: ""
+        });
+      }
+    } else if (!wantCapture) {
+      say.push({
+        tick: idx,
+        sentence: cfg.capture === "never"
+          ? "Nobody wrote anything down. What the team just figured out ends with the session."
+          : "Nobody remembered to write this one down. It is gone.",
+        tech: "capture skipped", kind: "warn"
+      });
+    }
+
+    n.docs.forEach(function (d, i) { d.fresh = (d.fresh && i === n.docs.length - 1); });
+    n.tick++;
+    n.log = n.log.concat(say);
+    return n;
+  }
+
+  function mkDoc(task, topic, i, batched) {
+    return {
+      id: "d" + i + "-" + task.t + "-" + task.m,
+      path: "docs/solutions/" + topic.cat + "/" + task.m + "-" + task.t + ".md",
+      title: topic.label + " in " + task.m,
+      module: task.m,
+      type: topic.type,
+      cat: topic.cat,
+      tags: topic.tags.slice(),
+      topics: [task.t],
+      body: topic.body,
+      batched: !!batched,
+      bodyCount: 1,
+      stale: false,
+      fresh: false
+    };
+  }
+
+  function phrase(task) {
+    var topic = TOPICS[task.t];
+    var tpl = cfg.vocab === "house" ? topic.house : topic.outsider;
+    return tpl.replace(/%m/g, task.m);
+  }
+
+  function countPrev(tick, t) {
+    var c = 0;
+    for (var i = 0; i < tick; i++) if (TASKS[i].t === t) c++;
+    return c;
+  }
+
+  function ordinal(n) {
+    return n === 2 ? "second" : n === 3 ? "third" : n === 4 ? "fourth" : n + "th";
+  }
+
+  /* =====================================================================
+     RENDER
+     ===================================================================== */
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function render() {
+    var done = state.tick;
+    var task = TASKS[done - 1];
+
+    // task card
+    if (done === 0) {
+      $("task-n").textContent = "Task 0 of 14 — not started";
+      $("task-text").innerHTML = "Press <strong>Run all 14 tasks</strong> and watch the right-hand team pull ahead.";
+      $("task-meta").innerHTML = "&nbsp;";
+    } else {
+      $("task-n").textContent = "Task " + done + " of " + TASKS.length + " — " + TOPICS[task.t].label;
+      $("task-text").textContent = phrase(task);
+      $("task-meta").textContent = "module: " + task.m + "   ·   problem_type: " + TOPICS[task.t].type
+        + "   ·   seen before: " + (countPrev(done - 1, task.t) > 0 ? "yes, " + countPrev(done - 1, task.t) + "×" : "no");
+    }
+
+    // scoreboard + verdict
+    $("s-nomem").textContent = state.nomemHits;
+    $("s-comp").textContent = state.compHits;
+    $("verdict-tick").textContent = "after " + done + (done === 1 ? " task" : " tasks");
+    $("verdict").textContent = verdictText();
+
+    // cost meter
+    var tok = Math.round(state.lastCost / 4);
+    var worst = TASKS.length * (FRONTMATTER_CHARS + BODY_CHARS) / 4;
+    var pct = Math.min(100, (tok / worst) * 100);
+    $("cost-bar").style.width = pct + "%";
+    $("cost-bar").className = "meter-fill" + (cfg.retrieval === "all" ? " wide" : "");
+    $("cost-n").textContent = tok.toLocaleString() + " tokens";
+
+    // outcome pills
+    setPill("out-nomem", state.lastOutcome ? state.lastOutcome.nomem : null);
+    setPill("out-comp", state.lastOutcome ? state.lastOutcome.comp : null);
+
+    // stores
+    $("store-count").textContent = state.docs.length;
+    renderStore();
+
+    // log
+    renderLog();
+
+    // buttons
+    $("btn-step").disabled = state.tick >= TASKS.length || !!pendingPredict;
+    $("btn-back").disabled = history.length === 0;
+    $("btn-auto").textContent = timer ? "Pause" : (state.tick >= TASKS.length ? "Run again" : "Run all 14 tasks");
+  }
+
+  function setPill(id, kind) {
+    var el = $(id);
+    var map = {
+      avoided:  ["avoided", "avoided — knew this already"],
+      incident: ["incident", "hit the same trap again"],
+      misled:   ["misled", "followed stale advice"],
+      first:    ["idle", "first time — worked it out"]
+    };
+    var m = map[kind] || ["idle", "waiting"];
+    el.className = "outcome " + m[0];
+    el.textContent = m[1];
+  }
+
+  function verdictText() {
+    if (state.tick === 0) return "Nothing has happened yet.";
+    var saved = state.nomemHits - state.compHits;
+    if (state.docs.length === 0) {
+      return "Both teams are identical, because neither is writing anything down. "
+           + "The compounding half of the loop is switched off, so there is nothing to compound.";
+    }
+    if (saved <= 0 && state.compHits > 0) {
+      return "The compounding team is doing no better. It has " + state.docs.length
+           + " documents stored — the knowledge is in the repository, but the search is not reaching it.";
+    }
+    if (saved <= 0) return "Too early to tell. No trap has repeated yet, so memory has had nothing to do.";
+    return "The compounding team avoided " + saved + (saved === 1 ? " repeat" : " repeats")
+         + " that the other team walked into, using " + state.docs.length
+         + " stored documents — none of which anyone had to remember existed.";
+  }
+
+  function renderStore() {
+    var host = $("store-comp");
+    host.innerHTML = "";
+    if (state.docs.length === 0) {
+      host.innerHTML = '<div class="store-empty">Empty. The first task has nothing to consult.</div>';
+      return;
+    }
+    var o = state.lastOutcome || { readIds: [], candIds: [], appliedId: null };
+    state.docs.forEach(function (d) {
+      var b = document.createElement("button");
+      var cls = ["lcard"];
+      if (o.appliedId === d.id) cls.push("applied");
+      else if (o.readIds.indexOf(d.id) !== -1) cls.push("read");
+      else if (o.candIds.indexOf(d.id) !== -1) cls.push("candidate");
+      else if (o.candIds.length) cls.push("dim");
+      if (d.stale) cls.push("stale");
+      if (d.fresh) cls.push("fresh");
+      b.className = cls.join(" ");
+      b.innerHTML = '<span class="lt">' + esc(d.title) + '</span>'
+                  + '<span class="lm">' + esc(d.module) + " · " + esc(d.tags[0]) + '</span>';
+      b.setAttribute("aria-label", "Inspect " + d.title);
+      b.onclick = function () { inspect(d); };
+      host.appendChild(b);
+    });
+  }
+
+  function inspect(d) {
+    $("inspector").hidden = false;
+    var fm = "---\n"
+      + "title: "        + d.title + "\n"
+      + "category: "     + d.cat + "\n"
+      + "module: "       + d.module + "\n"
+      + "problem_type: " + d.type + "\n"
+      + "tags: [" + d.tags.join(", ") + "]\n"
+      + "---\n\n"
+      + (d.batched
+          ? "# " + d.title + "\n\n(" + d.bodyCount + " separate problems written into this one file.\n"
+            + "The labels above can only describe the first of them, so the other "
+            + (d.bodyCount - 1) + " cannot be found by a label search.)\n"
+          : "# " + d.title + "\n\n" + d.body + "\n")
+      + (d.stale ? "\n>> This document cites src/main/java/payments/... which no longer exists.\n" : "");
+    $("inspect-body").textContent = fm;
+    $("inspect-body").scrollIntoView({ behavior: prefersReduced() ? "auto" : "smooth", block: "nearest" });
+  }
+
+  function renderLog() {
+    var host = $("log");
+    host.innerHTML = "";
+    if (!state.log.length) {
+      host.innerHTML = '<div class="log-e"><p class="sentence">The log fills in from the bottom up as tasks run.</p></div>';
+      return;
+    }
+    state.log.slice(-40).forEach(function (e) {
+      var d = document.createElement("div");
+      d.className = "log-e " + (e.kind || "");
+      d.innerHTML = '<span class="tick">TASK ' + e.tick + '</span>'
+                  + '<p class="sentence">' + esc(e.sentence) + '</p>'
+                  + '<p class="tech">' + esc(e.tech) + '</p>';
+      host.appendChild(d);
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
+    });
+  }
+
+  function prefersReduced() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  /* =====================================================================
+     CONTROLS
+     ===================================================================== */
+
+  function doStep() {
+    if (pendingPredict) return;
+    if (state.tick >= TASKS.length) { stopAuto(); return; }
+
+    var next = state.tick + 1;
+    if (cfg.predict === "on" && PREDICTS[next] && !askedAlready[next]) {
+      stopAuto();
+      showPredict(next);
+      return;
+    }
+    history.push(state);
+    state = step(state);
+    render();
+    if (state.tick >= TASKS.length) stopAuto();
+  }
+
+  var askedAlready = {};
+
+  function showPredict(n) {
+    pendingPredict = n;
+    var p = PREDICTS[n];
+    $("predict-box").hidden = false;
+    $("predict-q").textContent = p.q;
+    $("predict-why").hidden = true;
+    var opts = $("predict-opts");
+    opts.innerHTML = "";
+    p.opts.forEach(function (o) {
+      var b = document.createElement("button");
+      b.className = "opt";
+      b.textContent = o.s;
+      b.onclick = function () {
+        Array.prototype.forEach.call(opts.children, function (c) { c.disabled = true; });
+        b.classList.add(o.ok ? "right" : "wrong");
+        if (!o.ok) {
+          p.opts.forEach(function (oo, i) { if (oo.ok) opts.children[i].classList.add("right"); });
+        }
+        var why = $("predict-why");
+        why.hidden = false;
+        why.innerHTML = "<strong>" + (o.ok ? "Right. " : "Not quite. ") + "</strong>" + esc(o.why)
+          + '<br><br><em>Now step forward and watch it happen.</em>';
+        askedAlready[n] = true;
+        pendingPredict = null;
+        $("btn-step").disabled = false;
+      };
+      opts.appendChild(b);
+    });
+    $("predict-box").scrollIntoView({ behavior: prefersReduced() ? "auto" : "smooth", block: "nearest" });
+    render();
+  }
+
+  function doBack() {
+    stopAuto();
+    if (!history.length) return;
+    state = history.pop();
+    $("predict-box").hidden = true;
+    pendingPredict = null;
+    render();
+  }
+
+  function doReset(msg) {
+    stopAuto();
+    state = initial();
+    history = [];
+    askedAlready = {};
+    pendingPredict = null;
+    $("predict-box").hidden = true;
+    $("inspector").hidden = true;
+    if (msg) state.log.push({ tick: 0, sentence: msg, tech: "simulation restarted", kind: "" });
+    render();
+  }
+
+  function startAuto() {
+    if (state.tick >= TASKS.length) doReset(null);
+    timer = setInterval(doStep, prefersReduced() ? 700 : 1500);
+    render();
+  }
+  function stopAuto() { if (timer) { clearInterval(timer); timer = null; } render(); }
+
+  $("btn-step").onclick = doStep;
+  $("btn-back").onclick = doBack;
+  $("btn-reset").onclick = function () { doReset("Reset. Fourteen tasks are queued again."); };
+  $("btn-auto").onclick = function () { timer ? stopAuto() : startAuto(); };
+
+  $("btn-rot").onclick = function () {
+    stopAuto();
+    var n = 0;
+    state.docs.forEach(function (d) { if (d.module === "payments") { d.stale = true; n++; } });
+    state.rotted = true;
+    state.log.push({
+      tick: state.tick,
+      sentence: n === 0
+        ? "Nothing to rot yet — no payments documents have been written."
+        : "The payments module was renamed. " + n + " stored " + (n === 1 ? "document" : "documents")
+          + " now point at files that no longer exist — and nothing in the search path can tell.",
+      tech: "marked " + n + " docs stale", kind: "warn"
+    });
+    render();
+  };
+
+  $("btn-refresh").onclick = function () {
+    stopAuto();
+    var n = 0;
+    state.docs.forEach(function (d) { if (d.stale) { d.stale = false; n++; } });
+    state.log.push({
+      tick: state.tick,
+      sentence: n === 0
+        ? "The maintenance pass found nothing to fix."
+        : "A maintenance pass checked every stored document against the current code and repaired the " + n + " that had rotted.",
+      tech: "/ce-compound-refresh · " + n + " docs updated", kind: "hi"
+    });
+    render();
+  };
+
+  $("btn-close-inspect").onclick = function () { $("inspector").hidden = true; };
+
+  ["capture", "vocab", "concepts", "batch", "retrieval", "predict"].forEach(function (k) {
+    $("c-" + k).onchange = function (e) {
+      cfg[k] = e.target.value;
+      doReset("Setting changed, so the run starts over — the world is different now.");
+    };
+  });
+
+  /* =====================================================================
+     TABS
+     ===================================================================== */
+  function selectTab(which) {
+    var isSim = which === "sim";
+    $("tab-sim").setAttribute("aria-selected", String(isSim));
+    $("tab-loop").setAttribute("aria-selected", String(!isSim));
+    $("view-sim").hidden = !isSim;
+    $("view-loop").hidden = isSim;
+    if (!isSim) stopAuto();
+  }
+  $("tab-sim").onclick = function () { selectTab("sim"); };
+  $("tab-loop").onclick = function () { selectTab("loop"); };
+
+  /* =====================================================================
+     THE PIPELINE DIAGRAM — ten steps, five loops
+     ===================================================================== */
+
+  // kind: "skill" (an agent step) | "human" (a person decides) | "compound"
+  var STEPS = [
+    { id: "prd", n: "in", kind: "human", name: "A PRD arrives", role: "the product manager's ask",
+      takes: "Whatever the PM wrote: goals, users, constraints, success measures.",
+      makes: "Nothing yet — this is the input, not a step CE performs.",
+      note: "CE has no opinion about the PRD's format. It is the raw material the first skill turns into something an engineer can act on." },
+
+    { id: "brainstorm", n: "1", kind: "skill", name: "/ce-brainstorm", role: "decide what this should be",
+      takes: "The PRD, plus anything already learned about this area.",
+      makes: "A requirements document, stamped artifact_readiness: requirements-only.",
+      note: "One blocking question at a time, and only for decisions you cannot infer. This document is the thing you send back to the PM — it says what will be built, not how." },
+
+    { id: "pmreview", n: "2", kind: "human", name: "PM signs off", role: "is this what you meant?",
+      takes: "The requirements document from step 1.",
+      makes: "An approved spec, or a list of corrections that sends it back.",
+      note: "CE gives you the artifact and two ways to share it (/ce-proof publishes it for comment; brainstorm_output: html renders it for a human reader), and /ce-doc-review will critique it against a Product Contract. What CE does NOT have is a blocking state — nothing stops you invoking the next skill. This gate is yours to hold." },
+
+    { id: "plan", n: "3", kind: "skill", name: "/ce-plan", role: "decide how",
+      takes: "The approved requirements — and this is the step that searches past learnings.",
+      makes: "An implementation plan: numbered units, test scenarios, risks.",
+      note: "Two things land here. Loop E lands here, bringing everything the team ever captured. And /ce-doc-review runs automatically before the plan is handed on — that is loop B." },
+
+    { id: "work", n: "4", kind: "skill", name: "/ce-work", role: "build it",
+      takes: "The plan.",
+      makes: "Working code with the plan's test scenarios passing.",
+      note: "The numbered units are what tell this step when it is finished. This is also where loops C and D come back to — every correction to the code re-enters here." },
+
+    { id: "simplify", n: "5", kind: "skill", name: "/ce-simplify-code", role: "tidy before anyone looks",
+      takes: "The code just written.",
+      makes: "The same behaviour, expressed more plainly.",
+      note: "Behaviour-preserving by contract. A clarity pass, not a bug hunt — which is why it runs before review rather than after." },
+
+    { id: "review", n: "6", kind: "skill", name: "/ce-code-review", role: "find what is wrong",
+      takes: "The diff, and the plan it was meant to satisfy.",
+      makes: "Findings, each ranked with a confidence level.",
+      note: "Several reviewer personas run in separately dispatched contexts. That separation is what lets two of them agreeing count as corroboration rather than one opinion stated twice." },
+
+    { id: "ship", n: "7", kind: "skill", name: "/ce-commit-push-pr", role: "offer it for review",
+      takes: "The finished, reviewed change.",
+      makes: "Commits, a push, and an open pull request with a written description.",
+      note: "Pushing moves bytes; opening the PR is what makes the work *offered*. CE draws that distinction deliberately — a shipping gate checks what you are offering, not what merely exists in the tree." },
+
+    { id: "prreview", n: "8", kind: "human", name: "Human review + CI", role: "the outside world responds",
+      takes: "The open PR.",
+      makes: "Approvals and a green build — or comments and a red one.",
+      note: "/ce-babysit-pr watches this over time, routing incoming comments to /ce-resolve-pr-feedback and failing builds to /ce-debug. It does not merge." },
+
+    { id: "compound", n: "9", kind: "compound", name: "/ce-compound", role: "write down what was learned",
+      takes: "The session that just happened.",
+      makes: "One document under docs/solutions/, labelled so a future search finds it.",
+      note: "One problem per run — a session that produced five learnings gets five runs. The first tab shows what happens when this is batched instead." }
+  ];
+
+  // Loops: from a later step back to an earlier one. `self` draws a small return
+  // arc on a single step.
+  var LOOPS = [
+    { id: "A", from: 2, to: 1, tone: "human", label: "sent back",
+      title: "Loop A — the PM sends the spec back",
+      trigger: "The requirements document does not describe what the PM actually wanted.",
+      revises: "The requirements document, by re-running /ce-brainstorm with the corrections as input.",
+      why: "This is the cheapest place in the whole pipeline to be wrong. A misunderstanding caught here costs one conversation; the same misunderstanding caught at step 8 costs the plan, the code, the review and the rework.",
+      skipped: "You build the wrong thing correctly — and every later step, being good at its job, helps you do it faster.",
+      owns: "You. CE produces and shares the artifact; it does not block on approval." },
+
+    { id: "B", from: 3, to: 3, tone: "machine", label: "doc review", self: true,
+      title: "Loop B — the plan reviews itself before anyone codes",
+      trigger: "Automatic. /ce-plan invokes /ce-doc-review on every durable plan, non-interactively by default.",
+      revises: "The plan. Safe mechanical fixes are applied silently; judgment calls are handed to you at the post-plan menu.",
+      why: "A defect in a plan is multiplied by everything built on it. Catching a scope gap or an infeasible unit here costs a rewrite of a paragraph rather than a rewrite of a module.",
+      skipped: "Nothing warns you that the plan contradicts itself, and step 4 faithfully implements the contradiction.",
+      owns: "The skill. It is mandatory for durable plans, not optional." },
+
+    { id: "C", from: 6, to: 4, tone: "machine", label: "findings",
+      title: "Loop C — review findings go back into the code",
+      trigger: "A finding lands above the confidence threshold and its fix is classed as safe to apply.",
+      revises: "The code, and sometimes the tests.",
+      why: "Review that only produces a report is a report. The loop is what turns a finding into a change — and CE forces the accounting: a finding that is accepted rather than fixed becomes a residual, and a residual must reach a ticket or the PR body before the run may call itself done.",
+      skipped: "Findings live in a session transcript that is about to be deleted.",
+      owns: "The skill, for anything mechanically safe. You, for the judgment calls." },
+
+    { id: "D", from: 8, to: 4, tone: "human", label: "CI red / comments",
+      title: "Loop D — the outside world sends it back",
+      trigger: "A reviewer comments, or CI goes red.",
+      revises: "The code, via /ce-resolve-pr-feedback for comments and /ce-debug for failures.",
+      why: "This is the last loop before the change is permanent, and the only one where people outside your session get a vote. It is also the most expensive — everything upstream has already been paid for.",
+      skipped: "The PR sits open, or worse, gets merged with a red build.",
+      owns: "Shared. /ce-babysit-pr watches and routes, with a bounded repair budget; it never merges." },
+
+    { id: "E", from: 9, to: 3, tone: "compound", label: "what we learned",
+      title: "Loop E — the return arrow, and the only one that leaves this task",
+      trigger: "Every completed piece of work, whether or not anything went wrong.",
+      revises: "Nothing about this task. It changes what the NEXT task starts with.",
+      why: "Loops A through D all repair the work in front of you — take any of them away and this task ships worse. Take E away and this task ships exactly the same, and the next hundred tasks are each slightly worse than they had to be. That delayed, invisible payoff is precisely why it gets skipped, and precisely why the plugin makes it a step with a command rather than a note in a wiki.",
+      skipped: "The forgetful team in the first tab. Eight repeats instead of zero.",
+      owns: "The skill, if you invoke it. Nothing invokes it for you outside /lfg." }
+  ];
+
+  var ROW_H = 62, NODE_X = 132, NODE_W = 300, NODE_H = 46, TOP = 26, ARC_LANE = 22;
+
+  function rowY(i) { return TOP + i * ROW_H + NODE_H / 2; }
+
+  function toneColor(tone) {
+    return tone === "human" ? "var(--stale)" : tone === "compound" ? "var(--kept)" : "var(--accent)";
+  }
+
+  function buildPipeline() {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = $("pipe-svg");
+    var H = TOP + STEPS.length * ROW_H + 10;
+    svg.setAttribute("viewBox", "0 0 " + (NODE_X + NODE_W + 20) + " " + H);
+    svg.style.minWidth = "460px";
+
+    var arcs = $("pipe-arcs"), flows = $("pipe-flows"), nodes = $("pipe-nodes");
+
+    // forward connectors
+    for (var i = 0; i < STEPS.length - 1; i++) {
+      var l = document.createElementNS(NS, "line");
+      l.setAttribute("x1", NODE_X + 26); l.setAttribute("x2", NODE_X + 26);
+      l.setAttribute("y1", rowY(i) + NODE_H / 2);
+      l.setAttribute("y2", rowY(i + 1) - NODE_H / 2);
+      l.setAttribute("class", "flow");
+      l.setAttribute("marker-end", "url(#ah)");
+      flows.appendChild(l);
+    }
+
+    // feedback arcs, each in its own lane so they never overlap
+    LOOPS.forEach(function (lp, k) {
+      var y1 = rowY(lp.from), y2 = rowY(lp.to);
+      var lane = NODE_X - 14 - k * ARC_LANE;
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "arcg");
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("id", "loop-" + lp.id);
+      g.setAttribute("aria-label", lp.title);
+
+      var p = document.createElementNS(NS, "path");
+      var d;
+      if (lp.self) {
+        d = "M" + (NODE_X - 4) + "," + (y1 - 12) +
+            " C" + (lane - 6) + "," + (y1 - 26) +
+            " " + (lane - 6) + "," + (y1 + 26) +
+            " " + (NODE_X - 4) + "," + (y1 + 12);
+      } else {
+        d = "M" + (NODE_X - 4) + "," + y1 +
+            " C" + lane + "," + y1 +
+            " " + lane + "," + y2 +
+            " " + (NODE_X - 4) + "," + y2;
+      }
+      p.setAttribute("d", d);
+      p.setAttribute("class", "arc");
+      p.setAttribute("stroke", toneColor(lp.tone));
+      p.setAttribute("marker-end", "url(#ah)");
+      p.style.color = toneColor(lp.tone);
+      g.appendChild(p);
+
+      var t = document.createElementNS(NS, "text");
+      t.setAttribute("class", "arclab");
+      t.setAttribute("x", lane + 4);
+      t.setAttribute("y", (y1 + y2) / 2 + (lp.self ? -22 : 0));
+      t.setAttribute("fill", toneColor(lp.tone));
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("transform", "rotate(-90 " + (lane + 4) + " " + ((y1 + y2) / 2 + (lp.self ? -22 : 0)) + ")");
+      t.textContent = lp.id + " · " + lp.label;
+      g.appendChild(t);
+
+      g.addEventListener("click", function () { showLoop(lp); });
+      g.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showLoop(lp); }
+      });
+      arcs.appendChild(g);
+    });
+
+    // the steps
+    STEPS.forEach(function (s, i) {
+      var y = rowY(i);
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "node " + s.kind);
+      g.setAttribute("id", "node-" + s.id);
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", "Step " + s.n + ", " + s.name + " — " + s.role);
+
+      var r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", NODE_X); r.setAttribute("y", y - NODE_H / 2);
+      r.setAttribute("width", NODE_W); r.setAttribute("height", NODE_H);
+      r.setAttribute("rx", 6);
+      g.appendChild(r);
+
+      var badge = document.createElementNS(NS, "circle");
+      badge.setAttribute("class", "badge");
+      badge.setAttribute("cx", NODE_X + 26); badge.setAttribute("cy", y); badge.setAttribute("r", 13);
+      g.appendChild(badge);
+
+      var bn = document.createElementNS(NS, "text");
+      bn.setAttribute("class", "bnum"); bn.setAttribute("x", NODE_X + 26); bn.setAttribute("y", y + 3.5);
+      bn.setAttribute("text-anchor", "middle"); bn.textContent = s.n;
+      g.appendChild(bn);
+
+      var t1 = document.createElementNS(NS, "text");
+      t1.setAttribute("class", "nm"); t1.setAttribute("x", NODE_X + 48); t1.setAttribute("y", y - 3);
+      t1.textContent = s.name;
+      g.appendChild(t1);
+
+      var t2 = document.createElementNS(NS, "text");
+      t2.setAttribute("class", "rl"); t2.setAttribute("x", NODE_X + 48); t2.setAttribute("y", y + 10);
+      t2.textContent = "leaves: " + shortMake(s);
+      g.appendChild(t2);
+
+      g.addEventListener("click", function () { showSkill(s); });
+      g.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showSkill(s); }
+      });
+      nodes.appendChild(g);
+    });
+  }
+
+  var SHORT = {
+    prd: "the ask, unstructured", brainstorm: "a requirements doc", pmreview: "an approved spec",
+    plan: "an implementation plan", work: "code, tests passing", simplify: "the same code, clearer",
+    review: "ranked findings", ship: "an open pull request", prreview: "approvals, or comments",
+    compound: "one learning, labelled"
+  };
+  function shortMake(s) { return SHORT[s.id] || ""; }
+
+  function clearSel() {
+    Array.prototype.forEach.call(document.querySelectorAll(".node, .arcg"), function (n) {
+      n.classList.remove("sel");
+    });
+  }
+
+  function showSkill(s) {
+    clearSel();
+    $("node-" + s.id).classList.add("sel");
+    var stepLabel = s.n === "in" ? "Input" : "Step " + s.n;
+    $("sd-title").textContent = s.name;
+    $("sd-body").innerHTML =
+        '<div class="row"><div class="lbl">' + stepLabel + ' · its job</div><div class="val">' + esc(s.role) + '</div></div>'
+      + '<div class="row"><div class="lbl">Takes in</div><div class="val">' + esc(s.takes) + '</div></div>'
+      + '<div class="row"><div class="lbl">Leaves behind</div><div class="val">' + esc(s.makes) + '</div></div>'
+      + '<div class="row"><div class="lbl">Worth knowing</div><div class="val">' + esc(s.note) + '</div></div>';
+  }
+
+  function showLoop(lp) {
+    clearSel();
+    $("loop-" + lp.id).classList.add("sel");
+    $("node-" + STEPS[lp.from].id).classList.add("sel");
+    $("node-" + STEPS[lp.to].id).classList.add("sel");
+    $("sd-title").textContent = lp.title;
+    $("sd-body").innerHTML =
+        '<div class="row"><div class="lbl">Goes back from</div><div class="val">step '
+          + esc(STEPS[lp.from].n) + ' (' + esc(STEPS[lp.from].name) + ') to step '
+          + esc(STEPS[lp.to].n) + ' (' + esc(STEPS[lp.to].name) + ')</div></div>'
+      + '<div class="row"><div class="lbl">What triggers it</div><div class="val">' + esc(lp.trigger) + '</div></div>'
+      + '<div class="row"><div class="lbl">What it revises</div><div class="val">' + esc(lp.revises) + '</div></div>'
+      + '<div class="row"><div class="lbl">Why it exists here</div><div class="val">' + esc(lp.why) + '</div></div>'
+      + '<div class="row"><div class="lbl">If you skip it</div><div class="val">' + esc(lp.skipped) + '</div></div>'
+      + '<div class="row"><div class="lbl">Who owns it</div><div class="val">' + esc(lp.owns) + '</div></div>';
+  }
+
+  $("btn-trace").onclick = function () {
+    var tracer = $("tracer");
+    if (prefersReduced()) { showSkill(STEPS[0]); return; }
+    var i = 0;
+    tracer.setAttribute("opacity", "1");
+    tracer.setAttribute("cx", NODE_X + 26);
+    (function hop() {
+      if (i >= STEPS.length - 1) {
+        tracer.setAttribute("opacity", "0");
+        showLoop(LOOPS[LOOPS.length - 1]);
+        return;
+      }
+      showSkill(STEPS[i]);
+      var y1 = rowY(i), y2 = rowY(i + 1), t0 = performance.now(), dur = 520;
+      (function frame(now) {
+        var k = Math.min(1, (now - t0) / dur);
+        var e = k < .5 ? 2 * k * k : -1 + (4 - 2 * k) * k;
+        tracer.setAttribute("cy", (y1 + (y2 - y1) * e).toFixed(1));
+        if (k < 1) requestAnimationFrame(frame);
+        else { i++; setTimeout(hop, 190); }
+      })(t0);
+    })();
+  };
+
+  /* ---- go ---- */
+  buildPipeline();
+  showSkill(STEPS[1]);
+  render();
+})();
+</script>

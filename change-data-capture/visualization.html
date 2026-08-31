@@ -1,0 +1,1731 @@
+<title>The Drawer and the Roll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#F2F4F1; --surface:#FFFFFF; --surface2:#E8ECE8; --sunken:#DFE4DF;
+  --ink:#141A18; --ink2:#5C6663; --ink3:#8A938F;
+  --rule:#D2D8D3; --rule2:#BCC5BE;
+  --accent:#0C5F59; --accent-ink:#FFFFFF; --accent-soft:#DCEDEA;
+  --ok:#1B6E4E; --ok-soft:#DCEFE4;
+  --miss:#A93518; --miss-soft:#F7E1DB;
+  --dupe:#8A6000; --dupe-soft:#F6EBD2;
+  --ghost:#63389A; --ghost-soft:#EBE2F7;
+  --shadow:0 1px 2px rgba(20,26,24,.07), 0 6px 18px rgba(20,26,24,.05);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1413; --surface:#171D1B; --surface2:#1F2725; --sunken:#0B100F;
+    --ink:#E5EAE7; --ink2:#98A5A0; --ink3:#6E7A76;
+    --rule:#2A3331; --rule2:#3A4643;
+    --accent:#4FD0BE; --accent-ink:#06231F; --accent-soft:#12332F;
+    --ok:#57C58F; --ok-soft:#123326;
+    --miss:#F27A5A; --miss-soft:#3A1810;
+    --dupe:#DEAC4B; --dupe-soft:#332711;
+    --ghost:#B490EC; --ghost-soft:#271A3B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1413; --surface:#171D1B; --surface2:#1F2725; --sunken:#0B100F;
+  --ink:#E5EAE7; --ink2:#98A5A0; --ink3:#6E7A76;
+  --rule:#2A3331; --rule2:#3A4643;
+  --accent:#4FD0BE; --accent-ink:#06231F; --accent-soft:#12332F;
+  --ok:#57C58F; --ok-soft:#123326;
+  --miss:#F27A5A; --miss-soft:#3A1810;
+  --dupe:#DEAC4B; --dupe-soft:#332711;
+  --ghost:#B490EC; --ghost-soft:#271A3B;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1240px; margin:0 auto; padding:0 20px 72px}
+
+/* ---------- header ---------- */
+header.top{
+  border-bottom:1px solid var(--rule); background:var(--surface);
+  position:sticky; top:0; z-index:20;
+}
+.top-in{max-width:1240px; margin:0 auto; padding:16px 20px 0}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink3); margin:0 0 4px;
+}
+h1{
+  font-family:var(--mono); font-weight:600; font-size:clamp(21px,3.2vw,30px);
+  letter-spacing:-.02em; margin:0 0 4px; text-wrap:balance;
+}
+.dek{margin:0 0 14px; color:var(--ink2); max-width:64ch; font-size:14.5px}
+.tabs{display:flex; gap:2px; flex-wrap:wrap; margin:0}
+.tab{
+  appearance:none; border:1px solid var(--rule); border-bottom:none;
+  background:var(--surface2); color:var(--ink2); cursor:pointer;
+  font-family:var(--mono); font-size:12.5px; font-weight:500;
+  padding:9px 14px; border-radius:7px 7px 0 0; letter-spacing:.01em;
+  position:relative; top:1px;
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{
+  background:var(--surface); color:var(--ink); border-color:var(--rule);
+  box-shadow:inset 0 3px 0 var(--accent);
+}
+.tab:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+
+/* ---------- panels ---------- */
+.panel{padding-top:22px}
+.panel[hidden]{display:none!important}
+.lede{
+  margin:0 0 18px; max-width:72ch; color:var(--ink2); font-size:14.5px;
+  border-left:2px solid var(--accent); padding-left:12px;
+}
+.lede b{color:var(--ink); font-weight:600}
+
+/* ---------- controls ---------- */
+.controls{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:12px 14px; margin-bottom:16px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:12px;
+}
+.ctl-row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.ctl-label{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink3); margin-right:2px;
+  flex:0 0 auto; min-width:88px;
+}
+button.btn{
+  appearance:none; cursor:pointer; font-family:var(--sans); font-size:13px;
+  font-weight:500; padding:6px 11px; border-radius:6px;
+  border:1px solid var(--rule2); background:var(--surface2); color:var(--ink);
+}
+button.btn:hover{border-color:var(--accent); color:var(--accent)}
+button.btn:disabled{opacity:.4; cursor:not-allowed}
+button.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+button.btn.primary:hover{color:var(--accent-ink); filter:brightness(1.08)}
+button.btn.danger{border-color:var(--miss); color:var(--miss)}
+.seg{display:inline-flex; border:1px solid var(--rule2); border-radius:6px; overflow:hidden}
+.seg button{
+  appearance:none; cursor:pointer; border:none; background:var(--surface2);
+  color:var(--ink2); font-family:var(--sans); font-size:12.5px; padding:6px 11px;
+  border-right:1px solid var(--rule2);
+}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); font-weight:600}
+label.switch{
+  display:inline-flex; align-items:center; gap:6px; font-size:13px;
+  color:var(--ink2); cursor:pointer; user-select:none;
+}
+label.switch input{accent-color:var(--accent); width:15px; height:15px; cursor:pointer}
+.slider{display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--ink2)}
+.slider input[type=range]{accent-color:var(--accent); width:130px}
+.slider .val{font-family:var(--mono); color:var(--ink); min-width:52px; font-size:12.5px}
+
+/* ---------- stage ---------- */
+.stage{display:grid; gap:14px; grid-template-columns:1fr; margin-bottom:14px}
+@media(min-width:900px){ .stage.three{grid-template-columns:1fr 1fr 1fr} .stage.two{grid-template-columns:1fr 1fr} }
+.col{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; min-width:0;
+}
+.col-head{
+  padding:10px 13px 9px; border-bottom:1px solid var(--rule);
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+}
+.col-head h3{
+  margin:0; font-family:var(--mono); font-size:12.5px; font-weight:600;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+.col-head .sub{font-size:12px; color:var(--ink3); font-family:var(--sans)}
+.col-body{padding:11px 13px 13px; overflow-x:auto; flex:1}
+
+/* ---------- data table ---------- */
+table.rows{border-collapse:collapse; width:100%; font-family:var(--mono); font-size:12px}
+table.rows th{
+  text-align:left; font-weight:500; color:var(--ink3); font-size:10px;
+  letter-spacing:.1em; text-transform:uppercase; padding:0 8px 5px 0; white-space:nowrap;
+}
+table.rows td{padding:3px 8px 3px 0; border-top:1px solid var(--rule); white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+tr.flash td{background:var(--accent-soft)}
+tr.gone td{color:var(--ink3); text-decoration:line-through}
+tr.wrongrow td{background:var(--miss-soft)}
+
+/* ---------- log strip ---------- */
+.strip{
+  font-family:var(--mono); font-size:11.5px; max-height:290px; overflow-y:auto;
+  background:var(--sunken); border:1px solid var(--rule); border-radius:7px; padding:7px 8px;
+}
+.rec{
+  display:grid; grid-template-columns:auto 1fr; gap:8px; padding:2px 3px;
+  border-radius:4px; align-items:baseline;
+}
+.rec .lsn{color:var(--ink3); font-variant-numeric:tabular-nums}
+.rec.commit{background:var(--ok-soft)}
+.rec.abort{background:var(--miss-soft)}
+.rec.cur{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.rec .op{font-weight:600}
+.op-c{color:var(--ok)} .op-u{color:var(--accent)} .op-d{color:var(--miss)} .op-r{color:var(--ink2)}
+.muted{color:var(--ink3)}
+
+/* ---------- counters ---------- */
+.counters{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+.metric{
+  background:var(--surface); border:1px solid var(--rule); border-radius:9px;
+  padding:8px 12px; min-width:118px; flex:1 1 118px; box-shadow:var(--shadow);
+}
+.metric .k{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:2px;
+}
+.metric .v{font-family:var(--mono); font-size:21px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.1}
+.metric.bad{border-color:var(--miss)} .metric.bad .v{color:var(--miss)}
+.metric.warn{border-color:var(--dupe)} .metric.warn .v{color:var(--dupe)}
+.metric.good .v{color:var(--ok)}
+.metric.ghost{border-color:var(--ghost)} .metric.ghost .v{color:var(--ghost)}
+
+/* ---------- verdict ---------- */
+.verdict{
+  border:1px solid var(--rule); border-left:4px solid var(--accent);
+  background:var(--surface); border-radius:9px; padding:12px 15px; margin-bottom:14px;
+  box-shadow:var(--shadow);
+}
+.verdict.bad{border-left-color:var(--miss)}
+.verdict.good{border-left-color:var(--ok)}
+.verdict.warn{border-left-color:var(--dupe)}
+.verdict.ghost{border-left-color:var(--ghost)}
+.verdict .vk{
+  font-family:var(--mono); font-size:10px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink3); display:block; margin-bottom:4px;
+}
+.verdict .vt{margin:0; font-size:15px; line-height:1.5}
+.verdict .vt b{font-weight:600}
+
+/* ---------- narration ---------- */
+.narr{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden;
+}
+.narr h4{
+  margin:0; padding:9px 13px; border-bottom:1px solid var(--rule);
+  font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink3); font-weight:500;
+}
+.narr ol{margin:0; padding:8px 13px 11px 13px; list-style:none; max-height:230px; overflow-y:auto}
+.narr li{padding:5px 0; border-top:1px solid var(--rule); font-size:13.5px; line-height:1.5}
+.narr li:first-child{border-top:none}
+.narr li .tstamp{
+  font-family:var(--mono); font-size:11px; color:var(--ink3);
+  margin-right:7px; font-variant-numeric:tabular-nums;
+}
+.narr li .tech{
+  display:block; font-family:var(--mono); font-size:11.5px; color:var(--ink3); margin-top:2px;
+}
+li.l-miss{color:var(--miss)} li.l-ok{color:var(--ok)}
+li.l-dupe{color:var(--dupe)} li.l-ghost{color:var(--ghost)}
+.narr li.l-miss .tech,.narr li.l-ok .tech,.narr li.l-dupe .tech,.narr li.l-ghost .tech{opacity:.85}
+
+/* ---------- predict ---------- */
+.predict{
+  background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+  padding:13px 15px; margin-bottom:14px;
+}
+.predict .pk{
+  font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--accent); display:block; margin-bottom:5px; font-weight:600;
+}
+.predict .pq{margin:0 0 10px; font-size:15px; font-weight:500}
+.predict .opts{display:flex; flex-wrap:wrap; gap:7px}
+.predict .opts button{
+  appearance:none; cursor:pointer; text-align:left; font-family:var(--sans); font-size:13px;
+  padding:7px 11px; border-radius:6px; border:1px solid var(--accent);
+  background:var(--surface); color:var(--ink); max-width:340px;
+}
+.predict .opts button:hover{background:var(--surface2)}
+.predict .opts button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); font-weight:600}
+.predict .res{margin:10px 0 0; font-size:14px; padding:9px 11px; border-radius:7px; background:var(--surface)}
+.predict .res.right{border-left:3px solid var(--ok)}
+.predict .res.wrong{border-left:3px solid var(--miss)}
+.predict[hidden]{display:none!important}
+
+/* ---------- legend ---------- */
+.legend{
+  display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--ink2);
+  margin-bottom:14px; padding:9px 13px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:9px;
+}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:11px; height:11px; border-radius:3px; display:inline-block; flex:0 0 auto}
+.sw.ok{background:var(--ok)} .sw.miss{background:var(--miss)}
+.sw.dupe{background:var(--dupe)} .sw.ghost{background:var(--ghost)}
+.sw.acc{background:var(--accent)} .sw.n{background:var(--ink3)}
+
+/* ---------- gauge ---------- */
+.gauge{height:26px; background:var(--sunken); border:1px solid var(--rule2); border-radius:6px; overflow:hidden; position:relative}
+.gauge .fill{height:100%; background:var(--accent); transition:width .25s ease}
+.gauge.hot .fill{background:var(--dupe)}
+.gauge.crit .fill{background:var(--miss)}
+.gauge .cap{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:11.5px; font-weight:600; color:var(--ink);
+  text-shadow:0 0 4px var(--surface),0 0 4px var(--surface);
+}
+.kv{font-family:var(--mono); font-size:12px; color:var(--ink2); display:flex; justify-content:space-between; gap:10px; padding:2px 0; border-top:1px solid var(--rule)}
+.kv:first-child{border-top:none}
+.kv b{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+
+/* ---------- timeline ---------- */
+.tl{display:flex; gap:2px; margin:6px 0 2px; overflow-x:auto; padding-bottom:3px}
+.tl .cell{
+  flex:0 0 auto; width:26px; height:34px; border:1px solid var(--rule);
+  border-radius:4px; background:var(--surface2); font-family:var(--mono); font-size:9.5px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:var(--ink3); line-height:1.15;
+}
+.tl .cell.read{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.tl .cell.write{background:var(--dupe-soft); border-color:var(--dupe); color:var(--dupe); font-weight:600}
+.tl .cell.blocked{background:var(--miss-soft); border-color:var(--miss); color:var(--miss)}
+.tl .cell.now{box-shadow:0 0 0 2px var(--accent)}
+
+.note{font-size:12.5px; color:var(--ink3); margin:10px 0 0; max-width:78ch}
+.note code,code{font-family:var(--mono); font-size:.92em; background:var(--surface2); padding:1px 4px; border-radius:3px}
+footer.foot{
+  border-top:1px solid var(--rule); margin-top:26px; padding-top:14px;
+  font-size:12.5px; color:var(--ink3); max-width:76ch;
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <p class="eyebrow">Change data capture · interactive lab</p>
+    <h1>The Drawer and the Roll</h1>
+    <p class="dek">A shop can be watched two ways: look in the cash drawer every few minutes, or read the till roll that prints every sale as it happens. Databases are the same, and one of the two ways silently loses data. This page lets you run both and count what each one saw.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-t1" aria-controls="p-t1" aria-selected="true">1 · Poll vs. log</button>
+      <button class="tab" role="tab" id="tab-t2" aria-controls="p-t2" aria-selected="false">2 · The decoder</button>
+      <button class="tab" role="tab" id="tab-t3" aria-controls="p-t3" aria-selected="false">3 · Cold start</button>
+      <button class="tab" role="tab" id="tab-t4" aria-controls="p-t4" aria-selected="false">4 · The slot</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ================= TAB 1 ================= -->
+<section class="panel" id="p-t1" role="tabpanel" aria-labelledby="tab-t1">
+  <p class="lede">Meera's grocery app keeps its orders in one database table. Two programs are trying to keep a search index up to date with it. The <b>poller</b> re-reads the table every few seconds and looks for rows with a recent <code>updated_at</code>. The <b>log reader</b> reads the database's own write-ahead log — the list of every change, in the order the database made it real. Both start from the same seeded copy of today's two orders, so from here on they only differ in what they <i>notice</i>. Run a scenario and watch the two indexes drift apart.</p>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">Scenarios</span>
+      <button class="btn primary" data-t1-scn="all">▶ Run the five failures</button>
+      <button class="btn" data-t1-scn="delete">Ben's order is deleted</button>
+      <button class="btn" data-t1-scn="rapid">Three changes in one interval</button>
+      <button class="btn" data-t1-scn="slow">The slow transaction</button>
+      <button class="btn" data-t1-scn="tie">Same-second tie</button>
+      <button class="btn" data-t1-scn="twotables">Two tables, one transaction</button>
+      <button class="btn" data-t1-scn="restart">Restart the connector</button>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Playback</span>
+      <button class="btn" id="t1-play">▶ Play</button>
+      <button class="btn" id="t1-back">◀ Step back</button>
+      <button class="btn" id="t1-fwd">Step ▶</button>
+      <button class="btn" id="t1-reset">Reset</button>
+      <span class="slider"><label for="t1-interval">Poll every</label>
+        <input type="range" id="t1-interval" min="2" max="20" step="1" value="5">
+        <span class="val" id="t1-interval-v">5 s</span></span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Consumers</span>
+      <div class="seg" id="t1-mode">
+        <button data-mode="upsert" aria-pressed="true">Upsert by order id</button>
+        <button data-mode="accumulate" aria-pressed="false">Add to a running total</button>
+      </div>
+      <span class="note" style="margin:0">The apply function decides whether a duplicate is harmless or expensive.</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw acc"></i>changed just now</span>
+    <span><i class="sw ok"></i>captured correctly</span>
+    <span><i class="sw miss"></i>silently lost</span>
+    <span><i class="sw dupe"></i>delivered twice</span>
+    <span><i class="sw n"></i>uncommitted / invisible</span>
+  </div>
+
+  <div class="counters" id="t1-counters"></div>
+  <div class="verdict" id="t1-verdict"><span class="vk">Verdict</span><p class="vt">Press a scenario button. Nothing has happened yet.</p></div>
+  <div class="predict" id="t1-predict" hidden></div>
+
+  <div class="stage three">
+    <div class="col">
+      <div class="col-head"><h3>The database</h3><span class="sub" id="t1-clock">t = 0 s</span></div>
+      <div class="col-body" id="t1-db"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>Write-ahead log</h3><span class="sub">what the database wrote for itself</span></div>
+      <div class="col-body" id="t1-wal"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>The two search indexes</h3><span class="sub">what each consumer believes</span></div>
+      <div class="col-body" id="t1-sinks"></div>
+    </div>
+  </div>
+
+  <div class="narr"><h4>What just happened, and why it matters</h4><ol id="t1-log"></ol></div>
+  <p class="note">The poller here uses the common shape <code>WHERE updated_at &gt; :high_water</code> and sets its high-water mark to the clock at poll time. The variant that instead sets it to <code>max(updated_at)</code> of the rows returned has the same skip, whenever any other row in the batch carries a later stamp.</p>
+</section>
+
+<!-- ================= TAB 2 ================= -->
+<section class="panel" id="p-t2" role="tabpanel" aria-labelledby="tab-t2" hidden>
+  <p class="lede">The log is not a clean list of finished work. It holds records from transactions that are still open and from transactions that will be <b>rolled back</b>, interleaved in the order the statements ran — not the order they committed. This tab steps a decoder through the raw log record by record. <b>v1</b> publishes each row change the moment it decodes it. <b>v2</b> buffers per transaction and publishes only at <code>COMMIT</code>. Watch what reaches the loyalty service.</p>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">Scenarios</span>
+      <button class="btn primary" data-t2-scn="rollback">▶ Ben rolls back</button>
+      <button class="btn" data-t2-scn="interleave">T2 commits before T1</button>
+      <button class="btn" data-t2-scn="delete">Delete an order</button>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Decoder</span>
+      <div class="seg" id="t2-mode">
+        <button data-mode="v1" aria-pressed="false">v1 — emit as decoded</button>
+        <button data-mode="v2" aria-pressed="true">v2 — buffer, emit at commit</button>
+      </div>
+      <span class="ctl-label" style="min-width:0;margin-left:8px">Replica identity</span>
+      <div class="seg" id="t2-ri">
+        <button data-ri="DEFAULT" aria-pressed="true">DEFAULT</button>
+        <button data-ri="FULL" aria-pressed="false">FULL</button>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Playback</span>
+      <button class="btn" id="t2-play">▶ Play</button>
+      <button class="btn" id="t2-back">◀ Step back</button>
+      <button class="btn" id="t2-fwd">Step ▶</button>
+      <button class="btn" id="t2-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="counters" id="t2-counters"></div>
+  <div class="verdict" id="t2-verdict"><span class="vk">Verdict</span><p class="vt">Pick a scenario and step through the log.</p></div>
+  <div class="predict" id="t2-predict" hidden></div>
+
+  <div class="stage three">
+    <div class="col">
+      <div class="col-head"><h3>Raw log records</h3><span class="sub">statement order, all transactions mixed</span></div>
+      <div class="col-body" id="t2-wal"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>Decoder</h3><span class="sub" id="t2-mode-label">v2 · buffering</span></div>
+      <div class="col-body" id="t2-buf"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>Published events</h3><span class="sub">what downstream actually receives</span></div>
+      <div class="col-body" id="t2-out"></div>
+    </div>
+  </div>
+
+  <div class="narr"><h4>What just happened, and why it matters</h4><ol id="t2-log"></ol></div>
+</section>
+
+<!-- ================= TAB 3 ================= -->
+<section class="panel" id="p-t3" role="tabpanel" aria-labelledby="tab-t3" hidden>
+  <p class="lede">The log only goes back a few minutes; the table has years in it. So a new consumer needs a <b>snapshot</b> of what exists now, and then the <b>stream</b> from that moment. The join between those two pieces is where data gets lost. Twelve orders are copied one per second while customers keep writing. Choose a handover protocol and see what reaches the search index.</p>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">Protocol</span>
+      <div class="seg" id="t3-proto">
+        <button data-p="A" aria-pressed="true">A · copy, then stream from now</button>
+        <button data-p="B" aria-pressed="false">B · lock the table, then copy</button>
+        <button data-p="C" aria-pressed="false">C · copy inside a snapshot, stream from its position</button>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Playback</span>
+      <button class="btn primary" id="t3-play">▶ Run</button>
+      <button class="btn" id="t3-back">◀ Step back</button>
+      <button class="btn" id="t3-fwd">Step ▶</button>
+      <button class="btn" id="t3-reset">Reset</button>
+      <label class="switch"><input type="checkbox" id="t3-append"> Consumer appends instead of upserting</label>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Traffic</span>
+      <span class="note" style="margin:0" id="t3-writes"></span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw acc"></i>row being copied</span>
+    <span><i class="sw dupe"></i>a customer wrote here</span>
+    <span><i class="sw miss"></i>writer blocked</span>
+    <span><i class="sw ok"></i>index agrees with the database</span>
+  </div>
+
+  <div class="counters" id="t3-counters"></div>
+  <div class="verdict" id="t3-verdict"><span class="vk">Verdict</span><p class="vt">Choose a protocol and press Run.</p></div>
+  <div class="predict" id="t3-predict" hidden></div>
+
+  <div class="stage two">
+    <div class="col">
+      <div class="col-head"><h3>The snapshot, second by second</h3><span class="sub" id="t3-clock">t = 0 s</span></div>
+      <div class="col-body" id="t3-tl"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>Database vs. search index</h3><span class="sub">disagreements in red</span></div>
+      <div class="col-body" id="t3-cmp"></div>
+    </div>
+  </div>
+
+  <div class="narr"><h4>What just happened, and why it matters</h4><ol id="t3-log"></ol></div>
+</section>
+
+<!-- ================= TAB 4 ================= -->
+<section class="panel" id="p-t4" role="tabpanel" aria-labelledby="tab-t4" hidden>
+  <p class="lede">To promise the reader "nothing will be missing", the database must refuse to delete log the reader has not read yet. That promise is called a <b>replication slot</b>, and it has no expiry date. A reader that stops reading does not get skipped — it holds log forever, and the log lives on the production database's disk. This is how a broken search-index feeder takes down a payments database.</p>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">Scenarios</span>
+      <button class="btn primary" data-t4-scn="stop">▶ Stop the connector</button>
+      <button class="btn" data-t4-scn="quiet">Quiet table, busy database</button>
+      <button class="btn" data-t4-scn="valve">Turn on the safety valve</button>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Connector</span>
+      <button class="btn" id="t4-toggle">Stop connector</button>
+      <label class="switch"><input type="checkbox" id="t4-heartbeat"> Heartbeat every 5 s</label>
+      <label class="switch"><input type="checkbox" id="t4-keepsize"> max_slot_wal_keep_size (invalidate instead of dying)</label>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Traffic</span>
+      <span class="slider"><label for="t4-rate">Database writes</label>
+        <input type="range" id="t4-rate" min="1" max="40" step="1" value="12">
+        <span class="val" id="t4-rate-v">12 MB/s</span></span>
+      <span class="slider"><label for="t4-share">…of which hit the captured table</label>
+        <input type="range" id="t4-share" min="0" max="100" step="5" value="40">
+        <span class="val" id="t4-share-v">40%</span></span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Playback</span>
+      <button class="btn" id="t4-play">▶ Play</button>
+      <button class="btn" id="t4-back">◀ Step back</button>
+      <button class="btn" id="t4-fwd">Step ▶</button>
+      <button class="btn" id="t4-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="counters" id="t4-counters"></div>
+  <div class="verdict" id="t4-verdict"><span class="vk">Verdict</span><p class="vt">The connector is running and the disk is quiet.</p></div>
+  <div class="predict" id="t4-predict" hidden></div>
+
+  <div class="stage two">
+    <div class="col">
+      <div class="col-head"><h3>WAL disk on the primary</h3><span class="sub" id="t4-clock">t = 0 s</span></div>
+      <div class="col-body" id="t4-disk"></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><h3>Slot and connector health</h3><span class="sub">what your dashboard would show</span></div>
+      <div class="col-body" id="t4-health"></div>
+    </div>
+  </div>
+
+  <div class="narr"><h4>What just happened, and why it matters</h4><ol id="t4-log"></ol></div>
+</section>
+
+<footer class="foot">
+  <p>Every number on this page is produced by the simulation running in your browser, not measured against a real database. The behaviours modelled — the high-water-mark skip, commit-order buffering, the snapshot handover, slot retention and heartbeats — follow PostgreSQL and Debezium documentation. Real throughput, real latencies and real WAL volumes depend on your schema and traffic; measure your own.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ helpers ============================ */
+var D = (typeof document !== "undefined") ? document : null;
+function $(id){ return D.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function money(p){ return "₹" + (p/100).toFixed(2); }
+function lsnStr(n){ return "0/" + n.toString(16).toUpperCase(); }
+function html(el, s){ if(el) el.innerHTML = s; }
+
+/* ============================ TAB 1 engine ============================ */
+var T1_SEED = [
+  {id:7,   customer:"asha", status:"PENDING", total:48000},
+  {id:91,  customer:"ben",  status:"PENDING", total:12500},
+  {id:104, customer:"cara", status:"PENDING", total:30000},
+  {id:118, customer:"dev",  status:"PENDING", total:7500},
+  {id:132, customer:"eli",  status:"PENDING", total:22000}
+];
+
+var T1_SCRIPTS = {
+  none:      { label:"nothing yet", until:0, acts:[] },
+  delete:    { label:"Ben's order is deleted", until:12, acts:[
+                 {t:2, commitAt:2, ops:[{table:"orders",op:"d",id:91}]} ]},
+  rapid:     { label:"Three changes in one interval", until:14, acts:[
+                 {t:6, commitAt:6, ops:[{table:"orders",op:"u",id:104,set:{status:"PAID"}}]},
+                 {t:7, commitAt:7, ops:[{table:"orders",op:"u",id:104,set:{status:"REFUNDED"}}]},
+                 {t:8, commitAt:8, ops:[{table:"orders",op:"u",id:104,set:{status:"PAID"}}]} ]},
+  slow:      { label:"The slow transaction", until:14, acts:[
+                 {t:1, commitAt:9, ops:[{table:"orders",op:"u",id:7,set:{status:"PAID"}}]} ]},
+  tie:       { label:"Same-second tie", until:17, acts:[
+                 {t:10, commitAt:10, ops:[{table:"orders",op:"u",id:118,set:{status:"PAID"}}]},
+                 {t:10, commitAt:11, ops:[{table:"orders",op:"u",id:132,set:{status:"PAID"}}]} ]},
+  twotables: { label:"Two tables, one transaction", until:12, acts:[
+                 {t:2, commitAt:2, ops:[
+                   {table:"orders",op:"u",id:7,set:{status:"PAID"}},
+                   {table:"payments",op:"c",id:301,values:{order:7,amount:48000}} ]} ]},
+  restart:   { label:"Restart the connector", until:14, acts:[
+                 {t:1, commitAt:1, ops:[{table:"orders",op:"u",id:7,set:{status:"PAID"}}]},
+                 {t:5, commitAt:5, ops:[{table:"orders",op:"u",id:91,set:{status:"PAID"}}]},
+                 {t:6, kind:"restart"} ]},
+  all:       { label:"The five failures", until:17, acts:[
+                 {t:1,  commitAt:9,  ops:[{table:"orders",op:"u",id:7,set:{status:"PAID"}}]},
+                 {t:2,  commitAt:2,  ops:[{table:"orders",op:"d",id:91}]},
+                 {t:6,  commitAt:6,  ops:[{table:"orders",op:"u",id:104,set:{status:"PAID"}}]},
+                 {t:7,  commitAt:7,  ops:[{table:"orders",op:"u",id:104,set:{status:"REFUNDED"}}]},
+                 {t:8,  commitAt:8,  ops:[{table:"orders",op:"u",id:104,set:{status:"PAID"}}]},
+                 {t:10, commitAt:10, ops:[{table:"orders",op:"u",id:118,set:{status:"PAID"}}]},
+                 {t:10, commitAt:11, ops:[{table:"orders",op:"u",id:132,set:{status:"PAID"}}]} ]}
+};
+
+var T1 = {
+  init: function(o){
+    o = o || {};
+    var rows = {}, pi = {}, li = {};
+    T1_SEED.forEach(function(r){
+      rows[r.id] = {id:r.id, customer:r.customer, status:r.status, total:r.total, updated:0};
+      pi[r.id]   = {id:r.id, customer:r.customer, status:r.status, total:r.total};
+      li[r.id]   = {id:r.id, customer:r.customer, status:r.status, total:r.total};
+    });
+    var scn = o.scenario || "none";
+    return {
+      t:0, scenario:scn, until:T1_SCRIPTS[scn].until, acts:clone(T1_SCRIPTS[scn].acts),
+      pollInterval: o.pollInterval || 5,
+      mode: o.mode || "upsert",
+      rows: rows, payments: [],
+      wal: [], nextLsn:4096, nextXid:90200,
+      open: [],            /* open transactions */
+      changes: [],         /* committed row changes */
+      lastPoll:0, hw:0, pollDeliveries:0,
+      poller:{index:pi, running:0},
+      reader:{index:li, running:0},
+      readerLsn:4096, confirmed:4096, connectorUp:true, duplicates:0,
+      lastChanged:{}, log:[]
+    };
+  },
+
+  done: function(s){ return s.t >= s.until; },
+
+  step: function(s){
+    s = clone(s); s.t += 1; var t = s.t;
+    s.lastChanged = {};
+
+    /* --- scheduled actions --- */
+    s.acts.forEach(function(a){
+      if(a.t !== t) return;
+      if(a.kind === "restart"){
+        var lost = s.readerLsn - s.confirmed;
+        s.readerLsn = s.confirmed;
+        s.log.push({t:t, cls:"l-dupe",
+          text:"The connector process died and restarted. It resumes from the last position it managed to confirm back to the database, which is behind where it actually got to — so everything in between will be delivered a second time.",
+          tech:"resume from confirmed " + lsnStr(s.confirmed) + " (it had read to " + lsnStr(s.readerLsn + lost) + ")"});
+        return;
+      }
+      var xid = ++s.nextXid;
+      var txn = {xid:xid, start:t, commitAt:a.commitAt, ops:clone(a.ops), recLsns:[]};
+      txn.ops.forEach(function(op){
+        var lsn = (s.nextLsn += 24);
+        txn.recLsns.push(lsn);
+        s.wal.push({lsn:lsn, xid:xid, kind:"row", table:op.table, op:op.op, id:op.id, atT:t});
+      });
+      s.open.push(txn);
+      s.log.push({t:t, cls:"", 
+        text:"A transaction opened and changed " + txn.ops.length + " row" + (txn.ops.length>1?"s":"") +
+             ". Nobody outside it can see the change yet — and the rows it touched are stamped updated_at = " + t +
+             ", the time the transaction STARTED.",
+        tech:"xid " + xid + " open at t=" + t + ", will commit at t=" + a.commitAt});
+    });
+
+    /* --- commits --- */
+    var stillOpen = [];
+    s.open.forEach(function(txn){
+      if(txn.commitAt !== t){ stillOpen.push(txn); return; }
+      var lsn = (s.nextLsn += 24);
+      s.wal.push({lsn:lsn, xid:txn.xid, kind:"commit", atT:t});
+      txn.ops.forEach(function(op){
+        var ch = {table:op.table, op:op.op, id:op.id, stamp:txn.start, commitLsn:lsn,
+                  xid:txn.xid, seen:false, delivered:0, before:null, after:null};
+        if(op.table === "orders"){
+          var row = s.rows[op.id];
+          ch.before = row ? clone(row) : null;
+          if(op.op === "d"){ delete s.rows[op.id]; ch.after = null; }
+          else {
+            var nr = row ? clone(row) : {id:op.id, customer:"?", status:"PENDING", total:0};
+            for(var k in op.set) nr[k] = op.set[k];
+            nr.updated = txn.start;
+            s.rows[op.id] = nr; ch.after = clone(nr);
+          }
+        } else {
+          ch.after = clone(op.values); ch.after.id = op.id;
+          s.payments.push(clone(ch.after));
+        }
+        s.changes.push(ch);
+        s.lastChanged[op.table + ":" + op.id] = true;
+      });
+      var slow = (t - txn.start);
+      s.log.push({t:t, cls:"l-ok",
+        text:"Transaction " + txn.xid + " committed" + (slow>1 ? " — " + slow + " seconds after it started, and its rows still carry updated_at = " + txn.start + "." : ". Its changes are now real and visible to everyone."),
+        tech:"COMMIT at " + lsnStr(lsn)});
+    });
+    s.open = stillOpen;
+
+    /* --- the poller --- */
+    if(t - s.lastPoll >= s.pollInterval){
+      s.lastPoll = t;
+      var returned = [];
+      Object.keys(s.rows).forEach(function(id){
+        var r = s.rows[id];
+        if(r.updated > s.hw) returned.push(r);
+      });
+      returned.sort(function(a,b){ return a.updated - b.updated; });
+      returned.forEach(function(r){
+        s.pollDeliveries++;
+        s.poller.index[r.id] = {id:r.id, customer:r.customer, status:r.status, total:r.total};
+        if(s.mode === "accumulate" && r.status === "PAID") s.poller.running += r.total;
+        for(var i = s.changes.length - 1; i >= 0; i--){
+          var c = s.changes[i];
+          if(c.table === "orders" && c.id === r.id){ if(!c.seen) c.seen = true; break; }
+        }
+      });
+      var oldHw = s.hw; s.hw = t;
+      if(returned.length){
+        s.log.push({t:t, cls:"", text:"The poller ran and found " + returned.length + " row" +
+          (returned.length>1?"s":"") + " stamped later than " + oldHw + ". It copied " +
+          (returned.length>1?"them":"it") + " into the search index and moved its high-water mark to " + t + ".",
+          tech:"SELECT * FROM orders WHERE updated_at > " + oldHw + "  →  " + returned.length + " row(s); high_water := " + t});
+      } else {
+        s.log.push({t:t, cls:"", text:"The poller ran, found nothing new, and moved its high-water mark to " + t + " anyway. That last part is the dangerous half: the mark only ever goes forward.",
+          tech:"SELECT * FROM orders WHERE updated_at > " + oldHw + "  →  0 rows; high_water := " + t});
+      }
+      /* diagnose losses that have just become permanent */
+      s.changes.forEach(function(c){
+        if(c.table !== "orders" || c.seen || c.diagnosed) return;
+        if(c.op === "d"){
+          c.diagnosed = true;
+          s.log.push({t:t, cls:"l-miss", text:"Order " + c.id + " was deleted, and the poller's query can only return rows that exist. There is no row to find, so no poll will ever mention it. The search index keeps order " + c.id + " forever.",
+            tech:"failure: deletes are invisible to a query-based feed"});
+        } else if(c.stamp <= s.hw && !s.open.some(function(o){return o.xid===c.xid;})){
+          var later = s.changes.some(function(o){ return o.table==="orders" && o.id===c.id && o.stamp > c.stamp; });
+          c.diagnosed = true;
+          if(later){
+            s.log.push({t:t, cls:"l-miss", text:"Order " + c.id + " changed again before the poller next looked, so the poller only ever saw the final value. The intermediate state is gone — and anything that reacts to the transition rather than the value is blind.",
+              tech:"failure: intermediate states collapse inside the poll interval"});
+          } else {
+            s.log.push({t:t, cls:"l-miss", text:"Order " + c.id + " is stamped updated_at = " + c.stamp + " but only became visible when its transaction committed at t=" + Math.max(c.stamp, s.t) + ". By then the high-water mark had already passed " + c.stamp + ". This change will never be returned by any future poll.",
+              tech:"failure: high-water mark skipped a late-committing transaction (stamp " + c.stamp + " ≤ high_water " + s.hw + ")"});
+          }
+        }
+      });
+    }
+
+    /* --- the log reader --- */
+    if(s.connectorUp){
+      var commits = s.wal.filter(function(w){ return w.kind === "commit" && w.lsn > s.readerLsn; })
+                         .sort(function(a,b){ return a.lsn - b.lsn; });
+      commits.forEach(function(cm){
+        var mine = s.changes.filter(function(c){ return c.commitLsn === cm.lsn; });
+        mine.forEach(function(c){
+          c.delivered++;
+          if(c.delivered > 1) s.duplicates++;
+          if(c.table === "orders"){
+            if(c.op === "d") delete s.reader.index[c.id];
+            else s.reader.index[c.id] = {id:c.after.id, customer:c.after.customer, status:c.after.status, total:c.after.total};
+            if(s.mode === "accumulate" && c.after && c.after.status === "PAID") s.reader.running += c.after.total;
+          }
+        });
+        s.readerLsn = cm.lsn;
+        if(mine.length){
+          var dup = mine.some(function(c){ return c.delivered > 1; });
+          var tables = {}; mine.forEach(function(c){ tables[c.table] = 1; });
+          s.log.push({t:t, cls: dup ? "l-dupe" : "l-ok",
+            text: dup
+              ? "The log reader delivered " + mine.length + " event" + (mine.length>1?"s":"") + " it had already delivered once before. A duplicate is unavoidable here; whether it is harmless depends entirely on what the consumer does with it."
+              : "The log reader delivered " + mine.length + " event" + (mine.length>1?"s":"") +
+                " from transaction " + mine[0].xid + (Object.keys(tables).length>1
+                  ? ", covering both tables, adjacent and stamped with the same commit position — so a consumer can still see they were one atomic change."
+                  : ", stamped with the commit position rather than the write time."),
+            tech: "read commit " + lsnStr(cm.lsn) + " → " + mine.map(function(c){ return c.op + " " + c.table + ":" + c.id; }).join(", ")});
+        }
+      });
+      if(t % 4 === 0) s.confirmed = s.readerLsn;
+    }
+    return s;
+  },
+
+  /* derived facts for rendering */
+  facts: function(s){
+    var orderChanges = s.changes.filter(function(c){ return c.table === "orders"; });
+    var unseen = orderChanges.filter(function(c){ return !c.seen; });
+    var dbIds = Object.keys(s.rows);
+    function disagree(idx){
+      var n = 0, ids = {};
+      dbIds.forEach(function(id){ ids[id] = 1; });
+      Object.keys(idx).forEach(function(id){ ids[id] = 1; });
+      Object.keys(ids).forEach(function(id){
+        var a = s.rows[id], b = idx[id];
+        if(!a && !b) return;
+        if(!a || !b){ n++; return; }
+        if(a.status !== b.status || a.total !== b.total) n++;
+      });
+      return n;
+    }
+    return {
+      committed: orderChanges.length,
+      unseen: unseen.length,
+      pollWrong: disagree(s.poller.index),
+      logWrong: disagree(s.reader.index),
+      dbCount: dbIds.length,
+      pollCount: Object.keys(s.poller.index).length,
+      logCount: Object.keys(s.reader.index).length
+    };
+  }
+};
+
+/* ============================ TAB 2 engine ============================ */
+var T2_ROWS = {7:{id:7,customer:"asha",status:"PENDING",total:48000},
+               91:{id:91,customer:"ben",status:"PENDING",total:12500},
+               104:{id:104,customer:"cara",status:"PENDING",total:30000}};
+
+var T2_SCRIPTS = {
+  rollback: { label:"Ben rolls back", recs:[
+    {lsn:0xB374D810, xid:90211, kind:"row", table:"orders",  op:"u", id:7,  from:"PENDING", to:"PAID"},
+    {lsn:0xB374D830, xid:90212, kind:"row", table:"orders",  op:"u", id:91, from:"PENDING", to:"CANCELLED"},
+    {lsn:0xB374D850, xid:90212, kind:"row", table:"refunds", op:"c", id:501, amount:12500, order:91},
+    {lsn:0xB374D870, xid:90212, kind:"abort"},
+    {lsn:0xB374D890, xid:90211, kind:"row", table:"payments",op:"c", id:301, amount:48000, order:7},
+    {lsn:0xB374D8B0, xid:90211, kind:"commit"} ]},
+  interleave:{ label:"T2 commits before T1", recs:[
+    {lsn:0xB374E810, xid:90221, kind:"row", table:"orders",  op:"u", id:7,   from:"PENDING", to:"PAID"},
+    {lsn:0xB374E830, xid:90222, kind:"row", table:"orders",  op:"u", id:104, from:"PENDING", to:"PAID"},
+    {lsn:0xB374E850, xid:90222, kind:"commit"},
+    {lsn:0xB374E870, xid:90221, kind:"row", table:"payments",op:"c", id:302, amount:48000, order:7},
+    {lsn:0xB374E890, xid:90221, kind:"commit"} ]},
+  delete:   { label:"Delete an order", recs:[
+    {lsn:0xB374F810, xid:90231, kind:"row", table:"orders", op:"d", id:91},
+    {lsn:0xB374F830, xid:90231, kind:"commit"} ]}
+};
+
+var T2 = {
+  init: function(o){
+    o = o || {};
+    var scn = o.scenario || "rollback";
+    return { i:-1, scenario:scn, mode:o.mode || "v2", ri:o.ri || "DEFAULT",
+             recs:clone(T2_SCRIPTS[scn].recs), buf:{}, out:[], log:[], ghosts:0 };
+  },
+  done: function(s){ return s.i >= s.recs.length - 1; },
+
+  decode: function(s, r){
+    var ev = {xid:r.xid, table:r.table, op:r.op, id:r.id, lsn:r.lsn, ghost:false};
+    if(r.table === "orders"){
+      var row = T2_ROWS[r.id];
+      if(r.op === "d"){
+        ev.after = null;
+        ev.before = (s.ri === "FULL")
+          ? {id:row.id, customer:row.customer, status:row.status, total:row.total}
+          : {id:row.id, customer:null, status:null, total:null};
+      } else {
+        ev.before = (s.ri === "FULL")
+          ? {id:row.id, customer:row.customer, status:r.from, total:row.total}
+          : {id:row.id, customer:null, status:null, total:null};
+        ev.after = {id:row.id, customer:row.customer, status:r.to, total:row.total};
+      }
+    } else {
+      ev.before = null;
+      ev.after = {id:r.id, order:r.order, amount:r.amount};
+    }
+    return ev;
+  },
+
+  step: function(s){
+    s = clone(s); s.i += 1;
+    var r = s.recs[s.i];
+    if(!r) return s;
+    if(r.kind === "row"){
+      var ev = T2.decode(s, r);
+      if(s.mode === "v1"){
+        ev.emittedAt = r.lsn; s.out.push(ev);
+        s.log.push({t:s.i, cls:"", text:"Decoded a row change and published it straight away. Nothing yet says whether transaction " + r.xid + " will commit or roll back.",
+          tech:lsnStr(r.lsn) + "  " + r.op + " " + r.table + ":" + r.id + "  → published"});
+      } else {
+        if(!s.buf[r.xid]) s.buf[r.xid] = [];
+        s.buf[r.xid].push(ev);
+        s.log.push({t:s.i, cls:"", text:"Decoded a row change and held it in a per-transaction buffer. It will be published only if transaction " + r.xid + " commits.",
+          tech:lsnStr(r.lsn) + "  " + r.op + " " + r.table + ":" + r.id + "  → buffer[" + r.xid + "] (" + s.buf[r.xid].length + ")"});
+      }
+    } else if(r.kind === "commit"){
+      if(s.mode === "v2"){
+        var pend = s.buf[r.xid] || [];
+        pend.forEach(function(e){ e.emittedAt = r.lsn; s.out.push(e); });
+        delete s.buf[r.xid];
+        s.log.push({t:s.i, cls:"l-ok", text:"Transaction " + r.xid + " committed, so its " + pend.length + " buffered event" + (pend.length===1?"":"s") + " went out together, in the order they happened, stamped with the commit position.",
+          tech:"COMMIT " + lsnStr(r.lsn) + "  → flush " + pend.length + " event(s)"});
+      } else {
+        s.log.push({t:s.i, cls:"", text:"Transaction " + r.xid + " committed. v1 published its changes earlier, so nothing happens here — which is exactly why v1 cannot tell a commit from an abort.",
+          tech:"COMMIT " + lsnStr(r.lsn) + "  → no action"});
+      }
+    } else if(r.kind === "abort"){
+      if(s.mode === "v2"){
+        var n = (s.buf[r.xid] || []).length;
+        delete s.buf[r.xid];
+        s.log.push({t:s.i, cls:"l-ok", text:"Transaction " + r.xid + " rolled back. The decoder threw away its buffer, so the " + n + " change" + (n===1?"":"s") + " it made never reached anybody. That is the correct outcome: in the database, they never happened.",
+          tech:"ABORT " + lsnStr(r.lsn) + "  → discard buffer[" + r.xid + "] (" + n + " event(s))"});
+      } else {
+        var g = 0;
+        s.out.forEach(function(e){ if(e.xid === r.xid && !e.ghost){ e.ghost = true; g++; } });
+        s.ghosts += g;
+        s.log.push({t:s.i, cls:"l-ghost", text:"Transaction " + r.xid + " rolled back — but v1 already published " + g + " event" + (g===1?"":"s") + " from it. Downstream now believes in a change the database never made, and there is no record in the log that could ever retract it.",
+          tech:"ABORT " + lsnStr(r.lsn) + "  → " + g + " already-published event(s) are now phantoms"});
+      }
+    }
+    return s;
+  },
+
+  facts: function(s){
+    var real = s.out.filter(function(e){ return !e.ghost; }).length;
+    /* a transaction is "fragmented" if its events are not contiguous in the output */
+    var frag = 0, seenOrder = s.out.map(function(e){ return e.xid; });
+    var groups = {};
+    seenOrder.forEach(function(x, i){
+      if(!groups[x]) groups[x] = [];
+      groups[x].push(i);
+    });
+    Object.keys(groups).forEach(function(x){
+      var arr = groups[x];
+      if(arr.length > 1 && (arr[arr.length-1] - arr[0] + 1) !== arr.length) frag++;
+    });
+    var incomplete = 0;
+    if(s.ri === "DEFAULT"){
+      s.out.forEach(function(e){
+        if(e.before && e.before.status === null) incomplete++;
+      });
+    }
+    return {published:s.out.length, real:real, ghosts:s.ghosts, frag:frag, incomplete:incomplete,
+            buffered:Object.keys(s.buf).reduce(function(n,k){ return n + s.buf[k].length; }, 0)};
+  }
+};
+
+/* ============================ TAB 3 engine ============================ */
+var T3_NAMES = ["asha","ben","cara","dev","eli","fay","gita","hari","ila","jai","kiran","lata"];
+var T3_WRITES = [
+  {t:3,  id:2,  to:"PAID"},
+  {t:5,  id:9,  to:"PAID"},
+  {t:8,  id:4,  to:"CANCELLED"},
+  {t:10, id:12, to:"PAID"}
+];
+var T3_N = 12, T3_SNAP_END = 12, T3_END = 18;
+
+var T3 = {
+  init: function(o){
+    o = o || {};
+    var db = {}, snapAsOf = {};
+    for(var i=1;i<=T3_N;i++){
+      db[i] = {id:i, name:T3_NAMES[i-1], status:"PENDING"};
+      snapAsOf[i] = "PENDING";
+    }
+    return { t:0, proto:o.proto || "A", append:!!o.append,
+             db:db, index:{}, snapAsOf:snapAsOf,
+             blockedQueue:[], blockedSeconds:0, streamQueue:[],
+             lost:[], dupKeys:{}, appended:0, cells:[], log:[] };
+  },
+  done: function(s){ return s.t >= T3_END; },
+
+  step: function(s){
+    s = clone(s); s.t += 1; var t = s.t, cell = {t:t, kind:"idle", note:""};
+
+    /* --- customer writes --- */
+    T3_WRITES.forEach(function(w){
+      if(w.t !== t) return;
+      if(s.proto === "B"){
+        s.blockedQueue.push({id:w.id, to:w.to, since:t});
+        cell.kind = "blocked"; cell.note = "⊘" + w.id;
+        s.log.push({t:t, cls:"l-miss", text:"A customer tried to change order " + w.id + " and could not: the whole table is locked for the copy. They are waiting.",
+          tech:"protocol B: write on id=" + w.id + " blocked"});
+      } else {
+        s.db[w.id].status = w.to;
+        cell.kind = "write"; cell.note = "✎" + w.id;
+        s.streamQueue.push({id:w.id, to:w.to, at:t});
+        s.log.push({t:t, cls:"", text:"A customer changed order " + w.id + " to " + w.to + " while the copy was still running. Whether the search index ever hears about it is the entire question.",
+          tech:"write id=" + w.id + " → " + w.to + " at t=" + t});
+      }
+    });
+
+    /* --- the snapshot cursor --- */
+    if(t <= T3_SNAP_END){
+      var id = t;
+      var value;
+      if(s.proto === "C"){ value = s.snapAsOf[id]; }
+      else { value = s.db[id].status; }
+      if(cell.kind === "idle"){ cell.kind = "read"; cell.note = "#" + id; }
+      else { cell.note += " #" + id; }
+      if(s.index[id] !== undefined && s.append){ s.appended++; }
+      if(s.index[id] !== undefined) s.dupKeys[id] = (s.dupKeys[id]||1) + 1;
+      s.index[id] = value;
+      var extra = "";
+      if(s.proto === "C") extra = " It reads the value as it was when the copy began, not the value now — that is what a repeatable-read snapshot means.";
+      s.log.push({t:t, cls:"", text:"Copied order " + id + " into the search index as " + value + "." + extra,
+        tech:"snapshot read id=" + id + " → " + value + (s.proto==="C" ? "  (as of the snapshot's position)" : "")});
+      if(t === T3_SNAP_END){
+        if(s.proto === "A"){
+          s.log.push({t:t, cls:"l-miss", text:"The copy is finished. Streaming will now start from the log's CURRENT position — everything written during the last twelve seconds is behind that point and will never be sent.",
+            tech:"protocol A: stream starts at the current position, not the copy's position"});
+        } else if(s.proto === "B"){
+          s.log.push({t:t, cls:"l-ok", text:"The copy is finished and the lock is released. The customers who were waiting can finally write.",
+            tech:"protocol B: table unlocked at t=" + t});
+        } else {
+          s.log.push({t:t, cls:"l-ok", text:"The copy is finished. Streaming starts from the position the copy was taken at, so the four changes that happened during the copy are all still ahead of it.",
+            tech:"protocol C: stream starts at the snapshot's own position"});
+        }
+      }
+    }
+
+    /* --- release blocked writers (B) --- */
+    if(s.proto === "B" && t === T3_SNAP_END + 1 && s.blockedQueue.length){
+      s.blockedQueue.forEach(function(w){
+        s.blockedSeconds += (t - w.since);
+        s.db[w.id].status = w.to;
+        s.streamQueue.push({id:w.id, to:w.to, at:t});
+      });
+      s.log.push({t:t, cls:"", text:s.blockedQueue.length + " blocked writes went through at once, and they will all be streamed. Nothing was lost — the customers just waited " + s.blockedSeconds + " seconds between them.",
+        tech:"protocol B: " + s.blockedQueue.length + " queued writes applied, " + s.blockedSeconds + " writer-seconds blocked"});
+      s.blockedQueue = [];
+    }
+
+    /* --- streaming phase --- */
+    if(t > T3_SNAP_END){
+      var due = s.streamQueue.filter(function(w){ return !w.sent; });
+      var one = due[0];
+      if(one){
+        one.sent = true;
+        var willSend = true;
+        if(s.proto === "A" && one.at <= T3_SNAP_END && one.at <= one.id){
+          /* the write happened before the cursor reached that row: the copy itself picked it up */
+          willSend = false;
+          s.log.push({t:t, cls:"", text:"The change to order " + one.id + " happened before the copy reached that row, so the copy itself read the new value. Nothing was lost here — by luck, not by design.",
+            tech:"protocol A: write at t=" + one.at + " on id=" + one.id + " (read at t=" + one.id + ") — absorbed by the cursor"});
+        } else if(s.proto === "A"){
+          willSend = false;
+          s.lost.push(one.id);
+          s.log.push({t:t, cls:"l-miss", text:"The change to order " + one.id + " happened AFTER the copy had already read that row, and BEFORE streaming started. It is in neither piece. The search index will say " + s.index[one.id] + " for this order forever, and no error was raised anywhere.",
+            tech:"protocol A: write at t=" + one.at + " on id=" + one.id + " (read at t=" + one.id + ") — silently lost"});
+        }
+        if(willSend){
+          if(s.index[one.id] !== undefined){
+            s.dupKeys[one.id] = (s.dupKeys[one.id]||1) + 1;
+            if(s.append) s.appended++;
+          }
+          var wasDup = s.index[one.id] !== undefined && s.index[one.id] !== one.to;
+          s.index[one.id] = one.to;
+          s.log.push({t:t, cls:"l-ok", text:"The stream delivered the change to order " + one.id + " (→ " + one.to + ")." +
+            (wasDup ? " This key has now been written twice — once by the copy, once by the stream. Harmless, because the consumer overwrites by order id." : ""),
+            tech:"stream event id=" + one.id + " → " + one.to + (wasDup ? "  (second write to this key)" : "")});
+        }
+      }
+    }
+    /* recompute A's lost set for cells */
+    s.cells.push(cell);
+    return s;
+  },
+
+  facts: function(s){
+    var wrong = 0;
+    Object.keys(s.db).forEach(function(id){
+      if(s.index[id] === undefined) wrong++;
+      else if(s.index[id] !== s.db[id].status) wrong++;
+    });
+    var dup = 0;
+    Object.keys(s.dupKeys).forEach(function(k){ if(s.dupKeys[k] > 1) dup++; });
+    return { dbCount:Object.keys(s.db).length,
+             idxCount: s.append ? Object.keys(s.index).length + s.appended : Object.keys(s.index).length,
+             wrong:wrong, blocked:s.blockedSeconds, dup:dup, appended:s.appended };
+  }
+};
+
+/* ============================ TAB 4 engine ============================ */
+var T4_CAP = 400, T4_KEEP = 250;
+
+var T4 = {
+  init: function(o){
+    o = o || {};
+    return { t:0, wal:0, confirmed:0, up:(o.up === undefined ? true : o.up),
+             heartbeat:!!o.heartbeat, keepsize:!!o.keepsize,
+             rate:(o.rate === undefined ? 12 : o.rate),
+             share:(o.share === undefined ? 40 : o.share),
+             lastHb:0, dbDown:false, slotInvalid:false, acts:clone(o.acts || []),
+             peak:0, log:[] };
+  },
+  done: function(s){ return s.dbDown || s.t >= 60; },
+
+  step: function(s){
+    s = clone(s); s.t += 1; var t = s.t;
+    s.acts.forEach(function(a){
+      if(a.t !== t) return;
+      if(a.set === "down"){ s.up = false;
+        s.log.push({t:t, cls:"l-miss", text:"The connector process died. Nobody was paged, because the connector is not what anybody monitors.",
+          tech:"slot active = false"}); }
+      if(a.set === "up"){ s.up = true;
+        s.log.push({t:t, cls:"l-ok", text:"The connector came back and started consuming again.", tech:"slot active = true"}); }
+    });
+    if(s.dbDown) return s;
+
+    s.wal += s.rate;
+    var captured = s.rate * (s.share / 100);
+    /* an invalidated slot retains nothing at all any more — that is the whole point of it */
+    if(s.slotInvalid) s.confirmed = s.wal;
+    if(s.up && !s.slotInvalid){
+      if(captured > 0){
+        s.confirmed = s.wal;
+      } else if(s.heartbeat && (t - s.lastHb) >= 5){
+        s.confirmed = s.wal; s.lastHb = t;
+        s.log.push({t:t, cls:"l-ok", text:"A heartbeat fired. It carries no data — its only job is to give the connector an occasion to tell the database how far it has read, so the database can free the log behind it.",
+          tech:"heartbeat → confirmed_flush_lsn advanced to current"});
+      }
+    }
+    var retained = s.wal - s.confirmed;
+    if(retained > s.peak) s.peak = retained;
+
+    if(s.keepsize && !s.slotInvalid && retained > T4_KEEP){
+      s.slotInvalid = true; s.confirmed = s.wal;
+      s.log.push({t:t, cls:"l-dupe", text:"Retention hit the ceiling you configured, so the database threw the slot away instead of filling its disk. The database is fine. The connector can never resume from its old position — when it comes back it must copy the whole table again.",
+        tech:"max_slot_wal_keep_size exceeded → slot invalidated; WAL freed"});
+      retained = 0;
+    }
+    if(retained >= T4_CAP){
+      s.dbDown = true;
+      s.log.push({t:t, cls:"l-miss", text:"The write-ahead log filled the disk and the database stopped accepting writes. Meera's shop is offline. The cause is a search-index feeder that stopped reading — a component with no business criticality at all, holding a promise the database could not break.",
+        tech:"pg_wal full at " + T4_CAP + " MB → source database down"});
+    } else if(retained > T4_CAP * 0.7 && !s.warned){
+      s.warned = true;
+      s.log.push({t:t, cls:"l-dupe", text:"Retained log has passed 70% of the disk. At the current write rate there are about " + Math.max(1, Math.round((T4_CAP - retained) / Math.max(1, s.rate))) + " seconds left before the database stops.",
+        tech:"retained " + Math.round(retained) + " MB of " + T4_CAP + " MB"});
+    }
+    return s;
+  },
+
+  facts: function(s){
+    var retained = Math.max(0, s.wal - s.confirmed);
+    return { retained:retained, pct:Math.min(100, retained / T4_CAP * 100),
+             lagS: s.rate > 0 ? retained / s.rate : 0,
+             etaS: (s.up && s.share > 0) || s.dbDown ? null : Math.max(0, Math.round((T4_CAP - retained) / Math.max(1, s.rate))) };
+  }
+};
+
+/* ============================ sim harness ============================ */
+function makeSim(engine, renderFn, speed){
+  var sim = {
+    engine:engine, state:engine.init({}), hist:[], timer:null, speed:speed || 420,
+    render:function(){ if(D) renderFn(sim); },
+    fwd:function(){
+      if(engine.done(sim.state)){ sim.stop(); sim.render(); return false; }
+      sim.hist.push(clone(sim.state));
+      if(sim.hist.length > 300) sim.hist.shift();
+      sim.state = engine.step(sim.state);
+      sim.render();
+      return true;
+    },
+    back:function(){ sim.stop(); if(!sim.hist.length) return; sim.state = sim.hist.pop(); sim.render(); },
+    reset:function(opts){ sim.stop(); sim.state = engine.init(opts || {}); sim.hist = []; sim.render(); },
+    play:function(done){
+      sim.stop();
+      if(typeof setInterval === "undefined") return;
+      sim.timer = setInterval(function(){
+        if(!sim.fwd()){ sim.stop(); if(done) done(); }
+      }, sim.speed);
+    },
+    runAll:function(limit){ var n = 0; while(sim.fwd() && n++ < (limit||400)){} },
+    stop:function(){ if(sim.timer && typeof clearInterval !== "undefined"){ clearInterval(sim.timer); } sim.timer = null; }
+  };
+  return sim;
+}
+
+/* ============================ predictions ============================ */
+var PREDICTS = {
+  t1:{
+    all:{q:"Five separate things are about to go wrong in this pipeline. How many of them raise an error, throw an exception, or move a metric that the on-call engineer would notice?",
+      opts:["All five — that's what monitoring is for","About half of them","None of them"], correct:2,
+      why:"None. Every failure you just watched is a query returning fewer rows than you hoped, which is not an error. This is the whole reason the pattern is dangerous: the pipeline reports perfect health while the search index, the warehouse and the loyalty service quietly diverge from the truth."},
+    delete:{q:"Ben's row is deleted from the orders table. What does the poller's next poll return for it?",
+      opts:["A row marked as deleted","Nothing at all — so the index keeps the order forever","An error, because the row vanished"], correct:1,
+      why:"A poll is a SELECT, and a SELECT can only return rows that exist. Absence is not a value you can query for. This is the same law that makes tombstones necessary in replicated stores and in LSM trees: gone has to be represented by something, or it cannot travel."},
+    rapid:{q:"Order 104 changes three times inside one poll interval: PAID, then REFUNDED, then PAID again. How many of the three does the poller see?",
+      opts:["All three, in order","Only the last one","Only the first one"], correct:1,
+      why:"A poll returns the row's CURRENT state, so all it can ever report is the net effect. Anything that watches for a transition rather than a value — a fraud rule looking for paid-refunded-paid, a loyalty service waiting for PAID — is blind. You can rebuild state from a list of changes; you can never rebuild the changes from a list of states."},
+    slow:{q:"A transaction opens at t=1, stamps its row with updated_at = 1, and commits at t=9. The poller runs at t=5 and again at t=10. Which poll picks up the change?",
+      opts:["The poll at t=10, once the row is visible","The poll at t=5","Neither — the change is skipped, permanently"], correct:2,
+      why:"At t=5 the row is still invisible (uncommitted), so the poll returns nothing and advances its high-water mark to 5 anyway. At t=9 the row becomes visible carrying updated_at = 1. At t=10 the poller asks for anything stamped later than 5, and 1 is not later than 5. The mark only moves forward, so no future poll will ever return it. The general rule: the application stamps rows at WRITE time, the database makes them visible at COMMIT time, and a cursor over write-time values skips every transaction whose commit lands after the cursor passed its stamp."},
+    tie:{q:"Two transactions both stamp their rows updated_at = 10. One commits at t=10, the other at t=11. The poller polls at t=10 and t=15. What happens?",
+      opts:["Both are picked up at t=15","The first is picked up, the second is skipped forever","Both are picked up twice"], correct:1,
+      why:"The poll at t=10 returns the first row and sets the high-water mark to 10. The second row carries the same stamp, 10, which is not greater than 10, so it is never returned. The polling designer has to choose between a strict > that loses rows at ties and a >= that re-delivers rows forever — and the correct choice is >= plus idempotent consumers, which is the answer the log-based design reaches for better reasons."},
+    twotables:{q:"One transaction changes the orders table and inserts into the payments table. What does the log reader deliver?",
+      opts:["Two events, adjacent, carrying the same commit position and transaction id","One combined event containing both changes","Two events at unrelated times, like the poller"], correct:0,
+      why:"The log records that these were one transaction, so the reader can deliver both events together, stamped with the same commit position and transaction id. That is information the poller could never have — it sees two unrelated rows in two unrelated tables at two unrelated times. Keep the caveat in mind though: this adjacency survives only as far as the broker. Once you fan the two tables out to two topics and twelve partitions for throughput, the atomicity is gone again unless the consumer explicitly rebuilds it."},
+    restart:{q:"The connector emits an event, and is killed one second before it tells the database how far it had read. It restarts and resumes from its last confirmed position. What does the running-total consumer report?",
+      opts:["Exactly the right revenue","Revenue that is too high","Revenue that is too low"], correct:1,
+      why:"The event is delivered a second time, and a running total adds it twice. The duplicate itself is unavoidable — emitting and confirming are two acts with a crash between them, which is the dual-write problem living inside the connector. Moving the confirm before the emit would convert duplicates into losses, which is worse. So the pipeline is at-least-once by design, and the consumer's apply function decides the cost: an upsert keyed by order id is unharmed, a += is wrong."}
+  },
+  t2:{
+    rollback:{q:"Decoder v1 publishes each row change the moment it decodes it. Ben's transaction changes two rows and then rolls back. What reaches the loyalty service?",
+      opts:["Nothing — the abort record cancels them","A cancellation and a refund that do not exist, permanently","An error the connector retries"], correct:1,
+      why:"v1 already sent them. There is no un-send, and no record in the log that could retract them: an abort simply means those changes are dead, and the log has no notion of announcing that to someone who should not have been told in the first place. Note the direction of the damage — CDC's other failures lose data, this one invents it, and invented data is harder to find because reconciliation naturally looks for what is missing."},
+    interleave:{q:"Two transactions run at once. T2 starts second and commits FIRST. With decoder v2, in what order do the events come out?",
+      opts:["T1's events first — it started first","T2's event first, then T1's two events together","Interleaved, in the order the statements ran"], correct:1,
+      why:"v2 emits at commit, so the ordering it produces is commit order, not statement order and not start order. T2 committed first, so its event goes first; T1's two events then go out together, contiguous. That contiguity is the property the poller could never offer and that v1 destroys."},
+    delete:{q:"PostgreSQL with default settings. An order is deleted. What is in the delete event's before-image?",
+      opts:["The complete previous row","Only the primary key; every other column is null","Nothing — deletes carry no before-image"], correct:1,
+      why:"REPLICA IDENTITY DEFAULT puts only the primary key columns in the log's old-tuple record, because that is all a logical replica needs to find the row. Everything else arrives as null — and null here means 'not captured', not 'was null'. The two are indistinguishable in the payload, so a consumer that writes the before-image into an audit table writes plausible-looking rubbish. Switching to REPLICA IDENTITY FULL fixes it and costs you the whole previous row in WAL volume on every update and delete."}
+  },
+  t3:{
+    A:{q:"The copy runs for twelve seconds while customers keep writing, and then streaming starts from the log's current position. What reaches the search index?",
+      opts:["Everything — the copy and the stream cover the whole timeline between them","Everything written after the copy, plus a gap: changes to rows the cursor had already passed","Nothing, until the next full copy"], correct:1,
+      why:"A change to a row the cursor has already read is in neither piece: the copy read the old value, and the stream starts after the change. The size of the gap is exactly the duration of the copy — which on a 2 TB table is hours. Nothing crashes; you simply have rows that are permanently wrong. This is the same protocol-design data loss as the naive copy-then-flip in the partitioning lab, and the cure is the same: the copy and the stream must be joined at a single agreed position."},
+    B:{q:"Take a table lock so nothing can change during the copy. Is the result correct, and what does it cost?",
+      opts:["Correct, and free — nothing was lost","Correct, but nobody could write for the entire duration of the copy","Incorrect — locks don't stop the gap"], correct:1,
+      why:"It is genuinely correct: no writes happen during the copy, so there is no gap. It is also an outage for the length of the copy, which is why Debezium's MySQL connector has a snapshot.locking.mode setting at all — that option exists as the fossil record of this trade. Twelve seconds here; hours on a real table."},
+    C:{q:"Copy inside a repeatable-read transaction, remembering the log position it started at, then stream from exactly that position. What happens to a row that changed during the copy?",
+      opts:["It is lost, like protocol A","It arrives twice: the old value from the copy, then the change from the stream","It blocks the copy until the write finishes"], correct:1,
+      why:"Twice, and that is the correct design. The copy sees the world as of its starting position (MVCC, so it blocks nobody), and the stream carries everything after that position — so the two pieces meet exactly, with a deliberate overlap rather than a gap. The overlap is harmless only because events are keyed by primary key and applied as upserts, so the later one wins. Turn on the append toggle and watch the same protocol produce a corrupt index: correctness here is a property of the pair, not of the connector alone."}
+  },
+  t4:{
+    stop:{q:"The connector dies. The database keeps taking 12 MB/s of writes. What breaks first?",
+      opts:["The search index goes stale, and the connector catches up when it returns","The write-ahead log fills the disk and the source database stops accepting writes","The database notices the dead consumer and drops the slot"], correct:1,
+      why:"The slot is an unconditional promise to keep log until the consumer confirms it, and the server cannot tell a consumer that will be back in thirty seconds from one whose deployment was deleted in March. So it keeps retaining, and retention is bounded only by disk. This is CDC's most dangerous property: a broken consumer can take down the source. Alarm on retained bytes and on slot active=false — not on connector health."},
+    quiet:{q:"The connector is running, connected, and perfectly healthy — but the one table it captures gets almost no writes, while the rest of the database is very busy. What happens to the WAL disk?",
+      opts:["Nothing — the connector is consuming normally","It fills, exactly as if the connector were dead","It fills, but more slowly, and safely"], correct:1,
+      why:"The connector confirms its position when it emits something. If every record it decodes belongs to a table it was told to ignore, it emits nothing, so it confirms nothing, so the retained gap grows at the rate of the WHOLE database's traffic — held open by a connector that is working perfectly and showing green on every dashboard. This is what heartbeats are for: a periodic event carrying no data, whose only job is to give the connector an occasion to advance its confirmed position. Turn the heartbeat on and watch the gauge drain."},
+    valve:{q:"You set max_slot_wal_keep_size and the connector still stays down. What does the database do when retention hits the ceiling?",
+      opts:["Keeps the promise and fills the disk anyway","Throws the slot away — the database survives, and the connector must copy the whole table again","Pauses writes until the connector returns"], correct:1,
+      why:"It invalidates the slot. That is a deliberate, explicit trade: you have told the database that your own availability matters more than this consumer's ability to resume. Losing the slot means a full re-snapshot, which is a bad day. An outage on the payments database is a much worse one. Set the ceiling."}
+  }
+};
+
+/* ============================ shared render bits ============================ */
+function metric(k, v, cls){
+  return '<div class="metric ' + (cls||"") + '"><span class="k">' + esc(k) + '</span><span class="v">' + esc(String(v)) + '</span></div>';
+}
+function verdict(el, cls, txt){
+  html(el, '<span class="vk">Verdict</span><p class="vt">' + txt + '</p>');
+  if(el) el.className = "verdict " + (cls||"");
+}
+function narrate(el, log){
+  if(!el) return;
+  var items = log.slice(-40).map(function(e){
+    return '<li class="' + (e.cls||"") + '"><span class="tstamp">t=' + e.t + '</span>' + esc(e.text) +
+           (e.tech ? '<span class="tech">' + esc(e.tech) + '</span>' : "") + '</li>';
+  }).join("");
+  el.innerHTML = items || '<li class="muted">Nothing has happened yet.</li>';
+  el.scrollTop = el.scrollHeight;
+}
+function rowTable(rows, cols, markFn){
+  var h = '<table class="rows"><thead><tr>' +
+    cols.map(function(c){ return "<th>" + esc(c.h) + "</th>"; }).join("") + "</tr></thead><tbody>";
+  rows.forEach(function(r){
+    h += '<tr class="' + (markFn ? markFn(r) : "") + '">' +
+      cols.map(function(c){ return "<td>" + esc(c.f(r)) + "</td>"; }).join("") + "</tr>";
+  });
+  return h + "</tbody></table>";
+}
+
+/* ============================ TAB 1 render ============================ */
+function renderT1(sim){
+  var s = sim.state, f = T1.facts(s);
+  html($("t1-clock"), "t = " + s.t + " s");
+  html($("t1-counters"),
+    metric("changes committed", f.committed) +
+    metric("log reader delivered", s.changes.filter(function(c){return c.delivered>0 && c.table==="orders";}).length, "good") +
+    metric("poller row-reads", s.pollDeliveries) +
+    metric("changes the poller never saw", f.unseen, f.unseen ? "bad" : "") +
+    metric("duplicate deliveries", s.duplicates, s.duplicates ? "warn" : "") +
+    (s.mode === "accumulate"
+      ? metric("poller total", money(s.poller.running)) + metric("log reader total", money(s.reader.running), s.duplicates ? "warn" : "")
+      : ""));
+
+  var rows = Object.keys(s.rows).map(function(k){ return s.rows[k]; })
+                   .sort(function(a,b){ return a.id - b.id; });
+  var dbHtml = rowTable(rows, [
+    {h:"id", f:function(r){ return r.id; }},
+    {h:"customer", f:function(r){ return r.customer; }},
+    {h:"status", f:function(r){ return r.status; }},
+    {h:"total", f:function(r){ return money(r.total); }},
+    {h:"updated_at", f:function(r){ return r.updated; }}
+  ], function(r){ return s.lastChanged["orders:" + r.id] ? "flash" : ""; });
+  if(s.open.length){
+    dbHtml += '<p class="note"><b>' + s.open.length + " open transaction" + (s.open.length>1?"s":"") + "</b> — " +
+      s.open.map(function(o){ return "xid " + o.xid + " (started t=" + o.start + ", commits t=" + o.commitAt + ")"; }).join(", ") +
+      ". Their changes are written to the log already, but no reader — poller or log reader — may see them until they commit.</p>";
+  }
+  if(s.payments.length){
+    dbHtml += '<p class="note"><b>payments table:</b> ' + s.payments.map(function(p){
+      return "#" + p.id + " order " + p.order + " " + money(p.amount); }).join(", ") +
+      ". The poller was never pointed at this table.</p>";
+  }
+  html($("t1-db"), dbHtml);
+
+  var wal = s.wal.slice(-24).map(function(w){
+    var cls = w.kind === "commit" ? "commit" : "";
+    var body = w.kind === "commit"
+      ? '<span class="op">COMMIT</span> <span class="muted">xid ' + w.xid + "</span>"
+      : '<span class="op op-' + w.op + '">' + w.op.toUpperCase() + "</span> " + esc(w.table) + ":" + w.id +
+        ' <span class="muted">xid ' + w.xid + "</span>";
+    return '<div class="rec ' + cls + '"><span class="lsn">' + lsnStr(w.lsn) + "</span><span>" + body + "</span></div>";
+  }).join("");
+  html($("t1-wal"), '<div class="strip">' + (wal || '<span class="muted">empty</span>') + "</div>" +
+    '<p class="note">The log reader has read up to <b>' + lsnStr(s.readerLsn) + "</b> and last told the database so at <b>" +
+    lsnStr(s.confirmed) + "</b>. The gap between those two is the duplicate window.</p>");
+
+  function sinkTable(idx, title, note){
+    var ids = Object.keys(idx).sort(function(a,b){ return a - b; });
+    var list = ids.map(function(id){ return idx[id]; });
+    return "<h4 style='font:600 12px var(--mono);margin:0 0 5px;letter-spacing:.04em'>" + title + "</h4>" +
+      rowTable(list, [
+        {h:"id", f:function(r){ return r.id; }},
+        {h:"customer", f:function(r){ return r.customer; }},
+        {h:"status", f:function(r){ return r.status; }}
+      ], function(r){
+        var db = s.rows[r.id];
+        return (!db || db.status !== r.status) ? "wrongrow" : "";
+      }) + '<p class="note" style="margin:5px 0 14px">' + note + "</p>";
+  }
+  html($("t1-sinks"),
+    sinkTable(s.poller.index, "Poller's index", f.pollWrong
+        ? "<b>" + f.pollWrong + " row" + (f.pollWrong>1?"s":"") + " disagree with the database.</b>"
+        : "Agrees with the database.") +
+    sinkTable(s.reader.index, "Log reader's index", f.logWrong
+        ? "<b>" + f.logWrong + " row" + (f.logWrong>1?"s":"") + " disagree with the database.</b>"
+        : "Agrees with the database."));
+
+  narrate($("t1-log"), s.log);
+
+  var v, cls;
+  if(s.scenario === "none"){ v = "Press a scenario button. Both indexes currently match the database exactly."; cls = ""; }
+  else if(!T1.done(s)){ v = "Running <b>" + esc(T1_SCRIPTS[s.scenario].label) + "</b> — " + s.t + " seconds in. Poller has missed <b>" + f.unseen + "</b> change" + (f.unseen===1?"":"s") + " so far."; cls = f.unseen ? "warn" : ""; }
+  else if(f.pollWrong && s.duplicates){
+    v = "The database holds <b>" + f.dbCount + "</b> orders. The poller's index disagrees with it on <b>" + f.pollWrong + "</b> of them. The log reader's index agrees on every row, but delivered <b>" + s.duplicates + "</b> event" + (s.duplicates===1?"":"s") + " twice — harmless here only because the consumer overwrites by order id.";
+    cls = "bad";
+  }
+  else if(f.pollWrong){
+    v = "The database holds <b>" + f.dbCount + "</b> orders. The poller's index holds <b>" + f.pollCount + "</b> and disagrees with the database on <b>" + f.pollWrong + "</b> of them — <b>" + f.unseen + "</b> committed change" + (f.unseen===1?"":"s") + " will never be returned by any future poll. The log reader's index matches exactly. Not one error was raised.";
+    cls = "bad";
+  }
+  else if(s.duplicates){
+    v = "Both indexes agree with the database. The log reader delivered <b>" + s.duplicates + "</b> event" + (s.duplicates===1?"":"s") + " twice after the restart" +
+        (s.mode === "accumulate"
+          ? ", and because this consumer keeps a running total instead of overwriting a row, its revenue figure is now <b>" + money(s.reader.running) + "</b> against a true total of <b>" + money(Object.keys(s.rows).reduce(function(n,k){ return n + (s.rows[k].status==="PAID" ? s.rows[k].total : 0); },0)) + "</b>."
+          : ". Because this consumer overwrites by order id, applying an event twice is identical to applying it once.");
+    cls = s.mode === "accumulate" ? "bad" : "warn";
+  }
+  else { v = "Both indexes agree with the database. Nothing was lost."; cls = "good"; }
+  verdict($("t1-verdict"), cls, v);
+}
+
+/* ============================ TAB 2 render ============================ */
+function fmtObj(o){
+  if(o === null || o === undefined) return "null";
+  return "{" + Object.keys(o).map(function(k){
+    var v = o[k];
+    return k + ": " + (v === null ? "null" : (typeof v === "number" ? v : '"' + v + '"'));
+  }).join(", ") + "}";
+}
+function renderT2(sim){
+  var s = sim.state, f = T2.facts(s);
+  html($("t2-mode-label"), s.mode === "v1" ? "v1 · publishing immediately" : "v2 · buffering to commit");
+  html($("t2-counters"),
+    metric("events published", f.published) +
+    metric("from committed txns", f.real, "good") +
+    metric("from a rolled-back txn", f.ghosts, f.ghosts ? "ghost" : "") +
+    metric("fragmented transactions", f.frag, f.frag ? "warn" : "") +
+    metric("held in buffers", f.buffered) +
+    metric("incomplete before-images", f.incomplete, f.incomplete ? "warn" : ""));
+
+  html($("t2-wal"), '<div class="strip">' + s.recs.map(function(r, i){
+    var cls = (r.kind === "commit" ? "commit " : r.kind === "abort" ? "abort " : "") + (i === s.i ? "cur" : "");
+    var body = r.kind === "commit" ? '<span class="op">COMMIT</span> <span class="muted">xid ' + r.xid + "</span>"
+             : r.kind === "abort"  ? '<span class="op">ABORT</span> <span class="muted">xid ' + r.xid + "</span>"
+             : '<span class="op op-' + r.op + '">' + r.op.toUpperCase() + "</span> " + esc(r.table) + ":" + r.id +
+               ' <span class="muted">xid ' + r.xid + "</span>";
+    return '<div class="rec ' + cls + '"><span class="lsn">' + lsnStr(r.lsn) + "</span><span>" + body + "</span></div>";
+  }).join("") + "</div>" + (s.i < 0 ? '<p class="note">Press Step or Play to walk the decoder through these records one at a time.</p>' : ""));
+
+  var bufKeys = Object.keys(s.buf);
+  html($("t2-buf"), s.mode === "v1"
+    ? '<p class="note" style="margin-top:0">v1 keeps no buffer. Every decoded row change goes straight out, before anything is known about whether its transaction will commit.</p>'
+    : (bufKeys.length
+        ? bufKeys.map(function(x){
+            return "<h4 style='font:600 12px var(--mono);margin:0 0 4px'>buffer[" + x + "] · " + s.buf[x].length + " event(s)</h4>" +
+              '<div class="strip" style="max-height:110px;margin-bottom:10px">' + s.buf[x].map(function(e){
+                return '<div class="rec"><span class="lsn">' + lsnStr(e.lsn) + '</span><span><span class="op op-' + e.op + '">' + e.op.toUpperCase() + "</span> " + esc(e.table) + ":" + e.id + "</span></div>";
+              }).join("") + "</div>";
+          }).join("")
+        : '<p class="note" style="margin-top:0">No transaction is currently buffered.</p>'));
+
+  html($("t2-out"), '<div class="strip" style="max-height:340px">' + (s.out.length ? s.out.map(function(e){
+      return '<div class="rec ' + (e.ghost ? "abort" : "") + '"><span class="lsn">' + lsnStr(e.emittedAt) + '</span><span>' +
+        '<span class="op op-' + e.op + '">' + e.op + "</span> " + esc(e.table) + ":" + e.id +
+        ' <span class="muted">xid ' + e.xid + (e.ghost ? " · never happened" : "") + "</span>" +
+        '<br><span class="muted">before: ' + esc(fmtObj(e.before)) + "</span>" +
+        '<br><span class="muted">after:  ' + esc(fmtObj(e.after)) + "</span></span></div>";
+    }).join("") : '<span class="muted">nothing published yet</span>') + "</div>");
+
+  narrate($("t2-log"), s.log);
+
+  var v, cls;
+  if(s.i < 0){ v = "Choose a decoder and step through the log."; cls = ""; }
+  else if(f.ghosts){
+    v = "The loyalty service has been told about <b>" + f.ghosts + "</b> change" + (f.ghosts===1?"":"s") + " that <b>never happened</b> — transaction " + s.recs.filter(function(r){return r.kind==="abort";}).map(function(r){return r.xid;}).join(", ") + " rolled back after v1 had already published its work. Nothing in the log can retract them, so downstream is permanently wrong in a direction reconciliation does not naturally look.";
+    cls = "ghost";
+  } else if(f.frag){
+    v = "All published events really happened, but <b>" + f.frag + "</b> transaction" + (f.frag===1?"'s":"s'") + " events arrived split apart, with another transaction's event in between. A consumer reading this stream cannot tell where one atomic change ends and the next begins.";
+    cls = "warn";
+  } else if(f.incomplete){
+    v = "Events are correct and in commit order, but <b>" + f.incomplete + "</b> of them carry a before-image containing only the primary key. Every other column reads <code>null</code>, and <code>null</code> here means <i>not captured</i>, not <i>was null</i>. Switch replica identity to FULL and watch the before-image fill in.";
+    cls = "warn";
+  } else if(!T2.done(s)){ v = "Stepping through the log. <b>" + f.published + "</b> event" + (f.published===1?"":"s") + " published so far, <b>" + f.buffered + "</b> still buffered."; cls = ""; }
+  else {
+    v = "<b>" + f.real + "</b> event" + (f.real===1?"":"s") + " published, all of them from transactions that actually committed, delivered in commit order with each transaction's events contiguous" +
+        (s.ri === "FULL" ? ", and every before-image complete." : ".");
+    cls = "good";
+  }
+  verdict($("t2-verdict"), cls, v);
+}
+
+/* ============================ TAB 3 render ============================ */
+function renderT3(sim){
+  var s = sim.state, f = T3.facts(s);
+  html($("t3-clock"), "t = " + s.t + " s");
+  html($("t3-writes"), "Customers write at t=3 (order 2), t=5 (order 9), t=8 (order 4) and t=10 (order 12). The copy reads order N at t=N, so some of those rows have already been passed and some have not.");
+  html($("t3-counters"),
+    metric("orders in the database", f.dbCount) +
+    metric("entries in the index", f.idxCount, f.appended ? "bad" : "") +
+    metric("rows the index gets wrong", f.wrong, f.wrong ? "bad" : "good") +
+    metric("writer-seconds blocked", f.blocked, f.blocked ? "warn" : "") +
+    metric("keys delivered twice", f.dup, f.dup ? "warn" : ""));
+
+  var cells = "";
+  for(var i = 1; i <= T3_END; i++){
+    var c = null;
+    s.cells.forEach(function(x){ if(x.t === i) c = x; });
+    var kind = c ? c.kind : (i > T3_SNAP_END ? "idle" : "idle");
+    var note = c ? c.note : "";
+    if(i > T3_SNAP_END && i <= s.t) note = note || "↦";
+    cells += '<div class="cell ' + kind + (i === s.t ? " now" : "") + '"><span>' + i + "</span><span>" + esc(note) + "</span></div>";
+  }
+  html($("t3-tl"), "");
+  html($("t3-tl"), '<div class="tl">' + cells + "</div>" +
+    '<p class="note">Each box is one second. <b>#N</b> = the copy read order N. <b>✎N</b> = a customer changed order N. <b>⊘N</b> = a customer was blocked. <b>↦</b> = the stream delivered an event. ' +
+    (s.proto === "A" ? "Protocol A starts streaming at t=13, from the log position as it is <i>then</i>."
+     : s.proto === "B" ? "Protocol B holds every writer until the copy finishes at t=12."
+     : "Protocol C remembers the log position at t=0 and streams from there when the copy finishes.") + "</p>");
+
+  var ids = Object.keys(s.db).map(Number).sort(function(a,b){ return a-b; });
+  html($("t3-cmp"), rowTable(ids.map(function(id){ return {id:id, name:s.db[id].name, db:s.db[id].status, idx:(s.index[id] === undefined ? "—" : s.index[id])}; }), [
+      {h:"order", f:function(r){ return r.id; }},
+      {h:"customer", f:function(r){ return r.name; }},
+      {h:"database says", f:function(r){ return r.db; }},
+      {h:"index says", f:function(r){ return r.idx; }}
+    ], function(r){ return r.db !== r.idx ? "wrongrow" : ""; }) +
+    (s.append && s.appended ? '<p class="note"><b>' + s.appended + " extra row" + (s.appended===1?"":"s") + "</b> were appended for keys that arrived twice, so the index physically holds " + f.idxCount + " entries for " + f.dbCount + " orders.</p>" : ""));
+
+  narrate($("t3-log"), s.log);
+
+  var v, cls;
+  if(s.t === 0){ v = "Choose a protocol and press Run."; cls = ""; }
+  else if(!T3.done(s)){ v = "Running protocol <b>" + s.proto + "</b> — " + s.t + " seconds in."; cls = ""; }
+  else if(s.proto === "A"){
+    v = "The search index says orders <b>" + s.lost.join(" and ") + "</b> are still PENDING. They are not. Those changes happened after the copy had read those rows and before streaming began, so they are in neither piece and no future event will ever correct them. The gap is exactly as long as the copy took — twelve seconds here, hours on a real table. Nothing errored.";
+    cls = "bad";
+  } else if(s.proto === "B"){
+    v = "The index matches the database on every row — protocol B is genuinely correct. It cost <b>" + f.blocked + " writer-seconds</b> of blocking, and for the whole twelve seconds of the copy <b>no order could be written at all</b>. That is why Debezium has a setting to refuse this.";
+    cls = "warn";
+  } else if(s.append){
+    v = "Same protocol, different consumer: <b>" + f.dup + "</b> keys arrived twice — once from the copy, once from the stream — and this consumer appended both instead of overwriting. The index now holds <b>" + f.idxCount + "</b> entries for <b>" + f.dbCount + "</b> orders. Protocol C's overlap is safe only when the apply is idempotent; correctness is a property of the pair, not of the connector.";
+    cls = "bad";
+  } else {
+    v = "The index matches the database on every row, <b>nobody was blocked</b>, and <b>" + f.dup + "</b> keys arrived twice — once as the copy's value, once as the change. The duplicates are deliberate: the copy and the stream are joined at one agreed position with a small overlap rather than a gap, and an upsert keyed by order id makes the overlap free.";
+    cls = "good";
+  }
+  verdict($("t3-verdict"), cls, v);
+}
+
+/* ============================ TAB 4 render ============================ */
+function renderT4(sim){
+  var s = sim.state, f = T4.facts(s);
+  html($("t4-clock"), "t = " + s.t + " s");
+  html($("t4-counters"),
+    metric("retained WAL", Math.round(f.retained) + " MB", f.pct > 70 ? "bad" : f.pct > 40 ? "warn" : "") +
+    metric("disk used", Math.round(f.pct) + "%", f.pct > 70 ? "bad" : "") +
+    metric("slot active", s.up && !s.slotInvalid ? "yes" : "no", s.up && !s.slotInvalid ? "good" : "bad") +
+    metric("consumer lag", Math.round(f.lagS) + " s", f.lagS > 10 ? "warn" : "") +
+    metric("database", s.dbDown ? "DOWN" : "up", s.dbDown ? "bad" : "good"));
+
+  var gcls = f.pct > 85 ? "crit" : f.pct > 60 ? "hot" : "";
+  html($("t4-disk"),
+    '<div class="gauge ' + gcls + '"><div class="fill" style="width:' + Math.min(100, f.pct).toFixed(1) + '%"></div>' +
+    '<div class="cap">' + Math.round(f.retained) + " MB of " + T4_CAP + " MB held for the slot</div></div>" +
+    '<p class="note">This is the log the database is <b>not allowed to delete</b>, because the slot has not confirmed reading it. It is space on the primary\'s disk, not on the connector\'s.</p>' +
+    '<div style="margin-top:10px">' +
+      '<div class="kv"><span>total log written</span><b>' + Math.round(s.wal) + " MB</b></div>" +
+      '<div class="kv"><span>confirmed_flush_lsn (as MB)</span><b>' + Math.round(s.confirmed) + " MB</b></div>" +
+      '<div class="kv"><span>write rate</span><b>' + s.rate + " MB/s</b></div>" +
+      '<div class="kv"><span>share hitting the captured table</span><b>' + s.share + "%</b></div>" +
+      (s.keepsize ? '<div class="kv"><span>max_slot_wal_keep_size</span><b>' + T4_KEEP + " MB</b></div>" : "") +
+    "</div>");
+
+  html($("t4-health"),
+    '<div class="kv"><span>connector process</span><b>' + (s.up ? "running" : "DOWN") + "</b></div>" +
+    '<div class="kv"><span>slot state</span><b>' + (s.slotInvalid ? "INVALIDATED" : (s.up ? "active" : "inactive")) + "</b></div>" +
+    '<div class="kv"><span>heartbeat</span><b>' + (s.heartbeat ? "every 5 s" : "off") + "</b></div>" +
+    '<div class="kv"><span>peak retained</span><b>' + Math.round(s.peak) + " MB</b></div>" +
+    '<div class="kv"><span>source database</span><b>' + (s.dbDown ? "NOT ACCEPTING WRITES" : "accepting writes") + "</b></div>" +
+    '<p class="note">' +
+      (s.up && s.share > 0
+        ? "The connector is emitting events, so every time it flushes it tells the database how far it has read, and the database frees the log behind it. This is the healthy state."
+        : s.up && s.share === 0 && !s.heartbeat
+        ? "<b>Look carefully at this panel.</b> The connector is running. The slot is active. Every connector-side signal is green — and the disk is filling at the rate of the whole database's traffic, because the connector has emitted nothing and therefore confirmed nothing. No connector metric will ever catch this. Only retained bytes will."
+        : s.up && s.heartbeat
+        ? "Heartbeats are carrying the confirmation even though the captured table is quiet, so the database can free the log."
+        : "Nothing is consuming the slot, and the database is keeping every byte of log for it, indefinitely.") +
+    "</p>" +
+    '<p class="note"><b>The alarm to build:</b> <code>pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)</code> per slot, alerting on size and on rate of growth — plus a separate alert on <code>active = false</code>. Never alarm on connector liveness alone; the quiet-table failure is invisible to it.</p>');
+
+  narrate($("t4-log"), s.log);
+
+  var v, cls;
+  if(s.dbDown){
+    v = "<b>The source database has stopped accepting writes.</b> Meera's shop is offline. The cause was not a database problem, a traffic spike or a bad query — it was a search-index feeder that stopped reading, holding a promise the database had no way to break. Peak retained log: <b>" + Math.round(s.peak) + " MB</b>.";
+    cls = "bad";
+  } else if(s.slotInvalid){
+    v = "The database threw the slot away at <b>" + T4_KEEP + " MB</b> and freed the log. <b>The database is up</b> and writes are flowing. The price: the connector's position is gone, so when it returns it must copy the entire table again from scratch. That is a bad afternoon, and it is a far better outcome than an outage on a payments database.";
+    cls = "warn";
+  } else if(f.pct > 60){
+    v = "Retained log is at <b>" + Math.round(f.pct) + "%</b> of the disk and climbing at <b>" + s.rate + " MB/s</b>. About <b>" + Math.max(0, Math.round((T4_CAP - f.retained) / Math.max(1, s.rate))) + " seconds</b> until the database stops accepting writes." +
+        (s.up && s.share === 0 ? " Note that the connector is <b>running and healthy</b> — it simply has nothing to emit, so it never confirms a position." : "");
+    cls = "bad";
+  } else if(s.up && s.share === 0 && !s.heartbeat && s.t > 0){
+    v = "The connector is healthy and consuming, and the retained log is growing anyway, because it captures a table that nothing is writing to. Every green light on the dashboard is telling the truth.";
+    cls = "warn";
+  } else {
+    v = "The connector is reading and confirming, so the database is freeing log behind it. Retained: <b>" + Math.round(f.retained) + " MB</b>.";
+    cls = "good";
+  }
+  verdict($("t4-verdict"), cls, v);
+}
+
+/* ============================ wiring ============================ */
+var SIMS = {};
+var PRED = {t1:{}, t2:{}, t3:{}, t4:{}};
+
+function showPredict(tab, key){
+  var p = PREDICTS[tab] && PREDICTS[tab][key];
+  var el = $(tab + "-predict");
+  if(!el) return;
+  if(!p){ el.hidden = true; return; }
+  PRED[tab] = {key:key, picked:null, done:false};
+  el.hidden = false;
+  el.innerHTML = '<span class="pk">Predict before you run</span><p class="pq">' + esc(p.q) + '</p>' +
+    '<div class="opts">' + p.opts.map(function(o, i){
+      return '<button data-pick="' + i + '">' + esc(o) + "</button>";
+    }).join("") + "</div>";
+}
+function revealPredict(tab){
+  var st = PRED[tab]; if(!st || !st.key || st.done) return;
+  var p = PREDICTS[tab][st.key]; if(!p) return;
+  var el = $(tab + "-predict"); if(!el) return;
+  st.done = true;
+  var right = st.picked === p.correct;
+  var res = D.createElement("p");
+  res.className = "res " + (right ? "right" : "wrong");
+  res.innerHTML = "<b>" + (right ? "Your prediction held." : "Your prediction did not hold.") + "</b> The answer is “" +
+    esc(p.opts[p.correct]) + ".” " + esc(p.why);
+  el.appendChild(res);
+}
+function onPredictClick(tab, e){
+  var b = e.target && e.target.closest ? e.target.closest("button[data-pick]") : null;
+  if(!b) return;
+  var st = PRED[tab]; if(!st || st.done) return;
+  st.picked = parseInt(b.getAttribute("data-pick"), 10);
+  var sibs = $(tab + "-predict").querySelectorAll("button[data-pick]");
+  for(var i=0;i<sibs.length;i++) sibs[i].setAttribute("aria-pressed", sibs[i] === b ? "true" : "false");
+  SIMS[tab].play(function(){ revealPredict(tab); });
+}
+
+function segment(id, attr, fn){
+  var el = $(id); if(!el) return;
+  el.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button[" + attr + "]") : null;
+    if(!b) return;
+    var bs = el.querySelectorAll("button[" + attr + "]");
+    for(var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed", bs[i] === b ? "true" : "false");
+    fn(b.getAttribute(attr));
+  });
+}
+function on(id, ev, fn){ var el = $(id); if(el) el.addEventListener(ev, fn); }
+
+function initUI(){
+  /* ---- tabs ---- */
+  var tabIds = ["t1","t2","t3","t4"];
+  tabIds.forEach(function(t){
+    on("tab-" + t, "click", function(){
+      tabIds.forEach(function(u){
+        var tb = $("tab-" + u), pn = $("p-" + u);
+        if(tb) tb.setAttribute("aria-selected", u === t ? "true" : "false");
+        if(pn) pn.hidden = (u !== t);
+        if(u !== t && SIMS[u]) SIMS[u].stop();
+      });
+    });
+  });
+
+  /* ---- tab 1 ---- */
+  SIMS.t1 = makeSim(T1, renderT1, 400);
+  var t1opts = function(extra){
+    var s = SIMS.t1.state;
+    var o = {pollInterval:s.pollInterval, mode:s.mode, scenario:s.scenario};
+    for(var k in (extra||{})) o[k] = extra[k];
+    return o;
+  };
+  var panel1 = $("p-t1");
+  if(panel1) panel1.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button[data-t1-scn]") : null;
+    if(!b) return;
+    var scn = b.getAttribute("data-t1-scn");
+    SIMS.t1.reset(t1opts({scenario:scn}));
+    showPredict("t1", scn);
+  });
+  on("t1-predict", "click", function(e){ onPredictClick("t1", e); });
+  on("t1-play", "click", function(){ SIMS.t1.play(function(){ revealPredict("t1"); }); });
+  on("t1-fwd", "click", function(){ SIMS.t1.stop(); SIMS.t1.fwd(); if(T1.done(SIMS.t1.state)) revealPredict("t1"); });
+  on("t1-back", "click", function(){ SIMS.t1.back(); });
+  on("t1-reset", "click", function(){ SIMS.t1.reset(t1opts()); var p=$("t1-predict"); if(p) p.hidden = true; });
+  on("t1-interval", "input", function(e){
+    var v = parseInt(e.target.value, 10);
+    html($("t1-interval-v"), v + " s");
+    SIMS.t1.reset(t1opts({pollInterval:v}));
+  });
+  segment("t1-mode", "data-mode", function(m){ SIMS.t1.reset(t1opts({mode:m})); });
+
+  /* ---- tab 2 ---- */
+  SIMS.t2 = makeSim(T2, renderT2, 620);
+  var t2opts = function(extra){
+    var s = SIMS.t2.state;
+    var o = {mode:s.mode, ri:s.ri, scenario:s.scenario};
+    for(var k in (extra||{})) o[k] = extra[k];
+    return o;
+  };
+  var panel2 = $("p-t2");
+  if(panel2) panel2.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button[data-t2-scn]") : null;
+    if(!b) return;
+    var scn = b.getAttribute("data-t2-scn");
+    SIMS.t2.reset(t2opts({scenario:scn}));
+    showPredict("t2", scn);
+  });
+  on("t2-predict", "click", function(e){ onPredictClick("t2", e); });
+  on("t2-play", "click", function(){ SIMS.t2.play(function(){ revealPredict("t2"); }); });
+  on("t2-fwd", "click", function(){ SIMS.t2.stop(); SIMS.t2.fwd(); if(T2.done(SIMS.t2.state)) revealPredict("t2"); });
+  on("t2-back", "click", function(){ SIMS.t2.back(); });
+  on("t2-reset", "click", function(){ SIMS.t2.reset(t2opts()); var p=$("t2-predict"); if(p) p.hidden = true; });
+  segment("t2-mode", "data-mode", function(m){ SIMS.t2.reset(t2opts({mode:m})); });
+  segment("t2-ri", "data-ri", function(r){ SIMS.t2.reset(t2opts({ri:r})); });
+
+  /* ---- tab 3 ---- */
+  SIMS.t3 = makeSim(T3, renderT3, 300);
+  var t3opts = function(extra){
+    var s = SIMS.t3.state;
+    var o = {proto:s.proto, append:s.append};
+    for(var k in (extra||{})) o[k] = extra[k];
+    return o;
+  };
+  segment("t3-proto", "data-p", function(p){
+    SIMS.t3.reset(t3opts({proto:p}));
+    showPredict("t3", p);
+  });
+  on("t3-predict", "click", function(e){ onPredictClick("t3", e); });
+  on("t3-play", "click", function(){ SIMS.t3.play(function(){ revealPredict("t3"); }); });
+  on("t3-fwd", "click", function(){ SIMS.t3.stop(); SIMS.t3.fwd(); if(T3.done(SIMS.t3.state)) revealPredict("t3"); });
+  on("t3-back", "click", function(){ SIMS.t3.back(); });
+  on("t3-reset", "click", function(){ SIMS.t3.reset(t3opts()); var p=$("t3-predict"); if(p) p.hidden = true; });
+  on("t3-append", "change", function(e){ SIMS.t3.reset(t3opts({append:!!e.target.checked})); });
+
+  /* ---- tab 4 ---- */
+  SIMS.t4 = makeSim(T4, renderT4, 220);
+  var t4opts = function(extra){
+    var s = SIMS.t4.state;
+    var o = {up:s.up, heartbeat:s.heartbeat, keepsize:s.keepsize, rate:s.rate, share:s.share, acts:s.acts};
+    for(var k in (extra||{})) o[k] = extra[k];
+    return o;
+  };
+  var T4_SCN = {
+    stop:  {up:true, heartbeat:false, keepsize:false, rate:12, share:40, acts:[{t:3, set:"down"}]},
+    quiet: {up:true, heartbeat:false, keepsize:false, rate:12, share:0,  acts:[]},
+    valve: {up:true, heartbeat:false, keepsize:true,  rate:12, share:40, acts:[{t:3, set:"down"}]}
+  };
+  var panel4 = $("p-t4");
+  if(panel4) panel4.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button[data-t4-scn]") : null;
+    if(!b) return;
+    var scn = b.getAttribute("data-t4-scn");
+    SIMS.t4.reset(clone(T4_SCN[scn]));
+    var hb = $("t4-heartbeat"); if(hb) hb.checked = false;
+    var ks = $("t4-keepsize");  if(ks) ks.checked = !!T4_SCN[scn].keepsize;
+    var sh = $("t4-share");     if(sh) sh.value = T4_SCN[scn].share;
+    html($("t4-share-v"), T4_SCN[scn].share + "%");
+    showPredict("t4", scn);
+  });
+  on("t4-predict", "click", function(e){ onPredictClick("t4", e); });
+  on("t4-play", "click", function(){ SIMS.t4.play(function(){ revealPredict("t4"); }); });
+  on("t4-fwd", "click", function(){ SIMS.t4.stop(); SIMS.t4.fwd(); if(T4.done(SIMS.t4.state)) revealPredict("t4"); });
+  on("t4-back", "click", function(){ SIMS.t4.back(); });
+  on("t4-reset", "click", function(){ SIMS.t4.reset(t4opts({acts:[]})); var p=$("t4-predict"); if(p) p.hidden = true; });
+  on("t4-toggle", "click", function(){
+    var s = SIMS.t4.state; s.up = !s.up;
+    var b = $("t4-toggle"); if(b) b.textContent = s.up ? "Stop connector" : "Start connector";
+    SIMS.t4.render();
+  });
+  on("t4-heartbeat", "change", function(e){ SIMS.t4.state.heartbeat = !!e.target.checked; SIMS.t4.render(); });
+  on("t4-keepsize", "change", function(e){ SIMS.t4.state.keepsize = !!e.target.checked; SIMS.t4.render(); });
+  on("t4-rate", "input", function(e){
+    var v = parseInt(e.target.value, 10);
+    html($("t4-rate-v"), v + " MB/s"); SIMS.t4.state.rate = v; SIMS.t4.render();
+  });
+  on("t4-share", "input", function(e){
+    var v = parseInt(e.target.value, 10);
+    html($("t4-share-v"), v + "%"); SIMS.t4.state.share = v; SIMS.t4.render();
+  });
+
+  SIMS.t1.render(); SIMS.t2.render(); SIMS.t3.render(); SIMS.t4.render();
+}
+
+/* expose for headless validation */
+var API = {T1:T1, T2:T2, T3:T3, T4:T4, PREDICTS:PREDICTS, makeSim:makeSim, initUI:initUI, SIMS:SIMS,
+           T1_SCRIPTS:T1_SCRIPTS, T2_SCRIPTS:T2_SCRIPTS, T3_WRITES:T3_WRITES, T4_CAP:T4_CAP, T4_KEEP:T4_KEEP};
+if(typeof window !== "undefined") window.__CDC = API;
+if(typeof globalThis !== "undefined") globalThis.__CDC = API;
+
+if(D){
+  if(D.readyState === "loading") D.addEventListener("DOMContentLoaded", initUI);
+  else initUI();
+}
+})();
+</script>

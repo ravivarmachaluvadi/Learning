@@ -1,0 +1,998 @@
+<title>The I/O Switchboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- light palette: a switchboard panel under room light -------------- */
+  :root {
+    --ground:      #DCE0DE;
+    --panel:       #EDEFEC;
+    --well:        #C9CFCB;
+    --ink:         #171E1C;
+    --muted:       #5C6A66;
+    --rule:        #B4BCB7;
+    --lamp-off:    #AAB2AE;
+    --shadow:      rgba(23, 30, 28, .13);
+    --inset:       rgba(23, 30, 28, .10);
+
+    /* lamps read the same in both themes — they are lights, not surfaces */
+    --amber:       #E9A63C;
+    --green:       #3E9E71;
+    --red:         #CE4634;
+    --amber-glow:  rgba(233, 166, 60, .55);
+    --green-glow:  rgba(62, 158, 113, .45);
+    --red-glow:    rgba(206, 70, 52, .45);
+
+    --f-label: "Barlow Condensed", "Oswald", Impact, sans-serif;
+    --f-body:  "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --f-mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  /* ---- dark palette: the same panel in a dim exchange room -------------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:    #0E1416;
+      --panel:     #172020;
+      --well:      #0B1112;
+      --ink:       #E3EAE6;
+      --muted:     #8A9A95;
+      --rule:      #2A3735;
+      --lamp-off:  #24302E;
+      --shadow:    rgba(0, 0, 0, .5);
+      --inset:     rgba(0, 0, 0, .45);
+      --green:     #56C193;
+      --red:       #E4614C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:    #0E1416;
+    --panel:     #172020;
+    --well:      #0B1112;
+    --ink:       #E3EAE6;
+    --muted:     #8A9A95;
+    --rule:      #2A3735;
+    --lamp-off:  #24302E;
+    --shadow:    rgba(0, 0, 0, .5);
+    --inset:     rgba(0, 0, 0, .45);
+    --green:     #56C193;
+    --red:       #E4614C;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 1240px; margin: 0 auto; padding: 32px 22px 72px; }
+
+  /* ---------------------------------------------------------------- type */
+  .eyebrow {
+    font-family: var(--f-label);
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  h1 {
+    font-family: var(--f-label);
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: .95;
+    letter-spacing: -.005em;
+    margin: 6px 0 10px;
+    text-wrap: balance;
+  }
+  .standfirst { max-width: 66ch; color: var(--muted); margin: 0 0 4px; }
+  h2 {
+    font-family: var(--f-label);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+    color: var(--muted);
+  }
+  .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+  /* ------------------------------------------------------------ surfaces */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    box-shadow: 0 1px 0 var(--shadow);
+  }
+  .well {
+    background: var(--well);
+    border-radius: 2px;
+    box-shadow: inset 0 1px 3px var(--inset);
+  }
+
+  header { margin-bottom: 26px; }
+
+  /* ------------------------------------------------------------- verdict */
+  .verdict {
+    display: flex; gap: 18px; align-items: flex-start;
+    padding: 16px 18px;
+    margin: 20px 0 22px;
+    border-left: 3px solid var(--amber);
+    background: var(--panel);
+    border-radius: 2px;
+  }
+  .verdict .tag {
+    font-family: var(--f-label); text-transform: uppercase; letter-spacing: .14em;
+    font-size: 12px; font-weight: 600; color: var(--amber);
+    padding-top: 2px; white-space: nowrap;
+  }
+  #verdictText { margin: 0; max-width: 78ch; }
+  #verdictText strong { font-weight: 600; }
+
+  /* ------------------------------------------------------------ controls */
+  .console {
+    display: flex; flex-wrap: wrap; gap: 22px 30px; align-items: flex-end;
+    padding: 16px 18px; margin-bottom: 22px;
+  }
+  .ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+  .ctrl-group > .eyebrow { font-size: 11px; }
+  .btn-row { display: flex; gap: 7px; flex-wrap: wrap; }
+
+  button {
+    font-family: var(--f-label);
+    text-transform: uppercase; letter-spacing: .09em; font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, transform .06s ease;
+  }
+  button:hover { border-color: var(--amber); }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  button[disabled] { opacity: .38; cursor: not-allowed; }
+  button.primary { background: var(--amber); border-color: var(--amber); color: #1B1204; }
+  button.primary:hover { filter: brightness(1.06); }
+  button.armed { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+
+  .slider { display: flex; flex-direction: column; gap: 3px; min-width: 152px; }
+  .slider label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+  input[type=range] { width: 100%; accent-color: var(--amber); cursor: pointer; }
+  input[type=range]:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .toggle input { accent-color: var(--amber); width: 15px; height: 15px; cursor: pointer; }
+  .toggle input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ---------------------------------------------------------- line field */
+  .section-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    margin: 0 0 10px;
+  }
+  .section-head .hint { font-size: 13px; color: var(--muted); }
+
+  .linefield { padding: 14px 16px 16px; margin-bottom: 24px; }
+  .lines {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 7px;
+  }
+  .line {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 8px;
+    background: var(--well);
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--f-body); text-transform: none; letter-spacing: 0;
+    font-size: 12px; font-weight: 500;
+    color: var(--ink);
+  }
+  .line:hover { border-color: var(--amber); }
+  .line.sel { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+  .line.closed { opacity: .5; }
+  .line .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .lamp {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--lamp-off);
+    flex: 0 0 auto;
+    transition: background .12s ease, box-shadow .12s ease;
+  }
+  .lamp.on    { background: var(--amber); box-shadow: 0 0 7px 1px var(--amber-glow); }
+  .lamp.ok    { background: var(--green); box-shadow: 0 0 6px 1px var(--green-glow); }
+  .lamp.alarm { background: var(--red);   box-shadow: 0 0 7px 1px var(--red-glow); }
+
+  /* -------------------------------------------------------------- panels */
+  .modules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+  @media (max-width: 940px) { .modules { grid-template-columns: 1fr; } }
+
+  .module { display: flex; flex-direction: column; overflow: hidden; }
+  .module.spotlight { border-color: var(--amber); }
+  .module-head { padding: 13px 15px 11px; border-bottom: 1px solid var(--rule); }
+  .module-head h3 {
+    font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em;
+    font-size: 17px; font-weight: 700; margin: 0 0 3px;
+  }
+  .module-head p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.42; }
+  .module-body { padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
+
+  .strip { display: flex; flex-wrap: wrap; gap: 3px; }
+  .cell {
+    width: 13px; height: 13px; border-radius: 1px;
+    background: var(--lamp-off);
+    transition: background .1s ease, box-shadow .1s ease;
+  }
+  .cell.waiting { background: var(--amber); box-shadow: 0 0 5px var(--amber-glow); }
+  .cell.served  { background: var(--green); }
+  .cell.zombie  { background: var(--red); box-shadow: 0 0 5px var(--red-glow); }
+  .cell.scan    { box-shadow: inset 0 0 0 2px var(--ink); }
+  .cell.gone    { background: transparent; box-shadow: inset 0 0 0 1px var(--rule); }
+
+  .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; }
+  .gauge .g-label {
+    font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em;
+    font-size: 11px; color: var(--muted);
+  }
+  .gauge .g-value { font-family: var(--f-mono); font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .gauge .g-value.warn { color: var(--red); }
+  .bar { height: 4px; background: var(--well); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .bar > i { display: block; height: 100%; background: var(--amber); transition: width .18s ease; }
+  .bar > i.hot { background: var(--red); }
+
+  .action {
+    font-family: var(--f-mono); font-size: 11.5px; line-height: 1.45;
+    color: var(--muted);
+    padding: 8px 9px;
+    min-height: 52px;
+    margin-top: auto;
+  }
+  .action b { color: var(--ink); font-weight: 600; }
+
+  /* ----------------------------------------------------------- scenarios */
+  .scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .scenario { padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 9px; }
+  .scenario h4 {
+    font-family: var(--f-label); text-transform: uppercase; letter-spacing: .1em;
+    font-size: 15px; font-weight: 700; margin: 0;
+  }
+  .scenario .q { font-size: 13px; margin: 0; }
+  .scenario .opts { display: flex; flex-direction: column; gap: 5px; }
+  .scenario .opts button {
+    text-transform: none; letter-spacing: 0; font-family: var(--f-body);
+    font-size: 12.5px; font-weight: 400; text-align: left; padding: 6px 9px;
+  }
+  .scenario .opts button.picked { border-color: var(--amber); box-shadow: inset 0 0 0 1px var(--amber); }
+  .outcome { font-size: 12.5px; padding: 9px 10px; border-radius: 2px; display: none; }
+  .outcome.show { display: block; }
+  .outcome.right { background: color-mix(in srgb, var(--green) 15%, transparent); }
+  .outcome.wrong { background: color-mix(in srgb, var(--amber) 18%, transparent); }
+
+  /* ----------------------------------------------------------------- log */
+  .log { padding: 0; overflow: hidden; }
+  .log-head { padding: 11px 15px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+  .log-body { max-height: 260px; overflow-y: auto; padding: 4px 0; }
+  .entry { display: flex; gap: 11px; padding: 6px 15px; font-size: 13px; border-bottom: 1px solid color-mix(in srgb, var(--rule) 45%, transparent); }
+  .entry:last-child { border-bottom: 0; }
+  .entry .t { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); padding-top: 2px; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .entry .m { margin: 0; }
+  .entry .m em { font-style: normal; color: var(--muted); }
+  .entry.alarm .m { color: var(--red); }
+
+  /* -------------------------------------------------------------- legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 16px; margin-bottom: 24px; font-size: 12.5px; }
+  .legend span { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+
+  .inspector { padding: 13px 16px; margin-bottom: 24px; font-size: 13.5px; }
+  .inspector .k { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+  .footnote { color: var(--muted); font-size: 13px; max-width: 74ch; margin-top: 26px; }
+  .footnote code { font-family: var(--f-mono); font-size: 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="shell">
+
+  <header>
+    <div class="eyebrow">I/O Multiplexing &nbsp;·&nbsp; Interactive Lab</div>
+    <h1>The I/O Switchboard</h1>
+    <p class="standfirst">
+      A hotel with many phone lines. Guests rarely call, but when they do, someone must
+      pick up fast. Below, three ways to staff that desk handle the <em>same</em> traffic
+      at the same time — so you can watch what each one costs.
+    </p>
+  </header>
+
+  <div class="verdict">
+    <div class="tag">Right now</div>
+    <p id="verdictText">Press <strong>Show me</strong> and the console will run itself and explain what happens.</p>
+  </div>
+
+  <div class="panel console">
+    <div class="ctrl-group">
+      <div class="eyebrow">Run</div>
+      <div class="btn-row">
+        <button id="btnTour" class="primary">▶ Show me</button>
+        <button id="btnPlay">Play</button>
+        <button id="btnBack" title="Step backward one tick">‹ Back</button>
+        <button id="btnFwd" title="Step forward one tick">Step ›</button>
+        <button id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="eyebrow">The hotel</div>
+      <div class="btn-row" style="gap:18px">
+        <div class="slider">
+          <label for="sConns">Phone lines <span class="num" id="vConns">12</span></label>
+          <input type="range" id="sConns" min="4" max="64" step="4" value="12">
+        </div>
+        <div class="slider">
+          <label for="sChat">How talkative <span class="num" id="vChat">low</span></label>
+          <input type="range" id="sChat" min="1" max="20" step="1" value="3">
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="eyebrow">Break something</div>
+      <div class="btn-row">
+        <button id="btnSlow">Slow request</button>
+        <button id="btnHangup">Guest hangs up</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="eyebrow">Multiplexer setting</div>
+      <label class="toggle" for="cDereg">
+        <input type="checkbox" id="cDereg" checked>
+        <span>Let go of hung-up lines <em style="color:var(--muted)">(uncheck = the classic bug)</em></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------- line field -->
+  <div class="section-head">
+    <h2>The lines</h2>
+    <span class="hint">One box per connection. It glows amber the moment that guest starts speaking. Click any line to inspect it.</span>
+  </div>
+  <div class="panel linefield">
+    <div class="lines" id="lines"></div>
+  </div>
+
+  <div class="panel inspector" id="inspector" hidden></div>
+
+  <!-- ---------------------------------------------------------- modules -->
+  <div class="section-head">
+    <h2>Three ways to staff the desk</h2>
+    <span class="hint">Same traffic, three responses. Watch <em>staff</em>, <em>effort</em> and <em>answer time</em> — they never all stay low together except in the third panel.</span>
+  </div>
+
+  <div class="modules" id="modules"></div>
+
+  <div class="panel legend">
+    <span><i class="lamp"></i> quiet line</span>
+    <span><i class="lamp on"></i> guest is speaking</span>
+    <span><i class="lamp ok"></i> just answered</span>
+    <span><i class="lamp alarm"></i> hung up, still being watched (bug)</span>
+    <span><i class="cell" style="box-shadow:inset 0 0 0 2px var(--ink)"></i> the line being checked this instant</span>
+  </div>
+
+  <!-- -------------------------------------------------------- scenarios -->
+  <div class="section-head">
+    <h2>Predict, then run</h2>
+    <span class="hint">Commit to a guess first — being wrong here is the fastest way to learn the mechanism.</span>
+  </div>
+  <div class="scenarios" id="scenarios"></div>
+
+  <!-- -------------------------------------------------------------- log -->
+  <div class="panel log">
+    <div class="log-head">
+      <h2>Operator's log</h2>
+      <span class="eyebrow num" id="tickLabel">tick 0</span>
+    </div>
+    <div class="log-body" id="log"></div>
+  </div>
+
+  <p class="footnote">
+    Every number here mirrors something measured for real in this lab. On the author's
+    machine, 2,000 idle connections cost <b>2,000 threads</b> in the first design;
+    the polling design burned <b>2,998&nbsp;ms of CPU in 3&nbsp;seconds</b> — a full core —
+    asking 4.2&nbsp;million pointless questions; the multiplexer used <b>0&nbsp;ms and woke
+    0&nbsp;times</b>. Unchecking “let go of hung-up lines” reproduces a real bug that
+    produced <b>351,609 wakeups in half a second</b>. See <code>README.md</code> §13.
+  </p>
+</div>
+
+<script>
+/* ==========================================================================
+   THE I/O SWITCHBOARD
+   Pure state + reducer + snapshot history, so stepping backward is free and
+   every replay is identical. Traffic is a pure function of (seed, tick, line),
+   never a stateful RNG — that is what makes step-back exact.
+   ========================================================================== */
+
+const NAMES = ["Alice","Bob","Carol","Dan","Erin","Frank","Grace","Hugo","Iris","Jack",
+               "Kira","Liam","Mona","Nils","Opal","Pete","Quinn","Rosa","Sam","Tara",
+               "Umar","Vera","Wes","Xena","Yuri","Zara"];
+const lineName = i => i < NAMES.length ? NAMES[i] : "Guest " + (i + 1);
+
+const SCAN_RATE  = 4;   // lines the running employee can check per tick
+const SLOW_TICKS = 8;   // how long one "slow request" occupies a handler
+const CPU_WINDOW = 24;  // ticks averaged into the effort meter
+
+const DESIGNS = [
+  { id:"threads", title:"One per line",
+    sub:"A dedicated employee holds each receiver, waiting. Simple, correct, and it hires one person per guest." },
+  { id:"poll", title:"One who runs",
+    sub:"A single employee sprints down the row picking up every receiver in turn: “anything? no.” Never rests." },
+  { id:"mux", title:"The light board",
+    sub:"One employee sleeps in a chair. The phone system lights the lines that are speaking and wakes them. This is I/O multiplexing." }
+];
+
+/* -------------------------------------------------------- deterministic noise */
+function noise(seed, tick, id) {
+  let h = (seed ^ Math.imul(tick, 374761393) ^ Math.imul(id, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/* ------------------------------------------------------------------- state */
+function initial(nConns, chat, seed) {
+  const lines = [];
+  for (let i = 0; i < nConns; i++) {
+    lines.push({ id:i, name:lineName(i), closed:false, speakingUntil:-1 });
+  }
+  const mk = () => ({
+    pending:{},        // lineId -> tick the utterance began
+    served:{},         // lineId -> tick it was answered (for the green flash)
+    busyUntil:{},      // lineId -> tick a slow handler frees up (threads design)
+    stuckUntil:-1,     // whole worker occupied until this tick (poll & mux)
+    zombies:[],        // hung-up lines still registered (the bug)
+    cursor:0,
+    syscalls:0,
+    wakeups:0,
+    cpuHist:[],
+    waits:[],
+    action:"idle"
+  });
+  return {
+    seed, tick:0, nConns, chat,
+    slowArmed:false, deregister:true,
+    lines,
+    d:{ threads:mk(), poll:mk(), mux:mk() },
+    log:[],
+    selected:null
+  };
+}
+
+function say(s, msg, alarm) {
+  s.log.unshift({ t:s.tick, msg, alarm:!!alarm });
+  if (s.log.length > 70) s.log.pop();
+}
+
+function pushCpu(d, v) {
+  d.cpuHist.push(v);
+  if (d.cpuHist.length > CPU_WINDOW) d.cpuHist.shift();
+}
+/* Both meters are rolling, not lifetime: a lifetime average would keep
+   reporting a fault long after it was fixed, and would hide one that just
+   started. Capping also keeps these arrays bounded on long runs. */
+function pushWait(d, v) {
+  d.waits.push(v);
+  if (d.waits.length > 200) d.waits.shift();
+}
+const cpuAvg = d => d.cpuHist.length ? d.cpuHist.reduce((a,b)=>a+b,0) / d.cpuHist.length : 0;
+const avgWait = d => d.waits.length ? d.waits.reduce((a,b)=>a+b,0) / d.waits.length : 0;
+
+/* ------------------------------------------------------------- the reducer */
+function step(state) {
+  const s = structuredClone(state);
+  s.tick++;
+  const t = s.tick;
+
+  /* 1. traffic — identical for all three designs, derived purely from the seed */
+  const p = s.chat / 100;
+  for (const ln of s.lines) {
+    if (ln.closed) continue;
+    if (noise(s.seed, t, ln.id) < p) {
+      ln.speakingUntil = t + 1;
+      for (const k of ["threads","poll","mux"]) {
+        if (s.d[k].pending[ln.id] === undefined) s.d[k].pending[ln.id] = t;
+      }
+    }
+  }
+
+  stepThreads(s, t);
+  stepPoll(s, t);
+  stepMux(s, t);
+  return s;
+}
+
+/* ---- design 1: one thread per connection ---------------------------------
+   Every line has its own employee, so waiting costs staff but never costs
+   anyone else's latency. A slow request occupies exactly one employee.      */
+function stepThreads(s, t) {
+  const d = s.d.threads;
+  let handled = 0, busy = 0;
+  for (const ln of s.lines) {
+    if (d.busyUntil[ln.id] > t) { busy++; continue; }
+    const since = d.pending[ln.id];
+    if (since === undefined) continue;
+    if (s.slowArmed && ln.id === 0) {
+      d.busyUntil[ln.id] = t + SLOW_TICKS;   // only THIS employee is tied up
+      delete d.pending[ln.id];
+      pushWait(d, t - since);
+      d.served[ln.id] = t;
+      d.syscalls++;
+      busy++;
+      continue;
+    }
+    delete d.pending[ln.id];
+    pushWait(d, t - since);
+    d.served[ln.id] = t;
+    d.syscalls++;
+    handled++;
+  }
+  pushCpu(d, Math.min(1, handled * 0.12 + busy * 0.02));
+  const staff = s.lines.filter(l => !l.closed).length;
+  d.action = handled
+    ? `${handled} employee${handled>1?"s":""} heard their guest and answered.\n${staff} on payroll, the rest asleep on the line.`
+    : `All ${staff} employees holding a silent receiver.`;
+}
+
+/* ---- design 2: one thread, hot-loop polling ------------------------------
+   One employee, so no staffing cost — but they must ask every line in turn,
+   which costs a syscall each and makes answer time grow with hotel size.    */
+function stepPoll(s, t) {
+  const d = s.d.poll;
+  if (d.stuckUntil > t) {
+    pushCpu(d, 1);
+    d.action = `Tied up on ${lineName(0)}'s slow request.\nNobody is checking any other line.`;
+    return;
+  }
+  const open = s.lines.filter(l => !l.closed);
+  let asked = 0, handled = 0;
+  const scanned = [];
+  for (let i = 0; i < SCAN_RATE && open.length; i++) {
+    const ln = open[d.cursor % open.length];
+    d.cursor = (d.cursor + 1) % open.length;
+    asked++;
+    scanned.push(ln.id);
+    const since = d.pending[ln.id];
+    if (since !== undefined) {
+      if (s.slowArmed && ln.id === 0) {
+        d.stuckUntil = t + SLOW_TICKS;       // the ONLY employee is now stuck
+        delete d.pending[ln.id];
+        pushWait(d, t - since);
+        d.served[ln.id] = t;
+        break;
+      }
+      delete d.pending[ln.id];
+      pushWait(d, t - since);
+      d.served[ln.id] = t;
+      handled++;
+    }
+  }
+  d.syscalls += asked;
+  d.scanned = scanned;
+  pushCpu(d, 1); // never sleeps, by construction
+  d.action = `Asked ${asked} line${asked>1?"s":""}: ${asked-handled} said nothing.\nA full lap of ${open.length} lines takes ${Math.ceil(open.length/SCAN_RATE)} ticks.`;
+}
+
+/* ---- design 3: io-multiplexing -------------------------------------------
+   One employee who sleeps. The kernel keeps the interest set and hands back
+   only the ready set. Zero cost while idle — and one shared fate when busy. */
+function stepMux(s, t) {
+  const d = s.d.mux;
+
+  if (d.stuckUntil > t) {
+    pushCpu(d, 1);
+    const waiting = Object.keys(d.pending).length;
+    d.action = `BLOCKED inside ${lineName(0)}'s slow request.\nselect() is not being called — ${waiting} lit lamp${waiting===1?"":"s"} ignored.`;
+    return;
+  }
+
+  const ready = Object.keys(d.pending).map(Number);
+  const zombies = d.zombies.slice();          // hung-up lines never deregistered
+  if (!ready.length && !zombies.length) {
+    pushCpu(d, 0);
+    d.action = "Asleep inside select().\nNo lamps lit, so the kernel never woke us. 0 syscalls, 0 CPU.";
+    d.readySet = [];
+    return;
+  }
+
+  d.wakeups++;
+  d.syscalls += 1 + ready.length + zombies.length;   // the select, plus one read each
+  d.readySet = ready.concat(zombies);
+
+  let handled = 0;
+  for (const id of ready) {
+    const since = d.pending[id];
+    if (s.slowArmed && id === 0) {
+      d.stuckUntil = t + SLOW_TICKS;
+      delete d.pending[id];
+      pushWait(d, t - since);
+      d.served[id] = t;
+      say(s, `${lineName(0)} sent a slow request. The single event-loop thread is now blocked inside that handler — every other line on this board is frozen until it finishes.`, true);
+      break;
+    }
+    delete d.pending[id];
+    pushWait(d, t - since);
+    d.served[id] = t;
+    handled++;
+  }
+
+  pushCpu(d, Math.min(1, zombies.length ? 1 : handled * 0.12 + 0.02));
+
+  if (zombies.length) {
+    d.action = `Woken instantly by ${zombies.length} hung-up line${zombies.length>1?"s":""} that was never released.\nreads return “gone”, the lamp stays lit, we wake again. Forever.`;
+  } else {
+    d.action = `Woken once. ${ready.length} lamp${ready.length===1?"":"s"} lit out of ${s.lines.filter(l=>!l.closed).length}.\nRead only those, then straight back to sleep.`;
+  }
+}
+
+/* ============================================================== controller */
+let state = initial(12, 3, 1234);
+let history = [];
+let timer = null;
+let tour = null;
+
+const $ = id => document.getElementById(id);
+
+function commit(next) {
+  history.push(state);
+  if (history.length > 500) history.shift();
+  state = next;
+  render();
+}
+function advance() { commit(step(state)); }
+function back() {
+  if (!history.length) return;
+  state = history.pop();
+  render();
+}
+function reset(keepSettings = true) {
+  stop(); stopTour();
+  const n = keepSettings ? state.nConns : 12;
+  const c = keepSettings ? state.chat : 3;
+  const dereg = keepSettings ? state.deregister : true;
+  history = [];
+  state = initial(n, c, (Math.random() * 1e9) | 0);
+  state.deregister = dereg;
+  render();
+}
+function play()  { if (timer) return; timer = setInterval(advance, 320); $("btnPlay").textContent = "Pause"; $("btnPlay").classList.add("armed"); }
+function stop()  { if (timer) clearInterval(timer); timer = null; $("btnPlay").textContent = "Play"; $("btnPlay").classList.remove("armed"); }
+
+/* ------------------------------------------------------------------ render */
+function buildModules() {
+  $("modules").innerHTML = DESIGNS.map(d => `
+    <section class="panel module" id="mod-${d.id}">
+      <div class="module-head">
+        <h3>${d.title}</h3>
+        <p>${d.sub}</p>
+      </div>
+      <div class="module-body">
+        <div class="strip" id="strip-${d.id}"></div>
+        <div class="gauges">
+          <div class="gauge">
+            <div class="g-label">Staff</div>
+            <div class="g-value" id="staff-${d.id}">0</div>
+          </div>
+          <div class="gauge">
+            <div class="g-label">Answer time</div>
+            <div class="g-value" id="wait-${d.id}">—</div>
+          </div>
+          <div class="gauge">
+            <div class="g-label">Effort</div>
+            <div class="g-value" id="cpu-${d.id}">0%</div>
+            <div class="bar"><i id="cpubar-${d.id}" style="width:0%"></i></div>
+          </div>
+          <div class="gauge">
+            <div class="g-label">Questions asked</div>
+            <div class="g-value" id="sys-${d.id}">0</div>
+          </div>
+        </div>
+        <div class="well action" id="act-${d.id}"></div>
+      </div>
+    </section>`).join("");
+}
+
+function render() {
+  const s = state;
+  $("tickLabel").textContent = "tick " + s.tick;
+  $("vConns").textContent = s.nConns;
+  $("vChat").textContent = s.chat <= 3 ? "low" : s.chat <= 9 ? "medium" : "high";
+  $("btnBack").disabled = history.length === 0;
+  $("cDereg").checked = s.deregister;
+  $("btnSlow").classList.toggle("armed", s.slowArmed);
+
+  /* the line field */
+  $("lines").innerHTML = s.lines.map(ln => {
+    const speaking = ln.speakingUntil >= s.tick;
+    const zombie = !s.deregister && s.d.mux.zombies.includes(ln.id);
+    const cls = zombie ? "alarm" : speaking ? "on" : "";
+    return `<button class="line ${ln.closed ? "closed" : ""} ${s.selected === ln.id ? "sel" : ""}"
+              data-id="${ln.id}" aria-label="Inspect ${ln.name}">
+              <i class="lamp ${cls}"></i><span class="nm">${ln.closed ? "—" : ln.name}</span>
+            </button>`;
+  }).join("");
+
+  /* per-design strips and gauges */
+  for (const def of DESIGNS) {
+    const d = s.d[def.id];
+    $("strip-" + def.id).innerHTML = s.lines.map(ln => {
+      let c = "cell";
+      if (ln.closed && !(def.id === "mux" && d.zombies.includes(ln.id))) c += " gone";
+      else if (def.id === "mux" && d.zombies.includes(ln.id)) c += " zombie";
+      else if (d.pending[ln.id] !== undefined) c += " waiting";
+      else if (d.served[ln.id] !== undefined && s.tick - d.served[ln.id] < 2) c += " served";
+      if (def.id === "poll" && (d.scanned || []).includes(ln.id)) c += " scan";
+      return `<i class="${c}" title="${ln.name}"></i>`;
+    }).join("");
+
+    const staff = def.id === "threads" ? s.lines.filter(l => !l.closed).length : 1;
+    $("staff-" + def.id).textContent = staff;
+    $("staff-" + def.id).className = "g-value" + (staff > 16 ? " warn" : "");
+
+    const w = avgWait(d);
+    $("wait-" + def.id).textContent = d.waits.length ? w.toFixed(1) : "—";
+    $("wait-" + def.id).className = "g-value" + (w > 4 ? " warn" : "");
+
+    const cpu = Math.round(cpuAvg(d) * 100);
+    $("cpu-" + def.id).textContent = cpu + "%";
+    $("cpu-" + def.id).className = "g-value" + (cpu > 70 ? " warn" : "");
+    const bar = $("cpubar-" + def.id);
+    bar.style.width = cpu + "%";
+    bar.className = cpu > 70 ? "hot" : "";
+
+    $("sys-" + def.id).textContent = d.syscalls.toLocaleString();
+    $("act-" + def.id).innerHTML = (d.action || "").replace(/\n/g, "<br>");
+    $("mod-" + def.id).classList.toggle("spotlight", def.id === "mux");
+  }
+
+  /* the log */
+  $("log").innerHTML = s.log.length
+    ? s.log.map(e => `<div class="entry ${e.alarm ? "alarm" : ""}">
+        <span class="t">${String(e.t).padStart(3,"0")}</span><p class="m">${e.msg}</p></div>`).join("")
+    : `<div class="entry"><span class="t">—</span><p class="m"><em>Nothing has happened yet. Press Play, or Show me.</em></p></div>`;
+
+  renderVerdict();
+  renderInspector();
+}
+
+function renderVerdict() {
+  const s = state;
+  if (s.tick < 3) return;
+  const T = s.d.threads, P = s.d.poll, M = s.d.mux;
+  const staff = s.lines.filter(l => !l.closed).length;
+  const zom = !s.deregister && M.zombies.length;
+
+  let v = `After <strong>${s.tick} ticks</strong> of the same traffic across ${staff} lines: `
+    + `<strong>one-per-line</strong> hired ${staff} employees and answers in ${avgWait(T).toFixed(1)} ticks. `
+    + `<strong>The runner</strong> hired 1 but is at ${Math.round(cpuAvg(P)*100)}% effort and answers in ${avgWait(P).toFixed(1)} ticks. `
+    + `<strong>The light board</strong> hired 1, sits at ${Math.round(cpuAvg(M)*100)}% effort, and answers in ${avgWait(M).toFixed(1)} ticks.`;
+
+  if (zom) {
+    v = `<strong style="color:var(--red)">The light board is stuck at 100% effort with nothing to do.</strong> `
+      + `${M.zombies.length} guest${M.zombies.length>1?"s":""} hung up, but those lines were never released, so their lamps stay lit forever. `
+      + `It has now been woken ${M.wakeups.toLocaleString()} times and asked ${M.syscalls.toLocaleString()} questions — all of them pointless. `
+      + `This is the single most common event-loop bug in production.`;
+  } else if (s.slowArmed && M.stuckUntil > s.tick) {
+    v = `<strong style="color:var(--red)">One slow request has frozen the whole light board.</strong> `
+      + `${lineName(0)}'s handler is still running on the only thread, so every other guest waits — `
+      + `answer time there is ${avgWait(M).toFixed(1)} ticks against ${avgWait(T).toFixed(1)} for one-per-line, which isolates the damage. `
+      + `Shared loop means shared fate.`;
+  } else if (avgWait(P) > avgWait(M) * 2 && P.waits.length > 4) {
+    v += ` <br><br>Notice the runner: it costs no staff, but answer time is <strong>${(avgWait(P)/Math.max(avgWait(M),0.1)).toFixed(1)}× worse</strong> `
+      + `because every guest waits for a full lap of the hotel. Add lines and it gets worse — that is the cost of asking instead of being told.`;
+  }
+  $("verdictText").innerHTML = v;
+}
+
+function renderInspector() {
+  const box = $("inspector"), s = state;
+  if (s.selected === null || !s.lines[s.selected]) { box.hidden = true; return; }
+  const ln = s.lines[s.selected];
+  box.hidden = false;
+  const cell = k => {
+    const d = s.d[k];
+    if (d.pending[ln.id] !== undefined) return `waiting ${s.tick - d.pending[ln.id]} tick(s) to be answered`;
+    if (d.zombies.includes(ln.id)) return `<b style="color:var(--red)">hung up, still registered — waking the loop endlessly</b>`;
+    if (ln.closed) return "released";
+    if (d.served[ln.id] !== undefined) return `last answered at tick ${d.served[ln.id]}`;
+    return "quiet, never yet spoken";
+  };
+  box.innerHTML = `<strong>${ln.name}</strong> — line ${ln.id}
+    ${ln.closed ? " · <span style='color:var(--red)'>hung up</span>" : ln.speakingUntil >= s.tick ? " · <span style='color:var(--amber)'>speaking now</span>" : " · quiet"}
+    <div style="margin-top:8px;display:grid;gap:4px">
+      <div><span class="k">one per line&nbsp;&nbsp;</span> ${cell("threads")}</div>
+      <div><span class="k">the runner&nbsp;&nbsp;&nbsp;&nbsp;</span> ${cell("poll")}</div>
+      <div><span class="k">light board&nbsp;&nbsp;&nbsp;</span> ${cell("mux")}</div>
+    </div>`;
+}
+
+/* ------------------------------------------------------------------ events */
+$("lines").addEventListener("click", e => {
+  const b = e.target.closest(".line"); if (!b) return;
+  const id = +b.dataset.id;
+  state.selected = state.selected === id ? null : id;
+  render();
+});
+$("btnPlay").addEventListener("click", () => timer ? stop() : play());
+$("btnFwd").addEventListener("click", () => { stop(); advance(); });
+$("btnBack").addEventListener("click", () => { stop(); back(); });
+$("btnReset").addEventListener("click", () => reset(true));
+
+$("sConns").addEventListener("input", e => {
+  const n = +e.target.value;
+  const dereg = state.deregister, chat = state.chat;
+  stop(); stopTour(); history = [];
+  state = initial(n, chat, (Math.random()*1e9)|0);
+  state.deregister = dereg;
+  render();
+});
+$("sChat").addEventListener("input", e => { state.chat = +e.target.value; render(); });
+$("cDereg").addEventListener("change", e => {
+  state.deregister = e.target.checked;
+  if (state.deregister) {
+    const n = state.d.mux.zombies.length;
+    state.d.mux.zombies = [];
+    if (n) say(state, `Released ${n} hung-up line${n>1?"s":""}. The board went quiet again — that single act is <em>key.cancel(); ch.close();</em> in the real code.`);
+  }
+  render();
+});
+
+$("btnSlow").addEventListener("click", () => {
+  state.slowArmed = !state.slowArmed;
+  say(state, state.slowArmed
+    ? `Armed: ${lineName(0)}'s next request will take a long time to handle. Watch what it does to <em>everyone else's</em> answer time on each panel.`
+    : `Disarmed the slow request.`);
+  render();
+});
+
+$("btnHangup").addEventListener("click", () => {
+  const open = state.lines.filter(l => !l.closed);
+  if (!open.length) return;
+  const ln = open[Math.floor(Math.random() * open.length)];
+  ln.closed = true;
+  for (const k of ["threads","poll","mux"]) delete state.d[k].pending[ln.id];
+  if (!state.deregister) {
+    state.d.mux.zombies.push(ln.id);
+    say(state, `${ln.name} hung up. The light board was told the line is “readable” — because <em>end of the call is also news</em> — but the line was never released, so that lamp is now stuck on.`, true);
+  } else {
+    say(state, `${ln.name} hung up. The light board noticed, released the line, and went back to sleep.`);
+  }
+  render();
+});
+
+/* ------------------------------------------------------------- guided tour */
+const TOUR = [
+  { run:8,  msg:"Watch the quiet hotel first. Almost nobody is speaking — but look at the Staff figure on the left panel and the Effort meter in the middle." },
+  { run:10, msg:"There it is: one-per-line hires an employee per guest, the runner burns 100% effort asking silent lines, and the light board sits at nearly zero on both counts. That is the whole argument." },
+  { run:2,  msg:"Now let's break it. Arming a slow request from Alice…", act:s => { s.slowArmed = true; } },
+  { run:10, msg:"Alice's request ties up one employee on the left — and nobody else notices. But on the light board it froze the ONLY thread, so every other guest is waiting. Shared loop, shared fate." },
+  { run:2,  msg:"Disarming that. Now the subtler bug: a guest hangs up, and the light board forgets to let go of the line…", act:s => { s.slowArmed = false; s.deregister = false; const open = s.lines.filter(l=>!l.closed); if (open.length) { const ln = open[0]; ln.closed = true; s.d.mux.zombies.push(ln.id); } } },
+  { run:14, msg:"Look at the light board's Questions asked. A guest who LEFT is now waking it forever, because “the call ended” is itself news the phone system keeps reporting. One core, pinned, by nobody. That is the 351,609-wakeups bug from the lab." },
+  { run:1,  msg:"Fixing it — release the line. Watch the effort meter fall back to nothing. Tick through the panels yourself, and try the sliders: more lines punishes the runner hardest.", act:s => { s.deregister = true; s.d.mux.zombies = []; } }
+];
+
+function stopTour() { if (tour) { clearInterval(tour); tour = null; $("btnTour").textContent = "▶ Show me"; $("btnTour").classList.remove("armed"); } }
+
+$("btnTour").addEventListener("click", () => {
+  if (tour) { stopTour(); return; }
+  stop();
+  history = [];
+  const dereg = true;
+  state = initial(Math.max(state.nConns, 12), 4, (Math.random()*1e9)|0);
+  state.deregister = dereg;
+  let i = 0, ran = 0;
+  $("btnTour").textContent = "■ Stop";
+  $("btnTour").classList.add("armed");
+  say(state, TOUR[0].msg);
+  render();
+  tour = setInterval(() => {
+    if (i >= TOUR.length) { stopTour(); return; }
+    const stepDef = TOUR[i];
+    if (ran === 0 && stepDef.act) { const s = structuredClone(state); stepDef.act(s); history.push(state); state = s; }
+    if (ran === 0 && i > 0) say(state, stepDef.msg);
+    advance();
+    ran++;
+    if (ran >= stepDef.run) { i++; ran = 0; }
+  }, 330);
+});
+
+/* -------------------------------------------------------------- scenarios */
+const SCENARIOS = [
+  { title:"The idle crowd",
+    q:"64 lines, almost nobody speaking. Which design burns the most CPU?",
+    opts:["One employee per line — 64 threads is huge","The runner — it never stops asking","The light board — it watches all 64"],
+    right:1,
+    why:"The runner. Blocked employees cost memory, not CPU — a waiting thread is descheduled and uses nothing. The runner can never sleep, because nobody tells it when data arrives, so it pins a core asking 64 silent lines over and over. The light board is woken only when something really happens.",
+    setup:s => { s.nConns = 64; s.chat = 2; } },
+
+  { title:"One slow request",
+    q:"Alice sends a request that takes a long time to handle. Whose answer time suffers?",
+    opts:["Only Alice — she made the slow request","Everyone on the light board","Everyone, in all three designs"],
+    right:1,
+    why:"Everyone on the light board (and on the runner). Both use ONE thread, so while it is inside Alice's handler nobody calls select() and every other guest's already-arrived words sit unread. One-per-line isolates the damage — that isolation is exactly what you trade away for density.",
+    setup:s => { s.slowArmed = true; s.chat = 6; } },
+
+  { title:"The guest who left",
+    q:"A guest hangs up and the light board never releases the line. What happens to its CPU?",
+    opts:["Nothing — a closed line is quiet","It pins a core at 100% forever","The server crashes with an error"],
+    right:1,
+    why:"It pins a core, silently. Hanging up makes the line permanently 'readable' — end-of-stream is news too — so the kernel keeps reporting it, the handler keeps ignoring it, and the loop is woken instantly forever. No error, no failed request; just a core at 100% with normal traffic. The fix is one line: cancel the registration and close it.",
+    setup:s => { s.deregister = false; const open = s.lines.filter(l=>!l.closed); if (open.length) { open[0].closed = true; s.d.mux.zombies.push(open[0].id); } } },
+
+  { title:"A bigger hotel",
+    q:"Go from 12 lines to 64, same talkativeness. Whose answer time gets worse?",
+    opts:["The light board — more lamps to check","The runner — a full lap now takes 5× longer","Neither — both scale fine"],
+    right:1,
+    why:"The runner. Its lap costs one question per line, so answer time grows linearly with hotel size: your users get slower as you get more popular. The light board is handed only the lines that are ready, so its cost tracks activity, not connection count. That is the whole reason epoll replaced select.",
+    setup:s => { s.nConns = 64; s.chat = 5; } }
+];
+
+function buildScenarios() {
+  $("scenarios").innerHTML = SCENARIOS.map((sc, i) => `
+    <section class="panel scenario">
+      <h4>${sc.title}</h4>
+      <p class="q">${sc.q}</p>
+      <div class="opts">
+        ${sc.opts.map((o, j) => `<button data-sc="${i}" data-opt="${j}">${o}</button>`).join("")}
+      </div>
+      <div class="outcome" id="out-${i}"></div>
+    </section>`).join("");
+}
+
+$("scenarios").addEventListener("click", e => {
+  const b = e.target.closest("button[data-sc]"); if (!b) return;
+  const i = +b.dataset.sc, pick = +b.dataset.opt, sc = SCENARIOS[i];
+  const correct = pick === sc.right;
+
+  b.parentElement.querySelectorAll("button").forEach(x => x.classList.remove("picked"));
+  b.classList.add("picked");
+
+  const out = $("out-" + i);
+  out.className = "outcome show " + (correct ? "right" : "wrong");
+  out.innerHTML = `<strong>${correct ? "You predicted it." : "Not quite — and this is the useful part."}</strong> ${sc.why}<br><br><em>Running it now — watch the panels.</em>`;
+
+  stop(); stopTour();
+  history = [];
+  const base = initial(state.nConns, state.chat, (Math.random()*1e9)|0);
+  sc.setup(base);
+  if (base.nConns !== state.nConns) {
+    const cfg = { n: base.nConns, chat: base.chat, slow: base.slowArmed, dereg: base.deregister, zom: base.d.mux.zombies.slice(), closed: base.lines.filter(l=>l.closed).map(l=>l.id) };
+    const fresh = initial(cfg.n, cfg.chat, (Math.random()*1e9)|0);
+    fresh.slowArmed = cfg.slow; fresh.deregister = cfg.dereg;
+    cfg.closed.forEach(id => { if (fresh.lines[id]) fresh.lines[id].closed = true; });
+    fresh.d.mux.zombies = cfg.zom.filter(id => id < cfg.n);
+    state = fresh;
+  } else {
+    state = base;
+  }
+  $("sConns").value = state.nConns;
+  $("sChat").value = state.chat;
+  say(state, `Scenario: <em>${sc.title}</em>. ${sc.q}`);
+  render();
+  play();
+});
+
+/* --------------------------------------------------------------- bootstrap */
+buildModules();
+buildScenarios();
+render();
+</script>

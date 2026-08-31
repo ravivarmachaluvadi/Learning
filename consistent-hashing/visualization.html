@@ -1,0 +1,785 @@
+<title>The Clockwise Rule</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+  :root {
+    --ground:    #F4F3F0;
+    --surface:   #FFFFFF;
+    --surface-2: #EBEAE6;
+    --line:      #D8D6D0;
+    --line-soft: #E6E4DF;
+    --ink:       #17171A;
+    --ink-2:     #47474E;
+    --ink-3:     #77777F;
+
+    --accent:      #3B5BDB;
+    --accent-soft: #E3E7FA;
+    --hot:         #B03A5B;
+    --hot-soft:    #F8E3E9;
+    --good:        #2F7048;
+    --good-soft:   #E0EFE5;
+    --warn:        #9A6608;
+    --warn-soft:   #F7EDD6;
+
+    /* one stable colour per machine, declared in the on-page legend */
+    --m0: #3B5BDB;  --m1: #0B8079;  --m2: #9A6608;  --m3: #B03A5B;
+    --m4: #3F7A3F;  --m5: #7C4DBE;  --m6: #A5522F;  --m7: #37699B;
+
+    --shadow: 0 1px 2px rgba(20,20,25,.05), 0 10px 30px rgba(20,20,25,.06);
+    --r: 5px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:    #101012;
+      --surface:   #1A1A1E;
+      --surface-2: #24242A;
+      --line:      #33333B;
+      --line-soft: #28282F;
+      --ink:       #ECEBE8;
+      --ink-2:     #B5B4B0;
+      --ink-3:     #83827E;
+      --accent:      #8098F7;
+      --accent-soft: #1D2340;
+      --hot:         #EE7E97;
+      --hot-soft:    #3A1C25;
+      --good:        #6DC38C;
+      --good-soft:   #16301F;
+      --warn:        #E0AC4E;
+      --warn-soft:   #33280F;
+      --m0: #7B93F5;  --m1: #35B8AE;  --m2: #DDA92E;  --m3: #E8788F;
+      --m4: #6BBF6B;  --m5: #B48BE8;  --m6: #DE8A62;  --m7: #6FA6D8;
+      --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:    #101012;  --surface:   #1A1A1E;  --surface-2: #24242A;
+    --line:      #33333B;  --line-soft: #28282F;
+    --ink:       #ECEBE8;  --ink-2:     #B5B4B0;  --ink-3:     #83827E;
+    --accent: #8098F7; --accent-soft: #1D2340;
+    --hot: #EE7E97; --hot-soft: #3A1C25;
+    --good: #6DC38C; --good-soft: #16301F;
+    --warn: #E0AC4E; --warn-soft: #33280F;
+    --m0: #7B93F5;  --m1: #35B8AE;  --m2: #DDA92E;  --m3: #E8788F;
+    --m4: #6BBF6B;  --m5: #B48BE8;  --m6: #DE8A62;  --m7: #6FA6D8;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: Archivo, system-ui, -apple-system, sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 30px 20px 70px; }
+  h1 { font-size: 34px; letter-spacing: -.025em; margin: 0 0 8px; font-weight: 700; text-wrap: balance; }
+  h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3);
+       font-weight: 600; margin: 0; }
+  p { margin: 0 0 10px; }
+  .lede { color: var(--ink-2); max-width: 66ch; margin-bottom: 22px; }
+  .mono, code { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  code { font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+  .panel-hd { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); display: flex;
+              justify-content: space-between; align-items: center; gap: 10px; }
+  .panel-bd { padding: 14px; }
+
+  /* verdict */
+  .verdict { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 20px; align-items: center;
+             background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+             border-radius: var(--r); padding: 15px 18px; box-shadow: var(--shadow); margin-bottom: 20px; }
+  .verdict.hot  { border-left-color: var(--hot); }
+  .verdict.good { border-left-color: var(--good); }
+  .big { font-family: "JetBrains Mono", monospace; font-size: 40px; font-weight: 700; line-height: 1;
+         font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+  .big small { display: block; font-family: Archivo, sans-serif; font-size: 10.5px; font-weight: 600;
+               letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-top: 6px; }
+  .vtext strong { font-weight: 600; }
+  .vtext em { font-style: normal; color: var(--ink-3); display: block; font-size: 13.5px; margin-top: 3px; }
+
+  /* main layout */
+  .main { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+  #ringSvg { width: 100%; height: auto; display: block; }
+  .ring-key { cursor: pointer; }
+  .ring-key:hover { stroke: var(--ink); stroke-width: 2; }
+
+  /* load bars */
+  .loadrow { display: grid; grid-template-columns: 14px 1fr 62px; gap: 8px; align-items: center;
+             margin-bottom: 7px; font-size: 13px; }
+  .chip { width: 12px; height: 12px; border-radius: 3px; }
+  .track { height: 15px; background: var(--surface-2); border-radius: 3px; position: relative; overflow: hidden; }
+  .track i { display: block; height: 100%; transition: width .35s ease; }
+  .track b { position: absolute; inset: 0; border-left: 2px dashed var(--ink-3); opacity: .55; }
+  .loadrow span { font-family: "JetBrains Mono", monospace; font-size: 12px; text-align: right;
+                  font-variant-numeric: tabular-nums; }
+
+  /* the comparison strips -- the heart of the page */
+  .strip { display: flex; flex-wrap: wrap; gap: 2px; margin: 5px 0 3px; }
+  .cell { width: 13px; height: 13px; border-radius: 2px; }
+  .cell.moved { outline: 2px solid var(--ink); outline-offset: 1px; animation: flash .7s ease; }
+  @keyframes flash { 0%,40% { transform: scale(1.5); } 100% { transform: scale(1); } }
+  .striplabel { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+  .striplabel b { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  /* controls */
+  button { font-family: inherit; font-size: 13px; padding: 6px 11px; border-radius: 4px;
+           border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.1); background: var(--accent); }
+  button.danger { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, var(--line)); }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; } .seg button + button { border-left: 1px solid var(--line); }
+  label.f { display: grid; gap: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+            color: var(--ink-3); font-weight: 600; }
+  input[type=range] { width: 100%; }
+
+  /* log */
+  .log { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+  .entry { padding: 7px 11px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+  .entry .d { display: block; font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+              color: var(--ink-3); margin-top: 2px; }
+  .entry.hot { background: var(--hot-soft); box-shadow: inset 3px 0 var(--hot); }
+  .entry.good { background: var(--good-soft); box-shadow: inset 3px 0 var(--good); }
+  .entry.warn { background: var(--warn-soft); box-shadow: inset 3px 0 var(--warn); }
+
+  /* scenarios */
+  .scn { border: 1px solid var(--line); border-radius: var(--r); padding: 12px; background: var(--surface); }
+  .scn + .scn { margin-top: 10px; }
+  .scn h3 { margin: 0 0 4px; font-size: 14.5px; font-weight: 600; }
+  .scn p { font-size: 13px; color: var(--ink-2); margin: 0 0 9px; }
+  .ans { margin-top: 10px; padding: 10px 12px; border-radius: 4px; font-size: 13.5px; }
+  .ans.y { background: var(--good-soft); border: 1px solid var(--good); }
+  .ans.n { background: var(--hot-soft); border: 1px solid var(--hot); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 11px; font-size: 12px; color: var(--ink-2); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .note { font-size: 12.5px; color: var(--ink-3); }
+  .sect { margin-top: 24px; }
+  table.kv { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.kv td { padding: 3px 0; border-bottom: 1px solid var(--line-soft); }
+  table.kv td:first-child { color: var(--ink-3); }
+  table.kv td:last-child { font-family: "JetBrains Mono", monospace; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <h1>The Clockwise Rule</h1>
+    <p class="lede">
+      You have some data and some machines, and you must decide which machine holds which
+      item. The obvious rule — <code>hash(item) % numberOfMachines</code> — works perfectly
+      until the number of machines changes, and then it moves <strong>almost
+      everything</strong>. Below is the fix. Add a machine and watch how few items have to move.
+    </p>
+  </header>
+
+  <div class="verdict" id="verdict">
+    <div class="big" id="vBig">—<small id="vBigLabel">items moved</small></div>
+    <div class="vtext" id="vText">
+      Five machines are sharing 180 items. Press <strong>Add a machine</strong> and watch which
+      items change colour — then compare the two strips lower down.
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel">
+      <div class="panel-hd">
+        <h2>The ring — every machine and every item on one circle</h2>
+        <span class="note" id="ringMeta"></span>
+      </div>
+      <div class="panel-bd">
+        <svg id="ringSvg" viewBox="0 0 620 520" role="img" aria-label="Ring diagram"></svg>
+        <div class="legend" id="legend" style="margin-top: 4px;"></div>
+        <p class="note" style="margin-top: 10px;">
+          The circle is the whole range of hash values. Each machine sits at several positions
+          on it (the thick coloured bands). Each item is a small dot at its own hash position,
+          and it belongs to the <strong>first machine clockwise</strong> from where it landed —
+          so a dot is coloured like the band ahead of it. <strong>Click any dot</strong> to see
+          its walk.
+        </p>
+      </div>
+    </div>
+
+    <div style="display: grid; gap: 16px;">
+      <div class="panel">
+        <div class="panel-hd"><h2>Share of the items</h2></div>
+        <div class="panel-bd">
+          <div id="loads"></div>
+          <p class="note" id="loadNote" style="margin: 8px 0 0;"></p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><h2>The item you clicked</h2></div>
+        <div class="panel-bd"><div id="inspector" class="note">Click a dot on the ring.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- the comparison -- the point of the whole page -->
+  <div class="sect panel">
+    <div class="panel-hd">
+      <h2>The same 180 items under both rules</h2>
+      <span class="note">outlined = moved on the last change</span>
+    </div>
+    <div class="panel-bd">
+      <div class="striplabel">
+        <span><strong>Clockwise on the ring</strong> — no mention of how many machines there are</span>
+        <b id="ringMoved">—</b>
+      </div>
+      <div class="strip" id="stripRing"></div>
+
+      <div class="striplabel" style="margin-top: 16px;">
+        <span><strong>hash(item) % numberOfMachines</strong> — the count is inside the formula</span>
+        <b id="modMoved">—</b>
+      </div>
+      <div class="strip" id="stripMod"></div>
+
+      <p class="note" style="margin-top: 12px;" id="stripNote">
+        Both strips show the same 180 items in the same order, coloured by which machine owns them.
+        Change the cluster and compare how much of each strip changes.
+      </p>
+    </div>
+  </div>
+
+  <div class="sect main">
+    <div class="panel">
+      <div class="panel-hd">
+        <h2>Change the cluster</h2>
+        <div class="seg"><button id="bBack" title="Undo">Undo</button><button id="bReset">Reset</button></div>
+      </div>
+      <div class="panel-bd" style="display: grid; gap: 14px;">
+        <div class="btnrow">
+          <button id="bAdd" class="primary">Add a machine</button>
+          <button id="bKill" class="danger">Remove a machine</button>
+        </div>
+
+        <label class="f">Positions per machine on the ring — <span id="vnVal" class="mono"></span>
+          <input type="range" id="vn" min="1" max="120" value="1">
+        </label>
+        <p class="note" style="margin: -6px 0 0;" id="vnNote"></p>
+
+        <label class="f">Copies of each item — <span id="rVal" class="mono"></span>
+          <input type="range" id="rf" min="1" max="3" value="1">
+        </label>
+
+        <div>
+          <h2 style="margin-bottom: 6px;">How the items are hashed</h2>
+          <div class="seg" id="hashSeg">
+            <button data-h="good" class="on">Full-width</button>
+            <button data-h="bad">Narrow (32-bit on a wide ring)</button>
+          </div>
+          <p class="note" style="margin-top: 5px;" id="hashNote">
+            Item positions cover the whole circle, as they should.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd"><h2>What just happened</h2><button id="bClear" style="font-size:11px;padding:3px 8px">Clear</button></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="sect panel">
+    <div class="panel-hd"><h2>Guess first, then watch — five things that surprise people</h2></div>
+    <div class="panel-bd" id="scenarios"></div>
+  </div>
+
+  <div class="sect note">
+    <p><strong>What this model simplifies.</strong> Real rings use a 64-bit hash space; this page
+    uses 32-bit so the numbers fit on screen, and the principle is identical. Real deployments use
+    100–200 positions per machine — the slider stops at 120 only so the drawing stays legible.
+    Everything else here — the clockwise rule, virtual positions, replication onto the next
+    distinct machines, and the fact that the machine count appears nowhere in the lookup — is
+    exactly how the real thing works.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------- hashing
+  const SPACE = 4294967296;                 // 2^32 -- the size of the circle
+
+  function murmur3(str) {
+    let h = 0x9747b28c >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      let k = Math.imul(str.charCodeAt(i), 0xcc9e2d51);
+      k = (k << 15) | (k >>> 17);
+      h ^= Math.imul(k, 0x1b873593);
+      h = (h << 13) | (h >>> 19);
+      h = (Math.imul(h, 5) + 0xe6546b64) | 0;
+    }
+    h ^= str.length;
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+    h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16;
+    return h >>> 0;
+  }
+
+  /**
+   * The deliberately narrow hash. Not a collision problem -- a RANGE problem: its
+   * outputs only span 1/65536 of the circle, so every item lands in the same sliver
+   * and whichever machine owns that sliver owns everything.
+   */
+  function narrowHash(str) { return murmur3(str) % 65536; }
+
+  // ------------------------------------------------------------------ model
+  const NAMES = ["Alder", "Birch", "Cedar", "Damson", "Elm", "Fig", "Ginkgo", "Hazel"];
+  const KEYCOUNT = 180;
+
+  function initial() {
+    return {
+      machines: ["Alder", "Birch", "Cedar", "Damson", "Elm"],
+      vnodes: 1,
+      goodHash: true,
+      r: 1,
+      selected: null,
+      prev: null,                       // ownership before the last change
+      last: null,                       // {kind, name, ringMoved, modMoved, toNew}
+      log: []
+    };
+  }
+
+  const KEYS = [];
+  for (let i = 0; i < KEYCOUNT; i++) KEYS.push("item:" + (1000 + i * 7));
+
+  function keyPos(s, good) { return good ? murmur3(s) : narrowHash(s); }
+
+  /** All ring positions, sorted clockwise: [{pos, machine}] */
+  function ringOf(s) {
+    const pts = [];
+    for (const m of s.machines)
+      for (let i = 0; i < s.vnodes; i++) pts.push({ pos: murmur3(m + "#" + i), machine: m });
+    pts.sort((a, b) => a.pos - b.pos);
+    return pts;
+  }
+
+  /** THE RULE: first position at or after the item, wrapping round. */
+  function ringOwner(ring, pos) {
+    if (!ring.length) return null;
+    let lo = 0, hi = ring.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (ring[mid].pos < pos) lo = mid + 1; else hi = mid; }
+    return ring[lo === ring.length ? 0 : lo].machine;
+  }
+
+  function ringOwners(ring, pos, r) {
+    const out = [];
+    if (!ring.length) return out;
+    let lo = 0, hi = ring.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (ring[mid].pos < pos) lo = mid + 1; else hi = mid; }
+    if (lo === ring.length) lo = 0;
+    for (let s = 0; s < ring.length && out.length < r; s++) {
+      const m = ring[(lo + s) % ring.length].machine;
+      if (!out.includes(m)) out.push(m);
+    }
+    return out;
+  }
+
+  /** The rule everybody writes first. The machine COUNT is inside it. */
+  function modOwner(s, key) {
+    if (!s.machines.length) return null;
+    const sorted = [...s.machines].sort();
+    return sorted[murmur3(key) % sorted.length];
+  }
+
+  function ownership(s) {
+    const ring = ringOf(s);
+    const byRing = {}, byMod = {};
+    for (const k of KEYS) {
+      byRing[k] = ringOwner(ring, keyPos(k, s.goodHash));
+      byMod[k] = modOwner(s, k);
+    }
+    return { ring, byRing, byMod };
+  }
+
+  function say(s, headline, detail, tone) {
+    s.log.push({ headline, detail: detail || "", tone: tone || "" });
+    if (s.log.length > 120) s.log.shift();
+  }
+
+  /** Apply a cluster change and record exactly how much moved under each rule. */
+  function change(s, fn, kind, name) {
+    const before = ownership(s);
+    fn(s);
+    const after = ownership(s);
+    let ringMoved = 0, modMoved = 0, toNew = 0, sideways = 0;
+    for (const k of KEYS) {
+      if (before.byRing[k] !== after.byRing[k]) {
+        ringMoved++;
+        if (after.byRing[k] === name) toNew++; else if (kind === "add") sideways++;
+      }
+      if (before.byMod[k] !== after.byMod[k]) modMoved++;
+    }
+    s.prev = before;
+    s.last = { kind, name, ringMoved, modMoved, toNew, sideways };
+    return s.last;
+  }
+
+  // --------------------------------------------------------------- history
+  let history = [initial()], idx = 0;
+  const S = () => history[idx];
+  function commit(next) {
+    history = history.slice(0, idx + 1);
+    history.push(next);
+    if (history.length > 60) history.shift(); else idx++;
+    render();
+  }
+  function mutate(fn) { const s = structuredClone(S()); fn(s); commit(s); }
+
+  // ---------------------------------------------------------------- render
+  const $ = id => document.getElementById(id);
+  const colourOf = m => "var(--m" + (NAMES.indexOf(m) % 8) + ")";
+
+  function render() {
+    const s = S();
+    const own = ownership(s);
+    drawRing(s, own);
+    drawLoads(s, own);
+    drawStrips(s, own);
+    drawLog(s);
+    drawInspector(s, own);
+    drawVerdict(s, own);
+
+    $("legend").innerHTML = s.machines.map(m =>
+      '<span><i class="chip" style="background:' + colourOf(m) + '"></i>' + m + "</span>").join("")
+      + '<span style="color:var(--ink-3)">&nbsp;· small dots = items</span>';
+
+    $("ringMeta").textContent = s.machines.length + " machines · " + (s.machines.length * s.vnodes)
+      + " ring positions · " + KEYCOUNT + " items";
+    $("vnVal").textContent = s.vnodes;
+    $("rVal").textContent = s.r === 1 ? "1 (no copies)" : s.r;
+    $("vn").value = s.vnodes;
+    $("rf").value = s.r;
+    $("vnNote").textContent = s.vnodes === 1
+      ? "One position each: the machines cut the circle into a few very unequal slices."
+      : s.vnodes < 20
+        ? "Still lumpy — the slices are averaging out but slowly."
+        : "Each machine is scattered across the circle, so the slices average out.";
+    $("hashNote").textContent = s.goodHash
+      ? "Item positions cover the whole circle, as they should."
+      : "Item positions span 1/65536 of the circle, so they all pile into one machine's slice.";
+    $("bBack").disabled = idx === 0;
+    $("bKill").disabled = s.machines.length <= 1;
+    $("bAdd").disabled = s.machines.length >= 8;
+  }
+
+  // ---- the ring drawing ----
+  function drawRing(s, own) {
+    const CX = 310, CY = 250, R = 190, BAND = 26;
+    const a = p => (p / SPACE) * Math.PI * 2 - Math.PI / 2;      // 0 at 12 o'clock, clockwise
+    const pt = (p, rad) => [CX + rad * Math.cos(a(p)), CY + rad * Math.sin(a(p))];
+    let svg = "";
+
+    // the empty circle, so the space is visible even with no machines
+    svg += '<circle cx="' + CX + '" cy="' + CY + '" r="' + R + '" fill="none" stroke="var(--line)" stroke-width="' + BAND + '"/>';
+
+    // one arc per ring position: from the previous position round to this one
+    const ring = own.ring;
+    for (let i = 0; i < ring.length; i++) {
+      const from = ring[(i - 1 + ring.length) % ring.length].pos;
+      const to = ring[i].pos;
+      let sweep = to - from; if (sweep <= 0) sweep += SPACE;
+      const large = sweep > SPACE / 2 ? 1 : 0;
+      const [x1, y1] = pt(from, R), [x2, y2] = pt(to, R);
+      if (ring.length === 1) {
+        svg += '<circle cx="' + CX + '" cy="' + CY + '" r="' + R + '" fill="none" stroke="'
+             + colourOf(ring[i].machine) + '" stroke-width="' + BAND + '"/>';
+      } else {
+        svg += '<path d="M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + R + ' ' + R + ' 0 '
+             + large + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + '" fill="none" stroke="'
+             + colourOf(ring[i].machine) + '" stroke-width="' + BAND + '" stroke-linecap="butt"/>';
+      }
+    }
+
+    // a tick at each machine position, so "where the boundary is" is visible
+    if (ring.length <= 120) for (const p of ring) {
+      const [x1, y1] = pt(p.pos, R - BAND / 2), [x2, y2] = pt(p.pos, R + BAND / 2);
+      svg += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1)
+           + '" y2="' + y2.toFixed(1) + '" stroke="var(--surface)" stroke-width="1.4" opacity=".85"/>';
+    }
+
+    // the items, just inside the band
+    const moved = s.prev ? new Set(KEYS.filter(k => s.prev.byRing[k] !== own.byRing[k])) : new Set();
+    for (const k of KEYS) {
+      const p = keyPos(k, s.goodHash);
+      const [x, y] = pt(p, R - BAND / 2 - 13);
+      const isSel = s.selected === k;
+      svg += '<circle class="ring-key" data-k="' + k + '" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1)
+           + '" r="' + (isSel ? 6 : 3.4) + '" fill="' + colourOf(own.byRing[k]) + '" '
+           + (moved.has(k) ? 'stroke="var(--ink)" stroke-width="1.6" ' : '')
+           + (isSel ? 'stroke="var(--ink)" stroke-width="2" ' : '') + '/>';
+    }
+
+    // the selected item's clockwise walk to its owner
+    if (s.selected) {
+      const p = keyPos(s.selected, s.goodHash);
+      const owners = ringOwners(own.ring, p, s.r);
+      const target = own.ring.find(x => x.pos >= p) || own.ring[0];
+      const [ix, iy] = pt(p, R - BAND / 2 - 13);
+      const [ox, oy] = pt(target.pos, R - BAND / 2 - 13);
+      let sweep = target.pos - p; if (sweep <= 0) sweep += SPACE;
+      const large = sweep > SPACE / 2 ? 1 : 0;
+      const rad = R - BAND / 2 - 13;
+      svg += '<path d="M ' + ix.toFixed(1) + ' ' + iy.toFixed(1) + ' A ' + rad + ' ' + rad + ' 0 '
+           + large + ' 1 ' + ox.toFixed(1) + ' ' + oy.toFixed(1)
+           + '" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>';
+      svg += '<text x="' + CX + '" y="' + (CY + 8) + '" text-anchor="middle" font-family="JetBrains Mono, monospace" '
+           + 'font-size="13" fill="var(--ink)">' + s.selected + "</text>";
+      svg += '<text x="' + CX + '" y="' + (CY + 28) + '" text-anchor="middle" font-family="Archivo, sans-serif" '
+           + 'font-size="12" fill="var(--ink-3)">walks clockwise to ' + owners[0] + "</text>";
+    } else {
+      svg += '<text x="' + CX + '" y="' + (CY - 4) + '" text-anchor="middle" font-family="Archivo, sans-serif" '
+           + 'font-size="13" fill="var(--ink-3)">hash values 0 to 2^32</text>';
+      svg += '<text x="' + CX + '" y="' + (CY + 16) + '" text-anchor="middle" font-family="Archivo, sans-serif" '
+           + 'font-size="12" fill="var(--ink-3)">clockwise from 12 o&#39;clock</text>';
+    }
+    $("ringSvg").innerHTML = svg;
+    for (const el of document.querySelectorAll(".ring-key"))
+      el.onclick = () => mutate(x => { x.selected = x.selected === el.dataset.k ? null : el.dataset.k; });
+  }
+
+  function drawLoads(s, own) {
+    const c = {};
+    for (const m of s.machines) c[m] = 0;
+    for (const k of KEYS) c[own.byRing[k]]++;
+    const fair = KEYCOUNT / s.machines.length;
+    const max = Math.max(...Object.values(c), 1);
+    $("loads").innerHTML = s.machines.map(m =>
+      '<div class="loadrow"><i class="chip" style="background:' + colourOf(m) + '"></i>'
+      + '<div class="track"><i style="width:' + (100 * c[m] / max) + '%;background:' + colourOf(m) + '"></i>'
+      + '<b style="left:' + (100 * fair / max) + '%"></b></div>'
+      + "<span>" + c[m] + "</span></div>").join("");
+    const imb = max / fair;
+    $("loadNote").innerHTML = "The dashed line is an equal share (" + fair.toFixed(0)
+      + " items). Busiest machine is <strong>" + imb.toFixed(2) + "x</strong> its fair share."
+      + (imb > 1.6 ? " That is what one position per machine buys you." : "");
+  }
+
+  function drawStrips(s, own) {
+    const movedR = s.prev ? new Set(KEYS.filter(k => s.prev.byRing[k] !== own.byRing[k])) : new Set();
+    const movedM = s.prev ? new Set(KEYS.filter(k => s.prev.byMod[k] !== own.byMod[k])) : new Set();
+    $("stripRing").innerHTML = KEYS.map(k =>
+      '<i class="cell' + (movedR.has(k) ? " moved" : "") + '" style="background:' + colourOf(own.byRing[k]) + '"></i>').join("");
+    $("stripMod").innerHTML = KEYS.map(k =>
+      '<i class="cell' + (movedM.has(k) ? " moved" : "") + '" style="background:' + colourOf(own.byMod[k]) + '"></i>').join("");
+    $("ringMoved").textContent = s.last ? movedR.size + " of 180 moved (" + pct(movedR.size) + ")" : "—";
+    $("modMoved").textContent = s.last ? movedM.size + " of 180 moved (" + pct(movedM.size) + ")" : "—";
+    if (s.last) {
+      $("stripNote").innerHTML = "Under the ring, <strong>" + s.last.sideways + "</strong> items moved between two "
+        + "machines that did not change. Under the modulo rule that number is the bulk of its "
+        + movedM.size + " — movement that achieved nothing at all.";
+    }
+  }
+
+  function drawInspector(s, own) {
+    if (!s.selected) { $("inspector").innerHTML = '<span class="note">Click a dot on the ring.</span>'; return; }
+    const p = keyPos(s.selected, s.goodHash);
+    const owners = ringOwners(own.ring, p, s.r);
+    $("inspector").innerHTML = "<table class='kv'><tbody>"
+      + row("item", s.selected)
+      + row("its position", p.toLocaleString())
+      + row("that is", (100 * p / SPACE).toFixed(4) + "% round the circle")
+      + row("owner (first clockwise)", owners[0])
+      + (s.r > 1 ? row("copies also on", owners.slice(1).join(", ") || "—") : "")
+      + row("under modulo instead", own.byMod[s.selected])
+      + "</tbody></table>";
+  }
+  function row(k, v) { return "<tr><td>" + k + "</td><td>" + v + "</td></tr>"; }
+
+  function drawLog(s) {
+    $("log").innerHTML = s.log.slice(-40).map(e =>
+      '<div class="entry ' + e.tone + '">' + e.headline
+      + (e.detail ? '<span class="d">' + e.detail + "</span>" : "") + "</div>").join("");
+  }
+
+  function drawVerdict(s, own) {
+    const v = $("verdict"), big = $("vBig"), lab = $("vBigLabel"), txt = $("vText");
+    let cls = "verdict";
+    if (!s.goodHash) {
+      const used = new Set(KEYS.map(k => own.byRing[k])).size;
+      cls += " hot";
+      big.firstChild.nodeValue = used + " of " + s.machines.length;
+      lab.textContent = "machines in use";
+      txt.innerHTML = "<strong>The items cannot reach most of the circle.</strong> Their hash only "
+        + "spans 1/65536 of the space, so every one of them lands in the same sliver and "
+        + (used === 1 ? "a single machine owns the lot" : "only " + used + " machines see any traffic at all") + "."
+        + "<em>The ring is fine and the machines are spread properly. The item hash is simply narrower "
+        + "than the space it is being placed into — a 32-bit value on a 64-bit ring is the real-world version.</em>";
+    } else if (!s.last) {
+      cls += "";
+      big.firstChild.nodeValue = "—";
+      lab.textContent = "items moved";
+      txt.innerHTML = s.machines.length + " machines are sharing " + KEYCOUNT + " items. Press "
+        + "<strong>Add a machine</strong> and watch which dots change colour — then compare the two strips below."
+        + "<em>Right now every machine has " + s.vnodes + " position" + (s.vnodes === 1 ? "" : "s")
+        + " on the circle. That slider matters more than it looks.</em>";
+    } else {
+      const l = s.last;
+      cls += l.ringMoved * 3 < l.modMoved ? " good" : "";
+      big.firstChild.nodeValue = pct(l.ringMoved);
+      lab.textContent = "items moved";
+      txt.innerHTML = "<strong>You " + (l.kind === "add" ? "added " : "removed ") + l.name + ". "
+        + l.ringMoved + " of " + KEYCOUNT + " items moved</strong> — and the modulo rule would have moved <strong>"
+        + l.modMoved + "</strong> for the very same change."
+        + "<em>" + (l.kind === "add"
+            ? "All " + l.toNew + " of them moved onto " + l.name + " itself. Not one moved between two machines that were already here — that property is the whole point, and it is called monotonicity."
+            : l.name + "'s items had to go somewhere; everybody else's stayed exactly where they were.") + "</em>";
+    }
+    v.className = cls;
+  }
+
+  const pct = n => (100 * n / KEYCOUNT).toFixed(1) + "%";
+
+  // -------------------------------------------------------------- controls
+  $("bAdd").onclick = () => mutate(s => {
+    const name = NAMES[s.machines.length];
+    const r = change(s, x => x.machines.push(name), "add", name);
+    say(s, "Added " + name + ". " + r.ringMoved + " of 180 items moved, all of them onto " + name + ".",
+        "the same change under modulo would have moved " + r.modMoved, r.ringMoved * 3 < r.modMoved ? "good" : "");
+  });
+
+  $("bKill").onclick = () => mutate(s => {
+    const name = s.machines[s.machines.length - 1];
+    const r = change(s, x => { x.machines.pop(); if (x.selected === null) {} }, "remove", name);
+    say(s, "Removed " + name + ". Its " + r.ringMoved + " items were picked up by the machines clockwise of it.",
+        "every other item stayed put; modulo would have moved " + r.modMoved, "warn");
+  });
+
+  $("vn").oninput = e => mutate(s => {
+    const v = +e.target.value;
+    if (v === s.vnodes) return;
+    s.vnodes = v;
+    s.prev = null; s.last = null;
+    say(s, "Each machine now sits at " + v + " position" + (v === 1 ? "" : "s") + " on the circle.",
+        v === 1 ? "a few big unequal slices" : "many small slices, so the shares even out");
+  });
+
+  $("rf").oninput = e => mutate(s => { s.r = +e.target.value; });
+
+  for (const b of document.querySelectorAll("#hashSeg button")) b.onclick = () => {
+    for (const x of document.querySelectorAll("#hashSeg button")) x.classList.remove("on");
+    b.classList.add("on");
+    mutate(s => {
+      s.goodHash = b.dataset.h === "good";
+      s.prev = null; s.last = null;
+      say(s, s.goodHash ? "Items are hashed across the full width of the circle."
+                        : "Items are now hashed into 1/65536 of the circle.",
+          s.goodHash ? "" : "the ring did not change at all — only where the items land", s.goodHash ? "good" : "hot");
+    });
+  };
+
+  $("bBack").onclick = () => { if (idx > 0) { idx--; render(); } };
+  $("bReset").onclick = () => {
+    history = [initial()]; idx = 0;
+    for (const x of document.querySelectorAll("#hashSeg button")) x.classList.toggle("on", x.dataset.h === "good");
+    for (const el of document.querySelectorAll("[data-ans]")) el.innerHTML = "";
+    render();
+  };
+  $("bClear").onclick = () => mutate(s => { s.log = []; });
+
+  // ------------------------------------------------------------- scenarios
+  const SCN = [
+    {
+      id: "move",
+      title: "Four machines become five",
+      blurb: "180 items are spread over four machines. You add a fifth.",
+      q: "How many of the 180 items end up on a different machine?",
+      opts: [{ t: "About 36 — just the new machine's share", ok: true },
+             { t: "About 90 — roughly half", ok: false },
+             { t: "About 145 — nearly all of them", ok: false }],
+      why: "About a fifth, which is the least it could possibly be: for five machines to share the items evenly, one fifth of them must end up somewhere new. The modulo strip shows the alternative — nearly every item changes colour, to achieve exactly the same rebalancing. At 100 machines the gap is starker still: the ring moves 0.9% and modulo moves 99.0%, both measured in the lab's experiment 1.",
+      run: s => { s.machines = ["Alder", "Birch", "Cedar", "Damson"]; s.vnodes = 60; s.goodHash = true; s.selected = null; s.prev = null; s.last = null; },
+      then: s => { const r = change(s, x => x.machines.push("Elm"), "add", "Elm");
+                   say(s, "Added Elm. " + r.ringMoved + " items moved, all onto Elm.", "modulo would have moved " + r.modMoved, "good"); }
+    },
+    {
+      id: "vnodes",
+      title: "One position each",
+      blurb: "Five machines, and each sits at exactly one point on the circle.",
+      q: "Do five random points cut a circle into five roughly equal slices?",
+      opts: [{ t: "No — some slices come out several times bigger", ok: true },
+             { t: "Yes — random points spread out evenly", ok: false },
+             { t: "Only if the hash is good enough", ok: false }],
+      why: "No, and no hash function can fix it, because nothing is wrong with the hash. Random points on a circle leave gaps of wildly differing size, and the gap IS the machine's share. Watch the load bars, then drag the positions slider up: each machine becomes the sum of many independent slices, and the variation shrinks roughly as 1 over the square root of the count. In the lab's experiment 2 the busiest machine goes from 4.74x its fair share at one position to 1.06x at a hundred.",
+      run: s => { s.machines = ["Alder", "Birch", "Cedar", "Damson", "Elm"]; s.vnodes = 1; s.goodHash = true; s.selected = null; s.prev = null; s.last = null; }
+    },
+    {
+      id: "death",
+      title: "A machine dies, and each machine has one position",
+      blurb: "Five machines, one position each. One of them fails.",
+      q: "Where do its items go?",
+      opts: [{ t: "All to whichever machine is next clockwise", ok: true },
+             { t: "Spread evenly over the four survivors", ok: false },
+             { t: "Redistributed by who has the most room", ok: false }],
+      why: "All of them to one neighbour, chosen by an accident of the circle rather than by who has capacity. In the lab's experiment 3 the inheritor happened to be the QUIETEST machine, and it went from 1,657 items to 9,653 in one step. If that machine cannot take the load it fails too, and its whole share lands on ITS neighbour — a cascade with a concrete mechanism. Now raise the positions slider and remove a machine again: the load spreads across everyone. This is the second reason virtual positions exist, and it is the more important one.",
+      run: s => { s.machines = ["Alder", "Birch", "Cedar", "Damson", "Elm"]; s.vnodes = 1; s.goodHash = true; s.selected = null; s.prev = null; s.last = null; },
+      then: s => { const r = change(s, x => x.machines.pop(), "remove", "Elm");
+                   say(s, "Elm failed. Its " + r.ringMoved + " items all went to a single neighbour.", "with one position each there is only one neighbour to go to", "hot"); }
+    },
+    {
+      id: "mono",
+      title: "Adding a machine — does anything move sideways?",
+      blurb: "Five machines become six.",
+      q: "Can an item move from one EXISTING machine to another existing machine?",
+      opts: [{ t: "Never — items only ever move onto the newcomer", ok: true },
+             { t: "Yes, a few, as things rebalance", ok: false },
+             { t: "Yes, about half the movement is sideways", ok: false }],
+      why: "Never, and this is the formal guarantee rather than a happy accident. An item's owner is the first machine clockwise of it; adding a machine can only insert a new candidate ahead of some items, and it cannot change the order of any machines that were already there. So the only possible change is 'to the newcomer'. The property has a name — monotonicity — and it is exactly what the modulo rule lacks: in the lab's experiment 4, of the 181,668 items modulo moved, 163,679 went sideways between machines that had not changed at all.",
+      run: s => { s.machines = ["Alder", "Birch", "Cedar", "Damson", "Elm"]; s.vnodes = 60; s.goodHash = true; s.selected = null; s.prev = null; s.last = null; },
+      then: s => { const r = change(s, x => x.machines.push("Fig"), "add", "Fig");
+                   say(s, "Added Fig. Sideways moves between existing machines: " + r.sideways + ".",
+                       "monotonicity, demonstrated: the number is always zero", "good"); }
+    },
+    {
+      id: "hash",
+      title: "The items are hashed with something too narrow",
+      blurb: "The ring is unchanged and the machines are spread perfectly. Only the item hash is swapped for one whose output covers a tiny part of the circle.",
+      q: "What happens to the distribution?",
+      opts: [{ t: "One machine ends up with essentially everything", ok: true },
+             { t: "Nothing much — the items are still spread evenly", ok: false },
+             { t: "Items collide and overwrite each other", ok: false }],
+      why: "One machine takes the lot. Nothing collided and nothing is broken — the items simply never reach most of the circle, so they all fall inside one machine's slice. This is the real shape of the bug: a 32-bit hash used as a position in a 64-bit ring puts your entire dataset in about one hundred-millionth of the space. The lab measured it on 8 machines and 20,000 keys: one machine got all 20,000 and the other seven got nothing. Whatever hashes your keys must produce values spanning the same range the machine positions occupy.",
+      run: s => { s.machines = ["Alder", "Birch", "Cedar", "Damson", "Elm"]; s.vnodes = 60; s.goodHash = false; s.selected = null; s.prev = null; s.last = null; }
+    }
+  ];
+
+  $("scenarios").innerHTML = SCN.map(sc =>
+    '<div class="scn"><h3>' + sc.title + "</h3><p>" + sc.blurb + "</p>"
+    + '<div style="font-weight:600;font-size:13.5px;margin-bottom:7px">' + sc.q + "</div>"
+    + '<div class="btnrow">' + sc.opts.map((o, i) =>
+        '<button data-pick="' + sc.id + ":" + i + '">' + o.t + "</button>").join("")
+    + '</div><div data-ans="' + sc.id + '"></div></div>').join("");
+
+  for (const b of document.querySelectorAll("[data-pick]")) b.onclick = () => {
+    const [id, i] = b.dataset.pick.split(":");
+    const sc = SCN.find(x => x.id === id);
+    const chosen = sc.opts[+i];
+    const el = document.querySelector('[data-ans="' + id + '"]');
+    el.innerHTML = '<div class="ans ' + (chosen.ok ? "y" : "n") + '"><strong>'
+      + (chosen.ok ? "Right." : "Not quite.") + "</strong> " + sc.why
+      + '<div style="margin-top:9px"><button class="primary" data-run="' + id + '">Set this up for me</button></div></div>';
+    el.querySelector("[data-run]").onclick = () => {
+      history = [initial()]; idx = 0;
+      mutate(s => { sc.run(s); say(s, "Set up: " + sc.title.toLowerCase() + ".", "watch the ring, the load bars and the two strips"); });
+      if (sc.then) mutate(sc.then);
+      for (const x of document.querySelectorAll("#hashSeg button")) x.classList.toggle("on", (x.dataset.h === "good") === S().goodHash);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+  };
+
+  render();
+})();
+</script>

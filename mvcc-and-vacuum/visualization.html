@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing Is Ever Erased</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   Design position: the chrome is ink on cool paper and carries NO hue
+   of its own. Every saturated colour on this page is DATA — a tuple's
+   classification, or the horizon. If you can see a colour, it means
+   something.
+   Type: Spectral (serif) tells the story · IBM Plex Sans is the
+   interface · IBM Plex Mono is the machine.
+   ------------------------------------------------------------------ */
+:root{
+  --paper:#e9ebee; --panel:#f8f9fa; --panel2:#eff1f4; --rule:#d3d7dd; --rule2:#b9bfc8;
+  --ink:#12151a; --ink2:#4c545f; --ink3:#848c97; --inkInv:#f8f9fa;
+  --live:#2c7a52;     --live-bg:#dceae1;
+  --recent:#2a5ea6;   --recent-bg:#dbe4f2;
+  --protected:#946409;--protected-bg:#f3e6c9;
+  --removable:#b1302f;--removable-bg:#f4dcdb;
+  --frozen:#0d6b78;   --frozen-bg:#d3e9ec;
+  --redirect:#65429e; --redirect-bg:#e5dcf3;
+  --free:#8f959d;     --free-bg:#e4e7ea;
+  --horizon:#b1302f;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --sp:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#101216; --panel:#181b21; --panel2:#1e222a; --rule:#2b3038; --rule2:#3c434e;
+  --ink:#e6e9ee; --ink2:#a9b1bd; --ink3:#767f8c; --inkInv:#101216;
+  --live:#5fc191;     --live-bg:#16352a;
+  --recent:#7fa9e8;   --recent-bg:#17263d;
+  --protected:#dcae55;--protected-bg:#372b13;
+  --removable:#ec7f7d;--removable-bg:#391d1d;
+  --frozen:#54bccb;   --frozen-bg:#0e3238;
+  --redirect:#ab8ce6; --redirect-bg:#28203a;
+  --free:#6a727d;     --free-bg:#20242b;
+  --horizon:#ec7f7d;
+}}
+:root[data-theme="dark"]{
+  --paper:#101216; --panel:#181b21; --panel2:#1e222a; --rule:#2b3038; --rule2:#3c434e;
+  --ink:#e6e9ee; --ink2:#a9b1bd; --ink3:#767f8c; --inkInv:#101216;
+  --live:#5fc191;     --live-bg:#16352a;
+  --recent:#7fa9e8;   --recent-bg:#17263d;
+  --protected:#dcae55;--protected-bg:#372b13;
+  --removable:#ec7f7d;--removable-bg:#391d1d;
+  --frozen:#54bccb;   --frozen-bg:#0e3238;
+  --redirect:#ab8ce6; --redirect-bg:#28203a;
+  --free:#6a727d;     --free-bg:#20242b;
+  --horizon:#ec7f7d;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;
+  line-height:1.55;margin:0;padding:28px 20px 72px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:var(--sp)}
+
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.2vw,40px);line-height:1.1;
+  margin:0;letter-spacing:-.015em;text-wrap:balance}
+.sub{font-family:var(--serif);font-weight:500;color:var(--ink2);font-size:17px;line-height:1.5;
+  margin:10px 0 0;max-width:66ch}
+.tiny{font-size:12.5px;line-height:1.5;color:var(--ink3);margin:0}
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:2px}
+.masthead .tiny{margin-top:10px;max-width:78ch}
+
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:15px 17px}
+.panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink3);
+  margin:0 0 11px;font-weight:600;font-family:var(--sans)}
+.row{display:flex;gap:var(--sp);flex-wrap:wrap;align-items:stretch}
+.grow{flex:1 1 340px;min-width:0}
+
+button{font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 12px;border-radius:3px;
+  border:1px solid var(--rule2);background:var(--panel);color:var(--ink);cursor:pointer}
+button:hover:not(:disabled){background:var(--ink);color:var(--inkInv);border-color:var(--ink)}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--ink);color:var(--inkInv);border-color:var(--ink);font-weight:600}
+button.primary:hover:not(:disabled){background:var(--panel);color:var(--ink)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+select{font-family:var(--sans);font-size:13px;padding:6px 8px;border-radius:3px;
+  border:1px solid var(--rule2);background:var(--panel);color:var(--ink);max-width:100%}
+select:disabled{cursor:not-allowed}
+.ctlbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:12px;
+  padding-bottom:12px;border-bottom:1px solid var(--rule)}
+#stepLbl{font-family:var(--mono);font-variant-numeric:tabular-nums;margin-left:auto}
+.dials{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.dial{display:flex;flex-direction:column;gap:4px}
+.dial label{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+
+/* --- the thesis strip: transactions on the XID axis --- */
+#lanes{overflow-x:auto;padding-bottom:2px}
+.lane{display:flex;align-items:center;gap:10px;height:25px;font-size:12px;font-family:var(--mono)}
+.lane .nm{width:140px;flex:0 0 140px;color:var(--ink2);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:11.5px}
+.track{position:relative;flex:1 1 auto;height:25px;min-width:430px}
+.bar{position:absolute;top:4px;height:17px;border-radius:2px;border:1px solid;display:flex;
+  align-items:center;padding:0 7px;font-size:10.5px;white-space:nowrap;font-family:var(--mono);
+  font-variant-numeric:tabular-nums}
+.bar.running{background:var(--recent-bg);border-color:var(--recent);color:var(--recent)}
+.bar.committed{background:var(--live-bg);border-color:var(--live);color:var(--live)}
+.bar.aborted{background:var(--removable-bg);border-color:var(--removable);color:var(--removable)}
+.hline{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--horizon)}
+.hlab{position:absolute;font-size:10.5px;font-family:var(--mono);color:var(--horizon);
+  white-space:nowrap;top:3px;font-weight:600}
+.axis{position:relative;height:16px;font-size:10px;color:var(--ink3);font-family:var(--mono);
+  border-top:1px solid var(--rule);margin-top:2px;padding-top:2px}
+.axis span{position:absolute;top:2px}
+
+/* --- the heap --- */
+.pages{display:flex;gap:12px;flex-wrap:wrap}
+.page{border:1px solid var(--rule2);border-radius:3px;padding:8px;background:var(--panel2);
+  min-width:172px;flex:0 1 auto}
+.page .ph{font-size:10px;font-family:var(--mono);color:var(--ink3);margin-bottom:6px;
+  display:flex;justify-content:space-between;gap:8px;text-transform:uppercase;letter-spacing:.06em}
+.slots{display:flex;flex-direction:column;gap:3px}
+.slot{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
+  border:1px solid var(--rule);border-radius:2px;padding:3px 6px;cursor:pointer;
+  background:var(--panel);text-align:left;width:100%;font-variant-numeric:tabular-nums}
+.slot:hover{border-color:var(--ink)}
+.slot .lp{color:var(--ink3);flex:0 0 24px}
+.slot .bd{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.sel{outline:2px solid var(--ink);outline-offset:1px}
+.s-live{background:var(--live-bg);border-color:var(--live);color:var(--live)}
+.s-recent{background:var(--recent-bg);border-color:var(--recent);color:var(--recent)}
+.s-protected{background:var(--protected-bg);border-color:var(--protected);color:var(--protected)}
+.s-removable{background:var(--removable-bg);border-color:var(--removable);color:var(--removable)}
+.s-frozen{background:var(--frozen-bg);border-color:var(--frozen);color:var(--frozen)}
+.s-free{background:var(--free-bg);border-color:var(--rule);color:var(--free)}
+.s-dead{background:var(--free-bg);border-color:var(--removable);color:var(--removable);border-style:dashed}
+.s-redirect{background:var(--redirect-bg);border-color:var(--redirect);color:var(--redirect)}
+.legend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);
+  margin-top:13px;padding-top:11px;border-top:1px solid var(--rule)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid;
+  margin-right:5px;vertical-align:-1px}
+
+/* --- index --- */
+.idx{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:11px}
+.idxe{border:1px solid var(--rule);border-radius:2px;padding:3px 6px;background:var(--panel2);
+  display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.idxe.hot{border-color:var(--redirect);color:var(--redirect)}
+
+/* --- the bill --- */
+table.st{border-collapse:collapse;font-size:12.5px;width:100%;font-variant-numeric:tabular-nums}
+table.st td{padding:3.5px 2px;border-bottom:1px solid var(--rule)}
+table.st tr:last-child td{border-bottom:0}
+table.st td:first-child{color:var(--ink2)}
+table.st td:last-child{text-align:right;font-family:var(--mono);font-weight:500}
+.warn{color:var(--removable)}
+.ok{color:var(--live)}
+
+/* --- per-transaction views --- */
+.views{display:flex;gap:10px;flex-wrap:wrap}
+.view{border:1px solid var(--rule2);border-radius:3px;padding:9px 11px;background:var(--panel2);
+  min-width:160px;flex:1 1 160px}
+.view h3{margin:0 0 5px;font-size:11px;font-family:var(--mono);color:var(--ink2);font-weight:600}
+.view .val{font-size:17px;font-family:var(--serif);font-weight:600}
+.view .why{font-size:10.5px;font-family:var(--mono);color:var(--ink3);margin-top:5px;line-height:1.45}
+
+/* --- narration, log, inspector --- */
+#story{font-family:var(--serif);font-size:16px;line-height:1.55;border-left:2px solid var(--ink);
+  padding:2px 0 2px 15px;min-height:46px;text-wrap:pretty}
+#story b{font-weight:600}
+#logbox{font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink2);max-height:150px;
+  overflow:auto;border:1px solid var(--rule);border-radius:2px;padding:9px 10px;
+  background:var(--panel2);white-space:pre-wrap;font-variant-numeric:tabular-nums}
+#inspector{font-family:var(--mono);font-size:11.5px;line-height:1.65;white-space:pre-wrap;
+  color:var(--ink2);font-variant-numeric:tabular-nums}
+
+/* --- prediction --- */
+#predict{border:1px solid var(--ink);border-radius:3px;padding:15px 17px;background:var(--panel)}
+#predict .q{font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:11px;
+  text-wrap:pretty;max-width:72ch}
+#predict .opts{display:flex;gap:8px;flex-wrap:wrap}
+#predict .res{margin-top:13px;padding-top:13px;border-top:1px solid var(--rule);
+  font-size:14.5px;line-height:1.6;max-width:72ch}
+#predict .res div{margin-bottom:3px}
+#predict button.picked{outline:2px solid var(--ink);outline-offset:1px}
+code{font-family:var(--mono);font-size:.92em;background:var(--panel2);padding:1px 4px;border-radius:2px}
+.hide{display:none}
+.colophon{border-top:1px solid var(--rule);padding-top:13px;max-width:80ch}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+@media (max-width:720px){
+  body{padding:20px 14px 56px}
+  .lane .nm{width:100px;flex:0 0 100px} .track{min-width:300px}
+  #stepLbl{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="masthead">
+<h1>Nothing Is Ever Erased</h1>
+<p class="sub">A database does not change a row. It writes a new copy and notes when the old one stopped
+being true — which is how a forty-minute report and a one-second payment can share a table without waiting
+for each other. The price is that somebody must come back later and throw the old copies away, and they are
+only allowed to throw away what <em>no reader could still want</em>. This page shows both halves happening,
+and lets you stop the second one dead.</p>
+<p class="tiny">A model of PostgreSQL's heap. Pages hold 6 tuple slots instead of ~35, transaction IDs are
+6-bit so you can watch them wrap, and vacuum's four phases are separate steps so you can walk through them.
+The <em>rules</em> are PostgreSQL's; the <em>sizes</em> are shrunk to fit a screen. One deliberate
+simplification: at fillfactor 100 this model forbids HOT updates outright, whereas real PostgreSQL will
+still use incidental free space on a page — the steady state on a packed table is the same.</p>
+</div>
+
+<div class="panel">
+  <div class="ctlbar">
+    <select id="scenSel" aria-label="Scenario"></select>
+    <button id="btnRun" class="primary">▶ Run this scenario for me</button>
+    <button id="btnBack">◀ Step back</button>
+    <button id="btnStep">Step ▶</button>
+    <button id="btnEnd">Run to end ⏭</button>
+    <button id="btnReset">↺ Reset</button>
+    <span class="tiny" id="stepLbl"></span>
+  </div>
+  <div class="dials">
+    <div class="dial"><label for="dHold">Long reader</label>
+      <select id="dHold"><option value="on">holds its snapshot</option><option value="off">commits early</option></select></div>
+    <div class="dial"><label for="dHot">Index on updated column</label>
+      <select id="dHot"><option value="off">no — HOT possible</option><option value="on">yes — HOT impossible</option></select></div>
+    <div class="dial"><label for="dFill">fillfactor</label>
+      <select id="dFill"><option value="67">67% — room for HOT</option><option value="100">100% — pages packed</option></select></div>
+    <div class="dial"><label for="dFreeze">Freezing</label>
+      <select id="dFreeze"><option value="on">on (correct)</option><option value="off">off — watch rows vanish</option></select></div>
+  </div>
+  <p class="tiny" id="dialNote" style="margin:8px 0 0"></p>
+</div>
+
+<div id="predict" class="panel hide">
+  <div class="q" id="pq"></div>
+  <div class="opts" id="popts"></div>
+  <div class="res hide" id="pres"></div>
+</div>
+
+<div class="panel">
+  <h2>What just happened</h2>
+  <div id="story">Pick a scenario and press <b>Step ▶</b>.</div>
+</div>
+
+<div class="panel">
+  <h2>Transactions on the XID axis — and the horizon</h2>
+  <p class="tiny" style="margin:-4px 0 8px">Each bar is one transaction, drawn from where it began to where it
+  ended. The <span style="color:var(--horizon)">red line</span> is the <strong>horizon</strong>: the oldest
+  snapshot anyone still holds. <strong>Nothing at or after that line can ever be cleaned up.</strong> Watch where
+  the line sits — it is the single number that explains every scenario on this page.</p>
+  <div id="lanes"></div>
+  <div class="axis" id="axis"></div>
+</div>
+
+<div class="row">
+  <div class="grow panel">
+    <h2>The heap — one box per 8 KB page</h2>
+    <p class="tiny" style="margin:-4px 0 8px">Each line is a <strong>line pointer</strong>: a numbered slot an
+    index can point at. Click any slot to inspect its stamps.</p>
+    <div class="pages" id="pages"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel" style="flex:0 1 250px;min-width:220px">
+    <h2>Index on <code>owner</code></h2>
+    <p class="tiny" style="margin:-4px 0 8px">Every non-HOT version needs its own entry here. Cleaning these up
+    is usually the expensive half of vacuum.</p>
+    <div class="idx" id="index"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="panel grow">
+    <h2>What each live transaction sees for plot&nbsp;12</h2>
+    <p class="tiny" style="margin:-4px 0 8px">Same table, same instant, different answers — all of them correct.
+    This is the payoff MVCC was invented for.</p>
+    <div class="views" id="views"></div>
+  </div>
+  <div class="panel" style="flex:0 1 300px;min-width:250px">
+    <h2>The bill</h2>
+    <table class="st" id="stats"></table>
+  </div>
+</div>
+
+<div class="row">
+  <div class="panel grow"><h2>Event log</h2><div id="logbox"></div></div>
+  <div class="panel" style="flex:0 1 330px;min-width:260px"><h2>Inspector</h2><div id="inspector">Click a slot in the heap.</div></div>
+</div>
+
+<p class="tiny colophon">This page demonstrates <em>the lab's model</em> of PostgreSQL MVCC. It is
+not evidence about any particular PostgreSQL release: real page layouts, autovacuum scheduling, freezing ages
+and the index-vacuum algorithm all carry detail deliberately left out here. Where the model and the README
+disagree, the README's caveats win.</p>
+
+</div>
+<script>
+//=== ENGINE START ===
+var XIDMOD = 64, XIDHALF = 32, PAGECAP = 6, FREEZE_MIN = 12;
+
+/* Modular XID comparison — exactly why wraparound is dangerous.
+   a "precedes" b when the signed difference is negative in the truncated space. */
+function xidPrecedes(a, b){
+  if (a === b) return false;
+  return ((a - b + XIDMOD) % XIDMOD) >= XIDHALF;
+}
+function xidAge(x, now){ return (now - x + XIDMOD) % XIDMOD; }
+
+function txStatus(st, xid){
+  for (var i=0;i<st.txns.length;i++) if (st.txns[i].xid === xid) return st.txns[i].status;
+  return 'committed';           /* pre-history: seeded rows */
+}
+function txOf(st, xid){
+  for (var i=0;i<st.txns.length;i++) if (st.txns[i].xid === xid) return st.txns[i];
+  return null;
+}
+
+/* Is transaction x's work visible in snapshot snap? */
+function xidVisible(st, x, snap){
+  if (!xidPrecedes(x, snap.xmax)) return false;      /* began after me (or wrapped into my future) */
+  if (snap.xip.indexOf(x) >= 0) return false;        /* was in flight when I took my snapshot */
+  return txStatus(st, x) === 'committed';
+}
+
+/* THE VISIBILITY RULE (README §9) */
+function visibleTo(st, tup, snap){
+  if (!tup) return false;
+  if (!tup.frozen){
+    var s = txStatus(st, tup.xmin);
+    if (s === 'aborted') return false;
+    if (snap.self !== tup.xmin){
+      if (s === 'running') return false;
+      if (!xidVisible(st, tup.xmin, snap)) return false;
+    }
+  }
+  if (tup.xmax === 0) return true;
+  var m = txStatus(st, tup.xmax);
+  if (m === 'aborted') return true;                  /* the delete never happened */
+  if (snap.self === tup.xmax) return false;          /* I deleted it myself */
+  if (m === 'running') return true;                  /* someone else's uncommitted delete */
+  return !xidVisible(st, tup.xmax, snap);
+}
+
+function runningTxns(st){
+  var r=[]; for (var i=0;i<st.txns.length;i++) if (st.txns[i].status==='running') r.push(st.txns[i]);
+  return r;
+}
+/* The horizon: the oldest snapshot xmin anywhere in the system. A global minimum. */
+function horizonOf(st){
+  var r = runningTxns(st), h = st.nextXid, holder = null;
+  for (var i=0;i<r.length;i++){
+    if (r[i].snap && xidPrecedes(r[i].snap.xmin, h)){ h = r[i].snap.xmin; holder = r[i]; }
+  }
+  if (holder === null && r.length){ h = r[0].snap.xmin; holder = r[0];
+    for (var j=1;j<r.length;j++) if (xidPrecedes(r[j].snap.xmin, h)){ h=r[j].snap.xmin; holder=r[j]; } }
+  return { xid: h, holder: holder ? holder.name : null };
+}
+
+function classify(st, slot, horizon){
+  if (slot.st === 'unused')   return 'free';
+  if (slot.st === 'dead')     return 'dead';
+  if (slot.st === 'redirect') return 'redirect';
+  var t = slot.tup;
+  if (!t) return 'free';
+  var xs = txStatus(st, t.xmin);
+  if (!t.frozen && xs === 'aborted')
+    return xidPrecedes(t.xmin, horizon) ? 'removable' : 'protected';
+  if (t.xmax !== 0){
+    var ms = txStatus(st, t.xmax);
+    if (ms === 'committed') return xidPrecedes(t.xmax, horizon) ? 'removable' : 'protected';
+  }
+  if (t.frozen) return 'frozen';
+  if (xs === 'running') return 'recent';
+  return xidPrecedes(t.xmin, horizon) ? 'live' : 'recent';
+}
+
+/* ---------- state construction & mutation helpers (all on cloned state) ---------- */
+function blankState(cfg){
+  return {
+    step:0, label:'start', story:'', nextXid:1,
+    txns:[], pages:[], index:[], log:[],
+    vac:{ phase:null, pending:[], removed:0, idxRemoved:0, frozen:0, runs:0 },
+    hotUpd:0, coldUpd:0,
+    cfg:cfg, sel:null
+  };
+}
+function clone(st){
+  return JSON.parse(JSON.stringify(st));
+}
+function newPage(st){ st.pages.push({ slots: [] }); return st.pages.length-1; }
+function fillLimit(st){ return Math.max(1, Math.round(PAGECAP * st.cfg.fill / 100)); }
+function usedCount(p){ var n=0; for (var i=0;i<p.slots.length;i++) if (p.slots[i].st!=='unused') n++; return n; }
+
+/* find a slot for a fresh (index-visible) version, honouring fillfactor */
+function placeTuple(st, tup, samePage){
+  var lim = fillLimit(st), pi, si, p;
+  var order = [];
+  if (samePage !== undefined && samePage !== null) order.push(samePage);
+  for (pi=0; pi<st.pages.length; pi++) if (order.indexOf(pi)<0) order.push(pi);
+  for (var k=0;k<order.length;k++){
+    p = st.pages[order[k]];
+    if (usedCount(p) >= lim) continue;
+    for (si=0; si<p.slots.length; si++)
+      if (p.slots[si].st === 'unused'){ p.slots[si] = {st:'normal', tup:tup, redir:null, hot:false, next:null};
+        return {page:order[k], slot:si}; }
+    if (p.slots.length < PAGECAP){ p.slots.push({st:'normal', tup:tup, redir:null, hot:false, next:null});
+      return {page:order[k], slot:p.slots.length-1}; }
+  }
+  pi = newPage(st); st.pages[pi].slots.push({st:'normal', tup:tup, redir:null, hot:false, next:null});
+  return {page:pi, slot:0};
+}
+/* a HOT version: must fit on the SAME page, using the space fillfactor reserved */
+function placeHot(st, tup, pageIdx){
+  var p = st.pages[pageIdx], si;
+  for (si=0; si<p.slots.length; si++)
+    if (p.slots[si].st === 'unused'){ p.slots[si]={st:'normal',tup:tup,redir:null,hot:true,next:null};
+      return {page:pageIdx, slot:si}; }
+  if (p.slots.length < PAGECAP){ p.slots.push({st:'normal',tup:tup,redir:null,hot:true,next:null});
+    return {page:pageIdx, slot:p.slots.length-1}; }
+  return null;
+}
+function findCurrent(st, row){
+  for (var pi=0; pi<st.pages.length; pi++)
+    for (var si=0; si<st.pages[pi].slots.length; si++){
+      var s = st.pages[pi].slots[si];
+      if (s.st==='normal' && s.tup && s.tup.row===row && s.tup.xmax===0
+          && txStatus(st, s.tup.xmin) !== 'aborted') return {page:pi, slot:si, s:s};
+    }
+  return null;
+}
+function chainRoot(st, pageIdx, slotIdx){
+  /* walk back to the slot an index entry points at */
+  var p = st.pages[pageIdx];
+  for (var i=0;i<p.slots.length;i++) if (p.slots[i].next === slotIdx) return chainRoot(st, pageIdx, i);
+  return slotIdx;
+}
+function addIndex(st, key, page, slot){ st.index.push({key:key, page:page, slot:slot}); }
+function logIt(st, s){ st.log.push('XID ' + st.nextXid + '  ' + s); }
+
+/* ---------- the reducer: one event -> new state ---------- */
+function apply(prev, ev){
+  var st = clone(prev);
+  st.vac.phase = null;
+  st.label = ev.type;
+  st.story = ev.story || '';
+  var t, cur, root, placed, i, pi, si;
+
+  switch (ev.type){
+
+  case 'seed':
+    for (i=0;i<ev.rows.length;i++){
+      placed = placeTuple(st, {row:ev.rows[i][0], val:ev.rows[i][1], xmin:0, xmax:0, frozen:false});
+      addIndex(st, ev.rows[i][1], placed.page, placed.slot);
+    }
+    st.log.push('setup      ' + ev.rows.length + ' rows loaded (written long ago, already committed)');
+    break;
+
+  case 'begin':
+    var running = runningTxns(st).map(function(x){ return x.xid; });
+    var xid = st.nextXid;
+    var xmn = xid; for (i=0;i<running.length;i++) if (xidPrecedes(running[i], xmn)) xmn = running[i];
+    st.txns.push({ xid:xid, name:ev.name, role:ev.role||'writer', status:'running',
+      began:xid, ended:null,
+      snap:{ xmin:xmn, xmax:xid+1, xip:running.slice(), self:xid } });
+    st.nextXid = xid + 1;
+    st.log.push('XID ' + xid + '      BEGIN  ' + ev.name +
+      '   snapshot{xmin:' + xmn + ', xmax:' + (xid+1) + ', xip:[' + running.join(',') + ']}');
+    break;
+
+  case 'update':
+    t = txOf(st, ev.xid); cur = findCurrent(st, ev.row);
+    if (cur){
+      cur.s.tup.xmax = ev.xid;
+      /* HOT needs both conditions: no indexed column changed, AND room reserved on
+         this page. fillfactor 100 reserves nothing, so HOT is impossible. */
+      var canHot = (st.cfg.hot === false) && (fillLimit(st) < PAGECAP)
+                   && (usedCount(st.pages[cur.page]) < PAGECAP);
+      if (canHot){
+        placed = placeHot(st, {row:ev.row, val:ev.val, xmin:ev.xid, xmax:0, frozen:false}, cur.page);
+        if (!placed) placed = placeTuple(st, {row:ev.row, val:ev.val, xmin:ev.xid, xmax:0, frozen:false}, cur.page);
+        if (placed){
+          cur.s.next = placed.slot; st.hotUpd++;
+          st.log.push('XID ' + ev.xid + '      UPDATE plot ' + ev.row + ' -> ' + ev.val +
+            '   HOT: new version at (' + placed.page + ',' + placed.slot + '), NO index entry');
+        }
+      } else {
+        placed = placeTuple(st, {row:ev.row, val:ev.val, xmin:ev.xid, xmax:0, frozen:false}, cur.page);
+        addIndex(st, ev.val, placed.page, placed.slot); st.coldUpd++;
+        st.log.push('XID ' + ev.xid + '      UPDATE plot ' + ev.row + ' -> ' + ev.val +
+          '   new tuple at (' + placed.page + ',' + placed.slot + ') + 1 index entry');
+      }
+    }
+    break;
+
+  case 'delete':
+    cur = findCurrent(st, ev.row);
+    if (cur){ cur.s.tup.xmax = ev.xid;
+      st.log.push('XID ' + ev.xid + '      DELETE plot ' + ev.row + '   (xmax stamped; nothing erased)'); }
+    break;
+
+  case 'insert':
+    placed = placeTuple(st, {row:ev.row, val:ev.val, xmin:ev.xid, xmax:0, frozen:false});
+    addIndex(st, ev.val, placed.page, placed.slot);
+    st.log.push('XID ' + ev.xid + '      INSERT plot ' + ev.row + ' = ' + ev.val +
+      '   at (' + placed.page + ',' + placed.slot + ')');
+    break;
+
+  case 'commit':
+    t = txOf(st, ev.xid); if (t){ t.status='committed'; t.ended = st.nextXid; }
+    st.log.push('XID ' + ev.xid + '      COMMIT ' + (t?t.name:'') + '   (2 bits written to pg_xact)');
+    break;
+
+  case 'abort':
+    t = txOf(st, ev.xid); if (t){ t.status='aborted'; t.ended = st.nextXid; }
+    st.log.push('XID ' + ev.xid + '      ROLLBACK ' + (t?t.name:'') +
+      '   (2 bits written to pg_xact — no tuples touched)');
+    break;
+
+  case 'read':
+    t = txOf(st, ev.xid);
+    if (t){
+      var got = readRow(st, t.snap, ev.row);
+      st.log.push('XID ' + ev.xid + '      SELECT plot ' + ev.row + '  ->  ' +
+        (got ? got.tup.val + '  from (' + got.page + ',' + got.slot + ')' : 'NO ROW FOUND'));
+    }
+    break;
+
+  case 'burn':
+    st.nextXid = (st.nextXid + ev.n) % XIDMOD;
+    st.log.push('...        ' + ev.n + ' unrelated transactions run elsewhere; XID counter is now ' + st.nextXid);
+    break;
+
+  case 'vac_scan':
+    var h = horizonOf(st); st.vac.pending = []; st.vac.removed = 0; st.vac.runs++;
+    for (pi=0; pi<st.pages.length; pi++){
+      var pg = st.pages[pi];
+      for (si=0; si<pg.slots.length; si++){
+        var sl = pg.slots[si];
+        if (sl.st !== 'normal') continue;
+        if (classify(st, sl, h.xid) !== 'removable') continue;
+        var succ = sl.next;
+        var liveSucc = (succ !== null && pg.slots[succ] && pg.slots[succ].st === 'normal'
+                        && classify(st, pg.slots[succ], h.xid) !== 'removable');
+        if (liveSucc){ sl.st='redirect'; sl.redir=succ; sl.tup=null; st.vac.removed++; }
+        else if (sl.hot){ sl.st='unused'; sl.tup=null; sl.next=null; st.vac.removed++; }
+        else { sl.st='dead'; sl.tup=null; sl.next=null; st.vac.pending.push([pi,si]); st.vac.removed++; }
+      }
+    }
+    st.vac.phase='scan';
+    st.log.push('VACUUM     phase 1/4 scan: horizon = XID ' + h.xid +
+      (h.holder ? ' (held by ' + h.holder + ')' : ' (nobody holding)') +
+      '  ->  ' + st.vac.removed + ' tuple(s) removable, ' + st.vac.pending.length +
+      ' line pointer(s) marked DEAD');
+    break;
+
+  case 'vac_index':
+    var before = st.index.length, keep = [];
+    for (i=0;i<st.index.length;i++){
+      var e = st.index[i], drop = false;
+      for (var k=0;k<st.vac.pending.length;k++)
+        if (st.vac.pending[k][0]===e.page && st.vac.pending[k][1]===e.slot) drop = true;
+      if (!drop) keep.push(e);
+    }
+    st.index = keep; st.vac.idxRemoved = before - keep.length; st.vac.phase='index';
+    st.log.push('VACUUM     phase 2/4 index: ' + st.vac.idxRemoved + ' index entr(y|ies) removed' +
+      (st.vac.idxRemoved===0 && before>0 ? '   (this is the expensive phase even when it removes nothing)' : ''));
+    break;
+
+  case 'vac_reclaim':
+    var freed = 0;
+    for (i=0;i<st.vac.pending.length;i++){
+      var pp = st.pages[st.vac.pending[i][0]], ss = pp.slots[st.vac.pending[i][1]];
+      if (ss.st === 'dead'){ ss.st='unused'; freed++; }
+    }
+    st.vac.pending = []; st.vac.phase='reclaim';
+    st.log.push('VACUUM     phase 3/4 reclaim: ' + freed +
+      ' line pointer(s) now UNUSED and reusable — page count UNCHANGED at ' + st.pages.length);
+    break;
+
+  case 'vac_freeze':
+    var fz = 0;
+    if (st.cfg.freeze){
+      for (pi=0; pi<st.pages.length; pi++) for (si=0; si<st.pages[pi].slots.length; si++){
+        var s2 = st.pages[pi].slots[si];
+        if (s2.st==='normal' && s2.tup && !s2.tup.frozen && s2.tup.xmax===0
+            && txStatus(st, s2.tup.xmin)==='committed'
+            && xidAge(s2.tup.xmin, st.nextXid) > FREEZE_MIN){ s2.tup.frozen = true; fz++; }
+      }
+    }
+    st.vac.frozen += fz; st.vac.phase='freeze';
+    st.log.push('VACUUM     phase 4/4 freeze: ' + fz + ' tuple(s) frozen' +
+      (st.cfg.freeze ? '' : '   *** FREEZING IS SWITCHED OFF ***'));
+    break;
+
+  case 'note':
+    st.log.push('--         ' + (ev.story||''));
+    break;
+  }
+
+  st.step = prev.step + 1;
+  return st;
+}
+
+/* what one snapshot reads for a row, following HOT redirects */
+function readRow(st, snap, row){
+  for (var pi=0; pi<st.pages.length; pi++)
+    for (var si=0; si<st.pages[pi].slots.length; si++){
+      var s = st.pages[pi].slots[si];
+      if (s.st==='normal' && s.tup && s.tup.row===row && visibleTo(st, s.tup, snap))
+        return {page:pi, slot:si, tup:s.tup};
+    }
+  return null;
+}
+/* a transaction starting right now */
+function nowSnapshot(st){
+  var running = runningTxns(st).map(function(x){return x.xid;});
+  var xmn = st.nextXid; for (var i=0;i<running.length;i++) if (xidPrecedes(running[i], xmn)) xmn = running[i];
+  return { xmin:xmn, xmax:st.nextXid, xip:running.slice(), self:-1 };
+}
+
+function statsOf(st){
+  var h = horizonOf(st), live=0, dead=0, rem=0, prot=0, frz=0, free=0, redir=0, slots=0;
+  for (var pi=0; pi<st.pages.length; pi++) for (var si=0; si<st.pages[pi].slots.length; si++){
+    var c = classify(st, st.pages[pi].slots[si], h.xid); slots++;
+    if (c==='live'||c==='recent') live++;
+    else if (c==='frozen'){ live++; frz++; }
+    else if (c==='removable'){ dead++; rem++; }
+    else if (c==='protected'){ dead++; prot++; }
+    else if (c==='free'||c==='dead') free++;
+    else if (c==='redirect') redir++;
+  }
+  var pageBytes = 8192;
+  return { horizon:h.xid, holder:h.holder, live:live, dead:dead, removable:rem, protected_:prot,
+           frozen:frz, free:free, redirect:redir, pages:st.pages.length,
+           bytes: st.pages.length*pageBytes,
+           liveBytes: Math.round(live * (pageBytes/PAGECAP)),
+           bloat: live ? (st.pages.length*PAGECAP)/live : 0,
+           idx: st.index.length, hotUpd: st.hotUpd, coldUpd: st.coldUpd };
+}
+//=== ENGINE END ===
+</script>
+<script>
+//=== SCENARIOS START ===
+function E(o){ return o; }
+var SEED3 = [[12,'Meera'],[13,'Kavya'],[14,'Arun']];
+var SEED6 = [[12,'Meera'],[13,'Kavya'],[14,'Arun'],[15,'Devi'],[16,'Ilaya'],[17,'Rekha']];
+var SEED8 = SEED6.concat([[18,'Nadia'],[19,'Omar']]);
+function VAC(){ return [
+  E({type:'vac_scan',   story:'<b>VACUUM, phase 1 — scan.</b> It computes the horizon, then walks every tuple. A dead tuple may only go if its xmax committed <em>before</em> the horizon. Watch which red tuples disappear and which amber ones survive.'}),
+  E({type:'vac_index',  story:'<b>Phase 2 — clean the indexes.</b> Index entries pointing at removed tuples are deleted. This is a full scan of every index on the table, and it is usually the most expensive part of the whole operation — it costs the same whether it removes one entry or a million.'}),
+  E({type:'vac_reclaim',story:'<b>Phase 3 — reclaim the line pointers.</b> Only now, with no index pointing at them, can the slots become <em>unused</em> and reusable. <b>Look at the page count in "The bill": it has not changed.</b> The space is free <em>inside</em> the file, not returned to the operating system.'}),
+  E({type:'vac_freeze', story:'<b>Phase 4 — freeze.</b> Tuples old enough are marked visible-to-everyone-forever so their XIDs never have to be compared again. This is the second, entirely separate reason vacuum must eventually visit every page — including pages with no dead tuples at all.'})
+]; }
+
+var SCENARIOS = [
+{
+  id:'basic', name:'1 · Asha writes while Ravi reads', base:{hot:true}, dials:[],
+  predict:{
+    q:'Ravi began his report first. Asha then updated plot 12 from Meera to Vikram and committed. What does Ravi’s next read of plot 12 return?',
+    opts:['Vikram — the committed value','Meera — the old value','An error','His read blocks until he restarts'],
+    correct:1,
+    why:'<b>Meera.</b> Asha’s new tuple carries <code>xmin = 2</code>, and Ravi’s snapshot was taken when the next XID was 2 — so anything stamped 2 or above is in his future and is invisible to him. He falls back to the old tuple, whose <code>xmax = 2</code> is <em>also</em> invisible to him, so as far as Ravi is concerned that tuple was never deleted. He gets a coherent picture of one moment. Asha never waited a millisecond. That is the entire point of MVCC — and notice the old tuple is now <span style="color:var(--protected)">amber</span>: dead, but not removable, because Ravi might still need it.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED3, story:'Three plots in the register, written long ago by a transaction that committed before anything here began.'}),
+    E({type:'begin', name:'Ravi (report)', role:'reader', story:'<b>Ravi starts a long report.</b> He takes a snapshot: a description of exactly which transactions he is allowed to believe. He will hold it for his whole run.'}),
+    E({type:'begin', name:'Asha (sale)', story:'<b>Asha begins recording a sale.</b> She does not wait for Ravi, and Ravi will not wait for her.'}),
+    E({type:'update', xid:2, row:12, val:'Vikram', story:'<b>The update.</b> Nothing is overwritten. A brand-new tuple appears with Asha’s XID as its <code>xmin</code>, and the old tuple gets <code>xmax = 2</code> — a death certificate, not an erasure. Both are physically present, right now, in the same page.'}),
+    E({type:'commit', xid:2, story:'<b>Asha commits</b> — two bits written to the commit log. Her tuple is now visible to any transaction that starts from here on.'}),
+    E({type:'read', xid:1, row:12, story:'<b>Ravi reads plot 12.</b> Check the log line and the "what each transaction sees" panel: two transactions, one instant, two different answers, both correct.'}),
+    E({type:'commit', xid:1, story:'<b>Ravi finishes.</b> The horizon jumps forward, and the old tuple turns from <span style="color:var(--protected)">amber</span> (protected) to <span style="color:var(--removable)">red</span> (removable). Nothing moved it — the horizon moved.'})
+  ].concat(VAC()); }
+},
+{
+  id:'rollback', name:'2 · Rollback costs nothing', base:{hot:true}, dials:[],
+  predict:{
+    q:'Asha updates three rows and then types ROLLBACK. How much work does the rollback do to undo those three new tuples?',
+    opts:['It rewrites the three old values back','It deletes the three new tuples','Nothing at all — it writes two bits','It replays an undo log'],
+    correct:2,
+    why:'<b>Nothing at all.</b> The rollback writes one entry in the commit log — "XID 1: aborted" — and returns. It is O(1) no matter how many rows were touched. Every reader that later meets a tuple stamped <code>xmin = 1</code> consults the commit log, learns 1 aborted, and skips it; every reader that meets an old tuple stamped <code>xmax = 1</code> concludes the deletion never happened and uses it. <b>This is the exact opposite of the ARIES undo pass you learned in the acid lab</b> — there, undo was real work proportional to the transaction size, because that engine overwrote in place. Here there is nothing to copy back. The work did not vanish; it moved to vacuum.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED3, story:'Three plots, as before.'}),
+    E({type:'begin', name:'Asha (bulk fix)', story:'Asha begins a bulk correction.'}),
+    E({type:'update', xid:1, row:12, val:'Nikhil', story:'Row 12 gets a new version.'}),
+    E({type:'update', xid:1, row:13, val:'Priya',  story:'Row 13 gets a new version.'}),
+    E({type:'update', xid:1, row:14, val:'Sanjay', story:'Row 14 gets a new version. <b>Six tuples now exist for three rows</b>, and three of them are stamped with a transaction that has not committed. No other transaction can see the new ones.'}),
+    E({type:'abort', xid:1, story:'<b>ROLLBACK.</b> Look at the heap: <em>nothing moved.</em> All six tuples are exactly where they were. What changed is two bits in the commit log — and that instantly re-classifies three tuples as garbage and resurrects the other three.'})
+  ].concat(VAC()).concat([
+    E({type:'note', story:'<b>The bill arrives here.</b> Three tuples of garbage were created by a transaction that changed nothing, and a background process had to scan the table and every index to clean them up. Rollback was free; the cleanup was not.'})
+  ]); }
+},
+{
+  id:'lunch', name:'3 · The developer who went to lunch  ★', base:{hot:true}, dials:['hold'],
+  predict:{
+    q:'A developer left one read-only transaction open and went to lunch. Three writers then updated plot 12 and committed. Autovacuum now runs, successfully, with no errors. How many of the dead tuples does it remove?',
+    opts:['All of them','About half','None of them','It raises an error'],
+    correct:2,
+    why:'<b>None.</b> The horizon is the <em>global minimum</em> snapshot xmin, and the developer is pinning it at XID 1. Every dead tuple here has an xmax at or after the horizon, so every one of them must be kept — the developer’s snapshot might still need it. Vacuum runs, walks the whole table and every index, removes nothing, reports success, and goes back to sleep. It will do this again, and again, for as long as lunch lasts.<br><br>Now flip the <b>Long reader</b> dial to <em>commits early</em> and re-run. Same workload, same vacuum, and every tuple goes. <b>The variable was never the vacuum. It was the horizon.</b><br><br>This is why the first query on a bloat page is <code>pg_stat_activity</code>, not <code>last_autovacuum</code> — and why a session holding <em>no locks at all</em> is the most expensive thing in the database.'
+  },
+  build:function(cfg){ var ev = [
+    E({type:'seed', rows:SEED3, story:'Three plots.'}),
+    E({type:'begin', name:'Dev (psql, idle)', role:'reader', story:'<b>A developer opens psql, types BEGIN, runs one small SELECT — and walks away.</b> The session is now idle in transaction. It holds no locks. Nothing it does will ever appear in a lock diagnostic. But it is holding a snapshot, and that snapshot is now the horizon for the entire database.'}),
+    E({type:'begin', name:'Writer 1', story:'The application carries on.'}),
+    E({type:'update', xid:2, row:12, val:'Vikram', story:'Update 1 — one dead tuple created.'}),
+    E({type:'commit', xid:2, story:'Committed.'})
+  ];
+  if (cfg.hold === false) ev.push(E({type:'commit', xid:1, story:'<b>The developer’s client times out and the transaction ends.</b> Watch the red horizon line jump to the right — that single move is the whole difference between this run and the other one.'}));
+  ev = ev.concat([
+    E({type:'begin', name:'Writer 2', story:'More traffic.'}),
+    E({type:'update', xid:3, row:12, val:'Priya', story:'Update 2 — a second dead tuple.'}),
+    E({type:'commit', xid:3, story:'Committed.'}),
+    E({type:'begin', name:'Writer 3', story:'More traffic.'}),
+    E({type:'update', xid:4, row:12, val:'Sanjay', story:'Update 3 — a third dead tuple. Look at their colour: <span style="color:var(--protected)">amber</span> means dead-but-protected, <span style="color:var(--removable)">red</span> means dead-and-removable. The colour is decided entirely by where the horizon line sits.'}),
+    E({type:'commit', xid:4, story:'Committed. Three versions of plot 12 are now garbage.'})
+  ]).concat(VAC()).concat([
+    E({type:'note', story:'<b>Read the "removed" figure in the bill, then re-run with the other setting of the Long reader dial.</b> Nothing about the vacuum changed between the two runs.'})
+  ]);
+  return ev; }
+},
+{
+  id:'shrink', name:'4 · Vacuum frees slots, not files', base:{hot:true}, dials:[],
+  predict:{
+    q:'Four rows filling page 0 are deleted and committed, and vacuum then removes all four tuples successfully. What happens to the file on disk?',
+    opts:['It shrinks by one page','It stays exactly the same size','It shrinks to zero','It grows'],
+    correct:1,
+    why:'<b>It stays the same size.</b> Page 0 is now completely empty and it is still there. Ordinary VACUUM makes space reusable <em>inside</em> the file; it records the free space in the free space map so the next insert lands there. The only case where it shortens the file is <b>truncation</b>, which requires the empty pages to be <em>contiguous and at the very end</em> — and page 0 is not at the end.<br><br>Keep stepping: the next inserts drop straight into page 0’s freed slots and the page count still does not move. <b>The healthy outcome of vacuum is not that the table shrinks. It is that the table stops growing.</b> To actually return the bytes you need VACUUM FULL, pg_repack, or — far better — a partition you can DROP.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED8, story:'Eight plots. With this fillfactor they spread across two pages.'}),
+    E({type:'begin', name:'Retention job', story:'A retention job starts, to delete old records.'}),
+    E({type:'delete', xid:1, row:12, story:'DELETE — an xmax stamp, nothing more.'}),
+    E({type:'delete', xid:1, row:13, story:'DELETE.'}),
+    E({type:'delete', xid:1, row:14, story:'DELETE.'}),
+    E({type:'delete', xid:1, row:15, story:'DELETE. <b>Check the bill: the page count and the byte count have not moved.</b> Deleting rows consumes space (log records, dirtied pages); it never releases any.'}),
+    E({type:'commit', xid:1, story:'Committed. Four tuples are now garbage, and with no reader open they are immediately removable.'})
+  ].concat(VAC()).concat([
+    E({type:'note', story:'Page 0 is now entirely empty — and still in the file.'}),
+    E({type:'begin', name:'New traffic', story:'New rows start arriving.'}),
+    E({type:'insert', xid:2, row:20, val:'Tara',  story:'The insert reuses a freed slot in page 0 — that is what the free space map is for.'}),
+    E({type:'insert', xid:2, row:21, val:'Uma',   story:'And another.'}),
+    E({type:'insert', xid:2, row:22, val:'Varun', story:'And another. <b>Page count: still 2.</b> The space was never lost — it was recycled. This steady state is the correct, healthy outcome.'}),
+    E({type:'commit', xid:2, story:'Committed.'})
+  ]); }
+},
+{
+  id:'hot', name:'5 · The index you added last Tuesday  ★', base:{}, dials:['hot','fill'],
+  predict:{
+    q:'You add an index on a column your application updates on every single request. Beyond the cost of maintaining that one index, what else does adding it cost?',
+    opts:['Nothing else — an index only costs its own upkeep','It makes reads on that table slower','It disables HOT updates for the whole table','It forces a full table rewrite'],
+    correct:2,
+    why:'<b>It disables HOT updates for the whole table.</b> A HOT update — heap-only tuple — needs two conditions: <em>no indexed column changed</em>, and <em>the new version fits on the same page</em>. When both hold, the new version goes into a free slot on the same page and the index entry is left pointing at the original line pointer, which becomes a REDIRECT. <b>No index is touched at all</b>, and the whole version chain can later be cleaned up inside that one page with no index scan.<br><br>Index the column you update and condition one fails forever. Every update now writes an entry in <em>every</em> index on the table, spills onto new pages, and leaves work for vacuum in every one of those indexes. <b>Watch the "HOT updates" counter in the bill while you flip the dial.</b><br><br>Then set fillfactor to 100% and leave the index off: HOT dies for the <em>other</em> reason — the pages were packed at insert time, so there is no reserved slot for a new version to land in. That is what <code>fillfactor</code> is for: you spend some disk on deliberately half-empty pages and buy HOT updates with it. On an update-heavy table that trade is usually strongly positive; on an append-only table it is pure waste, which is why the default is 100.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED6, story:'Six plots. How they pack depends on the fillfactor dial — at 67% the engine deliberately leaves slots empty, reserving them for future versions.'}),
+    E({type:'begin', name:'Request 1', story:'A request updates plot 12.'}),
+    E({type:'update', xid:1, row:12, val:'Vikram', story:'Update 1. <b>Watch the index panel.</b> If this was a HOT update, no entry appeared there and the log says so.'}),
+    E({type:'commit', xid:1, story:'Committed.'}),
+    E({type:'begin', name:'Request 2', story:'Another request.'}),
+    E({type:'update', xid:2, row:12, val:'Priya', story:'Update 2.'}),
+    E({type:'commit', xid:2, story:'Committed.'}),
+    E({type:'begin', name:'Request 3', story:'Another request.'}),
+    E({type:'update', xid:3, row:12, val:'Sanjay', story:'Update 3. By now the page may have run out of reserved space — in which case HOT is no longer possible and the version has to go somewhere else, with an index entry of its own.'}),
+    E({type:'commit', xid:3, story:'Committed.'}),
+    E({type:'begin', name:'Request 4', story:'Another request.'}),
+    E({type:'update', xid:4, row:12, val:'Nikhil', story:'Update 4.'}),
+    E({type:'commit', xid:4, story:'Committed. Compare the index entry count against the four updates.'})
+  ].concat(VAC()).concat([
+    E({type:'note', story:'<b>Notice what vacuum had to do.</b> HOT versions are cleaned up inside the page with no index work at all; non-HOT versions each cost an index entry to find and delete. A purple REDIRECT slot is a line pointer kept alive purely so an old index entry still lands somewhere sensible.'})
+  ]); }
+},
+{
+  id:'delete', name:'6 · DELETE deletes nothing', base:{hot:true}, dials:[],
+  predict:{
+    q:'You DELETE three rows and COMMIT. Immediately afterwards, how many bytes has the table given back?',
+    opts:['Three rows’ worth','Zero — and it has consumed more','Half a page','It depends on the fillfactor'],
+    correct:1,
+    why:'<b>Zero — and the delete itself consumed space.</b> A DELETE writes an <code>xmax</code> stamp into an existing tuple and returns. The bytes are all still there and still being read by every sequential scan. On top of that, each stamp dirtied a page and produced write-ahead log records, so the immediate effect of a large delete on disk usage is <em>upward</em>.<br><br>This is exactly the 03:10 incident in the README: three million rows deleted, disk usage went up, then a manual VACUUM freed nothing visible. Step on to see what vacuum can and cannot do about it — and remember the real fix is to make the operation a <code>DROP</code> of a partition rather than a <code>DELETE</code> of rows.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED6, story:'Six plots.'}),
+    E({type:'begin', name:'Cleanup job', story:'A cleanup job begins.'}),
+    E({type:'delete', xid:1, row:12, story:'DELETE plot 12. Watch the tuple: it is still there, it just acquired an xmax.'}),
+    E({type:'delete', xid:1, row:13, story:'DELETE plot 13.'}),
+    E({type:'delete', xid:1, row:14, story:'DELETE plot 14. <b>The bill has not moved.</b>'}),
+    E({type:'commit', xid:1, story:'Committed. Now the three tuples are genuinely dead — and with nobody holding an old snapshot, immediately removable.'})
+  ].concat(VAC()).concat([
+    E({type:'note', story:'<b>Three slots freed; page count identical.</b> The rows are gone from every query and the file is exactly as big as it was before you started.'})
+  ]); }
+},
+{
+  id:'three', name:'7 · Three readers, three answers, all correct', base:{hot:true}, dials:[],
+  predict:{
+    q:'Three readers begin at three different moments, and plot 12 is updated and committed between each of them. Right now, how many different values are being returned for plot 12?',
+    opts:['One — the newest','Two','Three','It is undefined'],
+    correct:2,
+    why:'<b>Three.</b> All three physical versions exist simultaneously in the heap, and each reader’s snapshot selects a different one. None of them is stale-by-accident and none is a bug: each is a faithful picture of the database at the moment that reader began.<br><br>This is what "readers do not block writers and writers do not block readers" actually buys you, and it explains something else you already know: this is <em>snapshot isolation</em>, not serializability. Nothing here prevents two of these transactions from writing different rows based on a rule they both read — which is write skew, and it survives everything on this page. PostgreSQL’s SERIALIZABLE adds a separate read-tracking layer on top of the machinery you are watching.'
+  },
+  build:function(){ return [
+    E({type:'seed', rows:SEED3, story:'Three plots.'}),
+    E({type:'begin', name:'Reader A', role:'reader', story:'<b>Reader A</b> takes a snapshot while plot 12 reads Meera.'}),
+    E({type:'begin', name:'Writer 1', story:'A writer arrives.'}),
+    E({type:'update', xid:2, row:12, val:'Vikram', story:'Plot 12 gets a second version.'}),
+    E({type:'commit', xid:2, story:'Committed.'}),
+    E({type:'begin', name:'Reader B', role:'reader', story:'<b>Reader B</b> starts now, and will therefore see Vikram — while Reader A, still running, continues to see Meera.'}),
+    E({type:'begin', name:'Writer 2', story:'Another writer.'}),
+    E({type:'update', xid:4, row:12, val:'Priya', story:'A third version.'}),
+    E({type:'commit', xid:4, story:'Committed.'}),
+    E({type:'begin', name:'Reader C', role:'reader', story:'<b>Reader C</b> starts now. Look at the "what each transaction sees" panel: three live readers, three different values, zero locks, zero waiting. Now look at the heap: <b>every one of those three tuples is protected</b>, because the horizon is pinned back at Reader A.'}),
+    E({type:'read', xid:1, row:12, story:'Reader A reads.'}),
+    E({type:'read', xid:3, row:12, story:'Reader B reads.'}),
+    E({type:'read', xid:5, row:12, story:'Reader C reads. Three answers from one instant, all correct — and the price is that nothing can be cleaned up until the oldest of them finishes.'})
+  ]; }
+},
+{
+  id:'wrap', name:'8 · The counter runs out  ★', base:{hot:true}, dials:['freeze'],
+  predict:{
+    q:'This model uses a 6-bit XID counter (real PostgreSQL uses 32-bit; the arithmetic is identical). A row written at XID 1 is never frozen, and the counter climbs past 34. What happens to that row?',
+    opts:['Nothing — old rows are always visible','The database raises an error','The row silently becomes invisible to everyone','The XID is renumbered automatically'],
+    correct:2,
+    why:'<b>It silently vanishes.</b> XIDs wrap, so "older than" cannot mean "numerically smaller" — the comparison is modular, and only the <em>nearest half</em> of the counter counts as the past. Once XID 1 falls more than half a counter behind the present, it starts looking like the <em>future</em>, and a tuple from the future is invisible to everybody. No error. No log line. The row is simply not in your table any more, and not in a logical dump either.<br><br>Now set <b>Freezing</b> back to <em>on</em> and re-run. The vacuum in the middle marks the tuple as visible-to-everyone-forever, its XID is never compared again, and it survives the wrap. <b>This is the second, independent job of vacuum, and it is why a table that is never written to still needs vacuuming</b> — and why an unattended PostgreSQL database eventually refuses to accept new transactions rather than let this happen.'
+  },
+  build:function(){ return [
+    E({type:'begin', name:'Original load', story:'One transaction loads the reference data — the kind of table that is written once and then read for years.'}),
+    E({type:'insert', xid:1, row:12, val:'Meera', story:'The row is written with <code>xmin = 1</code>.'}),
+    E({type:'insert', xid:1, row:13, val:'Kavya', story:'And a second row.'}),
+    E({type:'commit', xid:1, story:'Committed. Nobody will ever update this table again.'}),
+    E({type:'burn', n:14, story:'Fourteen thousand unrelated transactions run elsewhere in the database — on other tables entirely. This table is not touched. <b>But the counter these rows are stamped against keeps moving.</b>'}),
+    E({type:'note', story:'The counter is at 16; the rows are stamped 1. Their <em>age</em> is 15 — comfortably in the past, still visible to everyone.'})
+  ].concat(VAC()).concat([
+    E({type:'note', story:'<b>That vacuum is the whole ballgame.</b> If the Freezing dial is on, the tuples are now teal — frozen — and their XIDs will never be compared again. If it is off, nothing happened here and the clock keeps ticking.'}),
+    E({type:'burn', n:17, story:'Seventeen thousand more transactions. The counter is now at 33 and the rows’ age is 32 — exactly at the edge of the half-counter that still counts as the past.'}),
+    E({type:'burn', n:1,  story:'<b>One more transaction.</b> Age 33. The rows have just crossed from the past into the apparent future.'}),
+    E({type:'begin', name:'Auditor', role:'reader', story:'An auditor opens a transaction and reads the table.'}),
+    E({type:'read', xid:34, row:12, story:'<b>Read the log line and the "what each transaction sees" panel.</b> If freezing was off, the row is gone — with no error anywhere. If freezing was on, it is right there, teal, unbothered.'})
+  ]); }
+}
+];
+//=== SCENARIOS END ===
+</script>
+<script>
+//=== VIEW START ===
+var CLS = { live:'s-live', recent:'s-recent', protected:'s-protected', removable:'s-removable',
+            frozen:'s-frozen', free:'s-free', dead:'s-dead', redirect:'s-redirect' };
+var LEGEND = [
+  ['live','live · visible to everyone'], ['recent','live · too new for some snapshot'],
+  ['frozen','frozen · visible forever'], ['protected','dead · but the horizon protects it'],
+  ['removable','dead · removable right now'], ['dead','line pointer DEAD · index not yet cleaned'],
+  ['redirect','REDIRECT · a HOT chain root'], ['free','UNUSED · reusable slot']
+];
+
+function buildStates(scen, cfg){
+  var st = blankState(cfg), out = [st], evs = scen.build(cfg);
+  for (var i=0;i<evs.length;i++){ st = apply(st, evs[i]); out.push(st); }
+  return out;
+}
+
+var UI = { states:[], i:0, scen:null, sel:null, picked:null, timer:null };
+
+var DIALIDS = { hold:'dHold', hot:'dHot', fill:'dFill', freeze:'dFreeze' };
+function cfgFor(scen){
+  var c = { hold:true, hot:true, fill:67, freeze:true }, b = scen.base || {}, k;
+  for (k in b) c[k] = b[k];
+  var d = scen.dials || [];
+  if (d.indexOf('hold')   >= 0) c.hold   = byId('dHold').value === 'on';
+  if (d.indexOf('hot')    >= 0) c.hot    = byId('dHot').value  === 'on';
+  if (d.indexOf('fill')   >= 0) c.fill   = parseInt(byId('dFill').value, 10);
+  if (d.indexOf('freeze') >= 0) c.freeze = byId('dFreeze').value === 'on';
+  return c;
+}
+/* Only the dials that change THIS scenario stay live — the rest are dimmed,
+   so a control is never a decoration. */
+function syncDials(scen){
+  var d = scen.dials || [], k;
+  for (k in DIALIDS){
+    var el = byId(DIALIDS[k]), on = d.indexOf(k) >= 0;
+    if (!el) continue;
+    el.disabled = !on;
+    if (el.parentNode) el.parentNode.style.opacity = on ? '1' : '0.35';
+  }
+  byId('dialNote').innerHTML = d.length
+    ? 'Live dial' + (d.length > 1 ? 's' : '') + ' for this scenario: <b>' +
+      d.map(function(x){ return {hold:'Long reader', hot:'Index on updated column',
+        fill:'fillfactor', freeze:'Freezing'}[x]; }).join('</b>, <b>') +
+      '</b>. Change one and the scenario re-runs from the top.'
+    : 'This scenario has no dials — it is the same run every time. Scenarios 3, 5 and 8 (★) are the ones to experiment with.';
+}
+function byId(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function rebuild(keepIndex){
+  var idx = keepIndex ? UI.i : 0;
+  UI.states = buildStates(UI.scen, cfgFor(UI.scen));
+  UI.i = Math.min(idx, UI.states.length-1);
+  render();
+}
+
+function selSlot(p, s){ UI.sel = [p,s]; render(); }
+function pick(n){
+  UI.picked = n;
+  var sc = UI.scen;
+  var html = '';
+  for (var i=0;i<sc.predict.opts.length;i++){
+    var mark = (i===sc.predict.correct) ? ' ✅' : (i===n ? ' ❌' : '');
+    html += '<div>' + (i===n?'<b>your answer:</b> ':'') + esc(sc.predict.opts[i]) + mark + '</div>';
+  }
+  byId('pres').innerHTML = html + '<div style="margin-top:8px">' + sc.predict.why + '</div>';
+  byId('pres').className = 'res';
+  renderPredictOpts();
+}
+function renderPredictOpts(){
+  var sc = UI.scen, h = '';
+  for (var i=0;i<sc.predict.opts.length;i++)
+    h += '<button class="' + (UI.picked===i?'picked':'') + '" onclick="pick(' + i + ')">' +
+         esc(sc.predict.opts[i]) + '</button>';
+  byId('popts').innerHTML = h;
+}
+
+function renderLanes(st){
+  var maxX = st.nextXid;
+  for (var i=0;i<st.txns.length;i++){ var e = st.txns[i].ended || st.nextXid; if (e>maxX) maxX = e; }
+  var span = Math.max(maxX + 1, 8), pc = function(x){ return (100*x/span).toFixed(2) + '%'; };
+  var h = '', hz = horizonOf(st);
+  for (var j=0;j<st.txns.length;j++){
+    var t = st.txns[j], end = (t.status === 'running') ? st.nextXid : (t.ended || st.nextXid);
+    var w = Math.max(end - t.began, 0.6);
+    h += '<div class="lane"><div class="nm">' + esc(t.name) + '</div><div class="track">' +
+      '<div class="bar ' + t.status + '" style="left:' + pc(t.began) + ';width:' + pc(w) + '">' +
+      'XID ' + t.xid + ' · ' + t.status + '</div></div></div>';
+  }
+  if (!st.txns.length) h = '<div class="tiny">No transactions yet.</div>';
+  h += '<div class="lane"><div class="nm" style="color:var(--horizon)">horizon</div><div class="track">' +
+       '<div class="hline" style="left:' + pc(hz.xid) + '"></div>' +
+       '<div class="hlab" style="left:calc(' + pc(hz.xid) + ' + 6px)">XID ' + hz.xid +
+       (hz.holder ? ' — held by ' + esc(hz.holder) : ' — nobody holding') +
+       '</div></div></div>';
+  byId('lanes').innerHTML = h;
+  var ax = '<span style="left:132px">XID 0</span>' +
+           '<span style="right:0">XID ' + (span-1) + '</span>';
+  byId('axis').innerHTML = ax;
+}
+
+function renderPages(st){
+  var hz = horizonOf(st).xid, h = '';
+  for (var pi=0; pi<st.pages.length; pi++){
+    var p = st.pages[pi], used = usedCount(p);
+    h += '<div class="page"><div class="ph"><span>page ' + pi + '</span><span>' + used + '/' + PAGECAP +
+         ' used</span></div><div class="slots">';
+    for (var si=0; si<PAGECAP; si++){
+      var s = p.slots[si] || {st:'unused', tup:null, redir:null};
+      var c = classify(st, s, hz), body;
+      if (s.st === 'unused')        body = '&mdash; unused &mdash;';
+      else if (s.st === 'dead')     body = 'DEAD (awaiting index cleanup)';
+      else if (s.st === 'redirect') body = 'REDIRECT &rarr; lp ' + s.redir;
+      else body = 'plot ' + s.tup.row + ' = ' + esc(s.tup.val) +
+                  '  <span style="opacity:.75">xmin ' + s.tup.xmin +
+                  (s.tup.frozen ? '(f)' : '') + ' / xmax ' + s.tup.xmax + '</span>';
+      var selCls = (UI.sel && UI.sel[0]===pi && UI.sel[1]===si) ? ' sel' : '';
+      h += '<button type="button" class="slot ' + CLS[c] + selCls +
+           '" onclick="selSlot(' + pi + ',' + si + ')">' +
+           '<span class="lp">lp' + si + '</span><span class="bd">' + body + '</span></button>';
+    }
+    h += '</div></div>';
+  }
+  if (!st.pages.length) h = '<div class="tiny">The table is empty.</div>';
+  byId('pages').innerHTML = h;
+  var lg = '';
+  for (var k=0;k<LEGEND.length;k++){
+    var cls = CLS[LEGEND[k][0]];
+    lg += '<span><i class="' + cls + '"></i>' + LEGEND[k][1] + '</span>';
+  }
+  byId('legend').innerHTML = lg;
+}
+
+function renderIndex(st){
+  var h = '';
+  for (var i=0;i<st.index.length;i++){
+    var e = st.index[i];
+    var s = st.pages[e.page] && st.pages[e.page].slots[e.slot];
+    var isRedir = s && s.st === 'redirect';
+    h += '<div class="idxe' + (isRedir?' hot':'') + '"><span>' + esc(e.key) + '</span><span>&rarr; (' +
+         e.page + ',' + e.slot + ')' + (isRedir ? ' ↷' : '') + '</span></div>';
+  }
+  if (!st.index.length) h = '<div class="tiny">no entries</div>';
+  byId('index').innerHTML = h + '<div class="tiny" style="margin-top:6px">' + st.index.length +
+    ' entr' + (st.index.length===1?'y':'ies') + '. ↷ = the entry now lands on a REDIRECT, i.e. a HOT chain.</div>';
+}
+
+function renderViews(st){
+  var h = '', r = runningTxns(st), focus = 12;
+  for (var i=0;i<r.length;i++){
+    var got = readRow(st, r[i].snap, focus);
+    h += '<div class="view"><h3>' + esc(r[i].name) + ' · XID ' + r[i].xid + '</h3>' +
+      '<div class="val">' + (got ? esc(got.tup.val) : '<span class="warn">no row</span>') + '</div>' +
+      '<div class="why">snapshot xmin ' + r[i].snap.xmin + ', xmax ' + r[i].snap.xmax +
+      ', xip [' + r[i].snap.xip.join(',') + ']' + (got ? ' &rarr; reads (' + got.page + ',' + got.slot + ')' : '') +
+      '</div></div>';
+  }
+  var ns = nowSnapshot(st), g2 = readRow(st, ns, focus);
+  h += '<div class="view" style="border-style:dashed"><h3>a transaction starting now</h3>' +
+    '<div class="val">' + (g2 ? esc(g2.tup.val) : '<span class="warn">no row</span>') + '</div>' +
+    '<div class="why">snapshot xmin ' + ns.xmin + ', xmax ' + ns.xmax + '</div></div>';
+  byId('views').innerHTML = h;
+}
+
+function renderStats(st){
+  var s = statsOf(st);
+  function row(a,b,cls){ return '<tr><td>' + a + '</td><td' + (cls?' class="'+cls+'"':'') + '>' + b + '</td></tr>'; }
+  var kb = function(n){ return (n/1024).toFixed(0) + ' KB'; };
+  var h = '';
+  h += row('pages in the file', s.pages);
+  h += row('table size', kb(s.bytes));
+  h += row('live data', kb(s.liveBytes));
+  h += row('bloat (slots per live row)', s.live ? s.bloat.toFixed(2) + '×' : '—',
+           s.bloat > 2 ? 'warn' : (s.live ? 'ok' : ''));
+  h += row('live tuples', s.live);
+  h += row('&nbsp;&nbsp;&nbsp;of which frozen', s.frozen);
+  h += row('dead tuples', s.dead);
+  h += row('&nbsp;&nbsp;&nbsp;removable now', s.removable, s.removable ? 'ok' : '');
+  h += row('&nbsp;&nbsp;&nbsp;protected by horizon', s.protected_, s.protected_ ? 'warn' : '');
+  h += row('index entries', s.idx);
+  h += row('HOT updates', s.hotUpd, s.hotUpd ? 'ok' : '');
+  h += row('non-HOT updates', s.coldUpd, s.coldUpd ? 'warn' : '');
+  h += row('free slots', s.free);
+  h += row('horizon', 'XID ' + s.horizon);
+  h += row('horizon held by', s.holder ? esc(s.holder) : '<span class="ok">nobody</span>');
+  h += row('vacuum runs', st.vac.runs);
+  h += row('removed by last vacuum', st.vac.removed, st.vac.runs && !st.vac.removed ? 'warn' : '');
+  byId('stats').innerHTML = h;
+}
+
+function renderInspector(st){
+  if (!UI.sel){ byId('inspector').textContent = 'Click a slot in the heap.'; return; }
+  var p = st.pages[UI.sel[0]], s = p && p.slots[UI.sel[1]];
+  if (!s){ byId('inspector').textContent = 'That slot does not exist yet.'; return; }
+  var hz = horizonOf(st).xid, c = classify(st, s, hz);
+  var L = ['ctid           (' + UI.sel[0] + ',' + UI.sel[1] + ')',
+           'line pointer   ' + s.st.toUpperCase(),
+           'classification ' + c];
+  if (s.st === 'redirect') L.push('redirects to   lp ' + s.redir);
+  if (s.tup){
+    L.push('row            plot ' + s.tup.row);
+    L.push('value          ' + s.tup.val);
+    L.push('xmin           ' + s.tup.xmin + '   (' + txStatus(st, s.tup.xmin) + ')');
+    L.push('xmax           ' + s.tup.xmax + (s.tup.xmax ? '   (' + txStatus(st, s.tup.xmax) + ')' : '   (never ended)'));
+    L.push('frozen         ' + (s.tup.frozen ? 'YES' : 'no'));
+    L.push('index entry    ' + (s.hot ? 'none — HOT tuple' : 'yes'));
+    L.push('');
+    L.push('horizon        XID ' + hz);
+    L.push('removable?     ' + (c === 'removable' ? 'YES' :
+      (c === 'protected' ? 'no — dead, but xmax ' + s.tup.xmax + ' is not before the horizon' : 'no — still live')));
+    L.push('');
+    L.push('visible to:');
+    var r = runningTxns(st), any = false;
+    for (var i=0;i<r.length;i++){
+      L.push('  ' + (visibleTo(st, s.tup, r[i].snap) ? '✔ ' : '✘ ') + r[i].name + ' (XID ' + r[i].xid + ')');
+      any = true;
+    }
+    L.push('  ' + (visibleTo(st, s.tup, nowSnapshot(st)) ? '✔ ' : '✘ ') + 'a transaction starting now');
+  }
+  byId('inspector').textContent = L.join('\n');
+}
+
+function render(){
+  var st = UI.states[UI.i];
+  byId('story').innerHTML = st.story || (UI.i === 0
+    ? 'Press <b>Step ▶</b> to begin — or <b>Run this scenario for me</b> to watch it play.'
+    : '&nbsp;');
+  byId('stepLbl').textContent = 'step ' + UI.i + ' / ' + (UI.states.length - 1);
+  renderLanes(st); renderPages(st); renderIndex(st); renderViews(st); renderStats(st); renderInspector(st);
+  var lg = st.log.slice(-40).join('\n');
+  byId('logbox').textContent = lg || '(nothing yet)';
+  byId('btnBack').disabled = (UI.i === 0);
+  byId('btnStep').disabled = (UI.i >= UI.states.length - 1);
+  byId('btnEnd').disabled  = (UI.i >= UI.states.length - 1);
+}
+
+function stepFwd(){ if (UI.i < UI.states.length-1){ UI.i++; render(); } }
+function stepBack(){ if (UI.i > 0){ UI.i--; render(); } }
+function runToEnd(){ UI.i = UI.states.length-1; render(); }
+function resetAll(){ UI.i = 0; UI.sel = null; render(); }
+function autoRun(){
+  if (UI.timer){ clearInterval(UI.timer); UI.timer = null; byId('btnRun').textContent = '▶ Run this scenario for me'; return; }
+  UI.i = 0; render();
+  byId('btnRun').textContent = '⏸ Pause';
+  UI.timer = setInterval(function(){
+    if (UI.i >= UI.states.length-1){ clearInterval(UI.timer); UI.timer = null;
+      byId('btnRun').textContent = '▶ Run this scenario for me'; return; }
+    stepFwd();
+  }, 1500);
+}
+
+function loadScenario(id){
+  for (var i=0;i<SCENARIOS.length;i++) if (SCENARIOS[i].id === id) UI.scen = SCENARIOS[i];
+  UI.picked = null; UI.sel = null;
+  byId('predict').className = 'panel';
+  byId('pq').textContent = UI.scen.predict.q;
+  byId('pres').className = 'res hide';
+  renderPredictOpts();
+  syncDials(UI.scen);
+  rebuild(false);
+}
+
+function boot(){
+  var h = '';
+  for (var i=0;i<SCENARIOS.length;i++) h += '<option value="' + SCENARIOS[i].id + '">' + SCENARIOS[i].name + '</option>';
+  byId('scenSel').innerHTML = h;
+  byId('scenSel').addEventListener('change', function(){ loadScenario(byId('scenSel').value); });
+  byId('btnStep').addEventListener('click', stepFwd);
+  byId('btnBack').addEventListener('click', stepBack);
+  byId('btnEnd').addEventListener('click', runToEnd);
+  byId('btnReset').addEventListener('click', resetAll);
+  byId('btnRun').addEventListener('click', autoRun);
+  ['dHold','dHot','dFill','dFreeze'].forEach(function(id){
+    byId(id).addEventListener('change', function(){ rebuild(false); });
+  });
+  loadScenario(SCENARIOS[0].id);
+}
+if (typeof document !== 'undefined' && document.addEventListener) boot();
+//=== VIEW END ===
+</script>
+</body>
+</html>

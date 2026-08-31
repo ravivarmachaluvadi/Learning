@@ -1,0 +1,715 @@
+<title>The Host Key Decision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#EDF0F3; --panel:#FFFFFF; --panel-2:#F4F6F9; --sunk:#E4E9EF;
+  --ink:#141A21; --ink-2:#48545F; --ink-3:#77848F; --line:#D3DAE2;
+  --teal:#0B7A63; --teal-soft:#DDEFEA;
+  --amber:#A96206; --amber-soft:#FBEEDB;
+  --red:#B2242B; --red-soft:#FBE4E4;
+  --brass:#8A6A2F;
+  --shadow:0 1px 2px rgba(20,26,33,.06),0 8px 24px rgba(20,26,33,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#10151B; --panel:#19202A; --panel-2:#1F2731; --sunk:#141B23;
+    --ink:#E3E9F0; --ink-2:#A3B0BD; --ink-3:#78858F; --line:#2C3742;
+    --teal:#4FC4A6; --teal-soft:#123128;
+    --amber:#E0A44B; --amber-soft:#33270F;
+    --red:#F2777E; --red-soft:#39191C;
+    --brass:#C9A667;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10151B; --panel:#19202A; --panel-2:#1F2731; --sunk:#141B23;
+  --ink:#E3E9F0; --ink-2:#A3B0BD; --ink-3:#78858F; --line:#2C3742;
+  --teal:#4FC4A6; --teal-soft:#123128;
+  --amber:#E0A44B; --amber-soft:#33270F;
+  --red:#F2777E; --red-soft:#39191C;
+  --brass:#C9A667;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:40px 24px 80px}
+h1,h2,h3{font-family:Archivo,"IBM Plex Sans",sans-serif; text-wrap:balance; margin:0}
+h1{font-size:2.6rem; font-weight:700; letter-spacing:-.02em; line-height:1.1}
+h2{font-size:1.15rem; font-weight:600; letter-spacing:-.01em}
+.eyebrow{
+  font-family:Archivo,sans-serif; font-size:.72rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+}
+.lede{color:var(--ink-2); max-width:66ch; margin:14px 0 0; font-size:1.05rem}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+
+header{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:28px}
+
+/* ---------- verdict ---------- */
+.verdict{
+  display:flex; gap:16px; align-items:flex-start;
+  border:1px solid var(--line); border-left-width:5px; border-radius:10px;
+  background:var(--panel); padding:16px 18px; box-shadow:var(--shadow); margin-bottom:24px;
+}
+.verdict[data-tone="pending"]{border-left-color:var(--ink-3)}
+.verdict[data-tone="good"]{border-left-color:var(--teal); background:var(--teal-soft)}
+.verdict[data-tone="warn"]{border-left-color:var(--amber); background:var(--amber-soft)}
+.verdict[data-tone="bad"]{border-left-color:var(--red); background:var(--red-soft)}
+.verdict-title{font-family:Archivo,sans-serif; font-weight:700; font-size:1.05rem}
+.verdict-body{color:var(--ink-2); font-size:.95rem; margin-top:2px}
+
+/* ---------- stage ---------- */
+.stage{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:26px 22px 18px; box-shadow:var(--shadow); margin-bottom:20px; overflow-x:auto;
+}
+.rail{display:grid; grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:12px; min-width:600px}
+.node{
+  border:1px solid var(--line); border-radius:10px; background:var(--panel-2);
+  padding:14px; text-align:center; transition:border-color .25s, box-shadow .25s;
+}
+.node.active{border-color:var(--teal); box-shadow:0 0 0 3px var(--teal-soft)}
+.node.danger{border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft)}
+.node-name{font-family:Archivo,sans-serif; font-weight:600; font-size:.95rem}
+.node-sub{font-size:.78rem; color:var(--ink-3); margin-top:2px}
+.node-fp{font-size:.7rem; color:var(--brass); margin-top:8px; word-break:break-all}
+
+.wire{position:relative; height:104px; display:flex; flex-direction:column; justify-content:center}
+.wire-line{height:2px; background:var(--line); position:relative}
+.wire-line::after{
+  content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 12px);
+}
+.interceptor{
+  position:absolute; left:50%; top:0; transform:translateX(-50%);
+  background:var(--red-soft); border:1px solid var(--red); color:var(--red);
+  border-radius:8px; padding:6px 12px; font-size:.8rem; font-weight:600;
+  font-family:Archivo,sans-serif; white-space:nowrap;
+}
+.packet{
+  position:absolute; top:52px; left:0;
+  background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  padding:4px 10px; font-size:.72rem; white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace; box-shadow:var(--shadow);
+  transition:left .5s ease, opacity .3s;
+}
+.packet[data-kind="key"]{border-color:var(--brass); color:var(--brass)}
+.packet[data-kind="sig"]{border-color:var(--teal); color:var(--teal)}
+.packet[data-kind="stop"]{border-color:var(--red); color:var(--red)}
+
+/* ---------- controls ---------- */
+.deck{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; margin-bottom:20px}
+.ctrl{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow:var(--shadow)}
+.ctrl h3{font-size:.85rem; font-weight:600; margin-bottom:2px}
+.ctrl p{font-size:.78rem; color:var(--ink-3); margin:0 0 10px}
+.opts{display:flex; flex-direction:column; gap:6px}
+.opt{
+  display:flex; gap:9px; align-items:flex-start; cursor:pointer;
+  border:1px solid transparent; border-radius:7px; padding:6px 8px; font-size:.85rem;
+  transition:background .15s;
+}
+.opt:hover{background:var(--sunk)}
+.opt input{margin:5px 0 0; accent-color:var(--teal); flex:none}
+.opt span small{display:block; color:var(--ink-3); font-size:.75rem; line-height:1.4}
+
+button{
+  font-family:Archivo,sans-serif; font-weight:600; font-size:.85rem;
+  border:1px solid var(--line); background:var(--panel); color:var(--ink);
+  border-radius:8px; padding:9px 15px; cursor:pointer; transition:background .15s,border-color .15s;
+}
+button:hover:not(:disabled){background:var(--sunk); border-color:var(--ink-3)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+button.primary{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+button.primary:hover:not(:disabled){background:var(--ink-2); border-color:var(--ink-2)}
+.transport{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:20px}
+.stepcount{font-size:.8rem; color:var(--ink-3); margin-left:auto; font-variant-numeric:tabular-nums}
+
+.scenarios{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px}
+.scenarios button{font-size:.8rem}
+
+/* ---------- panels ---------- */
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px}
+@media(max-width:760px){.cols{grid-template-columns:1fr} .rail{min-width:520px}}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); overflow:hidden}
+.panel-head{padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel-2)}
+.panel-head h2{font-size:.9rem}
+.panel-head p{margin:0; font-size:.75rem; color:var(--ink-3)}
+.rows{padding:6px 16px 14px}
+.row{display:grid; grid-template-columns:132px 1fr; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:.82rem}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--ink-3)}
+.row .v{font-family:"IBM Plex Mono",monospace; font-size:.78rem; word-break:break-all}
+.row.changed{background:var(--teal-soft); margin:0 -16px; padding-left:16px; padding-right:16px; border-radius:4px}
+.v.good{color:var(--teal)} .v.bad{color:var(--red)} .v.warn{color:var(--amber)} .v.key{color:var(--brass)}
+
+/* ---------- log ---------- */
+.log{background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); margin-bottom:20px}
+.entry{padding:14px 18px; border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:none}
+.entry.current{background:var(--panel-2); border-left:3px solid var(--teal); padding-left:15px}
+.entry-t{font-family:Archivo,sans-serif; font-weight:600; font-size:.88rem; display:flex; gap:8px; align-items:baseline}
+.entry-n{color:var(--ink-3); font-size:.72rem; font-variant-numeric:tabular-nums}
+.entry-s{color:var(--ink-2); font-size:.9rem; margin-top:4px}
+.entry-tech{font-family:"IBM Plex Mono",monospace; font-size:.74rem; color:var(--ink-3); margin-top:6px; word-break:break-all}
+.empty-log{padding:20px 18px; color:var(--ink-3); font-size:.9rem}
+
+/* ---------- predict ---------- */
+.predict{background:var(--amber-soft); border:1px solid var(--amber); border-radius:10px; padding:16px 18px; margin-bottom:20px}
+.predict h2{font-size:.95rem; color:var(--amber)}
+.predict p{font-size:.9rem; margin:6px 0 12px; color:var(--ink-2)}
+.predict .opts{flex-direction:row; flex-wrap:wrap}
+.predict button{background:var(--panel)}
+.pred-result{margin-top:12px; font-size:.9rem; padding-top:12px; border-top:1px solid var(--amber)}
+
+/* ---------- matrix ---------- */
+.matrix{width:100%; border-collapse:collapse; font-size:.8rem}
+.matrix th,.matrix td{border:1px solid var(--line); padding:8px 10px; text-align:left}
+.matrix th{background:var(--panel-2); font-family:Archivo,sans-serif; font-weight:600; font-size:.75rem}
+.matrix td.unseen{color:var(--ink-3); font-style:italic}
+.matrix tr.here td{background:var(--sunk); font-weight:500}
+.dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle}
+.dot.good{background:var(--teal)} .dot.bad{background:var(--red)} .dot.warn{background:var(--amber)} .dot.unseen{background:var(--line)}
+
+.legend{display:flex; flex-wrap:wrap; gap:18px; font-size:.8rem; color:var(--ink-2); margin-top:14px}
+.legend span{display:flex; align-items:center}
+section{margin-bottom:34px}
+.section-head{margin-bottom:12px}
+.section-head p{margin:4px 0 0; font-size:.88rem; color:var(--ink-2); max-width:66ch}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">SSH · the moment trust is decided</div>
+  <h1>The Host Key Decision</h1>
+  <p class="lede">
+    You type <span class="mono">ssh prod-db.example.com</span>. Before a single
+    keystroke of yours reaches that machine, your laptop has to answer a question
+    it cannot look up anywhere: <strong>is the computer answering me actually the
+    one I meant?</strong> This page runs that decision, step by step, with a
+    real attacker on the wire when you want one.
+  </p>
+</header>
+
+<div class="verdict" id="verdict" data-tone="pending">
+  <div>
+    <div class="verdict-title" id="verdict-title">Nothing has happened yet</div>
+    <div class="verdict-body" id="verdict-body">
+      Pick a situation below and press <strong>Play</strong>, or use one of the
+      three ready-made stories. Every step explains itself as it happens.
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="rail">
+    <div class="node" id="node-client">
+      <div class="node-name">Your laptop</div>
+      <div class="node-sub" id="client-sub">idle</div>
+      <div class="node-fp mono" id="client-fp"></div>
+    </div>
+    <div class="wire">
+      <div class="interceptor" id="interceptor" style="display:none">Mallory is relaying this connection</div>
+      <div class="wire-line"></div>
+      <div class="packet" id="packet" style="opacity:0">—</div>
+    </div>
+    <div class="node" id="node-server">
+      <div class="node-name" id="server-name">prod-db.example.com</div>
+      <div class="node-sub" id="server-sub">waiting</div>
+      <div class="node-fp mono" id="server-fp"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i class="dot good"></i>checked and trusted</span>
+    <span><i class="dot warn"></i>unknown, nothing verified</span>
+    <span><i class="dot bad"></i>alarm, or an attacker in control</span>
+    <span style="color:var(--brass)"><i class="dot" style="background:var(--brass)"></i>key material</span>
+  </div>
+</div>
+
+<section>
+  <div class="section-head">
+    <h2>Set up the situation</h2>
+    <p>
+      Nothing here is fixed for you. Each of these three choices is a real thing
+      that varies in real life, and every combination has a different ending.
+    </p>
+  </div>
+  <div class="deck">
+    <div class="ctrl">
+      <h3>Who is actually on the wire?</h3>
+      <p>You cannot tell from the outside.</p>
+      <div class="opts" id="ctrl-wire">
+        <label class="opt"><input type="radio" name="wire" value="direct" checked>
+          <span>The real server<small>Your packets reach prod-db directly.</small></span></label>
+        <label class="opt"><input type="radio" name="wire" value="mitm">
+          <span>Someone intercepting<small>Mallory answers instead, and relays to the real server.</small></span></label>
+      </div>
+    </div>
+    <div class="ctrl">
+      <h3>What does your laptop remember?</h3>
+      <p>This is the <span class="mono">known_hosts</span> file.</p>
+      <div class="opts" id="ctrl-memory">
+        <label class="opt"><input type="radio" name="memory" value="empty" checked>
+          <span>Nothing — first ever visit<small>No entry for this host name.</small></span></label>
+        <label class="opt"><input type="radio" name="memory" value="real">
+          <span>The real server's key<small>You have connected safely before.</small></span></label>
+        <label class="opt"><input type="radio" name="memory" value="mallory">
+          <span>Mallory's key<small>An earlier attack got recorded as the truth.</small></span></label>
+      </div>
+    </div>
+    <div class="ctrl">
+      <h3>What do you do at the prompt?</h3>
+      <p>Only matters when the host is unknown.</p>
+      <div class="opts" id="ctrl-human">
+        <label class="opt"><input type="radio" name="human" value="accepts" checked>
+          <span>Type <span class="mono">yes</span> without looking<small>What almost everyone does.</small></span></label>
+        <label class="opt"><input type="radio" name="human" value="verifies">
+          <span>Compare the fingerprint first<small>Against a value you got elsewhere — a ticket, a colleague, the console.</small></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenarios">
+    <button data-scenario="normal">▶ Run the ordinary first login</button>
+    <button data-scenario="alarm">▶ Run the alarm everyone has seen</button>
+    <button data-scenario="silent">▶ Run the one nobody notices</button>
+  </div>
+
+  <div class="transport">
+    <button id="btn-back">← Step back</button>
+    <button id="btn-step">Step forward →</button>
+    <button id="btn-play" class="primary">Play</button>
+    <button id="btn-reset">Reset</button>
+    <span class="stepcount" id="stepcount">step 0 of 0</span>
+  </div>
+</section>
+
+<div class="predict" id="predict" style="display:none">
+  <h2 id="predict-q">Predict first</h2>
+  <p id="predict-sub"></p>
+  <div class="opts" id="predict-opts"></div>
+  <div class="pred-result" id="predict-result" style="display:none"></div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <div class="panel-head"><h2>Your laptop knows</h2><p>Everything the client can see or check</p></div>
+    <div class="rows" id="client-rows"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>The other end knows</h2><p id="server-panel-sub">Whoever is actually answering</p></div>
+    <div class="rows" id="server-rows"></div>
+  </div>
+</div>
+
+<section>
+  <div class="section-head">
+    <h2>What happened, in order</h2>
+    <p>Each line says what the step did and why it matters. The technical
+       notation is the smaller grey line underneath.</p>
+  </div>
+  <div class="log" id="log"><div class="empty-log">No steps run yet.</div></div>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Every ending, and which ones you have seen</h2>
+    <p>Eight combinations, four endings. Rows fill in as you run them — the goal
+       is to reach the two red rows and understand why they differ.</p>
+  </div>
+  <div style="overflow-x:auto">
+  <table class="matrix" id="matrix">
+    <thead><tr><th>On the wire</th><th>Laptop remembers</th><th>You at the prompt</th><th>Ending</th></tr></thead>
+    <tbody id="matrix-body"></tbody>
+  </table>
+  </div>
+</section>
+
+</div>
+
+<script>
+"use strict";
+
+/* Real fingerprints, copied from an actual run of this lab's ssh-real.sh. */
+const FP_REAL = "SHA256:xhd1+pkCJTaolmvmKbOu7AEklrDjGapafL4tD5XUav0";
+const FP_MAL  = "SHA256:RPmtNlmD4lKQHdg2YXfHTTbhpE55/76Go2MTqz+j5JY";
+const FP_USER = "SHA256:2E1PHSz+h/CTPjDduoCwHuqwpSHIKHcmRX0FyLh5EpE";
+const short = fp => fp.slice(0, 24) + "…";
+
+const S = { wire:"direct", memory:"empty", human:"accepts", step:0, steps:[], timer:null, explored:{} };
+
+/* ---------------------------------------------------------------- model
+   buildSteps is a pure function of the three settings. Each step carries a
+   FULL snapshot of both sides, so stepping backwards is just an array index. */
+function buildSteps(cfg){
+  const mitm = cfg.wire === "mitm";
+  const keyOnWire   = mitm ? FP_MAL : FP_REAL;
+  const keyOnWireWho= mitm ? "Mallory's host key" : "the real server's host key";
+  const remembered  = cfg.memory === "empty" ? null : (cfg.memory === "real" ? FP_REAL : FP_MAL);
+
+  const c = { conn:"not connected", eph:"—", secret:"—", hostkey:"—", check:"not done yet", auth:"—" };
+  const s = { who: mitm ? "Mallory (relaying to prod-db)" : "prod-db.example.com",
+              eph:"—", secret:"—", authkeys:"holds ravi's key", auth:"—" };
+  const out = [];
+  const push = (o) => out.push(Object.assign({ msg:null, halt:false, changed:[] }, o,
+                   { client:Object.assign({},c), server:Object.assign({},s) }));
+
+  c.conn = "TCP open";
+  push({ t:"The connection opens",
+    sen: mitm
+      ? "Your laptop opens a connection to what it believes is prod-db.example.com. It actually terminates on Mallory's machine, which immediately opens its own connection onward to the real server. Nothing on your screen can show you this."
+      : "Your laptop opens a plain, unencrypted TCP connection to prod-db.example.com on port 22. At this instant nothing is secret and nothing is verified.",
+    tech:"TCP 3-way handshake · SSH-2.0-OpenSSH_9.8 exchanged in cleartext",
+    msg:{ dir:"right", label:"SSH-2.0", kind:"plain" }, changed:["conn"] });
+
+  c.eph = "Q_C (fresh, this connection only)";
+  push({ t:"Your laptop makes a throwaway key",
+    sen:"Your laptop generates a brand-new key pair that exists only for this one connection, and sends the public half. It will be destroyed when you log out — that is what stops anyone decrypting a recording of today's session next year.",
+    tech:"client → server:  Q_C  (X25519 public value, 32 bytes)",
+    msg:{ dir:"right", label:"Q_C", kind:"key" }, changed:["eph"] });
+
+  s.eph = "Q_S (fresh, this connection only)";
+  push({ t:"The other end answers with its own throwaway key, plus its identity",
+    sen: mitm
+      ? "Mallory sends her own throwaway public key, and offers a long-lived host key that is HERS, not the server's. She signs correctly with it. The signature is genuine — it just belongs to the wrong machine."
+      : "The server sends its own throwaway public key, and its long-lived host key — the identity it has had since it was built. It signs a hash covering the whole exchange so far, proving it holds the matching private key.",
+    tech:"server → client:  Q_S · K_S = " + short(keyOnWire) + " · sig over H",
+    msg:{ dir:"left", label:"Q_S + host key", kind:"key" }, changed:["eph"] });
+
+  c.secret = "derived"; s.secret = "derived"; c.hostkey = keyOnWire;
+  push({ t:"Both sides now hold the same secret",
+    sen:"Each side combines its own private half with the other's public half and lands on an identical secret number, without that number ever crossing the wire. Anyone recording the traffic has both public halves and still cannot compute it.",
+    tech:"K = X25519(private, peer public) · H = SHA-256(Q_C ‖ Q_S ‖ K) · session id := H",
+    changed:["secret","hostkey"] });
+
+  /* ------------------ the decision ------------------ */
+  let ending;
+  if (remembered === null){
+    if (cfg.human === "verifies"){
+      if (mitm){
+        c.check = "MISMATCH — you caught it";
+        push({ t:"Unknown host — and you actually checked",
+          sen:"Your laptop has never seen this host, so it has nothing to compare against and asks you. You read the fingerprint off the change ticket instead of trusting the connection, and the two do not match. You answer no.",
+          tech:"offered " + short(FP_MAL) + "\nexpected " + short(FP_REAL),
+          msg:{ dir:"stop", label:"connection abandoned", kind:"stop" },
+          halt:true, changed:["check"] });
+        ending = { tone:"good", title:"Attack stopped — by a human, not by software",
+          body:"SSH could not save you here; it had no memory to check against. A person comparing 12 characters against a trusted source did. This is exactly what the fingerprint prompt is for, and exactly what nobody does." };
+      } else {
+        c.check = "verified out of band";
+        push({ t:"Unknown host — and you actually checked",
+          sen:"Your laptop has never seen this host and asks you. You compare the fingerprint against the one from the server build ticket. They match, so you answer yes, and the key is written to known_hosts.",
+          tech:"offered " + short(FP_REAL) + " — matches the value from the build ticket\nwritten to known_hosts",
+          changed:["check"] });
+        ending = { tone:"good", title:"Connected, and genuinely verified",
+          body:"This is the only path where the first connection is actually safe. Every later connection to this host is now protected automatically." };
+      }
+    } else {
+      c.check = mitm ? "accepted blindly (Mallory pinned)" : "accepted blindly (real key pinned)";
+      push({ t:"Unknown host — you typed yes",
+        sen: mitm
+          ? "Your laptop has never seen this host, so it shows you a fingerprint and asks. You type yes without checking it against anything. Your laptop faithfully writes MALLORY'S key into known_hosts as the truth about prod-db.example.com."
+          : "Your laptop has never seen this host, so it shows you a fingerprint and asks. You type yes without checking. It happens to be the right key, so you got away with it — this time.",
+        tech:"offered " + short(keyOnWire) + " → written to known_hosts, nothing verified",
+        changed:["check"] });
+      if (!mitm) ending = { tone:"warn", title:"Connected — but you verified nothing",
+        body:"You are talking to the right machine, and you have no evidence of that. The outcome was decided by whether an attacker happened to be present, not by anything you or SSH did. Compare this row with the one above it in the table." };
+    }
+  } else if (remembered === keyOnWire){
+    c.check = "matches known_hosts";
+    push({ t:"The key matches what your laptop remembers",
+      sen: mitm
+        ? "Your laptop compares the offered key against known_hosts and finds them identical — because the attacker's key is what got recorded last time. There is no prompt, no warning, and no way to tell from the screen that anything is wrong."
+        : "Your laptop compares the offered key against the one it wrote down on an earlier visit. Identical. No prompt, no message. That silence is the check passing.",
+      tech:"known_hosts[prod-db.example.com] = " + short(remembered) + "  ==  offered",
+      changed:["check"] });
+  } else {
+    c.check = "MISMATCH — refused";
+    const honest = !mitm;
+    push({ t:"The key does NOT match — connection refused",
+      sen: honest
+        ? "The offered key is the real server's, but your laptop remembers Mallory's from a previous attack. So the alarm fires on the HONEST server. The protection is working; it is just anchored to a lie you recorded earlier."
+        : "The offered key is not the one your laptop wrote down last time, so it stops dead. It does not send your username. It does not offer your key. Nothing useful reaches the stranger.",
+      tech:"expected " + short(remembered) + "\ngot      " + short(keyOnWire) + "\nHost key verification failed.",
+      msg:{ dir:"stop", label:"REMOTE HOST IDENTIFICATION HAS CHANGED", kind:"stop" },
+      halt:true, changed:["check"] });
+    ending = honest
+      ? { tone:"warn", title:"Refused — and this time the server was innocent",
+          body:"Same alarm, opposite cause. This is why the alarm alone never tells you whether you are under attack: it only tells you the key changed. Someone rebuilding a server produces exactly this screen." }
+      : { tone:"good", title:"Attack stopped by SSH itself",
+          body:"Your laptop's memory did the whole job. Note what it protected: your username and your key were never offered, so the attacker gained nothing at all — not even a login attempt to replay." };
+  }
+
+  /* ------------------ after the decision ------------------ */
+  if (!out[out.length-1].halt){
+    c.conn = "encrypted"; s.conn = "encrypted";
+    push({ t:"Encryption switches on",
+      sen:"The shared secret is stretched into six separate keys — one to encrypt each direction, one to detect tampering in each direction, and two starting values. From here every byte is encrypted and every packet is checked for modification.",
+      tech:"key = SHA-256(K ‖ H ‖ letter ‖ session_id) for letters A..F",
+      msg:{ dir:"both", label:"encrypted from here", kind:"sig" }, changed:["conn"] });
+
+    c.auth = "signing a challenge"; 
+    push({ t:"Now you prove who you are",
+      sen:"Everything so far only settled who the SERVER is. Your laptop now signs a block of bytes that includes this connection's session id, your username, and your public key. The private key itself never moves.",
+      tech:"sign( session_id ‖ 50 ‖ \"ravi\" ‖ \"ssh-connection\" ‖ \"publickey\" ‖ … )",
+      msg:{ dir:"right", label:"signed proof", kind:"sig" }, changed:["auth"] });
+
+    s.auth = "verified against authorized_keys"; c.auth = "accepted";
+    push({ t:"The server checks its list, then the signature",
+      sen:"The server looks up your public key in authorized_keys — first asking whether this key is allowed in at all, and only then whether the signature is valid. Both questions must be answered, and in that order.",
+      tech:"authorized_keys contains " + short(FP_USER) + " → verify(sig) = true",
+      changed:["auth"] });
+
+    c.conn = "shell open"; s.conn = "shell open";
+    push({ t:"A shell opens",
+      sen: mitm
+        ? "You get a prompt and everything looks completely normal. Mallory decrypts each command you type, reads it, and re-encrypts it onward to the real server — and does the same with every reply."
+        : "You get a prompt. The same connection can now carry more channels — file transfers and port forwards — without another handshake.",
+      tech:"SSH_MSG_CHANNEL_OPEN \"session\" · pty-req · shell",
+      msg:{ dir:"both", label:"$ ", kind:"plain" }, changed:["conn"] });
+
+    if (!ending){
+      ending = mitm
+        ? { tone:"bad", title:"Compromised, silently",
+            body:"There is no warning anywhere on your screen and nothing is slow. Mallory reads every command and every result. The connection is fully encrypted the whole time — encryption was never the missing piece." }
+        : { tone:"good", title:"Connected safely",
+            body:"The server proved its identity against a key you already trusted, and you proved yours with a signature that is useless on any other connection." };
+    }
+  }
+  out[out.length-1].ending = ending;
+  return out;
+}
+
+/* ---------------------------------------------------------------- render */
+const $ = id => document.getElementById(id);
+
+function render(){
+  const n = S.steps.length, i = S.step;
+  $("stepcount").textContent = "step " + i + " of " + n;
+  $("btn-back").disabled = i === 0;
+  $("btn-step").disabled = i >= n;
+
+  const cur = i > 0 ? S.steps[i-1] : null;
+  const c = cur ? cur.client : { conn:"not connected", eph:"—", secret:"—", hostkey:"—", check:"not done yet", auth:"—" };
+  const s = cur ? cur.server : { who: S.wire==="mitm" ? "Mallory (relaying to prod-db)" : "prod-db.example.com",
+                                 eph:"—", secret:"—", authkeys:"holds ravi's key", auth:"—" };
+  const ch = cur ? cur.changed : [];
+
+  const tone = v => v.includes("MISMATCH") ? "bad"
+    : v.includes("blindly") || v.includes("not done") ? "warn"
+    : (v.includes("matches") || v.includes("verified") || v.includes("accepted")) ? "good" : "";
+
+  $("client-rows").innerHTML = [
+    ["connection", c.conn, ch.includes("conn")],
+    ["throwaway key", c.eph, ch.includes("eph")],
+    ["shared secret", c.secret, ch.includes("secret")],
+    ["host key offered", c.hostkey === "—" ? "—" : short(c.hostkey), ch.includes("hostkey"), "key"],
+    ["known_hosts says", c.check, ch.includes("check"), tone(c.check)],
+    ["your login", c.auth, ch.includes("auth")]
+  ].map(r => row(r)).join("");
+
+  $("server-rows").innerHTML = [
+    ["who is answering", s.who, false, S.wire==="mitm" ? "bad" : "good"],
+    ["throwaway key", s.eph, ch.includes("eph")],
+    ["shared secret", s.secret, ch.includes("secret")],
+    ["authorized_keys", s.authkeys, false],
+    ["your login", s.auth, ch.includes("auth")]
+  ].map(r => row(r)).join("");
+
+  /* stage */
+  $("interceptor").style.display = S.wire === "mitm" ? "block" : "none";
+  $("server-name").textContent = S.wire === "mitm" ? "prod-db.example.com" : "prod-db.example.com";
+  $("server-sub").textContent = S.wire === "mitm" ? "…or so your laptop believes" : (cur ? s.conn || "answering" : "waiting");
+  $("client-sub").textContent = c.conn;
+  $("client-fp").textContent = c.hostkey === "—" ? "" : "sees host key " + short(c.hostkey);
+  $("server-fp").textContent = S.wire === "mitm" ? "presenting " + short(FP_MAL) : "host key " + short(FP_REAL);
+  const nodeC = $("node-client"), nodeS = $("node-server");
+  nodeC.className = "node" + (c.check.includes("MISMATCH") ? " danger" : (cur ? " active" : ""));
+  nodeS.className = "node" + (S.wire === "mitm" && cur ? " danger" : (cur ? " active" : ""));
+
+  /* packet */
+  const p = $("packet");
+  if (cur && cur.msg){
+    p.style.opacity = "1"; p.textContent = cur.msg.label; p.dataset.kind = cur.msg.kind;
+    p.style.left = cur.msg.dir === "right" ? "72%" : cur.msg.dir === "left" ? "4%" : "34%";
+  } else { p.style.opacity = "0"; }
+
+  /* log */
+  $("log").innerHTML = i === 0
+    ? '<div class="empty-log">No steps run yet.</div>'
+    : S.steps.slice(0, i).map((st, k) =>
+        '<div class="entry' + (k === i-1 ? ' current' : '') + '">' +
+        '<div class="entry-t"><span class="entry-n">' + (k+1) + '</span>' + esc(st.t) + '</div>' +
+        '<div class="entry-s">' + esc(st.sen) + '</div>' +
+        '<div class="entry-tech">' + esc(st.tech).replace(/\n/g, "<br>") + '</div></div>').join("");
+
+  /* verdict */
+  const v = $("verdict");
+  if (cur && cur.ending){
+    v.dataset.tone = cur.ending.tone;
+    $("verdict-title").textContent = cur.ending.title;
+    $("verdict-body").textContent = cur.ending.body;
+    markExplored(cur.ending);
+  } else if (i === 0){
+    v.dataset.tone = "pending";
+    $("verdict-title").textContent = "Nothing has happened yet";
+    $("verdict-body").innerHTML = "Pick a situation above and press <strong>Play</strong>, or use one of the three ready-made stories.";
+  } else {
+    v.dataset.tone = "pending";
+    $("verdict-title").textContent = "In progress — " + S.steps[i-1].t.toLowerCase();
+    $("verdict-body").textContent = "Keep stepping to reach the outcome.";
+  }
+  renderMatrix();
+}
+
+function row(r){
+  const [k, val, changed, cls] = r;
+  return '<div class="row' + (changed ? ' changed' : '') + '"><div class="k">' + esc(k) +
+         '</div><div class="v ' + (cls || "") + '">' + esc(val) + '</div></div>';
+}
+function esc(t){ return String(t).replace(/[&<>]/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[m])); }
+
+/* ------------------------------------------------------------- matrix */
+const COMBOS = [
+  { wire:"direct", memory:"empty",   human:"accepts"  },
+  { wire:"direct", memory:"empty",   human:"verifies" },
+  { wire:"direct", memory:"real",    human:"accepts"  },
+  { wire:"direct", memory:"mallory", human:"accepts"  },
+  { wire:"mitm",   memory:"empty",   human:"accepts"  },
+  { wire:"mitm",   memory:"empty",   human:"verifies" },
+  { wire:"mitm",   memory:"real",    human:"accepts"  },
+  { wire:"mitm",   memory:"mallory", human:"accepts"  }
+];
+const LBL = {
+  direct:"the real server", mitm:"an interceptor",
+  empty:"nothing (first visit)", real:"the real key", mallory:"the attacker's key",
+  accepts:"type yes blindly", verifies:"check the fingerprint"
+};
+function keyOf(cfg){ return cfg.wire + "|" + cfg.memory + "|" + (cfg.memory === "empty" ? cfg.human : "accepts"); }
+function markExplored(ending){ S.explored[keyOf(S)] = ending; }
+function renderMatrix(){
+  $("matrix-body").innerHTML = COMBOS.map(cfg => {
+    const seen = S.explored[keyOf(cfg)];
+    const here = keyOf(cfg) === keyOf(S);
+    const cell = seen
+      ? '<td><i class="dot ' + seen.tone.replace("good","good").replace("bad","bad").replace("warn","warn") + '"></i>' + esc(seen.title) + '</td>'
+      : '<td class="unseen"><i class="dot unseen"></i>not run yet</td>';
+    return '<tr class="' + (here ? "here" : "") + '"><td>' + LBL[cfg.wire] + '</td><td>' + LBL[cfg.memory] +
+           '</td><td>' + (cfg.memory === "empty" ? LBL[cfg.human] : "—") + '</td>' + cell + '</tr>';
+  }).join("");
+}
+
+/* ------------------------------------------------------------- predict */
+const PREDICTIONS = {
+  "mitm|real|accepts": {
+    q:"Before you run this: your laptop remembers the real key, but an interceptor answers.",
+    sub:"How far does the interceptor get before anything stops her?",
+    opts:[
+      { t:"She gets your username and a login attempt she can reuse elsewhere", ok:false,
+        why:"No. The client stops at the host key check, which happens BEFORE any authentication. She never learns your username and never sees your key." },
+      { t:"Nothing useful — the client stops before offering anything", ok:true,
+        why:"Correct. Host key verification is step one, and it fails, so the client never sends a username, never offers a key, and never signs anything." },
+      { t:"She reads the session but cannot log in as you later", ok:false,
+        why:"No. She reads nothing at all — the connection is abandoned before encryption is even used for real traffic." }
+    ]
+  },
+  "mitm|empty|accepts": {
+    q:"Before you run this: it is your first visit, and an interceptor answers.",
+    sub:"You type yes at the fingerprint prompt. What does your laptop do with that answer?",
+    opts:[
+      { t:"Warns you later, once it learns the real key", ok:false,
+        why:"It has no way to learn the real key. It has no source of truth other than what it is told on the wire." },
+      { t:"Writes the attacker's key down as the truth, permanently", ok:true,
+        why:"Correct, and this is the sting: the next time the HONEST server answers, you get the scary alarm — pointing at the innocent machine." },
+      { t:"Refuses, because the key is unknown", ok:false,
+        why:"No. Unknown is not a refusal in SSH — it is a question. You answered it." }
+    ]
+  },
+  "direct|mallory|accepts": {
+    q:"Before you run this: the real server answers, but your laptop remembers an attacker's key.",
+    sub:"What appears on your screen?",
+    opts:[
+      { t:"Nothing unusual — the real server is trusted by default", ok:false,
+        why:"There is no 'by default'. The only thing the client can compare against is its own file, and that file is wrong." },
+      { t:"The full REMOTE HOST IDENTIFICATION HAS CHANGED alarm", ok:true,
+        why:"Correct. The alarm means 'the key changed', not 'you are under attack'. Here it fires on the honest server — which is exactly why a rebuilt server produces the same screen as a real attack." }
+    ]
+  }
+};
+function maybePredict(){
+  const p = PREDICTIONS[keyOf(S)];
+  const box = $("predict");
+  if (!p || S.explored[keyOf(S)]){ box.style.display = "none"; return false; }
+  $("predict-q").textContent = p.q;
+  $("predict-sub").textContent = p.sub;
+  $("predict-result").style.display = "none";
+  $("predict-opts").innerHTML = p.opts.map((o, i) =>
+    '<button data-pi="' + i + '">' + esc(o.t) + '</button>').join("");
+  $("predict-opts").querySelectorAll("button").forEach(b => b.onclick = () => {
+    const o = p.opts[+b.dataset.pi], r = $("predict-result");
+    r.style.display = "block";
+    r.innerHTML = '<strong style="color:var(--' + (o.ok ? "teal" : "red") + ')">' +
+      (o.ok ? "Right. " : "Not quite. ") + '</strong>' + esc(o.why) +
+      '<br><br><em>Now press Play and watch it happen.</em>';
+  });
+  box.style.display = "block";
+  return true;
+}
+
+/* ------------------------------------------------------------- control */
+function rebuild(){
+  clearInterval(S.timer); S.timer = null;
+  $("btn-play").textContent = "Play";
+  S.steps = buildSteps(S); S.step = 0;
+  maybePredict();
+  render();
+}
+function stepFwd(){ if (S.step < S.steps.length){ S.step++; render(); } }
+function stepBack(){ if (S.step > 0){ S.step--; render(); } }
+function play(){
+  if (S.timer){ clearInterval(S.timer); S.timer = null; $("btn-play").textContent = "Play"; return; }
+  if (S.step >= S.steps.length) S.step = 0;
+  $("predict").style.display = "none";
+  $("btn-play").textContent = "Pause";
+  S.timer = setInterval(() => {
+    if (S.step >= S.steps.length){ clearInterval(S.timer); S.timer = null; $("btn-play").textContent = "Replay"; return; }
+    stepFwd();
+  }, 1500);
+}
+
+["wire","memory","human"].forEach(name => {
+  document.querySelectorAll('input[name="' + name + '"]').forEach(r => {
+    r.addEventListener("change", () => { S[name] = r.value; rebuild(); });
+  });
+});
+$("btn-step").onclick = stepFwd;
+$("btn-back").onclick = stepBack;
+$("btn-play").onclick = play;
+$("btn-reset").onclick = () => { S.step = 0; clearInterval(S.timer); S.timer = null; $("btn-play").textContent = "Play"; maybePredict(); render(); };
+
+const SCENARIOS = {
+  normal: { wire:"direct", memory:"empty",   human:"accepts"  },
+  alarm:  { wire:"mitm",   memory:"real",    human:"accepts"  },
+  silent: { wire:"mitm",   memory:"mallory", human:"accepts"  }
+};
+document.querySelectorAll("[data-scenario]").forEach(b => b.onclick = () => {
+  const cfg = SCENARIOS[b.dataset.scenario];
+  Object.assign(S, cfg);
+  ["wire","memory","human"].forEach(n =>
+    document.querySelector('input[name="' + n + '"][value="' + S[n] + '"]').checked = true);
+  rebuild(); play();
+});
+
+rebuild();
+</script>

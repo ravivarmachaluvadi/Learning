@@ -1,0 +1,1130 @@
+<title>Store Buffer Theatre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+/* ============================================================
+   TOKENS — complete light palette on bare :root
+   ============================================================ */
+:root {
+  --paper:      #E9EDF2;
+  --surface:    #F7F9FB;
+  --surface-2:  #DFE6ED;
+  --ink:        #141A22;
+  --ink-soft:   #3B4756;
+  --muted:      #5C6B7D;
+  --rule:       #C3CCD8;
+  --rule-soft:  #D8E0E8;
+  --wire:       #92A6BC;
+
+  --amber:      #C07A12;
+  --amber-ink:  #6E4405;
+  --amber-wash: #F6E7C9;
+
+  --rust:       #A63D33;
+  --rust-wash:  #F3DCD8;
+
+  --teal:       #1F6F63;
+  --teal-wash:  #D5E8E3;
+
+  --shadow:     0 1px 2px rgba(20,26,34,.07), 0 8px 24px -12px rgba(20,26,34,.18);
+
+  --f-display:  "Chivo", "Helvetica Neue", Arial, sans-serif;
+  --f-prose:    "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #0F141A;
+    --surface:    #161D26;
+    --surface-2:  #1F2833;
+    --ink:        #DEE5EE;
+    --ink-soft:   #B3BFCC;
+    --muted:      #8496A8;
+    --rule:       #2C3743;
+    --rule-soft:  #232C37;
+    --wire:       #4A5C70;
+
+    --amber:      #E8A23C;
+    --amber-ink:  #F0C888;
+    --amber-wash: #3A2B10;
+
+    --rust:       #E0796A;
+    --rust-wash:  #3A1F1B;
+
+    --teal:       #58BCA8;
+    --teal-wash:  #12302B;
+
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #0F141A;
+  --surface:    #161D26;
+  --surface-2:  #1F2833;
+  --ink:        #DEE5EE;
+  --ink-soft:   #B3BFCC;
+  --muted:      #8496A8;
+  --rule:       #2C3743;
+  --rule-soft:  #232C37;
+  --wire:       #4A5C70;
+
+  --amber:      #E8A23C;
+  --amber-ink:  #F0C888;
+  --amber-wash: #3A2B10;
+
+  --rust:       #E0796A;
+  --rust-wash:  #3A1F1B;
+
+  --teal:       #58BCA8;
+  --teal-wash:  #12302B;
+
+  --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-prose);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 72px;
+}
+
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ============================================================
+   FACEPLATE
+   ============================================================ */
+.faceplate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 28px;
+}
+
+.brand { max-width: 62ch; display: flex; flex-direction: column; gap: 8px; }
+
+.brand h1 {
+  font-size: clamp(30px, 4.6vw, 46px);
+  font-weight: 900;
+  letter-spacing: -.022em;
+  line-height: 1.02;
+}
+
+.dek { margin: 0; color: var(--ink-soft); font-size: 17px; max-width: 60ch; }
+
+.tabs { display: flex; gap: 0; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+
+.tab {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 0;
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab:last-child { border-right: 0; }
+.tab.is-active { background: var(--ink); color: var(--paper); }
+.tab:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+
+/* ============================================================
+   MODE SWITCH
+   ============================================================ */
+.modebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.modebar .label { font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+.switch { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.switch button {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  border: 0;
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+}
+.switch button:last-child { border-right: 0; }
+.switch button.is-on { background: var(--amber); color: #17120A; }
+.switch button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+.modenote { font-size: 14.5px; color: var(--muted); flex: 1 1 320px; min-width: 260px; }
+
+/* ============================================================
+   STAGE
+   ============================================================ */
+.stage {
+  display: grid;
+  grid-template-columns: 1fr 0.82fr 1fr;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.panel > header .name { font-family: var(--f-display); font-weight: 700; font-size: 14px; letter-spacing: -.01em; }
+.panel > header .sub  { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+.panel .body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+.sect-label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* program listing */
+.prog { display: flex; flex-direction: column; gap: 3px; }
+.line {
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  padding: 6px 9px;
+  border-radius: 3px;
+  border-left: 3px solid transparent;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 10px;
+  background: var(--paper);
+}
+.line .n { color: var(--muted); }
+.line.is-next { border-left-color: var(--amber); background: var(--amber-wash); color: var(--ink); font-weight: 700; }
+.line.is-done { opacity: .45; text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* store buffer */
+.buf { display: flex; flex-direction: column; gap: 5px; }
+.slot {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 3px;
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  text-align: center;
+}
+.slot.filled {
+  border: 1px solid var(--amber);
+  border-left: 4px solid var(--amber);
+  background: var(--amber-wash);
+  color: var(--amber-ink);
+  font-weight: 700;
+  text-align: left;
+}
+
+/* registers */
+.regs { display: flex; gap: 8px; }
+.reg {
+  flex: 1;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+.reg .v { font-weight: 700; }
+.reg.set .v { color: var(--teal); }
+.reg.zero .v { color: var(--rust); }
+
+/* memory */
+.mem-cells { display: flex; flex-direction: column; gap: 10px; }
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.cell .k { font-size: 15px; font-weight: 700; }
+.cell .v { font-size: 26px; font-weight: 700; line-height: 1; }
+.cell[data-val="1"] { border-color: var(--teal); background: var(--teal-wash); }
+.cell[data-val="1"] .v { color: var(--teal); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cell { transition: background .25s ease, border-color .25s ease; }
+  .cell.flash { animation: cellflash .55s ease; }
+  @keyframes cellflash {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 var(--amber); }
+    35%  { transform: scale(1.035); box-shadow: 0 0 0 5px var(--amber-wash); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 0 transparent; }
+  }
+}
+
+.bus-note {
+  font-size: 13px;
+  color: var(--muted);
+  border-top: 1px dashed var(--rule);
+  padding-top: 10px;
+}
+
+/* ============================================================
+   NARRATION
+   ============================================================ */
+.narration {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--amber);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.narration .say { font-size: 17.5px; line-height: 1.55; color: var(--ink); max-width: 78ch; margin: 0; }
+.narration .tech {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  margin-bottom: 22px;
+}
+.ctl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ctl-row .rowlabel { font-family: var(--f-mono); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); width: 100%; }
+
+button.btn {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+button.btn:hover:not(:disabled) { border-color: var(--ink); }
+button.btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button.btn:disabled { opacity: .35; cursor: not-allowed; }
+button.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+button.btn.accent  { background: var(--amber); color: #17120A; border-color: var(--amber); }
+
+.hint { font-size: 14px; color: var(--muted); margin: 0; max-width: 76ch; }
+
+/* ============================================================
+   VERDICT + TALLY
+   ============================================================ */
+.results { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; margin-bottom: 26px; }
+
+.verdict {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 18px 20px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.verdict .status { font-family: var(--f-mono); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.verdict h3 { font-size: 21px; letter-spacing: -.015em; }
+.verdict p { margin: 0; font-size: 16px; color: var(--ink-soft); max-width: 62ch; }
+.verdict.violation { border-color: var(--rust); border-left: 5px solid var(--rust); background: var(--rust-wash); }
+.verdict.violation h3 { color: var(--rust); }
+.verdict.ok { border-left: 5px solid var(--teal); }
+
+.tallywrap { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); overflow: hidden; }
+.tallywrap > header { padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+.tallywrap > header .name { font-family: var(--f-display); font-weight: 700; font-size: 14px; }
+table.tally { width: 100%; border-collapse: collapse; font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+table.tally th { text-align: left; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 8px 14px; border-bottom: 1px solid var(--rule); font-weight: 700; }
+table.tally td { padding: 9px 14px; border-bottom: 1px solid var(--rule-soft); }
+table.tally tr.forbidden td { background: var(--rust-wash); color: var(--rust); font-weight: 700; }
+table.tally td.num { text-align: right; }
+
+/* ============================================================
+   MEASURED STRIP
+   ============================================================ */
+.measured {
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--ink);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 18px 20px;
+}
+.measured h3 { font-size: 15px; margin-bottom: 4px; }
+.measured .src { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
+.measured dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 0; }
+.measured dt { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.measured dd { margin: 0; font-family: var(--f-mono); font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.measured dd small { display: block; font-family: var(--f-prose); font-size: 13.5px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.measured dd.bad  { color: var(--rust); }
+.measured dd.good { color: var(--teal); }
+
+/* ============================================================
+   TAB 2 — HOISTING
+   ============================================================ */
+.codepair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+pre.code {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow-x: auto;
+  color: var(--ink-soft);
+  white-space: pre;
+}
+pre.code b { color: var(--amber-ink); font-weight: 700; }
+pre.code i { color: var(--muted); font-style: normal; }
+
+.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.gauge {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 14px 16px;
+}
+.gauge .sect-label { margin-bottom: 8px; }
+.gauge .val { font-family: var(--f-mono); font-size: 27px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gauge .val.t { color: var(--teal); }
+.gauge .val.f { color: var(--rust); }
+.gauge .note { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+
+.hidden { display: none !important; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .stage { grid-template-columns: 1fr; }
+  .results { grid-template-columns: 1fr; }
+  .codepair { grid-template-columns: 1fr; }
+  .faceplate { align-items: flex-start; }
+}
+</style>
+
+<div class="shell">
+
+  <header class="faceplate">
+    <div class="brand">
+      <div class="eyebrow">Java Memory Model · Interactive Lab</div>
+      <h1>Store Buffer Theatre</h1>
+      <p class="dek">Two threads, four lines of code, and a result that no possible ordering of those lines can explain. Step through it and watch the piece of silicon that produces it anyway.</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab is-active" role="tab" aria-selected="true"  data-tab="reorder">The impossible outcome</button>
+      <button class="tab"           role="tab" aria-selected="false" data-tab="hoist">The write nobody sees</button>
+    </nav>
+  </header>
+
+  <!-- ==================================================================
+       TAB 1 — REORDERING
+       ================================================================== -->
+  <section id="panel-reorder">
+
+    <div class="modebar">
+      <span class="label">Declaration of x and y</span>
+      <div class="switch" role="group" aria-label="Variable declaration mode">
+        <button id="mode-plain" class="is-on">int x, y;</button>
+        <button id="mode-vol">volatile int x, y;</button>
+      </div>
+      <p class="modenote" id="modenote">Plain fields. A write parks in the core's private store buffer and the core moves on immediately — it does not wait for memory.</p>
+    </div>
+
+    <div class="stage">
+
+      <!-- CORE 0 -->
+      <div class="panel">
+        <header><span class="name">Core 0</span><span class="sub">Thread A</span></header>
+        <div class="body">
+          <div>
+            <div class="sect-label">Program</div>
+            <div class="prog" id="prog0"></div>
+          </div>
+          <div>
+            <div class="sect-label">Store buffer — private to this core</div>
+            <div class="buf" id="buf0"></div>
+          </div>
+          <div>
+            <div class="sect-label">Registers</div>
+            <div class="regs"><div class="reg" id="reg-r1"><span class="k">r1</span><span class="v">—</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMORY -->
+      <div class="panel">
+        <header><span class="name">Shared memory</span><span class="sub">Visible to all</span></header>
+        <div class="body">
+          <div class="mem-cells">
+            <div class="cell" id="cell-x" data-val="0"><span class="k">x</span><span class="v">0</span></div>
+            <div class="cell" id="cell-y" data-val="0"><span class="k">y</span><span class="v">0</span></div>
+          </div>
+          <p class="bus-note">A write only becomes visible here when its core's store buffer drains. Until then it exists only inside the core that wrote it.</p>
+        </div>
+      </div>
+
+      <!-- CORE 1 -->
+      <div class="panel">
+        <header><span class="name">Core 1</span><span class="sub">Thread B</span></header>
+        <div class="body">
+          <div>
+            <div class="sect-label">Program</div>
+            <div class="prog" id="prog1"></div>
+          </div>
+          <div>
+            <div class="sect-label">Store buffer — private to this core</div>
+            <div class="buf" id="buf1"></div>
+          </div>
+          <div>
+            <div class="sect-label">Registers</div>
+            <div class="regs"><div class="reg" id="reg-r2"><span class="k">r2</span><span class="v">—</span></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="narration">
+      <p class="say" id="say">Nothing has run yet. Both variables are 0, both store buffers are empty. Pick a core and run its next line — or press <strong>Run the classic sequence</strong> below to have it played for you with commentary.</p>
+      <p class="tech" id="tech">x = 0   y = 0   buffers: [] []</p>
+    </div>
+
+    <div class="controls">
+      <div class="ctl-row">
+        <span class="rowlabel">Run a line of code</span>
+        <button class="btn" id="run0">Core 0: run next line</button>
+        <button class="btn" id="run1">Core 1: run next line</button>
+      </div>
+      <div class="ctl-row">
+        <span class="rowlabel">Let a buffered write reach memory</span>
+        <button class="btn" id="flush0">Core 0: flush one buffered write</button>
+        <button class="btn" id="flush1">Core 1: flush one buffered write</button>
+      </div>
+      <div class="ctl-row">
+        <span class="rowlabel">Playback</span>
+        <button class="btn accent" id="script">Run the classic sequence</button>
+        <button class="btn" id="auto">Auto-run randomly</button>
+        <button class="btn" id="back">Step back</button>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+      <p class="hint"><strong>Nothing decides the order for you, and that is the point.</strong> Java does not promise that the two threads take turns in any particular way, and it does not promise when a buffered write reaches memory. Every button above is a legal next move. Buttons grey out when a move is not available.</p>
+    </div>
+
+    <div class="results">
+      <div class="verdict" id="verdict">
+        <span class="status">Verdict</span>
+        <h3 id="vtitle">Run has not finished</h3>
+        <p id="vbody">Once both threads have run both of their lines, the values left in r1 and r2 are the outcome. Watch for r1 = 0 and r2 = 0.</p>
+      </div>
+
+      <div class="tallywrap">
+        <header><span class="name">Outcomes you have produced</span></header>
+        <table class="tally">
+          <thead><tr><th>r1</th><th>r2</th><th>Explanation</th><th class="num">Count</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>1</td><td>Interleaved</td><td class="num" id="t11">0</td></tr>
+            <tr><td>1</td><td>0</td><td>B went first</td><td class="num" id="t10">0</td></tr>
+            <tr><td>0</td><td>1</td><td>A went first</td><td class="num" id="t01">0</td></tr>
+            <tr class="forbidden"><td>0</td><td>0</td><td>No ordering explains this</td><td class="num" id="t00">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="measured">
+      <h3>The same experiment, run for real on the machine that built this page</h3>
+      <p class="src">Reordering.java · 1,000,000 trials · Intel Core i9-9880H, 16 logical cores · OpenJDK 25.0.4</p>
+      <dl>
+        <dt>Plain int x, y</dt>
+        <dd class="bad">23,500<small>times r1 = 0 and r2 = 0 — about 1 trial in 42</small></dd>
+        <dt>Volatile int x, y</dt>
+        <dd class="good">0<small>the forbidden outcome never occurred, as the model promises</small></dd>
+      </dl>
+    </div>
+
+  </section>
+
+  <!-- ==================================================================
+       TAB 2 — HOISTING
+       ================================================================== -->
+  <section id="panel-hoist" class="hidden">
+
+    <div class="modebar">
+      <span class="label">Declaration of stop</span>
+      <div class="switch" role="group" aria-label="Flag declaration mode">
+        <button id="h-plain" class="is-on">boolean stop;</button>
+        <button id="h-vol">volatile boolean stop;</button>
+      </div>
+      <p class="modenote" id="hnote">Plain field. The optimiser is allowed to notice that the loop never writes <code>stop</code>, load it once into a register, and reuse that register forever.</p>
+    </div>
+
+    <div class="codepair">
+      <div class="panel">
+        <header><span class="name">What you wrote</span><span class="sub">Source</span></header>
+        <div class="body"><pre class="code" id="src-written"></pre></div>
+      </div>
+      <div class="panel">
+        <header><span class="name">What the JIT runs</span><span class="sub">After optimisation</span></header>
+        <div class="body"><pre class="code" id="src-compiled"></pre></div>
+      </div>
+    </div>
+
+    <div class="gauges">
+      <div class="gauge">
+        <div class="sect-label">Memory · stop</div>
+        <div class="val" id="g-mem">false</div>
+        <div class="note">What the main thread actually wrote</div>
+      </div>
+      <div class="gauge">
+        <div class="sect-label">Worker's view of stop</div>
+        <div class="val" id="g-reg">false</div>
+        <div class="note" id="g-reg-note">A copy in a CPU register, loaded once before the loop</div>
+      </div>
+      <div class="gauge">
+        <div class="sect-label">Spins completed</div>
+        <div class="val" id="g-spins">0</div>
+        <div class="note" id="g-status">Worker not started</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl-row">
+        <span class="rowlabel">Drive the two threads</span>
+        <button class="btn primary" id="h-start">Start the worker thread</button>
+        <button class="btn accent" id="h-set">Main thread: stop = true</button>
+        <button class="btn" id="h-reset">Reset</button>
+      </div>
+      <p class="hint">The worker spins on <code>while (!stop)</code>. The main thread sets <code>stop = true</code>. In plain mode, watch the two gauges above disagree — and stay disagreeing forever.</p>
+    </div>
+
+    <div class="verdict" id="hverdict">
+      <span class="status">Verdict</span>
+      <h3 id="hvtitle">Worker not started</h3>
+      <p id="hvbody">Start the worker, let it spin, then set the flag from the main thread.</p>
+    </div>
+
+    <div class="measured" style="margin-top:22px">
+      <h3>The same experiment, run for real on the machine that built this page</h3>
+      <p class="src">Visibility.java · flag set at t = 1000 ms, then 3 seconds of grace · OpenJDK 25.0.4</p>
+      <dl>
+        <dt>Plain, JIT enabled</dt>
+        <dd class="bad">never<small>still spinning 3s after the write; it would spin forever</small></dd>
+        <dt>Volatile, JIT enabled</dt>
+        <dd class="good">2,445,064,800<small>spins, then the loop exited immediately</small></dd>
+        <dt>Plain, JIT disabled (-Xint)</dt>
+        <dd class="good">114,658,162<small>spins, then exited — same source, same CPU, only the optimiser changed</small></dd>
+      </dl>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =================================================================
+     TAB SWITCHING
+     ================================================================= */
+  var tabs = document.querySelectorAll(".tab");
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      tabs.forEach(function (o) { o.classList.remove("is-active"); o.setAttribute("aria-selected", "false"); });
+      t.classList.add("is-active");
+      t.setAttribute("aria-selected", "true");
+      var want = t.getAttribute("data-tab");
+      document.getElementById("panel-reorder").classList.toggle("hidden", want !== "reorder");
+      document.getElementById("panel-hoist").classList.toggle("hidden", want !== "hoist");
+    });
+  });
+
+  /* =================================================================
+     TAB 1 — STORE BUFFER SIMULATION
+     ================================================================= */
+  var PROG = [
+    [ { kind: "store", v: "x", val: 1, src: "x = 1;" },
+      { kind: "load",  v: "y", reg: "r1", src: "r1 = y;" } ],
+    [ { kind: "store", v: "y", val: 1, src: "y = 1;" },
+      { kind: "load",  v: "x", reg: "r2", src: "r2 = x;" } ]
+  ];
+
+  var volatileMode = false;
+  var state, history, tally, autoTimer = null, scriptTimer = null, flashVar = null;
+
+  function fresh() {
+    return {
+      mem: { x: 0, y: 0 },
+      cores: [ { pc: 0, buf: [] }, { pc: 0, buf: [] } ],
+      regs: { r1: null, r2: null },
+      say: "Nothing has run yet. Both variables are 0, both store buffers are empty. Pick a core and run its next line — or press Run the classic sequence below to have it played for you with commentary.",
+      tech: "x = 0   y = 0   buffers: [] []",
+      counted: false
+    };
+  }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  tally = { "11": 0, "10": 0, "01": 0, "00": 0 };
+  state = fresh();
+  history = [];
+
+  function canRun(c)   { return state.cores[c].pc < PROG[c].length; }
+  function canFlush(c) { return state.cores[c].buf.length > 0; }
+  function bothDone()  { return state.cores[0].pc >= 2 && state.cores[1].pc >= 2; }
+
+  function techLine() {
+    function bufStr(c) {
+      var b = state.cores[c].buf;
+      if (!b.length) return "[]";
+      return "[" + b.map(function (e) { return e.v + "←" + e.val; }).join(", ") + "]";
+    }
+    return "x = " + state.mem.x + "   y = " + state.mem.y +
+           "   buffers: core0 " + bufStr(0) + "  core1 " + bufStr(1) +
+           "   r1 = " + (state.regs.r1 === null ? "—" : state.regs.r1) +
+           "   r2 = " + (state.regs.r2 === null ? "—" : state.regs.r2);
+  }
+
+  function runLine(c) {
+    if (!canRun(c)) return;
+    history.push(clone(state));
+    var core = state.cores[c];
+    var ins = PROG[c][core.pc];
+    var other = c === 0 ? 1 : 0;
+
+    if (ins.kind === "store") {
+      core.buf.push({ v: ins.v, val: ins.val });
+      state.say = "Core " + c + " executed " + ins.src + " The write did not go to memory. It went into Core " + c +
+                  "'s own private store buffer, and Core " + c + " carried straight on without waiting. " +
+                  "Core " + other + " has no way to see it yet.";
+      if (volatileMode) {
+        var n = core.buf.length;
+        core.buf.forEach(function (e) { state.mem[e.v] = e.val; });
+        flashVar = ins.v;
+        core.buf = [];
+        state.say += " Because " + ins.v + " is volatile, the core is then forced to stop and push all " + n +
+                     " buffered write(s) to memory before it may run another instruction. " + ins.v + " is now " +
+                     ins.val + " for everybody.";
+      }
+    } else {
+      var pending = null;
+      for (var i = core.buf.length - 1; i >= 0; i--) {
+        if (core.buf[i].v === ins.v) { pending = core.buf[i].val; break; }
+      }
+      var got = pending !== null ? pending : state.mem[ins.v];
+      state.regs[ins.reg] = got;
+      if (pending !== null) {
+        state.say = "Core " + c + " executed " + ins.src + " and read " + got +
+                    " — from its own store buffer, not from memory. A core can always see its own pending writes.";
+      } else if (got === 0) {
+        state.say = "Core " + c + " executed " + ins.src + " and read 0 from memory. Core " + other +
+                    " has already run its write, but that write is still sitting in Core " + other +
+                    "'s store buffer, so from Core " + c + "'s point of view it has not happened.";
+      } else {
+        state.say = "Core " + c + " executed " + ins.src + " and read " + got +
+                    " from memory. Core " + other + "'s write had already drained out of its store buffer, so it was visible.";
+      }
+    }
+    core.pc++;
+    finishStep();
+  }
+
+  function flush(c) {
+    if (!canFlush(c)) return;
+    history.push(clone(state));
+    var e = state.cores[c].buf.shift();
+    state.mem[e.v] = e.val;
+    flashVar = e.v;
+    state.say = "Core " + c + "'s buffered write of " + e.v + " = " + e.val +
+                " finally reached shared memory. From this moment on, every core reading " + e.v + " sees " + e.val + ".";
+    finishStep();
+  }
+
+  function finishStep() {
+    state.tech = techLine();
+    if (bothDone() && !state.counted) {
+      state.counted = true;
+      tally[String(state.regs.r1) + String(state.regs.r2)]++;
+    }
+    render();
+  }
+
+  function stepBack() {
+    if (!history.length) return;
+    stopAuto();
+    state = history.pop();
+    state.tech = techLine();
+    render();
+  }
+
+  function reset() {
+    stopAuto();
+    history = [];
+    state = fresh();
+    render();
+  }
+
+  function stopAuto() {
+    if (autoTimer)   { clearInterval(autoTimer);  autoTimer = null; }
+    if (scriptTimer) { clearTimeout(scriptTimer); scriptTimer = null; }
+    document.getElementById("auto").textContent = "Auto-run randomly";
+  }
+
+  function legalMoves() {
+    var m = [];
+    if (canRun(0))   m.push(function () { runLine(0); });
+    if (canRun(1))   m.push(function () { runLine(1); });
+    if (canFlush(0)) m.push(function () { flush(0); });
+    if (canFlush(1)) m.push(function () { flush(1); });
+    return m;
+  }
+
+  /* the classic sequence: both stores buffered, then both loads, then drain */
+  function runScript() {
+    stopAuto();
+    reset();
+    var steps = [
+      function () { runLine(0); },
+      function () { runLine(1); },
+      function () { runLine(0); },
+      function () { runLine(1); },
+      function () { if (canFlush(0)) flush(0); },
+      function () { if (canFlush(1)) flush(1); }
+    ];
+    var i = 0;
+    (function next() {
+      if (i >= steps.length) { scriptTimer = null; return; }
+      steps[i++]();
+      scriptTimer = setTimeout(next, 1500);
+    })();
+  }
+
+  /* ---------- rendering ---------- */
+  function render() {
+    for (var c = 0; c < 2; c++) {
+      var prog = document.getElementById("prog" + c);
+      prog.innerHTML = "";
+      PROG[c].forEach(function (ins, idx) {
+        var d = document.createElement("div");
+        d.className = "line" + (idx < state.cores[c].pc ? " is-done" : (idx === state.cores[c].pc ? " is-next" : ""));
+        d.innerHTML = '<span class="n">' + idx + '</span><span>' + ins.src + '</span>';
+        prog.appendChild(d);
+      });
+
+      var buf = document.getElementById("buf" + c);
+      buf.innerHTML = "";
+      var entries = state.cores[c].buf;
+      for (var s = 0; s < Math.max(1, entries.length); s++) {
+        var slot = document.createElement("div");
+        if (entries[s]) {
+          slot.className = "slot filled";
+          slot.textContent = entries[s].v + " ← " + entries[s].val + "   (waiting)";
+        } else {
+          slot.className = "slot";
+          slot.textContent = "empty";
+        }
+        buf.appendChild(slot);
+      }
+    }
+
+    ["x", "y"].forEach(function (v) {
+      var cell = document.getElementById("cell-" + v);
+      cell.setAttribute("data-val", String(state.mem[v]));
+      cell.querySelector(".v").textContent = state.mem[v];
+    });
+
+    [["r1", "reg-r1"], ["r2", "reg-r2"]].forEach(function (p) {
+      var el = document.getElementById(p[1]);
+      var val = state.regs[p[0]];
+      el.querySelector(".v").textContent = val === null ? "—" : val;
+      el.className = "reg" + (val === null ? "" : (val === 0 ? " zero" : " set"));
+    });
+
+    document.getElementById("say").textContent = state.say;
+    document.getElementById("tech").textContent = state.tech;
+
+    document.getElementById("run0").disabled   = !canRun(0);
+    document.getElementById("run1").disabled   = !canRun(1);
+    document.getElementById("flush0").disabled = !canFlush(0);
+    document.getElementById("flush1").disabled = !canFlush(1);
+    document.getElementById("back").disabled   = history.length === 0;
+
+    renderVerdict();
+
+    document.getElementById("t11").textContent = tally["11"];
+    document.getElementById("t10").textContent = tally["10"];
+    document.getElementById("t01").textContent = tally["01"];
+    document.getElementById("t00").textContent = tally["00"];
+
+    if (flashVar) {
+      var fc = document.getElementById("cell-" + flashVar);
+      fc.classList.remove("flash");
+      void fc.offsetWidth;
+      fc.classList.add("flash");
+      flashVar = null;
+    }
+  }
+
+  function renderVerdict() {
+    var v = document.getElementById("verdict");
+    var t = document.getElementById("vtitle");
+    var b = document.getElementById("vbody");
+    v.className = "verdict";
+
+    if (!bothDone()) {
+      t.textContent = "Run has not finished";
+      b.textContent = "Once both threads have run both of their lines, the values left in r1 and r2 are the outcome. Watch for r1 = 0 and r2 = 0.";
+      return;
+    }
+    var r1 = state.regs.r1, r2 = state.regs.r2;
+    if (r1 === 0 && r2 === 0) {
+      v.className = "verdict violation";
+      t.textContent = "r1 = 0 and r2 = 0 — the outcome that cannot happen";
+      b.textContent = "Try to explain this by ordering the four lines. For r1 to be 0, Core 0 must have read y before Core 1 wrote it. For r2 to be 0, Core 1 must have read x before Core 0 wrote it. But each core wrote before it read. There is no ordering of four statements that satisfies both. And yet you just watched it happen: neither write had left its core's store buffer when the reads went to memory. This is why the Java Memory Model exists — your intuition about 'some interleaving' is not what the hardware does.";
+    } else if (r1 === 1 && r2 === 1) {
+      v.className = "verdict ok";
+      t.textContent = "r1 = 1 and r2 = 1 — fully interleaved";
+      b.textContent = "Both writes had drained to memory before either load ran, so each thread saw the other's work. This one is easy to explain with ordinary interleaving.";
+    } else if (r1 === 0) {
+      v.className = "verdict ok";
+      t.textContent = "r1 = 0 and r2 = 1 — Thread A effectively went first";
+      b.textContent = "Core 0 read y before Core 1's write was visible, and Core 1 read x after Core 0's write had landed. This is exactly what you would get if Thread A ran to completion first.";
+    } else {
+      v.className = "verdict ok";
+      t.textContent = "r1 = 1 and r2 = 0 — Thread B effectively went first";
+      b.textContent = "The mirror image of the previous case: Core 1 read x before Core 0's write was visible, and Core 0 saw Core 1's write. Ordinary interleaving explains it.";
+    }
+  }
+
+  /* ---------- wiring ---------- */
+  document.getElementById("run0").addEventListener("click",   function () { stopAuto(); runLine(0); });
+  document.getElementById("run1").addEventListener("click",   function () { stopAuto(); runLine(1); });
+  document.getElementById("flush0").addEventListener("click", function () { stopAuto(); flush(0); });
+  document.getElementById("flush1").addEventListener("click", function () { stopAuto(); flush(1); });
+  document.getElementById("back").addEventListener("click", stepBack);
+  document.getElementById("reset").addEventListener("click", reset);
+  document.getElementById("script").addEventListener("click", runScript);
+
+  document.getElementById("auto").addEventListener("click", function () {
+    if (autoTimer) { stopAuto(); return; }
+    this.textContent = "Stop auto-run";
+    autoTimer = setInterval(function () {
+      var m = legalMoves();
+      if (!m.length) { reset(); return; }
+      m[Math.floor(Math.random() * m.length)]();
+    }, 900);
+  });
+
+  function setMode(vol) {
+    volatileMode = vol;
+    document.getElementById("mode-plain").classList.toggle("is-on", !vol);
+    document.getElementById("mode-vol").classList.toggle("is-on", vol);
+    document.getElementById("modenote").textContent = vol
+      ? "Volatile fields. A write still enters the store buffer, but the core must then drain the buffer to memory before it can run anything else. That single rule removes the forbidden outcome."
+      : "Plain fields. A write parks in the core's private store buffer and the core moves on immediately — it does not wait for memory.";
+    reset();
+  }
+  document.getElementById("mode-plain").addEventListener("click", function () { setMode(false); });
+  document.getElementById("mode-vol").addEventListener("click",   function () { setMode(true); });
+
+  render();
+
+  /* =================================================================
+     TAB 2 — HOISTED LOAD
+     ================================================================= */
+  var hVol = false, hMem = false, hReg = false, hSpins = 0, hRunning = false, hTimer = null, hExited = false;
+
+  var WRITTEN =
+    'boolean stop = false;          <i>// plain field</i>\n\n' +
+    '<i>// worker thread</i>\n' +
+    'while (!stop) {\n' +
+    '    spins++;\n' +
+    '}';
+  var WRITTEN_V =
+    'volatile boolean stop = false; <i>// volatile field</i>\n\n' +
+    '<i>// worker thread</i>\n' +
+    'while (!stop) {\n' +
+    '    spins++;\n' +
+    '}';
+  var COMPILED =
+    '<b>boolean tmp = stop;</b>          <i>// ONE load, before the loop</i>\n\n' +
+    'while (!tmp) {                <i>// re-reads a register,</i>\n' +
+    '    spins++;                  <i>// never memory again</i>\n' +
+    '}';
+  var COMPILED_V =
+    'while (<b>!readVolatile(stop)</b>) { <i>// a real load from memory</i>\n' +
+    '    spins++;                  <i>// on every single pass</i>\n' +
+    '}\n\n' +
+    '<i>// the optimiser is forbidden</i>\n' +
+    '<i>// from caching it in a register</i>';
+
+  function hRender() {
+    document.getElementById("src-written").innerHTML  = hVol ? WRITTEN_V : WRITTEN;
+    document.getElementById("src-compiled").innerHTML = hVol ? COMPILED_V : COMPILED;
+
+    var mem = document.getElementById("g-mem");
+    mem.textContent = String(hMem);
+    mem.className = "val " + (hMem ? "t" : "");
+
+    var reg = document.getElementById("g-reg");
+    var shown = hVol ? hMem : hReg;
+    reg.textContent = hRunning || hExited ? String(shown) : String(hMem);
+    reg.className = "val " + (shown ? "t" : (hRunning && hMem && !shown ? "f" : ""));
+    document.getElementById("g-reg-note").textContent = hVol
+      ? "Read straight from memory on every pass of the loop"
+      : "A copy in a CPU register, loaded once before the loop";
+
+    document.getElementById("g-spins").textContent = hSpins.toLocaleString();
+    document.getElementById("g-status").textContent =
+      hExited ? "Loop exited" : (hRunning ? "Spinning…" : "Worker not started");
+
+    var v = document.getElementById("hverdict");
+    var t = document.getElementById("hvtitle");
+    var b = document.getElementById("hvbody");
+    v.className = "verdict";
+
+    if (hExited) {
+      v.className = "verdict ok";
+      t.textContent = "The worker stopped after " + hSpins.toLocaleString() + " spins";
+      b.textContent = "Because stop is volatile, the optimiser was not allowed to keep it in a register. Every pass of the loop performed a real load from memory, so the main thread's write was picked up on the very next pass.";
+    } else if (hRunning && hMem && !hVol) {
+      v.className = "verdict violation";
+      t.textContent = "The write happened. The worker will never see it.";
+      b.textContent = "Memory says stop is true. The worker's register still says false, and nothing in the loop will ever reload it — the optimiser moved that load outside the loop, which it is entitled to do because the loop itself never writes stop. This thread now spins forever. No exception, no deadlock, no clue in a stack trace: just a thread that quietly refuses to finish.";
+    } else if (hRunning) {
+      t.textContent = "Worker is spinning";
+      b.textContent = "The loop is running. Now press “Main thread: stop = true” and watch whether the worker notices.";
+    } else {
+      t.textContent = "Worker not started";
+      b.textContent = "Start the worker, let it spin, then set the flag from the main thread.";
+    }
+  }
+
+  function hTick() {
+    if (!hRunning) return;
+    if (hVol ? hMem : hReg) { hRunning = false; hExited = true; hRender(); return; }
+    hSpins += Math.floor(1200 + Math.random() * 900);
+    hRender();
+  }
+
+  function hReset() {
+    if (hTimer) { clearInterval(hTimer); hTimer = null; }
+    hMem = false; hReg = false; hSpins = 0; hRunning = false; hExited = false;
+    hRender();
+  }
+
+  document.getElementById("h-start").addEventListener("click", function () {
+    if (hRunning) return;
+    hExited = false;
+    hRunning = true;
+    hReg = hMem;                    // the single hoisted load happens here
+    if (hTimer) clearInterval(hTimer);
+    hTimer = setInterval(hTick, 90);
+    hRender();
+  });
+
+  document.getElementById("h-set").addEventListener("click", function () {
+    hMem = true;                    // volatile mode reads memory directly, so this is enough
+    hRender();
+  });
+
+  document.getElementById("h-reset").addEventListener("click", hReset);
+
+  function hSetMode(vol) {
+    hVol = vol;
+    document.getElementById("h-plain").classList.toggle("is-on", !vol);
+    document.getElementById("h-vol").classList.toggle("is-on", vol);
+    document.getElementById("hnote").textContent = vol
+      ? "Volatile field. The optimiser must emit a real load from memory on every pass of the loop, so a write from another thread is picked up immediately."
+      : "Plain field. The optimiser is allowed to notice that the loop never writes stop, load it once into a register, and reuse that register forever.";
+    hReset();
+  }
+  document.getElementById("h-plain").addEventListener("click", function () { hSetMode(false); });
+  document.getElementById("h-vol").addEventListener("click",   function () { hSetMode(true); });
+
+  hRender();
+})();
+</script>

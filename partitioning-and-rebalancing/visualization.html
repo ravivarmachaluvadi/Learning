@@ -1,0 +1,1493 @@
+<title>The Moving Shelves</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --panel:#fffdf8; --panel2:#f1ecdf; --ink:#2a251d; --muted:#6f675a;
+    --line:#e3dccd; --accent:#a05a12; --accent-soft:#f3e2c8; --accent2:#1f6f6b; --accent2-soft:#d9ecea;
+    --hot:#c23b2e; --ok:#2e7d4f; --err:#b3261e; --warn:#8a6d00;
+    --chip:#eee7d7;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1e1b16; --panel:#262219; --panel2:#2d2820; --ink:#ece5d8; --muted:#a39a8a;
+      --line:#3a342a; --accent:#d98e3b; --accent-soft:#3d3022; --accent2:#4fb3ad; --accent2-soft:#1f3533;
+      --hot:#e05d4f; --ok:#59b380; --err:#ef6a5e; --warn:#d4b34a;
+      --chip:#332d22;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1e1b16; --panel:#262219; --panel2:#2d2820; --ink:#ece5d8; --muted:#a39a8a;
+    --line:#3a342a; --accent:#d98e3b; --accent-soft:#3d3022; --accent2:#4fb3ad; --accent2-soft:#1f3533;
+    --hot:#e05d4f; --ok:#59b380; --err:#ef6a5e; --warn:#d4b34a;
+    --chip:#332d22;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; margin:0; padding:0 16px 60px;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  header.hd{padding:26px 0 10px; border-bottom:1px solid var(--line); margin-bottom:14px;}
+  h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; font-weight:600; font-size:34px; margin:0; letter-spacing:.2px; text-wrap:balance;}
+  h1 .amp{color:var(--accent);}
+  .sub{color:var(--muted); margin:6px 0 0; max-width:72ch;}
+  h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; font-weight:600; font-size:19px; margin:0 0 8px;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px;}
+  .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:600;}
+
+  #verdict{border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--panel);
+    border-radius:6px; padding:10px 14px; margin:12px 0; font-size:15px;}
+  #verdict.good{border-left-color:var(--ok)} #verdict.bad{border-left-color:var(--err)}
+  #verdict .tech{display:block; color:var(--muted); font-size:12.5px; margin-top:2px;}
+
+  .tabs{display:flex; gap:8px; margin:14px 0 12px; flex-wrap:wrap;}
+  .tabs button{font:600 14px system-ui,sans-serif; padding:8px 18px; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); border-radius:20px; cursor:pointer;}
+  .tabs button[aria-selected="true"]{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .tabs button:focus-visible{outline:2px solid var(--accent2); outline-offset:2px;}
+
+  .cols{display:grid; grid-template-columns:280px 1fr; gap:14px; align-items:start;}
+  @media(max-width:860px){.cols{grid-template-columns:1fr;}}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px;}
+  .card + .card{margin-top:12px;}
+  .ctl{display:flex; flex-direction:column; gap:10px;}
+  .ctl label{display:flex; flex-direction:column; gap:3px; font-size:13px;}
+  select,button.act{font:14px system-ui,sans-serif; padding:7px 10px; border-radius:6px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--ink); cursor:pointer;}
+  button.act{text-align:left;}
+  button.act:hover{border-color:var(--accent);}
+  button.act:focus-visible, select:focus-visible{outline:2px solid var(--accent2); outline-offset:1px;}
+  button.act.primary{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;}
+  button.act.quiet{background:var(--panel);}
+  button.act:disabled{opacity:.45; cursor:default;}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
+  .btnrow button.act{flex:0 0 auto;}
+
+  /* buildings */
+  #buildings{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start;}
+  .bld{flex:1 1 180px; min-width:170px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:10px;}
+  .bld.newb{border-color:var(--accent2); box-shadow:0 0 0 1px var(--accent2);}
+  .bld h3{margin:0 0 8px; font:600 14px system-ui,sans-serif; display:flex; justify-content:space-between; align-items:baseline;}
+  .bld h3 .cnt{color:var(--muted); font-weight:500; font-size:12px; font-variant-numeric:tabular-nums;}
+  .shelf{border:1px solid var(--line); border-left-width:5px; background:var(--panel); border-radius:5px;
+    padding:4px 8px; margin-bottom:6px; font-size:12.5px; position:relative; overflow:hidden;}
+  .shelf .row1{display:flex; justify-content:space-between; gap:8px; font-variant-numeric:tabular-nums;}
+  .shelf .range{color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .shelf .bar{height:5px; border-radius:3px; background:var(--chip); margin-top:4px; position:relative;}
+  .shelf .bar i{position:absolute; inset:0 auto 0 0; border-radius:3px; background:var(--hot); opacity:.85;}
+  .shelf.justmoved{animation:land 1.2s ease-out;}
+  @keyframes land{0%{box-shadow:0 0 0 3px var(--accent);}100%{box-shadow:0 0 0 0 transparent;}}
+  @media (prefers-reduced-motion: reduce){ .shelf.justmoved{animation:none; box-shadow:0 0 0 2px var(--accent);} }
+  .statrow{display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; font-size:13px;}
+  .statrow b{font-variant-numeric:tabular-nums;}
+  .statrow .stat{background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:6px 10px;}
+
+  /* migration tab */
+  .mgrid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:700px){.mgrid{grid-template-columns:1fr;}}
+  .nodecard{border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:12px;}
+  .nodecard.owner{border-color:var(--accent);}
+  .nodecard.paused{opacity:.55; border-style:dashed;}
+  .nodecard h3{margin:0 0 6px; font:600 14px system-ui,sans-serif;}
+  .nodecard h3 .tag{font-weight:500; font-size:11px; color:var(--muted);}
+  table.kv{border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums;}
+  table.kv td{border-top:1px solid var(--line); padding:3px 6px; font-size:12.5px;}
+  table.kv td.v{text-align:right; color:var(--muted);}
+  tr.copiedrow td{background:color-mix(in srgb, var(--accent2) 12%, transparent);}
+  tr.stalerow td{color:var(--err); font-weight:600;}
+  .phase{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
+  .phase span{font-size:11px; text-transform:uppercase; letter-spacing:.07em; padding:4px 10px; border-radius:14px;
+    border:1px solid var(--line); color:var(--muted); background:var(--panel);}
+  .phase span.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700;}
+  .deltabox{border:1px dashed var(--accent); border-radius:6px; padding:8px 10px; margin-top:10px; font-size:12.5px; background:var(--panel);}
+  .mapcard{border:1px solid var(--line); background:var(--panel); border-radius:6px; padding:8px 10px; margin-top:10px; font-size:13px;}
+  .mapcard b{color:var(--accent);}
+
+  /* scenarios */
+  #scen{display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 14px;}
+  #scen button{font:13px system-ui,sans-serif; padding:6px 12px; border-radius:16px; border:1px solid var(--line);
+    background:var(--panel); color:var(--ink); cursor:pointer;}
+  #scen button:hover{border-color:var(--accent);}
+  #scen button.done{border-color:var(--ok); color:var(--ok);}
+  #scenpanel{border:1px solid var(--accent); border-radius:8px; background:var(--panel); padding:14px; margin-bottom:14px;}
+  #scenpanel[hidden]{display:none;}
+  #scenpanel .q{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; font-size:17px; margin:2px 0 10px;}
+  .opts{display:flex; flex-direction:column; gap:6px;}
+  .opts button{text-align:left; font:14px system-ui,sans-serif; padding:8px 12px; border-radius:6px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--ink); cursor:pointer;}
+  .opts button:hover{border-color:var(--accent);}
+  .scenresult{margin-top:10px; padding:10px 12px; border-radius:6px; font-size:14px;}
+  .scenresult.right{background:color-mix(in srgb, var(--ok) 12%, transparent); border:1px solid var(--ok);}
+  .scenresult.wrong{background:color-mix(in srgb, var(--err) 10%, transparent); border:1px solid var(--err);}
+
+  #log{border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:8px 0; margin-top:16px; max-height:300px; overflow:auto;}
+  #log .e{padding:5px 14px; border-bottom:1px solid var(--line); font-size:13.5px;}
+  #log .e:last-child{border-bottom:none;}
+  #log .e .tech{display:block; color:var(--muted); font-size:12px;}
+  #log .e.err{color:var(--err);} #log .e.good{color:var(--ok);}
+
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:12.5px; color:var(--muted); align-items:center;}
+  .legend .sw{display:inline-block; width:14px; height:10px; border-radius:3px; margin-right:5px; vertical-align:baseline;}
+  /* recount + rules tabs */
+  .bignums{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;}
+  .bignum{flex:1 1 220px; border:1px solid var(--line); border-left:4px solid var(--line); border-radius:8px;
+    background:var(--panel2); padding:10px 14px;}
+  .bignum b{display:block; font:600 30px/1.15 "Iowan Old Style",Georgia,serif; font-variant-numeric:tabular-nums; margin:2px 0;}
+  .bignum .sub{display:block; font-size:12px; color:var(--muted);}
+  .bignum.goodnum{border-left-color:var(--ok);} .bignum.warnnum{border-left-color:var(--warn);}
+  .bignum.badnum{border-left-color:var(--err);}
+  .chipgrid{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .pchip{border:1px solid var(--line); border-left-width:4px; border-radius:5px; background:var(--panel);
+    padding:3px 8px; font-size:12px; font-variant-numeric:tabular-nums;}
+  .pchip.node{border-left-color:var(--accent2); font-size:12.5px; padding:6px 10px;}
+  label.chk{flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; margin-top:6px; cursor:pointer;}
+  label.chk input{margin-top:3px;}
+  table.kv.wide td{padding:5px 8px; font-size:13px;}
+  tr.okrow td{border-left:3px solid var(--ok);} tr.okrow td ~ td{border-left:none;}
+  tr.warnrow td{border-left:3px solid var(--warn);} tr.warnrow td ~ td{border-left:none;}
+  tr.errrow td{border-left:3px solid var(--err); color:var(--err);} tr.errrow td ~ td{border-left:none;}
+  .note{font-size:12.5px; color:var(--muted); margin-top:8px; max-width:80ch;}
+  .note b{color:var(--ink);}
+</style>
+<div class="wrap">
+<header class="hd">
+  <h1>The Moving Shelves <span class="amp">— partitioning &amp; rebalancing</span></h1>
+  <p class="sub">Meera's library outgrew one building. Every book needs exactly one home a clerk can find,
+  the queues should be even, and when a new building opens, whole shelves roll across town —
+  while the library stays open. <b>The Map</b> is about where things belong; <b>The Move</b> is about how one shelf travels
+  without losing a single book; <b>The Recount</b> is what you do when the shelf count itself turns out wrong;
+  <b>The Rules</b> is what happens when a shelf is not allowed to live just anywhere.
+  Start with the numbered scenarios: predict, then run.</p>
+</header>
+
+<div id="verdict">Pick a scenario below, or explore freely with the controls.<span class="tech">The verdict bar always states the current outcome in plain English.</span></div>
+
+<div id="scen"></div>
+<div id="scenpanel" hidden></div>
+
+<div class="tabs" role="tablist">
+  <button id="tabbtn1" role="tab" aria-selected="true">1 · The Map — where does everything live?</button>
+  <button id="tabbtn2" role="tab" aria-selected="false">2 · The Move — one shelf changes buildings</button>
+  <button id="tabbtn3" role="tab" aria-selected="false">3 · The Recount — changing the shelf count</button>
+  <button id="tabbtn4" role="tab" aria-selected="false">4 · The Rules — where a shelf is allowed to live</button>
+</div>
+
+<!-- ============ TAB 1 ============ -->
+<section id="tab1">
+  <div class="cols">
+    <div>
+      <div class="card ctl">
+        <h2>Placement scheme</h2>
+        <label><span class="lbl">How a book finds its shelf</span>
+          <select id="scheme">
+            <option value="modn">hash straight onto buildings (mod N) — the corpse</option>
+            <option value="fixed" selected>hash onto fixed shelves, shelves assigned to buildings</option>
+            <option value="range">by key order (range) — 3 fixed alphabet shelves</option>
+            <option value="rangesplit">by key order + auto-split when a shelf gets fat</option>
+          </select>
+        </label>
+        <label><span class="lbl">Fixed shelf count P (frozen forever)</span>
+          <select id="pcount"><option>8</option><option selected>12</option><option>24</option></select>
+        </label>
+        <div>
+          <span class="lbl">Add books / traffic</span>
+          <div class="btnrow" style="margin-top:4px">
+            <button class="act" id="wl-names">+60 books (author keys)</button>
+            <button class="act" id="wl-dates">+40 newspapers (date keys)</button>
+            <button class="act" id="wl-celeb">40 borrows of the Sharma novel</button>
+          </div>
+        </div>
+        <div>
+          <span class="lbl">Change the buildings</span>
+          <div class="btnrow" style="margin-top:4px">
+            <button class="act primary" id="addnode">Open a new building</button>
+            <button class="act" id="rmnode">Close the last building</button>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="act quiet" id="t1back">↩ Step back</button>
+          <button class="act quiet" id="t1reset">Reset tab</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Why these knobs?</h2>
+        <p class="note">Nothing here is hardcoded on purpose: the scheme, the shelf count P, the workload and the
+        building count are all yours to change, because each one is a real decision someone made in every real system.
+        The auto-split threshold is fixed at <b>30 books per shelf</b> (real systems: ~512&nbsp;MB–10&nbsp;GB per partition)
+        and splits happen at the shelf's median book.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>The buildings</h2>
+        <div id="buildings"></div>
+        <div class="statrow" id="t1stats"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--chip); outline:1px solid var(--line)"></span>shelf width bar = book count</span>
+          <span><span class="sw" style="background:var(--hot)"></span>red fill = share of recent borrows (heat)</span>
+          <span><span class="sw" style="background:var(--accent)"></span>amber flash = shelf just moved</span>
+          <span><span class="sw" style="background:var(--accent2)"></span>teal outline = newest building</span>
+        </div>
+        <p class="note" id="scanline"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2 ============ -->
+<section id="tab2" hidden>
+  <div class="cols">
+    <div>
+      <div class="card ctl">
+        <h2>Migration protocol</h2>
+        <label><span class="lbl">How shelf p11 moves from B to D</span>
+          <select id="protocol">
+            <option value="naive">v1 — copy everything, then flip the catalog</option>
+            <option value="catchup">v2 — copy + catch-up log, then flip</option>
+            <option value="fenced" selected>v3 — v2 + ownership epoch (fencing)</option>
+          </select>
+        </label>
+        <div class="btnrow">
+          <button class="act primary" id="mstart">Start the move</button>
+          <button class="act" id="mstep">Step ▸</button>
+          <button class="act" id="mauto">Run to the end</button>
+        </div>
+        <div>
+          <span class="lbl">Interfere (the whole point)</span>
+          <div class="btnrow" style="margin-top:4px">
+            <button class="act" id="mwrite">A reader updates an address (write)</button>
+            <button class="act" id="mpause">GC-pause node B at cutover</button>
+            <button class="act" id="mstale">Stale write from woken B</button>
+            <button class="act" id="mclient">Stale client sends a request</button>
+            <button class="act" id="mread">Stale client READS from the old owner</button>
+          </div>
+        </div>
+        <label class="chk"><input type="checkbox" id="mseal" checked> Old owner <b>seals</b> the shelf at cutover — reads are epoch-checked too, not just writes</label>
+        <div class="btnrow">
+          <button class="act quiet" id="t2back">↩ Step back</button>
+          <button class="act quiet" id="t2reset">Reset tab</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What to look at</h2>
+        <p class="note">Each row is one record (a reader's address) with its <b>version</b> — every write bumps it.
+        A green-tinted row on D means "copied". The question that decides everything:
+        after the catalog flips to D, does D hold the <b>latest</b> version of every acknowledged write?
+        The verdict bar keeps score. Try: start the move, press <b>write</b> while the copy is running,
+        finish, and compare protocols v1 vs v2. Then try the GC-pause with v2 vs v3.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Shelf p11 in motion</h2>
+        <div class="phase" id="phases"></div>
+        <div class="mgrid">
+          <div class="nodecard" id="nodeB"></div>
+          <div class="nodecard" id="nodeD"></div>
+        </div>
+        <div class="deltabox" id="deltabox"></div>
+        <div class="mapcard" id="mapcard"></div>
+        <div class="mapcard" id="clientcard"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3 ============ -->
+<section id="tab3" hidden>
+  <div class="cols">
+    <div>
+      <div class="card ctl">
+        <h2>Changing the shelf count</h2>
+        <label><span class="lbl">How a book finds its shelf</span>
+          <select id="t3mode">
+            <option value="mod" selected>hash mod P — P shelves, fixed formula</option>
+            <option value="range">hash RANGE — each shelf owns a slice of hash space</option>
+          </select>
+        </label>
+        <div>
+          <span class="lbl">Change P (hop 1: key → shelf)</span>
+          <div class="btnrow" style="margin-top:4px">
+            <button class="act primary" id="t3double">Double the shelf count</button>
+            <button class="act" id="t3set24">Set P to 24 (not a multiple)</button>
+            <button class="act" id="t3split">Split the fattest shelf in half</button>
+          </div>
+        </div>
+        <div>
+          <span class="lbl">Change the buildings (hop 2: shelf → building)</span>
+          <div class="btnrow" style="margin-top:4px">
+            <button class="act" id="t3add">Open a new building</button>
+            <button class="act" id="t3bal">Even out the buildings</button>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="act quiet" id="t3back">↩ Step back</button>
+          <button class="act quiet" id="t3reset">Reset tab</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What to look at</h2>
+        <p class="note">Two numbers, and they are <b>not</b> the same number. <b>Changed shelf</b> counts books whose
+        <i>address</i> changed — a bookkeeping fact. <b>Crossed the network</b> counts books whose bytes actually had
+        to be carried to another building — the bill you pay in hours and bandwidth. A move can be huge on the first
+        number and free on the second, or vice versa. Every button here changes exactly one of the two hops; watch
+        which number reacts.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>The recount</h2>
+        <div class="bignums" id="t3nums"></div>
+        <div id="t3buildings"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--chip); outline:1px solid var(--line)"></span>each tile = one shelf, with its book count</span>
+          <span><span class="sw" style="background:var(--accent2)"></span>teal outline = newest building</span>
+        </div>
+        <p class="note" id="t3note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 4 ============ -->
+<section id="tab4" hidden>
+  <div class="cols">
+    <div>
+      <div class="card ctl">
+        <h2>The rules of placement</h2>
+        <label><span class="lbl">Copies of each shelf (replication factor)</span>
+          <select id="t4rf"><option value="2">2 copies</option><option value="3" selected>3 copies</option></select>
+        </label>
+        <div>
+          <span class="lbl">Rules the placer must obey</span>
+          <label class="chk"><input type="checkbox" id="t4racks"> Each copy of a shelf in a <b>different rack</b></label>
+          <label class="chk"><input type="checkbox" id="t4res"> <b>EU shelves</b> may only live in EU buildings</label>
+        </div>
+        <div>
+          <span class="lbl">Open a building</span>
+          <div class="btnrow" style="margin-top:4px">
+            <select id="t4zone"><option value="eu" selected>zone eu</option><option value="us">zone us</option></select>
+            <select id="t4rack"><option>r1</option><option selected>r2</option><option>r3</option></select>
+            <button class="act primary" id="t4add">Open it</button>
+          </div>
+          <div class="btnrow" style="margin-top:6px">
+            <button class="act" id="t4rm">Close the last building</button>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="act quiet" id="t4back">↩ Step back</button>
+          <button class="act quiet" id="t4reset">Reset tab</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>What to look at</h2>
+        <p class="note">Up to now the placer had one goal: keep the buildings even. Real ones have <b>rules</b> first
+        and evenness second — don't put all three copies of a shelf in one rack (one power failure loses the lot),
+        and don't move European readers' records out of Europe. Watch the <b>status</b> column: a shelf that cannot
+        be placed legally is not placed at all. The system does not warn you by moving; it warns you by
+        <i>sitting still</i>.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Buildings, racks and zones</h2>
+        <div id="t4buildings"></div>
+        <h2 style="margin-top:16px">Where each shelf's copies may go</h2>
+        <div id="t4shelves"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--ok)"></span>fully placed</span>
+          <span><span class="sw" style="background:var(--warn)"></span>under-replicated (some copies placed)</span>
+          <span><span class="sw" style="background:var(--err)"></span>nowhere legal to go</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="card" style="margin-top:16px">
+  <h2>Event log — what just happened, and why it matters</h2>
+  <div id="log"></div>
+</div>
+</div>
+
+<script>
+/* ===================== ENGINE-START =====================
+   Pure state + reducers. No DOM access in this block, so the
+   whole engine can be verified headlessly (see validate notes). */
+"use strict";
+var Eng = (function(){
+  function hash(s){ var h=2166136261>>>0; for(var i=0;i<s.length;i++){ h=(h^s.charCodeAt(i))>>>0; h=Math.imul(h,16777619)>>>0; } return h>>>0; }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function mulberry32(a){ return function(){ a|=0; a=(a+0x6D2B79F5)|0; var t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+
+  var SURNAMES=["agarwal","banerjee","bose","chatterjee","desai","dutta","gupta","iyer","jain","kapoor","khan","kulkarni","mehta","menon","mishra","nair","patel","pillai","rao","reddy","saha","sen","shah","sharma","singh","sinha","thakur","varma","verma","yadav"];
+  var CELEB="sharma-the-cedar-gate";
+
+  /* ---------- Tab 1: the map ---------- */
+  function t1Init(scheme,P){
+    var st={scheme:scheme||"fixed", P:P||12, nodes:["A","B","C"], keys:[], acc:{},
+            fixedAssign:{}, rangeParts:null, splitThreshold:30, seed:42, dateCounter:0,
+            lastChange:null, lastWrites:{}, nextNode:68};
+    if(st.scheme==="fixed"){ for(var p=0;p<st.P;p++) st.fixedAssign[p]=st.nodes[p%st.nodes.length]; }
+    if(st.scheme==="range"){ st.rangeParts=[{id:"r0",lo:"",hi:"i",node:"A"},{id:"r1",lo:"i",hi:"r",node:"B"},{id:"r2",lo:"r",hi:"￿",node:"C"}]; }
+    if(st.scheme==="rangesplit"){ st.rangeParts=[{id:"r0",lo:"",hi:"￿",node:"A"}]; st.rid=1; }
+    return st;
+  }
+  function rangePartOf(st,key){
+    var ps=st.rangeParts;
+    for(var i=0;i<ps.length;i++){ if(key>=ps[i].lo && key<ps[i].hi) return ps[i]; }
+    return ps[ps.length-1];
+  }
+  function placeKey(st,key){ // -> {part, node}
+    if(st.scheme==="modn"){ var n=st.nodes[hash(key)%st.nodes.length]; return {part:"n:"+n,node:n}; }
+    if(st.scheme==="fixed"){ var p=hash(key)%st.P; return {part:"p"+p,node:st.fixedAssign[p]}; }
+    var rp=rangePartOf(st,key); return {part:rp.id,node:rp.node};
+  }
+  function ownerMap(st){ var m={}; for(var i=0;i<st.keys.length;i++){ m[st.keys[i]]=placeKey(st,st.keys[i]).node; } return m; }
+  function maybeSplit(st,events){
+    if(st.scheme!=="rangesplit") return;
+    var changed=true;
+    while(changed){
+      changed=false;
+      for(var i=0;i<st.rangeParts.length;i++){
+        var p=st.rangeParts[i];
+        var ks=st.keys.filter(function(k){return k>=p.lo&&k<p.hi;}).sort();
+        if(ks.length>st.splitThreshold){
+          var mid=ks[Math.floor(ks.length/2)];
+          if(mid<=p.lo) continue;
+          // least-loaded node takes the new right half
+          var counts={}; st.nodes.forEach(function(n){counts[n]=0;});
+          var om=ownerMap(st); Object.keys(om).forEach(function(k){counts[om[k]]++;});
+          var target=st.nodes.slice().sort(function(a,b){return counts[a]-counts[b];})[0];
+          var nid="r"+(st.rid++);
+          st.rangeParts.splice(i+1,0,{id:nid,lo:mid,hi:p.hi,node:target});
+          p.hi=mid;
+          events.push({msg:"Shelf "+p.id+" grew past "+st.splitThreshold+" books, so it split at its median key “"+mid+"”. The new shelf "+nid+" went to the least-loaded building, "+target+".",
+                      tech:"dynamic split: ["+ (p.lo||"−∞") +" … "+mid+") stays; ["+mid+" … "+(p.hi==="￿"?"+∞":p.hi)+") is new", cls:""});
+          changed=true; break;
+        }
+      }
+    }
+  }
+  function t1AddNames(st,count){
+    st=clone(st); var ev=[]; var rng=mulberry32(st.seed); st.seed+=count;
+    st.lastWrites={};
+    for(var i=0;i<count;i++){
+      var k=SURNAMES[Math.floor(rng()*SURNAMES.length)]+"-"+Math.floor(rng()*900+100);
+      if(st.keys.indexOf(k)<0){ st.keys.push(k); }
+      st.acc[k]=(st.acc[k]||0)+1;
+      var part=placeKey(st,k).part; st.lastWrites[part]=(st.lastWrites[part]||0)+1;
+    }
+    maybeSplit(st,ev);
+    ev.unshift({msg:count+" author-keyed books arrived and were shelved. Names hash (or sort) all over the keyspace, so they spread out.",tech:"keys like sharma-483, iyer-217",cls:""});
+    return {st:st,events:ev};
+  }
+  function t1AddDates(st,count){
+    st=clone(st); var ev=[]; st.lastWrites={};
+    for(var i=0;i<count;i++){
+      st.dateCounter++;
+      var k="zz-day-"+String(st.dateCounter).padStart(6,"0"); // ever-increasing
+      st.keys.push(k); st.acc[k]=(st.acc[k]||0)+1;
+      var part=placeKey(st,k).part; st.lastWrites[part]=(st.lastWrites[part]||0)+1;
+    }
+    maybeSplit(st,ev);
+    var parts=Object.keys(st.lastWrites);
+    var summary=parts.length===1?"ALL "+count+" filings landed on ONE shelf ("+parts[0]+") — the last one in key order.":"the filings hit "+parts.length+" shelves.";
+    ev.unshift({msg:count+" daily newspapers filed under ever-increasing date keys — "+summary,
+                tech:"sequential keys always sort after every existing key", cls:parts.length===1?"err":""});
+    return {st:st,events:ev};
+  }
+  function t1Celeb(st,count){
+    st=clone(st); var ev=[]; st.lastWrites={};
+    if(st.keys.indexOf(CELEB)<0) st.keys.push(CELEB);
+    st.acc[CELEB]=(st.acc[CELEB]||0)+count;
+    var pl=placeKey(st,CELEB);
+    st.lastWrites[pl.part]=(st.lastWrites[pl.part]||0)+count;
+    ev.push({msg:count+" people borrowed “The Cedar Gate” — one single key. All that heat lands on shelf "+pl.part+" in building "+pl.node+", whoever owns it.",
+             tech:"a hot KEY, not a hot boundary: no placement scheme spreads one key",cls:""});
+    return {st:st,events:ev};
+  }
+  function rebalanceFixed(st,events,newNode){
+    // fair share; steal whole partitions from most-loaded (by partition count)
+    var n=st.nodes.length;
+    var per={}; st.nodes.forEach(function(x){per[x]=[];});
+    Object.keys(st.fixedAssign).forEach(function(p){ per[st.fixedAssign[p]].push(p); });
+    var fair=Math.floor(st.P/n);
+    while(per[newNode].length<fair){
+      var donor=st.nodes.slice().sort(function(a,b){return per[b].length-per[a].length;})[0];
+      if(donor===newNode||per[donor].length<=fair) break;
+      var moved=per[donor].pop(); st.fixedAssign[moved]=newNode; per[newNode].push(moved);
+      events.push({msg:"Whole shelf p"+moved+" rolled from building "+donor+" to new building "+newNode+". No book was re-sorted — the shelf moved as a unit.",tech:"partition = unit of movement",cls:""});
+    }
+  }
+  function t1AddNode(st){
+    st=clone(st); var ev=[];
+    var before=ownerMap(st);
+    var name=String.fromCharCode(st.nextNode++); // D, E, ...
+    st.nodes.push(name); st.newest=name;
+    if(st.scheme==="fixed"){ rebalanceFixed(st,ev,name); }
+    if(st.scheme==="range"||st.scheme==="rangesplit"){
+      // move whole partitions (greedy by key count) onto newcomer until ~fair
+      var counts=function(){ var c={}; st.nodes.forEach(function(x){c[x]=0;});
+        var om=ownerMap(st); Object.keys(om).forEach(function(k){c[om[k]]++;}); return c; };
+      var fairKeys=st.keys.length/st.nodes.length;
+      var guard=0;
+      while(guard++<50){
+        var c=counts(); if(c[name]>=fairKeys*0.8) break;
+        var donor=st.nodes.slice().sort(function(a,b){return c[b]-c[a];})[0];
+        if(donor===name) break;
+        var donorParts=st.rangeParts.filter(function(p){return p.node===donor;});
+        if(!donorParts.length) break;
+        var pk=donorParts.map(function(p){ return {p:p, n:st.keys.filter(function(k){return k>=p.lo&&k<p.hi;}).length}; })
+                         .sort(function(a,b){return b.n-a.n;})[0];
+        if(!pk||pk.n===0) break;
+        pk.p.node=name;
+        ev.push({msg:"Whole shelf "+pk.p.id+" ("+pk.n+" books) rolled from "+donor+" to new building "+name+".",tech:"",cls:""});
+      }
+    }
+    var after=ownerMap(st);
+    var moved=0,onto=0,side=0;
+    Object.keys(before).forEach(function(k){
+      if(before[k]!==after[k]){ moved++; if(after[k]===name) onto++; else side++; }
+    });
+    var total=st.keys.length;
+    st.lastChange={kind:"add",node:name,moved:moved,onto:onto,side:side,total:total,
+                   minimal: after? Object.keys(after).filter(function(k){return after[k]===name;}).length : 0};
+    var pct=total?Math.round(100*moved/total):0;
+    var msg="Building "+name+" opened. "+moved+" of "+total+" books changed buildings ("+pct+"%).";
+    if(st.scheme==="modn"){ msg+=" Almost every key was re-homed, and "+side+" of those moves went SIDEWAYS between old buildings — pure waste."; }
+    else if(moved>0){ msg+=" Every moved book went ONTO the newcomer — zero sideways moves. That property has a name: monotonicity."; }
+    else { msg+=" (No data yet, so nothing to move.)"; }
+    ev.unshift({msg:msg,tech:"moved="+moved+" ontoNew="+onto+" sideways="+side,cls:st.scheme==="modn"?"err":"good"});
+    return {st:st,events:ev,moved:moved,total:total,onto:onto,side:side};
+  }
+  function t1RemoveNode(st){
+    st=clone(st); var ev=[];
+    if(st.nodes.length<=1) return {st:st,events:[{msg:"One building must remain.",tech:"",cls:""}]};
+    var before=ownerMap(st);
+    var name=st.nodes[st.nodes.length-1];
+    var wasOn=Object.keys(before).filter(function(k){return before[k]===name;}).length;
+    st.nodes.pop(); if(st.newest===name) st.newest=null;
+    if(st.scheme==="fixed"){
+      var per={}; st.nodes.forEach(function(x){per[x]=0;});
+      Object.keys(st.fixedAssign).forEach(function(p){ if(st.nodes.indexOf(st.fixedAssign[p])>=0) per[st.fixedAssign[p]]++; });
+      Object.keys(st.fixedAssign).forEach(function(p){
+        if(st.fixedAssign[p]===name){
+          var tgt=st.nodes.slice().sort(function(a,b){return per[a]-per[b];})[0];
+          st.fixedAssign[p]=tgt; per[tgt]++;
+          ev.push({msg:"Orphaned shelf p"+p+" dealt to building "+tgt+".",tech:"",cls:""});
+        }
+      });
+    }
+    if(st.rangeParts){
+      st.rangeParts.forEach(function(p){
+        if(p.node===name){
+          var c={}; st.nodes.forEach(function(x){c[x]=0;});
+          var m=ownerMap(st); Object.keys(m).forEach(function(k){ if(st.nodes.indexOf(m[k])>=0) c[m[k]]++; });
+          p.node=st.nodes.slice().sort(function(a,b){return c[a]-c[b];})[0];
+          ev.push({msg:"Orphaned shelf "+p.id+" dealt to building "+p.node+".",tech:"",cls:""});
+        }
+      });
+    }
+    var after=ownerMap(st);
+    var moved=0,side=0;
+    Object.keys(before).forEach(function(k){ if(before[k]!==after[k]){ moved++; if(before[k]!==name) side++; } });
+    st.lastChange={kind:"remove",node:name,moved:moved,side:side,total:st.keys.length,minimal:wasOn};
+    var msg="Building "+name+" closed. Its "+wasOn+" books had to move; in total "+moved+" moved"+(side>0?", of which "+side+" were sideways churn among the survivors — waste.":" — exactly the orphans, nothing else.");
+    ev.unshift({msg:msg,tech:"moved="+moved+" hadToMove="+wasOn+" sideways="+side,cls:side>0?"err":"good"});
+    return {st:st,events:ev};
+  }
+  function t1Stats(st){
+    var om=ownerMap(st);
+    var perNode={}; st.nodes.forEach(function(n){perNode[n]=0;});
+    Object.keys(om).forEach(function(k){perNode[om[k]]++;});
+    // partitions view
+    var parts={}; // part -> {node, count, heat, lo,hi}
+    st.keys.forEach(function(k){
+      var pl=placeKey(st,k);
+      if(!parts[pl.part]) parts[pl.part]={id:pl.part,node:pl.node,count:0,heat:0};
+      parts[pl.part].count++; parts[pl.part].heat+=(st.acc[k]||0);
+    });
+    if(st.scheme==="fixed"){ for(var p=0;p<st.P;p++){ var id="p"+p; if(!parts[id]) parts[id]={id:id,node:st.fixedAssign[p],count:0,heat:0}; } }
+    if(st.rangeParts){ st.rangeParts.forEach(function(rp){ if(!parts[rp.id]) parts[rp.id]={id:rp.id,node:rp.node,count:0,heat:0}; parts[rp.id].lo=rp.lo; parts[rp.id].hi=rp.hi; }); }
+    var totalHeat=0; Object.keys(parts).forEach(function(i){ totalHeat+=parts[i].heat; });
+    var busiest=0,total=st.keys.length,fair=total/st.nodes.length||1;
+    st.nodes.forEach(function(n){ if(perNode[n]>busiest) busiest=perNode[n]; });
+    var hotNode={}; st.nodes.forEach(function(n){hotNode[n]=0;});
+    Object.keys(parts).forEach(function(i){ hotNode[parts[i].node]=(hotNode[parts[i].node]||0)+parts[i].heat; });
+    var hotBusiest=0; st.nodes.forEach(function(n){ if(hotNode[n]>hotBusiest) hotBusiest=hotNode[n]; });
+    var hotFair=totalHeat/st.nodes.length||1;
+    return {perNode:perNode, parts:parts, totalHeat:totalHeat,
+            balance: total? (busiest/fair) : 1,
+            heatBalance: totalHeat? (hotBusiest/hotFair) : 1};
+  }
+  function t1ScanCost(st,prefix){
+    // structurally: how many partitions MUST a prefix scan consult?
+    if(st.scheme==="modn") return {touch:st.nodes.length, of:st.nodes.length, why:"hashing scattered the prefix everywhere — ask every building"};
+    if(st.scheme==="fixed") return {touch:st.P, of:st.P, why:"hashing scattered the prefix everywhere — ask every shelf"};
+    var hiP=prefix+"￿", n=0;
+    st.rangeParts.forEach(function(p){ if(p.lo<hiP && prefix<p.hi) n++; });
+    return {touch:n, of:st.rangeParts.length, why:"key order keeps the prefix on adjacent shelves"};
+  }
+
+  /* ---------- Tab 2: the move ---------- */
+  var KEYS=["asha","ben","chirag","devi","esha","farid"];
+  function t2Init(protocol){
+    var src={}; KEYS.forEach(function(k){src[k]=1;});
+    return {protocol:protocol||"fenced", phase:"idle", keys:KEYS.slice(),
+            src:src, dst:{}, cursor:0, delta:[], epoch:5, mapOwner:"B",
+            bBelieves:"B", bPaused:false, acks:[], writeIdx:0,
+            client:{owner:"B",epoch:5}, lost:[], rejected:[], done:false,
+            sealReads:true, staleReads:[]};
+  }
+  function t2Start(st){ st=clone(st); var ev=[];
+    if(st.phase!=="idle") return {st:st,events:[{msg:"The move is already underway.",tech:"",cls:""}]};
+    st.phase="copy";
+    ev.push({msg:"The move begins: new building D starts copying shelf p11 from B, one record per step. B keeps serving reads and writes the whole time.",
+             tech:st.protocol==="naive"?"protocol v1: snapshot only":"protocol v2/v3: snapshot + delta log",cls:""});
+    return {st:st,events:ev};
+  }
+  function t2Write(st){ st=clone(st); var ev=[];
+    var k=st.keys[st.writeIdx%st.keys.length]; st.writeIdx++;
+    var routedTo=st.mapOwner; // healthy clients follow the current map
+    if(routedTo==="B"){
+      st.src[k]++; st.acks.push({k:k,ver:st.src[k]});
+      var behind = st.phase==="copy" && (st.keys.indexOf(k)<st.cursor);
+      if(st.protocol!=="naive" && (st.phase==="copy"||st.phase==="catchup")){
+        st.delta.push({k:k,ver:st.src[k]});
+        ev.push({msg:"“"+k+"” updated their address on B (now v"+st.src[k]+") — acknowledged, AND appended to the delta log so D will hear about it.",
+                 tech:"delta log length: "+st.delta.length,cls:""});
+      } else if(st.phase==="copy"||st.phase==="catchup"){
+        ev.push({msg:"“"+k+"” updated their address on B (now v"+st.src[k]+") — acknowledged."+(behind?" But the copy already passed this record… nobody will tell D.":" (The copy hasn't reached this record yet, so this one will survive by luck.)"),
+                 tech:"naive protocol: no delta log", cls:behind?"err":""});
+      } else {
+        ev.push({msg:"“"+k+"” updated their address on B (now v"+st.src[k]+").",tech:"",cls:""});
+      }
+    } else {
+      st.dst[k]=(st.dst[k]||0)+1; st.acks.push({k:k,ver:st.dst[k]});
+      ev.push({msg:"“"+k+"” updated their address — routed to D (the owner since the flip), now v"+st.dst[k]+".",tech:"",cls:""});
+    }
+    return {st:st,events:ev};
+  }
+  function doFlip(st,ev){
+    st.mapOwner="D"; st.epoch=6; st.phase="done"; st.done=true;
+    if(!st.bPaused) st.bBelieves="D";
+    ev.push({msg:"CUTOVER: the catalog flips — shelf p11 now belongs to building D, ownership generation (epoch) 5 → 6."+(st.bPaused?" B is still frozen in a GC pause and DID NOT SEE the flip.":""),
+             tech:"map: p11 → D @ epoch 6",cls:st.bPaused?"err":"good"});
+  }
+  function t2Step(st){ st=clone(st); var ev=[];
+    if(st.phase==="copy"){
+      if(st.cursor<st.keys.length){
+        var k=st.keys[st.cursor];
+        st.dst[k]=st.src[k]; st.cursor++;
+        ev.push({msg:"D copied “"+k+"” at version v"+st.dst[k]+" ("+st.cursor+" of "+st.keys.length+").",tech:"snapshot copy",cls:""});
+        return {st:st,events:ev};
+      }
+      if(st.protocol==="naive"){ doFlip(st,ev); return {st:st,events:ev}; }
+      st.phase="catchup";
+      ev.push({msg:"Snapshot finished. Now the CATCH-UP: D drains the delta log — the writes that arrived while the truck was loading.",
+               tech:"delta log: "+st.delta.length+" pending",cls:""});
+      return {st:st,events:ev};
+    }
+    if(st.phase==="catchup"){
+      if(st.delta.length){
+        var d=st.delta.shift(); if(!st.dst[d.k]||st.dst[d.k]<d.ver) st.dst[d.k]=d.ver;
+        ev.push({msg:"D replayed the delta for “"+d.k+"” → v"+d.ver+". "+st.delta.length+" left.",tech:"catch-up drain",cls:""});
+        return {st:st,events:ev};
+      }
+      ev.push({msg:"Delta log empty. B pauses p11 writes for a moment (milliseconds in real life) so nothing can slip in…",tech:"final drain under a brief write-pause",cls:""});
+      doFlip(st,ev);
+      return {st:st,events:ev};
+    }
+    ev.push({msg:st.phase==="idle"?"Press “Start the move” first.":"The move is complete.",tech:"",cls:""});
+    return {st:st,events:ev};
+  }
+  function t2Pause(st){ st=clone(st); var ev=[];
+    st.bPaused=true;
+    ev.push({msg:"Node B freezes mid-instruction — a long GC pause. It cannot observe its own delay: when it wakes it will believe nothing happened.",
+             tech:"distributed-locking lab: a process cannot observe its own delays",cls:""});
+    return {st:st,events:ev};
+  }
+  function t2StaleWrite(st){ st=clone(st); var ev=[];
+    if(!(st.done&&st.bPaused)){ ev.push({msg:"This button matters after a cutover that B slept through — pause B, finish the move, then press it.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var k=st.keys[0];
+    if(st.protocol==="fenced"){
+      st.rejected.push(k);
+      ev.push({msg:"B wakes, still believing it owns p11, and accepts a write for “"+k+"”… but the write carries epoch 5 and the authoritative map says epoch 6. REFUSED with an epoch error — loud and safe. The client retries at D.",
+               tech:"fencing: stale epoch 5 < current 6 ⇒ reject",cls:"good"});
+      st.dst[k]=(st.dst[k]||1)+1; st.acks.push({k:k,ver:st.dst[k]});
+      ev.push({msg:"Retry landed at D: “"+k+"” is now v"+st.dst[k]+" at the true owner. Nothing lost.",tech:"",cls:"good"});
+    } else {
+      st.src[k]++; st.acks.push({k:k,ver:st.src[k],ghost:true});
+      st.lost.push(k);
+      ev.push({msg:"B wakes, still believing it owns p11, and ACCEPTS a write for “"+k+"” (v"+st.src[k]+" on B). The catalog says D owns p11 — two buildings are now taking writes for one shelf. B's copy gets deleted after migrations… this acknowledged write is doomed.",
+               tech:"split-brain on partition ownership; no epoch check to catch it",cls:"err"});
+    }
+    return {st:st,events:ev};
+  }
+  function t2ClientReq(st){ st=clone(st); var ev=[];
+    if(!st.done){ ev.push({msg:"The stale client only becomes interesting after the flip — finish the move first.",tech:"",cls:""}); return {st:st,events:ev}; }
+    if(st.client.owner==="B" && !st.bPaused){
+      ev.push({msg:"A client with an old catalog card sends its request to B. B answers: “MOVED — p11 lives at D now, update your card.” One extra hop, never a wrong answer.",
+               tech:"MOVED redirect (Redis Cluster's permanent form)",cls:"good"});
+      st.client={owner:"D",epoch:st.epoch};
+      ev.push({msg:"The client repaired its cached map and got its answer from D. Next time: straight to D, zero extra hops.",tech:"client map: p11 → D @ epoch 6",cls:"good"});
+    } else if(st.client.owner==="B" && st.bPaused){
+      ev.push({msg:"A client with an old catalog card sends its request to B — which is frozen. No redirect comes back. The client times out and must refetch the whole map from the authority (the map service just joined the data path).",
+               tech:"redirect needs a live old owner; otherwise: authoritative map fetch",cls:"err"});
+      st.client={owner:"D",epoch:st.epoch};
+    } else {
+      ev.push({msg:"The client's map is already fresh — straight to D.",tech:"",cls:""});
+    }
+    return {st:st,events:ev};
+  }
+  function t2SetSeal(st,on){ st=clone(st); var ev=[];
+    st.sealReads=!!on;
+    ev.push({msg:on?"The old owner will now SEAL shelf p11 at cutover: it refuses every request for it, reads included, and answers MOVED."
+                  :"The old owner will keep ANSWERING READS for p11 after the cutover, from the copy still sitting on its disk. Writes are still epoch-checked; reads are not.",
+             tech:on?"epoch check applied to reads as well as writes":"epoch check applied to writes only — the common half-measure",cls:on?"":"err"});
+    return {st:st,events:ev};
+  }
+  function t2StaleRead(st){ st=clone(st); var ev=[];
+    if(!st.done){ ev.push({msg:"A read only becomes interesting after the cutover — finish the move first, send a write (it will route to D), then press this.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var k=st.keys[0], atD=st.dst[k]||0, atB=st.src[k]||0;
+    if(st.client.owner!=="B"){
+      ev.push({msg:"This client's catalog card is already fresh, so its read goes straight to D and returns “"+k+"” at v"+atD+" — the true current value.",tech:"",cls:""});
+      return {st:st,events:ev};
+    }
+    if(st.sealReads){
+      ev.push({msg:"The stale client asks B to READ “"+k+"”. B sealed p11 at cutover, so it refuses to answer and replies MOVED. The client repairs its card, asks D, and gets v"+atD+" — the true current value.",
+               tech:"read fenced by ownership epoch: B holds epoch 5, the map says 6",cls:"good"});
+      st.client={owner:"D",epoch:st.epoch};
+    } else {
+      var lying = atB<atD;
+      st.staleReads.push({k:k,got:atB,truth:atD});
+      ev.push({msg:"The stale client asks B to READ “"+k+"”. B still has the shelf on disk and answers: “"+k+"” = v"+atB+". "
+                 +(lying? "The true value at the owner D is v"+atD+". The client received old data with no error, no timeout, and no way to tell — and B's copy stopped advancing at the cutover, so this answer gets staler every minute."
+                        : "It happens to match D right now (v"+atD+") — send a write first, then read again, and watch the two diverge."),
+               tech:lying?"silent stale read: writes were fenced, reads were not":"no divergence yet — nothing has been written since the flip",cls:lying?"err":""});
+    }
+    return {st:st,events:ev};
+  }
+  function t2Verdict(st){
+    var lost=[];
+    st.acks.forEach(function(a){
+      var atD = st.dst[a.k]||0;
+      var reachable = st.done ? (atD>=a.ver && !a.ghost) : true; // before flip, B legitimately serves
+      if(st.done && (a.ghost || atD < a.ver)) lost.push(a.k+" v"+a.ver);
+    });
+    var uniq=lost.filter(function(v,i){return lost.indexOf(v)===i;});
+    return {ok:uniq.length===0, lost:uniq, acks:st.acks.length, rejected:st.rejected.length};
+  }
+
+  /* ---------- Tab 3: the recount (changing P) ---------- */
+  var T3KEYS=(function(){ var a=[]; for(var i=0;i<420;i++) a.push("user:"+(1000+i)); return a; })();
+  var HSPACE=4294967296;
+
+  function t3Init(mode){
+    var st={mode:mode||"mod", P:16, nodes:["A","B","C"], assign:{}, ranges:null,
+            last:null, history:[], nextId:16, nextNode:68};
+    if(st.mode==="mod"){
+      for(var p=0;p<st.P;p++) st.assign["p"+p]=st.nodes[p%st.nodes.length];
+    } else {
+      st.ranges=[]; var span=HSPACE/st.P;
+      for(var r=0;r<st.P;r++) st.ranges.push({id:"h"+r, lo:Math.floor(r*span), hi:(r===st.P-1?HSPACE:Math.floor((r+1)*span))});
+      st.ranges.forEach(function(rg,i){ st.assign[rg.id]=st.nodes[i%st.nodes.length]; });
+    }
+    return st;
+  }
+  function t3PartOf(st,key){
+    var h=hash(key);
+    if(st.mode==="mod") return "p"+(h%st.P);
+    for(var i=0;i<st.ranges.length;i++){ if(h>=st.ranges[i].lo && h<st.ranges[i].hi) return st.ranges[i].id; }
+    return st.ranges[st.ranges.length-1].id;
+  }
+  function t3Snap(st){
+    var m={}; for(var i=0;i<T3KEYS.length;i++){ var k=T3KEYS[i], p=t3PartOf(st,k); m[k]={part:p,node:st.assign[p]}; }
+    return m;
+  }
+  function t3Measure(before,after,label){
+    var pc=0,nc=0,tot=0;
+    Object.keys(before).forEach(function(k){
+      tot++;
+      if(before[k].part!==after[k].part) pc++;
+      if(before[k].node!==after[k].node) nc++;
+    });
+    return {label:label, total:tot, partChanged:pc, nodeChanged:nc,
+            partPct:Math.round(1000*pc/tot)/10, nodePct:Math.round(1000*nc/tot)/10};
+  }
+  function t3Parts(st){
+    if(st.mode==="mod"){ var a=[]; for(var p=0;p<st.P;p++) a.push({id:"p"+p}); return a; }
+    return st.ranges.map(function(r){ return {id:r.id, lo:r.lo, hi:r.hi}; });
+  }
+  function t3Counts(st){
+    var c={}; t3Parts(st).forEach(function(p){ c[p.id]=0; });
+    T3KEYS.forEach(function(k){ c[t3PartOf(st,k)]++; });
+    return c;
+  }
+  function t3NodeLoad(st){
+    var counts=t3Counts(st), byNode={};
+    st.nodes.forEach(function(n){ byNode[n]={keys:0,parts:0}; });
+    Object.keys(counts).forEach(function(pid){
+      var n=st.assign[pid]; if(!byNode[n]) byNode[n]={keys:0,parts:0};
+      byNode[n].keys+=counts[pid]; byNode[n].parts++;
+    });
+    return byNode;
+  }
+
+  function t3Double(st){
+    st=clone(st); var ev=[];
+    if(st.mode!=="mod"){ ev.push({msg:"Doubling is a mod-P move; this tab is in hash-range mode, where you split one partition at a time instead.",tech:"",cls:""}); return {st:st,events:ev}; }
+    if(st.P>=64){ ev.push({msg:"Stopping at P=64 — big enough to see the pattern.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var before=t3Snap(st), old=st.P;
+    st.P=old*2;
+    for(var p=old;p<st.P;p++) st.assign["p"+p]=st.assign["p"+(p-old)];   // sibling stays home
+    var after=t3Snap(st);
+    var m=t3Measure(before,after,"P "+old+" → "+st.P+" (doubled)");
+    st.last=m;
+    ev.push({msg:"Doubled the shelf count from "+old+" to "+st.P+". "+m.partPct+"% of books now belong to a different shelf — but "+m.nodePct+"% had to leave their building.",
+             tech:"h mod "+old+" = i  ⇒  h mod "+st.P+" ∈ {i, i+"+old+"} — every old shelf splits cleanly in two, and the new sibling is created on the node that already holds the bytes.",cls:m.nodeChanged===0?"good":""});
+    return {st:st,events:ev};
+  }
+  function t3SetP(st,newP){
+    st=clone(st); var ev=[];
+    if(st.mode!=="mod"){ ev.push({msg:"Setting P outright is a mod-P move; switch the mode to try it.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var before=t3Snap(st), old=st.P;
+    st.P=newP;
+    for(var p=0;p<newP;p++){ if(!st.assign["p"+p]) st.assign["p"+p]=st.nodes[p%st.nodes.length]; }
+    Object.keys(st.assign).forEach(function(pid){ if(parseInt(pid.slice(1),10)>=newP) delete st.assign[pid]; });
+    var after=t3Snap(st);
+    var m=t3Measure(before,after,"P "+old+" → "+newP+" (not a multiple)");
+    st.last=m;
+    ev.push({msg:"Changed P from "+old+" to "+newP+" — not a multiple. "+m.partPct+"% of books changed shelf and "+m.nodePct+"% must physically cross to another building.",
+             tech:"h mod "+old+" = i no longer predicts h mod "+newP+": keys from one old shelf scatter across several new ones (period lcm("+old+","+newP+")), so the split cannot be done locally.",cls:"err"});
+    return {st:st,events:ev};
+  }
+  function t3Split(st){
+    st=clone(st); var ev=[];
+    if(st.mode!=="range"){ ev.push({msg:"Splitting one shelf at a time needs hash-RANGE mode — under mod-P a single shelf has no contiguous piece of hash space to cut.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var before=t3Snap(st), counts=t3Counts(st);
+    var fat=null; st.ranges.forEach(function(r){ if(!fat||counts[r.id]>counts[fat.id]) fat=r; });
+    var idx=st.ranges.indexOf(fat), mid=Math.floor((fat.lo+fat.hi)/2);
+    if(mid<=fat.lo+1){ ev.push({msg:"That shelf is already as thin as this model goes.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var nid="h"+(st.nextId++);
+    var right={id:nid, lo:mid, hi:fat.hi};
+    st.ranges[idx]={id:fat.id, lo:fat.lo, hi:mid};
+    st.ranges.splice(idx+1,0,right);
+    st.assign[nid]=st.assign[fat.id];   // sibling stays home
+    st.P=st.ranges.length;
+    var after=t3Snap(st);
+    var m=t3Measure(before,after,"split "+fat.id+" → "+fat.id+" + "+nid);
+    st.last=m;
+    ev.push({msg:"Split the fattest shelf ("+fat.id+", "+counts[fat.id]+" books) at its hash midpoint. "+m.partPct+"% of books changed shelf; "+m.nodePct+"% left their building.",
+             tech:"range ["+fat.lo+","+fat.hi+") → ["+fat.lo+","+mid+") + ["+mid+","+fat.hi+"); no other shelf's boundaries move, so no other key is touched. P is now "+st.P+" and was never a global constant.",cls:"good"});
+    return {st:st,events:ev};
+  }
+  function t3AddNode(st){
+    st=clone(st); var ev=[];
+    var n=String.fromCharCode(st.nextNode++); st.nodes.push(n);
+    st.last=null;
+    ev.push({msg:"Opened building "+n+". Nothing moved yet — adding a machine changes no key's shelf. Press “Even out the buildings” to move whole shelves onto it.",
+             tech:"hop 1 (key→partition) is untouched by membership; only hop 2 (partition→node) has anything to say.",cls:""});
+    return {st:st,events:ev};
+  }
+  function t3Rebalance(st){
+    st=clone(st); var ev=[];
+    var before=t3Snap(st);
+    var counts=t3Counts(st), parts=t3Parts(st).map(function(p){return p.id;});
+    var target=Math.floor(parts.length/st.nodes.length), moves=0, guard=0;
+    while(guard++<400){
+      var load={}; st.nodes.forEach(function(n){load[n]=0;});
+      parts.forEach(function(pid){ load[st.assign[pid]]=(load[st.assign[pid]]||0)+1; });
+      var hi=null, lo=null;
+      st.nodes.forEach(function(n){ if(hi===null||load[n]>load[hi])hi=n; if(lo===null||load[n]<load[lo])lo=n; });
+      if(load[hi]-load[lo]<=1) break;
+      var cand=parts.filter(function(pid){ return st.assign[pid]===hi; })
+                    .sort(function(a,b){ return counts[a]-counts[b]; })[0];
+      if(!cand) break;
+      st.assign[cand]=lo; moves++;
+    }
+    var after=t3Snap(st);
+    var m=t3Measure(before,after,"evened out "+moves+" shelves");
+    st.last=m;
+    ev.push({msg:moves===0?"Already even — nothing to move."
+              :"Moved "+moves+" whole shelves to even out the buildings. "+m.partPct+"% of books changed shelf; "+m.nodePct+"% crossed the network.",
+             tech:"hop 2 only: key→partition is byte-for-byte unchanged (partChanged="+m.partChanged+"), while "+m.nodeChanged+" keys changed owner. The two hops move independently — this is the whole point of the two-hop design.",cls:""});
+    return {st:st,events:ev};
+  }
+
+  /* ---------- Tab 4: the rules (placement constraints) ---------- */
+  function t4Init(){
+    var st={ nodes:[{id:"A",zone:"eu",rack:"r1"},{id:"B",zone:"eu",rack:"r1"},{id:"C",zone:"eu",rack:"r1"}],
+             P:6, RF:3, spreadRacks:false, residency:false, nextNode:68, region:{} };
+    for(var p=0;p<st.P;p++) st.region["p"+p]=(p%2===0?"eu":"us");
+    return st;
+  }
+  function t4Plan(st){
+    // deterministic greedy placement: partitions in id order, each replica to the
+    // legal node with the fewest replicas so far (ties broken by node id)
+    var load={}; st.nodes.forEach(function(n){ load[n.id]=0; });
+    var plan={}, unplaced=0, reasons={};
+    for(var p=0;p<st.P;p++){
+      var pid="p"+p, chosen=[], usedRacks={}, why=null;
+      for(var r=0;r<st.RF;r++){
+        var legal=st.nodes.filter(function(n){
+          if(chosen.indexOf(n.id)>=0) return false;
+          if(st.residency && n.zone!==st.region[pid]) return false;
+          if(st.spreadRacks && usedRacks[n.rack]) return false;
+          return true;
+        });
+        if(!legal.length){
+          if(st.residency && !st.nodes.some(function(n){return n.zone===st.region[pid];}))
+            why="no building in zone "+st.region[pid];
+          else if(st.spreadRacks)
+            why="every remaining building is in a rack this shelf already uses";
+          else why="fewer buildings than copies required";
+          break;
+        }
+        legal.sort(function(a,b){ return load[a.id]-load[b.id] || (a.id<b.id?-1:1); });
+        var pick=legal[0];
+        chosen.push(pick.id); usedRacks[pick.rack]=true; load[pick.id]++;
+      }
+      plan[pid]=chosen;
+      if(chosen.length<st.RF){ unplaced++; reasons[pid]=why; }
+    }
+    return {plan:plan, load:load, unplaced:unplaced, reasons:reasons};
+  }
+  function t4AddNode(st,zone,rack){
+    st=clone(st); var ev=[];
+    var n={id:String.fromCharCode(st.nextNode++), zone:zone, rack:rack};
+    st.nodes.push(n);
+    var res=t4Plan(st);
+    ev.push({msg:"Opened building "+n.id+" in zone "+zone+", rack "+rack+". "+(res.unplaced?res.unplaced+" shelf/shelves still have nowhere legal to go.":"Every shelf can now be placed legally."),
+             tech:"placement is re-solved from scratch; a real rebalancer would move only the differences.",cls:res.unplaced?"":"good"});
+    return {st:st,events:ev};
+  }
+  function t4RemoveNode(st){
+    st=clone(st); var ev=[];
+    if(st.nodes.length<=1){ ev.push({msg:"One building left — cannot close it.",tech:"",cls:""}); return {st:st,events:ev}; }
+    var gone=st.nodes.pop();
+    var res=t4Plan(st);
+    ev.push({msg:"Closed building "+gone.id+" ("+gone.zone+"/"+gone.rack+"). "+(res.unplaced?res.unplaced+" shelf/shelves now have nowhere legal to go.":"All shelves still placeable."),
+             tech:"",cls:res.unplaced?"err":""});
+    return {st:st,events:ev};
+  }
+  function t4SetRule(st,rule,val){
+    st=clone(st); var ev=[];
+    st[rule]=val;
+    var res=t4Plan(st);
+    var names={spreadRacks:"each copy of a shelf in a different rack", residency:"EU shelves must live in EU buildings"};
+    ev.push({msg:"Rule “"+names[rule]+"” turned "+(val?"ON":"OFF")+". "+(res.unplaced?res.unplaced+" of "+st.P+" shelves cannot be placed under the current rules.":"All "+st.P+" shelves are placeable."),
+             tech:res.unplaced?"the rebalancer will now sit still and move nothing — not because it is slow, but because every move it could make would break a rule you set.":"",cls:res.unplaced?"err":"good"});
+    return {st:st,events:ev};
+  }
+  function t4SetRF(st,rf){
+    st=clone(st); var ev=[];
+    st.RF=rf;
+    var res=t4Plan(st);
+    ev.push({msg:"Copies per shelf set to "+rf+". "+(res.unplaced?res.unplaced+" shelf/shelves cannot reach "+rf+" legal copies.":"Every shelf reaches "+rf+" legal copies."),
+             tech:"",cls:res.unplaced?"err":"good"});
+    return {st:st,events:ev};
+  }
+
+  return {hash:hash, clone:clone, mulberry32:mulberry32, CELEB:CELEB, KEYS:KEYS,
+          t1Init:t1Init, t1AddNames:t1AddNames, t1AddDates:t1AddDates, t1Celeb:t1Celeb,
+          t1AddNode:t1AddNode, t1RemoveNode:t1RemoveNode, t1Stats:t1Stats, t1ScanCost:t1ScanCost,
+          placeKey:placeKey,
+          t2Init:t2Init, t2Start:t2Start, t2Write:t2Write, t2Step:t2Step, t2Pause:t2Pause,
+          t2StaleWrite:t2StaleWrite, t2ClientReq:t2ClientReq, t2Verdict:t2Verdict,
+          t2SetSeal:t2SetSeal, t2StaleRead:t2StaleRead,
+          t3Init:t3Init, t3PartOf:t3PartOf, t3Snap:t3Snap, t3Counts:t3Counts, t3Parts:t3Parts,
+          t3NodeLoad:t3NodeLoad, t3Double:t3Double, t3SetP:t3SetP, t3Split:t3Split,
+          t3AddNode:t3AddNode, t3Rebalance:t3Rebalance,
+          t4Init:t4Init, t4Plan:t4Plan, t4AddNode:t4AddNode, t4RemoveNode:t4RemoveNode,
+          t4SetRule:t4SetRule, t4SetRF:t4SetRF};
+})();
+if (typeof module!=="undefined" && module.exports) module.exports=Eng;
+/* ===================== ENGINE-END ===================== */
+
+/* ===================== UI ===================== */
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var t1=Eng.t1Init("fixed",12), t2=Eng.t2Init("fenced"), t3=Eng.t3Init("mod"), t4=Eng.t4Init();
+  var h1=[], h2=[], h3=[], h4=[]; // snapshot history
+  var movedIds={}; // shelves that just moved (flash)
+
+  function log(events){
+    var box=$("log");
+    (events||[]).forEach(function(e){
+      var d=document.createElement("div"); d.className="e "+(e.cls||"");
+      d.textContent=e.msg;
+      if(e.tech){ var t=document.createElement("span"); t.className="tech mono"; t.textContent=e.tech; d.appendChild(t); }
+      box.insertBefore(d,box.firstChild);
+    });
+    while(box.children.length>80) box.removeChild(box.lastChild);
+  }
+  function verdict(msg,tech,cls){
+    var v=$("verdict"); v.className=cls||"";
+    v.textContent=msg;
+    if(tech){ var t=document.createElement("span"); t.className="tech"; t.textContent=tech; v.appendChild(t); }
+  }
+  function partColor(id){ var h=(Eng.hash(id)%360); return "hsl("+h+" 45% 45%)"; }
+
+  /* ------- Tab 1 render ------- */
+  function renderT1(){
+    var stats=Eng.t1Stats(t1);
+    var box=$("buildings"); box.innerHTML="";
+    var partsByNode={}; t1.nodes.forEach(function(n){partsByNode[n]=[];});
+    Object.keys(stats.parts).forEach(function(pid){
+      var p=stats.parts[pid]; if(partsByNode[p.node]) partsByNode[p.node].push(p);
+    });
+    var maxCount=1; Object.keys(stats.parts).forEach(function(pid){ if(stats.parts[pid].count>maxCount)maxCount=stats.parts[pid].count; });
+    t1.nodes.forEach(function(n){
+      var d=document.createElement("div"); d.className="bld"+(t1.newest===n?" newb":"");
+      var tot=stats.perNode[n]||0;
+      var h3=document.createElement("h3");
+      h3.innerHTML="Building "+n+" <span class='cnt'>"+tot+" books · "+partsByNode[n].length+" shelves</span>";
+      d.appendChild(h3);
+      partsByNode[n].sort(function(a,b){return a.id<b.id?-1:1;}).forEach(function(p){
+        var s=document.createElement("div"); s.className="shelf"+(movedIds[p.id]?" justmoved":"");
+        s.style.borderLeftColor=partColor(p.id);
+        var heatShare= stats.totalHeat? p.heat/stats.totalHeat : 0;
+        s.innerHTML="<div class='row1'><b>"+p.id+"</b><span>"+p.count+" books</span></div>"
+          +(p.lo!==undefined?"<div class='range mono'>["+(p.lo||"−∞")+" … "+(p.hi==="￿"?"+∞":p.hi)+")</div>":"")
+          +"<div class='bar'><i style='width:"+Math.round(heatShare*100)+"%'></i></div>";
+        s.title=p.id+": "+p.count+" books, "+(Math.round(heatShare*100))+"% of all recent borrows";
+        d.appendChild(s);
+      });
+      box.appendChild(d);
+    });
+    movedIds={};
+    var sr=$("t1stats"); sr.innerHTML="";
+    function stat(html){ var s=document.createElement("div"); s.className="stat"; s.innerHTML=html; sr.appendChild(s); }
+    stat("Books: <b>"+t1.keys.length+"</b>");
+    stat("Data balance (busiest ÷ fair): <b>"+stats.balance.toFixed(2)+"×</b>");
+    stat("Load balance (heat): <b>"+stats.heatBalance.toFixed(2)+"×</b>");
+    if(t1.lastChange){
+      var lc=t1.lastChange, pct=lc.total?Math.round(100*lc.moved/lc.total):0;
+      var minPct=lc.total?Math.round(100*lc.minimal/lc.total):0;
+      stat("Last change moved <b>"+pct+"%</b> of books (minimum useful: <b>"+minPct+"%</b>"+(lc.side?", sideways waste: <b>"+lc.side+"</b> books":", sideways waste: <b>0</b>")+")");
+    }
+    var sc=Eng.t1ScanCost(t1,"sharma");
+    $("scanline").innerHTML="<b>Range-scan check</b> — “every book by an author starting <i>sharma…</i>” must consult <b>"
+      +sc.touch+" of "+sc.of+"</b> shelves: "+sc.why+".";
+    // verdict for tab1
+    if(t1.keys.length===0){ verdict("Tab 1: the library is empty — add some books, then change the buildings and watch what moves.",null,""); return; }
+    var v="Right now the busiest building holds "+stats.balance.toFixed(2)+"× its fair share of books and "
+      +stats.heatBalance.toFixed(2)+"× its fair share of borrowing traffic.";
+    var cls = (stats.heatBalance>1.8||stats.balance>1.8)?"bad":"good";
+    verdict(v, t1.lastChange?("last membership change: "+Math.round(100*t1.lastChange.moved/Math.max(1,t1.lastChange.total))+"% of keys moved"):null, cls);
+  }
+  function applyT1(res){
+    h1.push(Eng.clone(t1)); if(h1.length>60)h1.shift();
+    // detect shelf moves for flash
+    t1=res.st; (res.events||[]).forEach(function(e){ var m=/Whole shelf (\S+)/.exec(e.msg); if(m) movedIds[m[1].replace(",","")]=true; });
+    log(res.events); renderT1();
+  }
+
+  /* ------- Tab 2 render ------- */
+  function renderT2(){
+    var phases=["idle","copy","catchup","cutover","done"];
+    var names={idle:"idle",copy:"snapshot copy",catchup:"catch-up",cutover:"cutover",done:"serving from D"};
+    var pb=$("phases"); pb.innerHTML="";
+    ["copy","catchup","done"].forEach(function(ph){
+      var s=document.createElement("span");
+      s.textContent=names[ph];
+      if((t2.phase===ph)||(ph==="done"&&t2.done)) s.className="on";
+      if(t2.protocol==="naive"&&ph==="catchup"){ s.style.textDecoration="line-through"; s.title="v1 skips catch-up"; }
+      pb.appendChild(s);
+    });
+    function nodeCard(el, name){
+      var isOwner=t2.mapOwner===name;
+      el.className="nodecard"+(isOwner?" owner":"")+((name==="B"&&t2.bPaused)?" paused":"");
+      var rows=t2.keys.map(function(k){
+        var v = name==="B"? t2.src[k] : t2.dst[k];
+        var copied = name==="D" && t2.dst[k]!==undefined;
+        var stale = t2.done && name==="B" && t2.lost.indexOf(k)>=0;
+        return "<tr class='"+(stale?"stalerow":(copied?"copiedrow":""))+"'><td>"+k+"</td><td class='v'>"+(v===undefined?"—":"v"+v)+(stale?" ⚠ doomed":"")+"</td></tr>";
+      }).join("");
+      el.innerHTML="<h3>Node "+name+" <span class='tag'>"
+        +(name==="B"?(t2.bPaused?"⏸ GC-paused — believes it owns p11":"old owner"+(t2.done?" (former)":""))
+                   :(t2.done?"OWNER since the flip":"newcomer, copying"))
+        +"</span></h3><table class='kv'>"+rows+"</table>";
+    }
+    nodeCard($("nodeB"),"B"); nodeCard($("nodeD"),"D");
+    $("deltabox").innerHTML="<b>Delta log</b> (writes B accepted during the copy, waiting for D): "
+      +(t2.protocol==="naive"?"<i>none — protocol v1 keeps no log. Writes behind the copy cursor are invisible to D.</i>"
+        : (t2.delta.length? t2.delta.map(function(d){return "<span class='mono'>"+d.k+"→v"+d.ver+"</span>";}).join(", ") : "<i>empty</i>"));
+    $("mapcard").innerHTML="<b>Authoritative catalog:</b> p11 → <b>"+t2.mapOwner+"</b> @ epoch <b>"+t2.epoch+"</b>"
+      +(t2.protocol==="fenced"?" — every write's epoch is checked against this":" — epochs recorded but NOT checked (no fencing)");
+    $("clientcard").innerHTML="<b>One client's cached card:</b> p11 → "+t2.client.owner+" @ epoch "+t2.client.epoch
+      +(t2.client.owner!==t2.mapOwner?" <span style='color:var(--warn)'>(stale)</span>":" (fresh)");
+    var vd=Eng.t2Verdict(t2);
+    if(!t2.done){
+      verdict("Tab 2: "+(t2.phase==="idle"?"shelf p11 sits on B; every reader's address is at v1. Start the move.":"the move is in progress ("+names[t2.phase]+"). "+vd.acks+" writes acknowledged so far — all still safe at B."),null,"");
+    } else if(vd.ok && t2.staleReads.length){
+      var sr=t2.staleReads[t2.staleReads.length-1];
+      verdict("No write was lost — and a client was still handed a WRONG ANSWER: it read “"+sr.k+"” = v"+sr.got+" from the deposed owner while the truth at D is v"+sr.truth+".",
+              "fencing writes protects the future; only fencing reads protects the truth of the present","bad");
+    } else if(vd.ok){
+      verdict("Every acknowledged write is accounted for at the new owner. "+vd.acks+" writes, 0 lost"+(vd.rejected?", "+vd.rejected+" stale write(s) loudly refused by the epoch check":"")+".",
+              "invariant held: snapshot ∪ delta ∪ post-flip = everything", "good");
+    } else {
+      verdict("ACKNOWLEDGED WRITES LOST: "+vd.lost.join(", ")+" — the client was told “saved”, and the data is gone (or stranded on a deposed owner).",
+              t2.protocol==="naive"?"cause: no delta log — the snapshot is a past":"cause: stale owner accepted writes after the flip, with no epoch check to refuse them","bad");
+    }
+  }
+  function applyT2(res){ h2.push(Eng.clone(t2)); if(h2.length>80)h2.shift(); t2=res.st; log(res.events); renderT2(); }
+
+  /* ------- Tab 3 render ------- */
+  function renderT3(){
+    var counts=Eng.t3Counts(t3), load=Eng.t3NodeLoad(t3);
+    var nb=$("t3nums"); nb.innerHTML="";
+    function big(lbl,val,sub,cls){
+      var d=document.createElement("div"); d.className="bignum "+(cls||"");
+      d.innerHTML="<span class='lbl'>"+lbl+"</span><b>"+val+"</b><span class='sub'>"+sub+"</span>";
+      nb.appendChild(d);
+    }
+    if(!t3.last){
+      big("Books that changed shelf","—","press a button on the left","");
+      big("Books that crossed the network","—","the two are rarely equal","");
+    } else {
+      big("Books that changed shelf", t3.last.partPct+"%", t3.last.partChanged+" of "+t3.last.total+" — hop 1 (key → shelf)", t3.last.partChanged?"warnnum":"goodnum");
+      big("Books that crossed the network", t3.last.nodePct+"%", t3.last.nodeChanged+" of "+t3.last.total+" — hop 2 (shelf → building), the real bill", t3.last.nodeChanged?"badnum":"goodnum");
+    }
+    var box=$("t3buildings"); box.innerHTML="";
+    var partsByNode={}; t3.nodes.forEach(function(n){ partsByNode[n]=[]; });
+    Eng.t3Parts(t3).forEach(function(p){
+      var n=t3.assign[p.id]; if(partsByNode[n]) partsByNode[n].push(p);
+    });
+    t3.nodes.forEach(function(n){
+      var d=document.createElement("div"); d.className="bld"+(t3.nodes[t3.nodes.length-1]===n&&t3.nodes.length>3?" newb":"");
+      var l=load[n]||{keys:0,parts:0};
+      d.innerHTML="<h3>Building "+n+" <span class='cnt'>"+l.keys+" books · "+l.parts+" shelves</span></h3>";
+      var g=document.createElement("div"); g.className="chipgrid";
+      partsByNode[n].forEach(function(p){
+        var c=document.createElement("span"); c.className="pchip";
+        c.style.borderLeftColor=partColor(p.id);
+        c.innerHTML="<b>"+p.id+"</b> "+(counts[p.id]||0);
+        c.title = p.lo!==undefined
+          ? p.id+" owns hash "+(100*p.lo/4294967296).toFixed(1)+"% – "+(100*p.hi/4294967296).toFixed(1)+"% of the space, holding "+(counts[p.id]||0)+" books"
+          : p.id+" holds every key whose hash mod "+t3.P+" is "+p.id.slice(1)+" — "+(counts[p.id]||0)+" books";
+        g.appendChild(c);
+      });
+      d.appendChild(g);
+      box.appendChild(d);
+    });
+    $("t3note").innerHTML="Shelf count P is now <b>"+t3.P+"</b> across <b>"+t3.nodes.length+"</b> buildings"
+      + (t3.mode==="mod"
+         ? " · the rule is <span class='mono'>shelf = hash(key) mod "+t3.P+"</span>, so P appears in every lookup and changing it re-addresses books."
+         : " · the rule is <span class='mono'>shelf = whichever hash range contains hash(key)</span>, so P appears nowhere — a shelf can be cut in half without disturbing any other shelf.");
+    if(!t3.last){
+      verdict("Tab 3: P is the number everyone tells you to get right the first time. Try changing it three different ways and compare the two bills.",null,"");
+    } else if(t3.last.nodeChanged===0){
+      verdict(t3.last.label+" — "+t3.last.partPct+"% of books changed shelf, and NOT ONE crossed the network.",
+              "the re-addressing happened entirely inside the machines that already held the bytes: a local file split, not a migration","good");
+    } else if(t3.last.partChanged===0){
+      verdict(t3.last.label+" — no book changed shelf at all, but "+t3.last.nodePct+"% moved to another building.",
+              "hop 2 changed alone: this is rebalancing, and it is invisible to every client's key→partition arithmetic","");
+    } else {
+      verdict(t3.last.label+" — "+t3.last.partPct+"% of books changed shelf AND "+t3.last.nodePct+"% had to be carried across the network.",
+              "both hops changed at once, which is exactly the bill 'P is a forever decision' is warning you about","bad");
+    }
+  }
+  function applyT3(res){ h3.push(Eng.clone(t3)); if(h3.length>40)h3.shift(); t3=res.st; log(res.events); renderT3(); }
+
+  /* ------- Tab 4 render ------- */
+  function renderT4(){
+    var res=Eng.t4Plan(t4);
+    var box=$("t4buildings"); box.innerHTML="";
+    box.className="chipgrid";
+    t4.nodes.forEach(function(n){
+      var c=document.createElement("span"); c.className="pchip node";
+      c.innerHTML="<b>"+n.id+"</b> <span class='mono'>"+n.zone+" / "+n.rack+"</span> · "+(res.load[n.id]||0)+" copies";
+      box.appendChild(c);
+    });
+    var sh=$("t4shelves"); sh.innerHTML="";
+    var tbl=document.createElement("table"); tbl.className="kv wide";
+    tbl.innerHTML="<tr><td class='lbl'>shelf</td><td class='lbl'>records from</td><td class='lbl'>copies placed</td><td class='lbl'>status</td></tr>";
+    for(var p=0;p<t4.P;p++){
+      var pid="p"+p, got=res.plan[pid], ok=got.length===t4.RF;
+      var cls= ok?"okrow":(got.length?"warnrow":"errrow");
+      var status = ok? "placed" : (got.length? got.length+" of "+t4.RF+" copies — "+res.reasons[pid] : "nowhere legal — "+res.reasons[pid]);
+      var tr=document.createElement("tr"); tr.className=cls;
+      tr.innerHTML="<td><b>"+pid+"</b></td><td class='mono'>"+t4.region[pid]+" readers</td><td class='mono'>"
+        +(got.length?got.join(", "):"—")+"</td><td>"+status+"</td>";
+      tbl.appendChild(tr);
+    }
+    sh.appendChild(tbl);
+    if(res.unplaced===0){
+      verdict("All "+t4.P+" shelves have "+t4.RF+" copies in legal buildings — the placer could satisfy every rule AND keep the buildings even.",
+              "constraints satisfied; balance is the tie-breaker, not the goal","good");
+    } else {
+      verdict(res.unplaced+" of "+t4.P+" shelves cannot get "+t4.RF+" legal copies. The rebalancer is not slow and not stuck — it is refusing to break a rule you set.",
+              "this is what an Elasticsearch YELLOW/RED cluster with UNASSIGNED shards actually is: a constraint solver reporting 'no solution', usually in a log line nobody reads","bad");
+    }
+  }
+  function applyT4(res){ h4.push(Eng.clone(t4)); if(h4.length>40)h4.shift(); t4=res.st; log(res.events); renderT4(); }
+
+
+  /* ------- wiring ------- */
+  function resetT1(){ t1=Eng.t1Init($("scheme").value, parseInt($("pcount").value,10)); h1=[]; renderT1(); }
+  $("scheme").addEventListener("change",function(){ resetT1(); log([{msg:"Scheme changed to “"+$("scheme").options[$("scheme").selectedIndex].text+"”. The library restocks from scratch so schemes compare fairly.",tech:"",cls:""}]); });
+  $("pcount").addEventListener("change",resetT1);
+  $("wl-names").addEventListener("click",function(){ applyT1(Eng.t1AddNames(t1,60)); });
+  $("wl-dates").addEventListener("click",function(){ applyT1(Eng.t1AddDates(t1,40)); });
+  $("wl-celeb").addEventListener("click",function(){ applyT1(Eng.t1Celeb(t1,40)); });
+  $("addnode").addEventListener("click",function(){ applyT1(Eng.t1AddNode(t1)); });
+  $("rmnode").addEventListener("click",function(){ applyT1(Eng.t1RemoveNode(t1)); });
+  $("t1back").addEventListener("click",function(){ if(h1.length){ t1=h1.pop(); renderT1(); log([{msg:"Stepped back one action (Tab 1).",tech:"",cls:""}]); } });
+  $("t1reset").addEventListener("click",function(){ resetT1(); log([{msg:"Tab 1 reset.",tech:"",cls:""}]); });
+
+  function resetT2(){ t2=Eng.t2Init($("protocol").value); t2.sealReads=$("mseal").checked; h2=[]; renderT2(); }
+  $("protocol").addEventListener("change",resetT2);
+  $("mstart").addEventListener("click",function(){ applyT2(Eng.t2Start(t2)); });
+  $("mstep").addEventListener("click",function(){ applyT2(Eng.t2Step(t2)); });
+  $("mauto").addEventListener("click",function(){
+    var guard=0;
+    var tick=function(){
+      if(t2.done||guard++>40) return;
+      applyT2(Eng.t2Step(t2));
+      setTimeout(tick, 260);
+    };
+    if(t2.phase==="idle") applyT2(Eng.t2Start(t2));
+    tick();
+  });
+  $("mwrite").addEventListener("click",function(){ applyT2(Eng.t2Write(t2)); });
+  $("mpause").addEventListener("click",function(){ applyT2(Eng.t2Pause(t2)); });
+  $("mstale").addEventListener("click",function(){ applyT2(Eng.t2StaleWrite(t2)); });
+  $("mclient").addEventListener("click",function(){ applyT2(Eng.t2ClientReq(t2)); });
+  $("mread").addEventListener("click",function(){ applyT2(Eng.t2StaleRead(t2)); });
+  $("mseal").addEventListener("change",function(){ applyT2(Eng.t2SetSeal(t2,$("mseal").checked)); });
+  $("t2back").addEventListener("click",function(){ if(h2.length){ t2=h2.pop(); renderT2(); log([{msg:"Stepped back one action (Tab 2).",tech:"",cls:""}]); } });
+  $("t2reset").addEventListener("click",function(){ resetT2(); log([{msg:"Tab 2 reset.",tech:"",cls:""}]); });
+
+
+  function resetT3(){ t3=Eng.t3Init($("t3mode").value); h3=[]; renderT3(); }
+  $("t3mode").addEventListener("change",function(){
+    resetT3();
+    log([{msg:"Switched to “"+$("t3mode").options[$("t3mode").selectedIndex].text+"”. The library restocks from scratch so the two rules compare fairly.",
+          tech:"",cls:""}]);
+  });
+  $("t3double").addEventListener("click",function(){ applyT3(Eng.t3Double(t3)); });
+  $("t3set24").addEventListener("click",function(){ applyT3(Eng.t3SetP(t3,24)); });
+  $("t3split").addEventListener("click",function(){ applyT3(Eng.t3Split(t3)); });
+  $("t3add").addEventListener("click",function(){ applyT3(Eng.t3AddNode(t3)); });
+  $("t3bal").addEventListener("click",function(){ applyT3(Eng.t3Rebalance(t3)); });
+  $("t3back").addEventListener("click",function(){ if(h3.length){ t3=h3.pop(); renderT3(); log([{msg:"Stepped back one action (Tab 3).",tech:"",cls:""}]); } });
+  $("t3reset").addEventListener("click",function(){ resetT3(); log([{msg:"Tab 3 reset.",tech:"",cls:""}]); });
+
+  function resetT4(){ t4=Eng.t4Init(); h4=[]; syncT4Controls(); renderT4(); }
+  function syncT4Controls(){ $("t4rf").value=String(t4.RF); $("t4racks").checked=!!t4.spreadRacks; $("t4res").checked=!!t4.residency; }
+  $("t4rf").addEventListener("change",function(){ applyT4(Eng.t4SetRF(t4,parseInt($("t4rf").value,10))); });
+  $("t4racks").addEventListener("change",function(){ applyT4(Eng.t4SetRule(t4,"spreadRacks",$("t4racks").checked)); });
+  $("t4res").addEventListener("change",function(){ applyT4(Eng.t4SetRule(t4,"residency",$("t4res").checked)); });
+  $("t4add").addEventListener("click",function(){ applyT4(Eng.t4AddNode(t4,$("t4zone").value,$("t4rack").value)); });
+  $("t4rm").addEventListener("click",function(){ applyT4(Eng.t4RemoveNode(t4)); });
+  $("t4back").addEventListener("click",function(){ if(h4.length){ t4=h4.pop(); syncT4Controls(); renderT4(); log([{msg:"Stepped back one action (Tab 4).",tech:"",cls:""}]); } });
+  $("t4reset").addEventListener("click",function(){ resetT4(); log([{msg:"Tab 4 reset.",tech:"",cls:""}]); });
+
+  function showTab(n){
+    [1,2,3,4].forEach(function(i){
+      $("tab"+i).hidden = n!==i;
+      $("tabbtn"+i).setAttribute("aria-selected", n===i);
+    });
+    if(n===1) renderT1(); else if(n===2) renderT2(); else if(n===3) renderT3(); else renderT4();
+  }
+  [1,2,3,4].forEach(function(i){ $("tabbtn"+i).addEventListener("click",function(){ showTab(i); }); });
+
+  /* ------- scenarios ------- */
+  var SCEN=[
+    {id:1,tab:1,title:"1 · Open a 4th building",
+     q:"120 books are shelved. A 4th building opens. Roughly what fraction of ALL books changes buildings — first under “hash mod N”, then under “12 fixed shelves”?",
+     opts:["About 25% under both — a quarter is fair","About 75% under mod-N, about 25% under fixed shelves","Nearly 100% under both — growth always reshuffles"],
+     correct:1,
+     run:function(done){
+       $("scheme").value="modn"; resetT1();
+       var r1=Eng.t1AddNames(t1,120); applyT1(r1);
+       var a1=Eng.t1AddNode(t1); applyT1(a1);
+       var f1=Math.round(100*a1.moved/Math.max(1,a1.total));
+       setTimeout(function(){
+         $("scheme").value="fixed"; resetT1();
+         var r2=Eng.t1AddNames(t1,120); applyT1(r2);
+         var a2=Eng.t1AddNode(t1); applyT1(a2);
+         var f2=Math.round(100*a2.moved/Math.max(1,a2.total));
+         done("mod-N moved "+f1+"% of all books (most of it sideways churn); fixed shelves moved "+f2+"% — whole shelves, all onto the newcomer. Same growth, wildly different bill: mod-N re-homes ~3 of every 4 books because the formula itself changed; fixed shelves move only what the newcomer must hold.",
+              f1>=60&&f2<=40);
+       },900);
+     }},
+    {id:2,tab:1,title:"2 · Newspapers by date",
+     q:"Range partitioning with auto-split. 40 newspapers are filed under ever-increasing DATE keys. Where do the writes land?",
+     opts:["Spread across shelves — auto-split keeps things even","Every single write lands on the LAST shelf, forever","Half on the first shelf, half on the last"],
+     correct:1,
+     run:function(done){
+       $("scheme").value="rangesplit"; resetT1();
+       applyT1(Eng.t1AddNames(t1,60));
+       var r=Eng.t1AddDates(t1,40); applyT1(r);
+       var parts=Object.keys(r.st.lastWrites);
+       done("All 40 date-keyed writes hit "+parts.length+" shelf/shelves ("+parts.join(", ")+") — the last in key order, because an ever-increasing key sorts after everything that exists. Auto-split doesn't save you: split the last shelf and the NEW last shelf inherits the frontier. The fix is key design (compound keys, bucketing), not a better rebalancer.",
+            parts.length<=2);
+     }},
+    {id:3,tab:1,title:"3 · The bestseller",
+     q:"One book gets 40 borrows (everything else is quiet). You open TWO extra buildings and rebalance. Does the hot shelf cool down?",
+     opts:["Yes — more buildings share the heat","No — the hot shelf just changes address, still 100% of the heat","The heat disappears once the cluster is big enough"],
+     correct:1,
+     run:function(done){
+       $("scheme").value="fixed"; resetT1();
+       applyT1(Eng.t1AddNames(t1,60));
+       applyT1(Eng.t1Celeb(t1,40));
+       var s0=Eng.t1Stats(t1);
+       applyT1(Eng.t1AddNode(t1)); applyT1(Eng.t1AddNode(t1));
+       var s1=Eng.t1Stats(t1);
+       done("Heat imbalance before: "+s0.heatBalance.toFixed(2)+"× — after adding two buildings: "+s1.heatBalance.toFixed(2)+"×. One key has one home under EVERY scheme (that agreement is what makes reads findable), so placement changes only relocate the fire. The cure operates on the key itself: salt it into sub-keys, or absorb the reads in a cache.",
+            s1.heatBalance>1.5);
+     }},
+    {id:4,tab:2,title:"4 · The naive move",
+     q:"Protocol v1 (copy, then flip). Mid-copy, Asha updates her address — the copy already passed her record. After the flip, Asha reads her address. What does she see?",
+     opts:["Her NEW address — B told D about the write","Her OLD address — the write is simply gone","An error — the system knows something is missing"],
+     correct:1,
+     run:function(done){
+       showTab(2); $("protocol").value="naive"; resetT2();
+       applyT2(Eng.t2Start(t2));
+       applyT2(Eng.t2Step(t2)); applyT2(Eng.t2Step(t2));   // asha, ben copied
+       applyT2(Eng.t2Write(t2));                            // asha -> v2 on B, behind cursor
+       var guard=0; while(!t2.done&&guard++<20){ applyT2(Eng.t2Step(t2)); }
+       var vd=Eng.t2Verdict(t2);
+       done("D serves asha at v1 — the OLD address. Her v2 write was acknowledged, landed on B behind the copy cursor, and no delta log existed to carry it to D. Verdict bar: "+(vd.ok?"(unexpectedly ok?)":"LOST "+vd.lost.join(", "))+". No crash, no error — a healthy cluster silently shredding an acknowledged write is exactly why the catch-up log exists.",
+            !vd.ok);
+     }},
+    {id:5,tab:2,title:"5 · The sleeping owner",
+     q:"Protocol v3 (epoch fencing). B GC-pauses at cutover, misses the flip, wakes, and a write reaches it. What happens?",
+     opts:["B accepts it — split-brain, silent loss","The write is REFUSED with an epoch error; the client retries at D","B forwards it to D automatically — no harm, no error"],
+     correct:1,
+     run:function(done){
+       showTab(2); $("protocol").value="fenced"; resetT2();
+       applyT2(Eng.t2Start(t2));
+       var guard=0; while(t2.phase==="copy"&&guard++<20){ applyT2(Eng.t2Step(t2)); }
+       applyT2(Eng.t2Pause(t2));
+       guard=0; while(!t2.done&&guard++<20){ applyT2(Eng.t2Step(t2)); }
+       applyT2(Eng.t2StaleWrite(t2));
+       var vd=Eng.t2Verdict(t2);
+       done("The write carried epoch 5; the map says epoch 6 — refused, loudly, and the retry landed at D. "+(vd.ok?"0 writes lost, "+vd.rejected+" refused.":"(loss detected: "+vd.lost.join(",")+")")+" Now rerun with protocol v2 (no fencing): B accepts the same write and it is silently doomed — the exact stale-holder disaster from the distributed-locking lab, with 'lock' renamed 'ownership'.",
+            vd.ok&&vd.rejected>0);
+     }},
+    {id:6,tab:2,title:"6 · The stale catalog card",
+     q:"The move is done (p11 → D). A client whose cached card still says B sends a request to B, which is alive and healthy. What comes back?",
+     opts:["Yesterday's data — B answers from its old copy","A MOVED redirect: “p11 lives at D now” — one extra hop, never a wrong answer","Nothing — B dropped the shelf and the request"],
+     correct:1,
+     run:function(done){
+       showTab(2); $("protocol").value="fenced"; resetT2();
+       applyT2(Eng.t2Start(t2));
+       var guard=0; while(!t2.done&&guard++<24){ applyT2(Eng.t2Step(t2)); }
+       applyT2(Eng.t2ClientReq(t2));
+       var fresh=t2.client.owner==="D";
+       done("B redirected: MOVED → the client repaired its cached map and reached D. Stale maps are NORMAL during rebalancing — the design goal is not preventing them but making them cost one hop instead of one wrong answer. (The dangerous variant: B dead or paused — no redirect, and the map authority becomes part of the data path.)",
+            fresh);
+     }},
+    {id:7,tab:2,title:"7 · The read that lies",
+     q:"The move is finished and epoch fencing is ON, so a stale write bounces. A client with an old catalog card now sends a READ to the old owner B, which is alive and still has the shelf on disk. What comes back?",
+     opts:["A MOVED redirect — the same protection writes get","Yesterday's data, with no error and no way to tell","An empty result — B deleted the shelf at cutover"],
+     correct:1,
+     run:function(done){
+       showTab(2); $("protocol").value="fenced"; $("mseal").checked=false; resetT2();
+       applyT2(Eng.t2Start(t2));
+       var g=0; while(!t2.done&&g++<24){ applyT2(Eng.t2Step(t2)); }
+       applyT2(Eng.t2Write(t2));           // routes to D, so B's copy is now behind
+       applyT2(Eng.t2StaleRead(t2));
+       var sr=t2.staleReads[t2.staleReads.length-1];
+       var lied = !!sr && sr.got<sr.truth;
+       done("B answered from the copy still on its disk: v"+(sr?sr.got:"?")+", while the true value at the owner D is v"+(sr?sr.truth:"?")+". No error, no timeout, no clue. The epoch check you switched on guards WRITES — that is why the stale write in scenario 5 bounced — and this read was never checked against anything. Worse, B's copy froze at the cutover, so the lie grows with time. Now tick “Old owner seals the shelf at cutover” and press the read again: the same request comes back as a MOVED redirect instead of an answer.",
+            lied);
+     }},
+    {id:8,tab:3,title:"8 · You need more shelves",
+     q:"P was set to 16 three years ago and 16 shelves are now far too fat. You double it to 32. How many books physically travel across the network?",
+     opts:["About half of them — half the addresses change, so half the bytes move","About a quarter — the usual rebalancing bill","None at all — zero bytes leave the building they were in"],
+     correct:2,
+     run:function(done){
+       showTab(3); $("t3mode").value="mod"; resetT3();
+       var r=Eng.t3Double(t3); applyT3(r);
+       var m=r.st.last;
+       done(m.partPct+"% of books changed shelf, and "+m.nodePct+"% crossed the network. Doubling is the one P change that is nearly free: if a key's hash mod 16 is 3, its hash mod 32 can only be 3 or 19 — so every old shelf cuts cleanly into exactly two, and the new sibling is created on the machine that already holds those bytes. It is a local file split with a metadata update, not a migration. This is precisely why Elasticsearch's _split API refuses any target that is not a multiple of the current shard count.",
+            m.partChanged>0 && m.nodeChanged===0);
+     }},
+    {id:9,tab:3,title:"9 · The number in between",
+     q:"You do not want 32 shelves, you want 24. Same starting point, P goes 16 → 24. What is the bill compared with doubling?",
+     opts:["The same — it is one number either way","Slightly worse — a few extra books move","Far worse — roughly two thirds of ALL books change shelf, and every one of them travels"],
+     correct:2,
+     run:function(done){
+       showTab(3); $("t3mode").value="mod"; resetT3();
+       var r=Eng.t3SetP(t3,24); applyT3(r);
+       var m=r.st.last;
+       done(m.partPct+"% changed shelf and "+m.nodePct+"% crossed the network — against 0% crossing for the doubling in scenario 8. The reason is arithmetic, not engineering: hash mod 16 tells you nothing about hash mod 24, so one old shelf's books scatter over several new shelves that live on other machines. THIS is what “P is a forever decision” means — and the escape is scenario 10's rule, not a better rebalancer.",
+            m.nodeChanged>0);
+     }},
+    {id:10,tab:3,title:"10 · The escape: hash ranges",
+     q:"Same problem, different rule: each shelf owns a SLICE of hash space instead of a remainder. You split the fattest shelf at its midpoint. What happens to the rest of the library?",
+     opts:["Everything is re-addressed again — a slice is still a formula","Only that one shelf's books are touched, and none of them travel","Nothing changes — you cannot split a hash range"],
+     correct:1,
+     run:function(done){
+       showTab(3); $("t3mode").value="range"; resetT3();
+       var r=Eng.t3Split(t3); applyT3(r);
+       var m=r.st.last;
+       done("Only "+m.partPct+"% of books changed shelf — the ones inside the shelf you cut — and "+m.nodePct+"% crossed the network. No other shelf's boundaries moved, so no other key could possibly be affected. P is now "+r.st.P+" and it was never a global constant: it is just the length of a boundary list. That is why DynamoDB, HBase, CockroachDB and Cassandra-with-splits can resize forever while a mod-P system cannot, and it is the real reason Redis froze P at 16384 — big enough that it never needs revisiting.",
+            m.nodeChanged===0 && m.partPct<20);
+     }},
+    {id:11,tab:3,title:"11 · Which hop is the bill?",
+     q:"Back to hash mod P. You open a 4th building and press “Even out the buildings”. How many books change SHELF?",
+     opts:["About a quarter — the ones that move","None — their shelf is unchanged; only the shelf's address changes","All of them — a new building re-addresses everything"],
+     correct:1,
+     run:function(done){
+       showTab(3); $("t3mode").value="mod"; resetT3();
+       applyT3(Eng.t3AddNode(t3));
+       var r=Eng.t3Rebalance(t3); applyT3(r);
+       var m=r.st.last;
+       done("Exactly "+m.partChanged+" books changed shelf, and "+m.nodePct+"% moved to another building. The two hops move independently, and that separation IS the design: hop 1 (key → shelf) is arithmetic every client can do offline and it never changes when machines come and go; hop 2 (shelf → building) is a small table that changes constantly. Squash them into one hop and you get mod-N — the corpse from scenario 1.",
+            m.partChanged===0 && m.nodeChanged>0);
+     }},
+    {id:12,tab:4,title:"12 · Three copies, one rack",
+     q:"Three buildings, all in rack r1, three copies of every shelf. You switch on the rule “each copy in a different rack”. What does the placer do?",
+     opts:["Places them anyway and logs a warning — availability beats tidiness","Places nothing: all 6 shelves sit unplaceable until you give it more racks","Shuffles shelves around continuously trying to find a way"],
+     correct:1,
+     run:function(done){
+       showTab(4); resetT4();
+       var r=Eng.t4SetRule(t4,"spreadRacks",true); applyT4(r); syncT4Controls();
+       var before=Eng.t4Plan(t4).unplaced;
+       applyT4(Eng.t4AddNode(t4,"eu","r2"));
+       var mid=Eng.t4Plan(t4).unplaced;
+       applyT4(Eng.t4AddNode(t4,"eu","r3"));
+       var after=Eng.t4Plan(t4).unplaced;
+       done("With one rack: "+before+" of 6 shelves unplaceable. Adding a second rack: still "+mid+" (each shelf now gets 2 of its 3 copies — under-replicated, which is worse than obvious, because it looks half-fine). Adding the third rack: "+after+" unplaceable. A constrained placer that cannot satisfy its rules does not compromise and does not shout — it stops moving, and the failure looks exactly like an idle healthy cluster until you read the status column. Now try switching on the EU-residency rule with no US buildings open and watch which half of the library freezes.",
+            before===6 && mid===6 && after===0);
+     }},
+  ];
+  var scen=$("scen");
+  SCEN.forEach(function(s){
+    var b=document.createElement("button"); b.textContent=s.title; b.id="scb"+s.id;
+    b.addEventListener("click",function(){ openScen(s); });
+    scen.appendChild(b);
+  });
+  function openScen(s){
+    showTab(s.tab);
+    var p=$("scenpanel"); p.hidden=false; p.innerHTML="";
+    var q=document.createElement("div"); q.className="q"; q.textContent="🔮 "+s.q; p.appendChild(q);
+    var lbl=document.createElement("div"); lbl.className="lbl"; lbl.textContent="Commit to a prediction, then it runs"; p.appendChild(lbl);
+    var opts=document.createElement("div"); opts.className="opts"; opts.style.marginTop="6px"; p.appendChild(opts);
+    s.opts.forEach(function(o,i){
+      var b=document.createElement("button"); b.textContent=o;
+      b.addEventListener("click",function(){
+        opts.querySelectorAll("button").forEach(function(x){x.disabled=true;});
+        s.run(function(explain, simOk){
+          var r=document.createElement("div");
+          var picked = i===s.correct;
+          r.className="scenresult "+(picked?"right":"wrong");
+          r.innerHTML="<b>"+(picked?"Your prediction held.":"Not quite — the run disagrees with your prediction.")+"</b> "+explain
+            +(simOk?"":" <i>(self-check: the simulation did not reproduce the expected outcome — please report this)</i>");
+          p.appendChild(r);
+          $("scb"+s.id).classList.add("done");
+          r.scrollIntoView({behavior:"smooth",block:"nearest"});
+        });
+      });
+      opts.appendChild(b);
+    });
+  }
+
+  resetT1(); resetT2(); resetT3(); resetT4(); showTab(1);
+  log([{msg:"Welcome. The twelve scenarios above are the guided tour — each asks for a prediction, then runs the experiment. Everything is deterministic; ↩ Step back undoes any action.",tech:"",cls:""}]);
+})();
+</script>

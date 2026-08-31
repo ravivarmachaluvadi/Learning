@@ -1,0 +1,909 @@
+<title>Two Cursors, One Sentence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+:root{
+  --paper:#EEF1F5; --card:#FFFFFF; --card-2:#F6F8FA;
+  --ink:#191C21; --ink-2:#4C545F; --ink-3:#78828F;
+  --line:#D7DDE5; --line-2:#E8ECF1;
+  --alice:#3A4FC4; --alice-soft:#E4E8FA;
+  --bob:#A85D0B; --bob-soft:#FAEDDC;
+  --server:#3F4750; --server-soft:#E7EAEE;
+  --agree:#0B6E4F; --agree-soft:#DDF0E8;
+  --disagree:#B3261E; --disagree-soft:#FBE3E1;
+  --shadow:0 1px 2px rgba(20,26,36,.06),0 8px 24px rgba(20,26,36,.06);
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12151A; --card:#1A1E25; --card-2:#20252D;
+    --ink:#E9EDF2; --ink-2:#AEB7C2; --ink-3:#7C8794;
+    --line:#2C333C; --line-2:#242A32;
+    --alice:#93A5FF; --alice-soft:#232A4A;
+    --bob:#E8A85B; --bob-soft:#3A2B16;
+    --server:#B9C2CC; --server-soft:#262C34;
+    --agree:#5FD1A6; --agree-soft:#12332A;
+    --disagree:#F2938B; --disagree-soft:#3A1C1A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12151A; --card:#1A1E25; --card-2:#20252D;
+  --ink:#E9EDF2; --ink-2:#AEB7C2; --ink-3:#7C8794;
+  --line:#2C333C; --line-2:#242A32;
+  --alice:#93A5FF; --alice-soft:#232A4A;
+  --bob:#E8A85B; --bob-soft:#3A2B16;
+  --server:#B9C2CC; --server-soft:#262C34;
+  --agree:#5FD1A6; --agree-soft:#12332A;
+  --disagree:#F2938B; --disagree-soft:#3A1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:15px; line-height:1.55;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:32px 20px 80px}
+h1{font-family:"IBM Plex Serif",Georgia,serif; font-weight:600; font-size:clamp(28px,4.2vw,42px); line-height:1.1; margin:0 0 10px; text-wrap:balance; letter-spacing:-.01em}
+h2{font-family:"IBM Plex Serif",Georgia,serif; font-weight:600; font-size:20px; margin:0 0 8px; text-wrap:balance}
+p{margin:0 0 12px; max-width:68ch}
+.lede{color:var(--ink-2); font-size:17px; max-width:70ch}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin:0 0 10px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow)}
+.stack{display:flex; flex-direction:column; gap:18px}
+.row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+hr{border:0; border-top:1px solid var(--line); margin:28px 0}
+
+/* ---------- controls ---------- */
+button{font-family:inherit; font-size:14px; cursor:pointer; border-radius:7px; border:1px solid var(--line);
+  background:var(--card); color:var(--ink); padding:7px 12px; transition:background .12s,border-color .12s,transform .06s}
+button:hover:not(:disabled){background:var(--card-2); border-color:var(--ink-3)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.42; cursor:not-allowed}
+button:focus-visible, .slot:focus-visible, .seg button:focus-visible{outline:2px solid var(--alice); outline-offset:2px}
+.primary{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.primary:hover:not(:disabled){background:var(--ink-2); border-color:var(--ink-2)}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--card)}
+.seg button{border:0; border-right:1px solid var(--line); border-radius:0; padding:8px 13px; font-size:13.5px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--paper)}
+.toggle{display:inline-flex; align-items:center; gap:7px; font-size:13.5px; color:var(--ink-2)}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.small{font-size:13px; color:var(--ink-2)}
+.tiny{font-size:12px; color:var(--ink-3)}
+
+/* ---------- verdict ---------- */
+.verdict{padding:16px 18px; border-radius:10px; border:1px solid var(--line); display:flex; gap:14px; align-items:flex-start}
+.verdict.agree{background:var(--agree-soft); border-color:color-mix(in srgb,var(--agree) 35%,transparent)}
+.verdict.disagree{background:var(--disagree-soft); border-color:color-mix(in srgb,var(--disagree) 35%,transparent)}
+.verdict .dot{width:11px; height:11px; border-radius:50%; margin-top:7px; flex:none}
+.verdict.agree .dot{background:var(--agree)} .verdict.disagree .dot{background:var(--disagree)}
+.verdict b{font-weight:600}
+.verdict .why{color:var(--ink-2); font-size:14px; margin-top:3px}
+
+/* ---------- board ---------- */
+.board{display:grid; grid-template-columns:1fr 1.02fr 1fr; gap:14px; align-items:start}
+@media (max-width:900px){ .board{grid-template-columns:1fr} }
+.panel{padding:14px}
+.panel h3{margin:0; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px}
+.badge{width:9px;height:9px;border-radius:50%;flex:none}
+.b-alice{background:var(--alice)} .b-bob{background:var(--bob)} .b-server{background:var(--server)}
+.panel.alice{border-top:3px solid var(--alice)}
+.panel.bob{border-top:3px solid var(--bob)}
+.panel.server{border-top:3px solid var(--server)}
+.meta{display:flex; gap:14px; flex-wrap:wrap; margin:8px 0 12px}
+.meta div{font-size:12px; color:var(--ink-3)}
+.meta b{display:block; font-family:"IBM Plex Mono",monospace; font-size:13.5px; color:var(--ink); font-weight:500; font-variant-numeric:tabular-nums}
+
+/* document rendering */
+.doc{display:flex; flex-wrap:wrap; align-items:stretch; background:var(--card-2); border:1px solid var(--line-2);
+  border-radius:8px; padding:8px 6px; min-height:52px; font-family:"IBM Plex Mono",monospace}
+.ch{display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:32px; font-size:17px;
+  border-radius:4px; color:var(--ink)}
+.ch.space{min-width:14px}
+.ch.flash{animation:pop .9s ease-out}
+@keyframes pop{0%{background:var(--agree-soft); transform:scale(1.25)} 100%{background:transparent; transform:scale(1)}}
+.slot{width:9px; height:32px; padding:0; border:0; background:transparent; border-radius:2px; cursor:text}
+.slot:hover{background:var(--line)}
+.slot.on{background:var(--ink); animation:blink 1.1s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+.doc.readonly .slot{cursor:default; pointer-events:none}
+
+/* keypad */
+.keys{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.keys button{min-width:34px; padding:6px 8px; font-family:"IBM Plex Mono",monospace; font-size:14px}
+.keys .del{font-family:"IBM Plex Sans",sans-serif; font-size:13px}
+.offline-tag{margin-left:auto; font-size:11.5px; font-family:"IBM Plex Mono",monospace; padding:2px 7px; border-radius:99px;
+  background:var(--disagree-soft); color:var(--disagree); border:1px solid color-mix(in srgb,var(--disagree) 30%,transparent)}
+
+/* log */
+.oplog{margin-top:10px; border-top:1px solid var(--line-2); padding-top:8px; max-height:168px; overflow:auto}
+.oplog div{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2); padding:2px 0; display:flex; gap:8px}
+.oplog .rev{color:var(--ink-3)}
+
+/* messages in flight */
+.wire{margin-top:12px}
+.wire h4{margin:0 0 8px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-family:"IBM Plex Mono",monospace}
+.msg{border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px; background:var(--card-2); display:flex; gap:10px; align-items:center}
+.msg .txt{flex:1; font-size:13px}
+.msg .txt .who{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-3); display:block}
+.msg.from-alice{border-left:3px solid var(--alice)}
+.msg.from-bob{border-left:3px solid var(--bob)}
+.msg.blocked{opacity:.55}
+.msg button{padding:5px 9px; font-size:12.5px}
+.empty{color:var(--ink-3); font-size:13px; font-style:italic; padding:6px 2px}
+
+/* event feed */
+.feed{max-height:280px; overflow:auto; padding:4px 2px}
+.feed .ev{padding:8px 10px; border-left:3px solid var(--line); margin-bottom:6px; background:var(--card-2); border-radius:0 6px 6px 0}
+.feed .ev.alice{border-left-color:var(--alice)} .feed .ev.bob{border-left-color:var(--bob)}
+.feed .ev.server{border-left-color:var(--server)} .feed .ev.bad{border-left-color:var(--disagree)}
+.feed .ev .t{font-size:14px}
+.feed .ev .n{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-3); margin-top:2px}
+
+/* scenarios */
+.scn{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px}
+.scn .c{padding:14px; display:flex; flex-direction:column; gap:8px}
+.scn .c h4{margin:0; font-size:14.5px; font-weight:600}
+.scn .c p{font-size:13.5px; color:var(--ink-2); margin:0}
+.opts{display:flex; flex-direction:column; gap:6px}
+.opts button{text-align:left; font-size:13px; padding:7px 10px}
+.opts button[aria-pressed="true"]{border-color:var(--ink); background:var(--card-2); font-weight:500}
+.result{font-size:13.5px; padding:9px 11px; border-radius:7px; margin-top:2px}
+.result.ok{background:var(--agree-soft); color:var(--agree)}
+.result.no{background:var(--disagree-soft); color:var(--disagree)}
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:12.5px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.playing{outline:2px solid var(--alice); outline-offset:3px}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+</style>
+
+<div class="wrap stack">
+
+<header>
+  <p class="eyebrow">Collaborative editing, one keystroke at a time</p>
+  <h1>Two cursors, one sentence</h1>
+  <p class="lede">The document says <b class="mono">HAT</b>. Alice wants to make it <b class="mono">CHAT</b>. Bob wants to make it <b class="mono">HATS</b>. They type at the same moment, on two computers, with a network in between. Everyone should end up reading <b class="mono">CHATS</b> — and getting that right is most of what a system like Google Docs does.</p>
+  <p class="lede">Nothing here moves on its own. You decide who types, and you decide when each message crosses the network.</p>
+</header>
+
+<div id="verdict" class="verdict"></div>
+
+<section class="card panel" style="padding:14px 16px">
+  <div class="row" style="gap:18px">
+    <div>
+      <div class="tiny" style="margin-bottom:5px">How edits travel</div>
+      <div class="seg" id="modeSeg" role="group" aria-label="Design">
+        <button data-mode="save">Send the whole document</button>
+        <button data-mode="raw">Send edits, apply as sent</button>
+        <button data-mode="ot">Send edits, rewrite them</button>
+      </div>
+    </div>
+    <div>
+      <div class="tiny" style="margin-bottom:5px">Time</div>
+      <div class="row">
+        <button id="stepBtn" class="primary">Deliver next message</button>
+        <button id="allBtn">Deliver everything</button>
+        <button id="backBtn">Step back</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+    <div>
+      <div class="tiny" style="margin-bottom:5px">Server behaviour</div>
+      <label class="toggle"><input type="checkbox" id="dedupBox"> Recognise a repeated edit</label>
+    </div>
+  </div>
+  <p class="small" id="modeNote" style="margin:12px 0 0"></p>
+</section>
+
+<section class="board">
+  <div class="card panel alice" id="panelAlice"></div>
+  <div class="card panel server" id="panelServer"></div>
+  <div class="card panel bob" id="panelBob"></div>
+</section>
+
+<section class="card panel">
+  <h2>What just happened</h2>
+  <div class="legend" style="margin-bottom:10px">
+    <span><i class="badge b-alice"></i> Alice</span>
+    <span><i class="badge b-bob"></i> Bob</span>
+    <span><i class="badge b-server"></i> Server</span>
+    <span><i class="badge" style="background:var(--disagree)"></i> Something went wrong</span>
+  </div>
+  <div class="feed" id="feed"></div>
+</section>
+
+<section class="stack">
+  <div>
+    <p class="eyebrow">Guess first, then watch</p>
+    <h2>Five things that can happen</h2>
+    <p class="small">Pick an answer before you press Run. Being wrong on purpose is the fastest way to remember why the real design looks the way it does.</p>
+  </div>
+  <div class="scn" id="scenarios"></div>
+</section>
+
+<section class="card panel">
+  <h2>Reading this screen</h2>
+  <p class="small"><b>Waiting for confirmation</b> is the edit a person has sent to the server and not heard back about. A client will only ever have one of those at a time; anything typed meanwhile queues up behind it. <b>Revision</b> is how many edits that copy has been told about — the server's revision number is the official count. <b>Messages in flight</b> are on the network right now: click <i>Deliver</i> to let one arrive, or <i>Drop</i> to have the network eat it. A message greyed out is waiting its turn, because everything sent to one person arrives in the order it was sent.</p>
+</section>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================ THE MODEL
+   Pure functions over a plain state object. Every action returns a new
+   state; the previous ones are kept so "step back" is free.
+============================================================ */
+
+const SITES = ["Alice", "Bob"];
+
+function opText(op){
+  if(op.kind === "insert") return "insert '" + op.ch + "' at " + op.pos;
+  if(op.kind === "delete") return "delete the character at " + op.pos;
+  return "do nothing";
+}
+
+function applyOp(doc, op, lenient){
+  if(op.kind === "noop") return doc;
+  if(op.kind === "insert"){
+    let p = op.pos;
+    if(p < 0 || p > doc.length){
+      if(!lenient) throw new Error("insert at " + p + " but the document is only " + doc.length + " characters long");
+      p = Math.max(0, Math.min(p, doc.length));
+    }
+    return doc.slice(0,p) + op.ch + doc.slice(p);
+  }
+  let p = op.pos;
+  if(p < 0 || p >= doc.length){
+    if(!lenient) throw new Error("delete at " + p + " but the document is only " + doc.length + " characters long");
+    if(doc.length === 0) return doc;
+    p = Math.max(0, Math.min(p, doc.length - 1));
+  }
+  return doc.slice(0,p) + doc.slice(p+1);
+}
+
+/* transform(a,b): what would a have to become, to have the same effect on a
+   document that already contains b? This one function is the whole idea. */
+function transform(a, b){
+  if(a.kind === "noop" || b.kind === "noop") return a;
+  if(a.kind === "insert" && b.kind === "insert"){
+    if(b.pos < a.pos) return {...a, pos:a.pos+1};
+    if(b.pos > a.pos) return a;
+    return a.site < b.site ? a : {...a, pos:a.pos+1};   // same spot: one fixed tie-break, everywhere
+  }
+  if(a.kind === "insert" && b.kind === "delete") return b.pos < a.pos ? {...a, pos:a.pos-1} : a;
+  if(a.kind === "delete" && b.kind === "insert") return b.pos <= a.pos ? {...a, pos:a.pos+1} : a;
+  if(b.pos < a.pos) return {...a, pos:a.pos-1};
+  if(b.pos > a.pos) return a;
+  return {kind:"noop", pos:0, ch:"", site:a.site};       // both deleted the same character
+}
+
+function freshState(startDoc, mode, dedup){
+  const clients = {};
+  SITES.forEach(function(s){
+    clients[s] = {site:s, doc:startDoc, rev:0, outstanding:null, buffer:[], online:true, seq:0, caret:startDoc.length, flash:null};
+  });
+  return {
+    mode: mode, dedup: dedup, startDoc: startDoc,
+    server: {doc:startDoc, log:[], lastSeq:{}, lastAckOp:{}, lastAckRev:{}, flash:null},
+    clients: clients, inFlight: [], events: [], nextId: 1, broke: null
+  };
+}
+
+function ev(s, kind, text, note){ s.events.push({kind:kind, text:text, note:note||""}); }
+
+function clone(s){ return JSON.parse(JSON.stringify(s)); }
+
+/* --------------------------------------------------- actions */
+
+function actType(state, site, ch){
+  const s = clone(state), c = s.clients[site];
+  if(s.mode === "save"){
+    c.doc = applyOp(c.doc, {kind:"insert", pos:c.caret, ch:ch, site:site}, true);
+    c.caret = Math.min(c.caret + 1, c.doc.length);
+    c.flash = c.caret - 1;
+    ev(s, site.toLowerCase(), site + " typed '" + ch + "'. Their copy now reads “" + c.doc + "”.",
+       "In this design nothing is sent until they save.");
+    return s;
+  }
+  const op = {kind:"insert", pos:c.caret, ch:ch, site:site};
+  return localEdit(s, site, op, site + " typed '" + ch + "'");
+}
+
+function actDelete(state, site){
+  const s = clone(state), c = s.clients[site];
+  const pos = Math.max(0, c.caret - 1);
+  if(c.doc.length === 0) return state;
+  if(s.mode === "save"){
+    c.doc = applyOp(c.doc, {kind:"delete", pos:pos, site:site}, true);
+    c.caret = Math.max(0, c.caret - 1);
+    ev(s, site.toLowerCase(), site + " deleted a character. Their copy now reads “" + c.doc + "”.", "");
+    return s;
+  }
+  return localEdit(s, site, {kind:"delete", pos:pos, ch:"", site:site}, site + " deleted a character");
+}
+
+function localEdit(s, site, op, label){
+  const c = s.clients[site];
+  try{ c.doc = applyOp(c.doc, op, s.mode === "raw"); }
+  catch(e){ s.broke = e.message; ev(s,"bad", site + "'s editor could not apply that: " + e.message, ""); return s; }
+  c.caret = op.kind === "insert" ? op.pos + 1 : op.pos;
+  c.flash = op.kind === "insert" ? op.pos : null;
+  if(c.outstanding === null){
+    c.outstanding = op; c.seq += 1;
+    s.inFlight.push({id:s.nextId++, dir:"up", from:site, op:op, base:c.rev, seq:c.seq});
+    ev(s, site.toLowerCase(), label + ". Their screen updated immediately and the edit is on its way to the server.",
+       site + " → server: " + opText(op) + " (edit #" + c.seq + ", written against revision " + c.rev + ")");
+  }else{
+    c.buffer.push(op);
+    ev(s, site.toLowerCase(), label + ". It waits in " + site + "'s queue: they are still waiting for the server to confirm the previous one.",
+       "queued behind edit #" + c.seq);
+  }
+  return s;
+}
+
+function actSave(state, site){
+  const s = clone(state), c = s.clients[site];
+  s.inFlight.push({id:s.nextId++, dir:"up", from:site, save:c.doc});
+  ev(s, site.toLowerCase(), site + " pressed Save, sending their whole document to the server.", site + " → server: “" + c.doc + "”");
+  return s;
+}
+
+function actToggleOnline(state, site){
+  const s = clone(state), c = s.clients[site];
+  c.online = !c.online;
+  ev(s, c.online ? site.toLowerCase() : "bad",
+     c.online ? site + " came back online. Anything held up for them can now be delivered."
+              : site + " went offline. They can keep typing, but nothing crosses the network until they are back.", "");
+  return s;
+}
+
+function actResend(state, site){
+  const s = clone(state), c = s.clients[site];
+  if(!c.outstanding){ return state; }
+  s.inFlight.push({id:s.nextId++, dir:"up", from:site, op:c.outstanding, base:c.rev, seq:c.seq});
+  ev(s, site.toLowerCase(), site + " waited, heard nothing back, and sent the same edit again.",
+     "retry of edit #" + c.seq + " — the same number, not a new one");
+  return s;
+}
+
+function deliverable(s, m){
+  if(m.dir === "up") return s.clients[m.from].online;
+  if(!s.clients[m.to].online) return false;
+  for(const other of s.inFlight){
+    if(other === m) break;
+    if(other.dir === "down" && other.to === m.to) return false;
+  }
+  return true;
+}
+
+function actDeliver(state, id, force){
+  const s = clone(state);
+  const i = s.inFlight.findIndex(function(m){ return m.id === id; });
+  if(i < 0) return state;
+  const m = s.inFlight[i];
+  if(!force && !deliverable(s, m)) return state;
+  s.inFlight.splice(i,1);
+  Object.values(s.clients).forEach(function(c){ c.flash = null; });
+  s.server.flash = null;
+  return m.dir === "up" ? serverReceive(s, m) : clientReceive(s, m);
+}
+
+function serverReceive(s, m){
+  if(m.save !== undefined){                       // whole-document design
+    const before = s.server.doc;
+    s.server.doc = m.save;
+    ev(s,"server","The server replaced the document with " + m.from + "'s copy: “" + m.save + "”.",
+       before === m.save ? "" : "it was “" + before + "” a moment ago — whatever was only in that version is gone");
+    SITES.forEach(function(site){ s.inFlight.push({id:s.nextId++, dir:"down", to:site, save:m.save, origin:m.from}); });
+    return s;
+  }
+  if(s.dedup && m.seq <= (s.server.lastSeq[m.from] || 0)){
+    ev(s,"server","The server had already seen edit #" + m.seq + " from " + m.from + ". It did not apply it a second time; it re-sent the same confirmation.",
+       "this is what makes a retry safe");
+    s.inFlight.push({id:s.nextId++, dir:"down", to:m.from, op:s.server.lastAckOp[m.from], rev:s.server.lastAckRev[m.from], origin:m.from});
+    return s;
+  }
+  let op = m.op, rewritten = false;
+  if(s.mode === "ot"){
+    for(let k = m.base; k < s.server.log.length; k++){
+      const before = op;
+      op = transform(op, s.server.log[k].op);
+      if(op.pos !== before.pos || op.kind !== before.kind) rewritten = true;
+    }
+  }
+  try{ s.server.doc = applyOp(s.server.doc, op, s.mode !== "ot"); }
+  catch(e){ s.broke = e.message; ev(s,"bad","The server could not apply that edit: " + e.message, ""); return s; }
+  s.server.log.push({op:op, from:m.from});
+  const rev = s.server.log.length;
+  s.server.lastSeq[m.from] = m.seq; s.server.lastAckOp[m.from] = op; s.server.lastAckRev[m.from] = rev;
+  s.server.flash = op.kind === "insert" ? op.pos : null;
+  ev(s,"server","The server accepted " + m.from + "'s edit as revision " + rev + ". The official document now reads “" + s.server.doc + "”." +
+     (rewritten ? " It rewrote the edit first, because other edits had arrived since " + m.from + " wrote it." : ""),
+     "logged as: " + opText(op) + (rewritten ? "  (sent as: " + opText(m.op) + ")" : ""));
+  SITES.forEach(function(site){ s.inFlight.push({id:s.nextId++, dir:"down", to:site, op:op, rev:rev, origin:m.from}); });
+  return s;
+}
+
+function clientReceive(s, m){
+  const c = s.clients[m.to];
+  if(m.save !== undefined){
+    c.doc = m.save; c.caret = Math.min(c.caret, c.doc.length);
+    ev(s, m.to.toLowerCase(), m.to + "'s screen was replaced with the server's copy: “" + c.doc + "”.", "");
+    return s;
+  }
+  if(m.origin === m.to){
+    c.rev = m.rev;
+    c.outstanding = c.buffer.length ? c.buffer.shift() : null;
+    if(c.outstanding){
+      c.seq += 1;
+      s.inFlight.push({id:s.nextId++, dir:"up", from:m.to, op:c.outstanding, base:c.rev, seq:c.seq});
+      ev(s, m.to.toLowerCase(), "The server confirmed " + m.to + "'s edit, so the next queued edit went out.",
+         "now at revision " + c.rev + "; sending edit #" + c.seq);
+    }else{
+      ev(s, m.to.toLowerCase(), "The server confirmed " + m.to + "'s edit. Nothing of theirs is waiting now.", "now at revision " + c.rev);
+    }
+    return s;
+  }
+  let incoming = m.op, note = "";
+  if(s.mode === "ot"){
+    if(c.outstanding){
+      const newOut = transform(c.outstanding, incoming);
+      const shifted = incoming.pos;
+      incoming = transform(incoming, c.outstanding);
+      c.outstanding = newOut;
+      if(incoming.pos !== shifted) note = "rewritten from " + opText(m.op) + " to " + opText(incoming) + ", because " + m.to + " has an edit of their own that the server has not seen yet";
+    }
+    if(c.buffer.length){
+      const rebuilt = [];
+      for(const b of c.buffer){ rebuilt.push(transform(b, incoming)); incoming = transform(incoming, b); }
+      c.buffer = rebuilt;
+    }
+  }
+  try{ c.doc = applyOp(c.doc, incoming, s.mode !== "ot"); }
+  catch(e){
+    s.broke = e.message;
+    ev(s,"bad", m.to + "'s editor crashed on that message: " + e.message,
+       "it was told to edit a position that does not exist in the document it is holding");
+    return s;
+  }
+  c.flash = incoming.kind === "insert" ? incoming.pos : null;
+  c.rev = m.rev;
+  if(incoming.pos < c.caret) c.caret = Math.max(0, c.caret + (incoming.kind === "insert" ? 1 : -1));
+  ev(s, m.to.toLowerCase(), m.to + " received " + m.origin + "'s edit. Their screen now reads “" + c.doc + "”.",
+     (note || ("applied as: " + opText(incoming))) + "  ·  now at revision " + c.rev);
+  return s;
+}
+
+/* ============================================================ THE PAGE */
+
+const MODE_NOTE = {
+  save:"Each person edits their own copy and presses Save, which replaces the whole document on the server. This is how a file on a shared drive behaves. Try it: type on both sides, then save both.",
+  raw:"Each keystroke is sent as an instruction — a character and a position — and every copy runs it exactly as written. Reasonable. Watch what it does when two people type at once.",
+  ot:"Each keystroke is still sent as an instruction, but before anyone runs it, it is rewritten to account for the edits it was written without knowing about. This is what a real editor does."
+};
+
+let history = [];
+let state = freshState("HAT", "ot", false);
+let playing = null;
+
+function push(next){ if(next === state) return; history.push(state); if(history.length > 400) history.shift(); state = next; render(); }
+function stepBack(){ if(!history.length) return; state = history.pop(); render(); }
+function reset(startDoc){ history = []; state = freshState(startDoc || "HAT", state.mode, state.dedup); render(); }
+
+/* ---- rendering ---- */
+function el(tag, cls, txt){ const n = document.createElement(tag); if(cls) n.className = cls; if(txt !== undefined) n.textContent = txt; return n; }
+
+function renderDoc(container, text, flash, opts){
+  const doc = el("div", "doc" + (opts.readonly ? " readonly" : ""));
+  for(let i = 0; i <= text.length; i++){
+    const slot = el("button", "slot" + (!opts.readonly && opts.caret === i ? " on" : ""));
+    if(opts.readonly){ slot.disabled = true; slot.tabIndex = -1; }
+    else{
+      slot.setAttribute("aria-label", "put " + opts.site + "'s cursor at position " + i);
+      slot.onclick = function(){ const s = clone(state); s.clients[opts.site].caret = i; push(s); };
+    }
+    doc.appendChild(slot);
+    if(i < text.length){
+      const ch = el("span", "ch" + (text[i] === " " ? " space" : "") + (flash === i ? " flash" : ""), text[i] === " " ? "␣" : text[i]);
+      doc.appendChild(ch);
+    }
+  }
+  container.appendChild(doc);
+}
+
+function clientPanel(site){
+  const host = document.getElementById(site === "Alice" ? "panelAlice" : "panelBob");
+  host.innerHTML = "";
+  const c = state.clients[site];
+  const h = el("h3");
+  h.appendChild(el("i", "badge b-" + site.toLowerCase()));
+  h.appendChild(document.createTextNode(site + "'s screen"));
+  if(!c.online) h.appendChild(el("span", "offline-tag", "offline"));
+  host.appendChild(h);
+
+  const meta = el("div","meta");
+  const m1 = el("div"); m1.appendChild(el("b", null, String(c.rev))); m1.appendChild(document.createTextNode("revision")); meta.appendChild(m1);
+  if(state.mode !== "save"){
+    const m2 = el("div");
+    m2.appendChild(el("b", null, c.outstanding ? "1" : "0"));
+    m2.appendChild(document.createTextNode("waiting for confirmation")); meta.appendChild(m2);
+    const m3 = el("div");
+    m3.appendChild(el("b", null, String(c.buffer.length)));
+    m3.appendChild(document.createTextNode("queued behind it")); meta.appendChild(m3);
+  }
+  host.appendChild(meta);
+
+  renderDoc(host, c.doc, c.flash, {site:site, caret:c.caret, readonly:false});
+
+  const keys = el("div","keys");
+  ["C","S","!","X"," "].forEach(function(ch){
+    const b = el("button", null, ch === " " ? "space" : ch);
+    b.onclick = function(){ push(actType(state, site, ch)); };
+    keys.appendChild(b);
+  });
+  const del = el("button","del","delete");
+  del.onclick = function(){ push(actDelete(state, site)); };
+  keys.appendChild(del);
+  host.appendChild(keys);
+
+  const row = el("div","row"); row.style.marginTop = "10px";
+  if(state.mode === "save"){
+    const save = el("button","primary","Save to server");
+    save.onclick = function(){ push(actSave(state, site)); };
+    row.appendChild(save);
+  }else{
+    const rs = el("button", null, "Send it again");
+    rs.disabled = !c.outstanding;
+    rs.title = c.outstanding ? "re-send the edit that has not been confirmed" : "nothing is waiting for confirmation";
+    rs.onclick = function(){ push(actResend(state, site)); };
+    row.appendChild(rs);
+  }
+  const on = el("button", null, c.online ? "Go offline" : "Come back online");
+  on.onclick = function(){ push(actToggleOnline(state, site)); };
+  row.appendChild(on);
+  host.appendChild(row);
+  host.appendChild(el("p","tiny","Click between the letters to move this person's cursor, then press a key.")).style.marginTop = "8px";
+}
+
+function serverPanel(){
+  const host = document.getElementById("panelServer");
+  host.innerHTML = "";
+  const h = el("h3");
+  h.appendChild(el("i","badge b-server"));
+  h.appendChild(document.createTextNode("The server"));
+  host.appendChild(h);
+
+  const meta = el("div","meta");
+  const m1 = el("div"); m1.appendChild(el("b",null,String(state.server.log.length))); m1.appendChild(document.createTextNode("revision")); meta.appendChild(m1);
+  const m2 = el("div"); m2.appendChild(el("b",null,String(state.inFlight.length))); m2.appendChild(document.createTextNode("messages in flight")); meta.appendChild(m2);
+  host.appendChild(meta);
+
+  renderDoc(host, state.server.doc, state.server.flash, {readonly:true, caret:-1});
+
+  if(state.mode !== "save"){
+    const log = el("div","oplog");
+    if(!state.server.log.length) log.appendChild(el("div", null, "the log is empty"));
+    state.server.log.forEach(function(entry, i){
+      const d = el("div");
+      d.appendChild(el("span","rev","r" + (i+1)));
+      d.appendChild(el("span", null, entry.from + ": " + opText(entry.op)));
+      log.appendChild(d);
+    });
+    const cap = el("div","tiny","The official history. Every copy of the document is this log, replayed in this order.");
+    cap.style.marginTop = "10px";
+    host.appendChild(cap);
+    host.appendChild(log);
+  }
+
+  const wire = el("div","wire");
+  wire.appendChild(el("h4", null, "Messages in flight"));
+  if(!state.inFlight.length) wire.appendChild(el("div","empty","The network is quiet."));
+  state.inFlight.forEach(function(m){
+    const ok = deliverable(state, m);
+    const box = el("div","msg " + (m.dir === "up" ? "from-" + m.from.toLowerCase() : "from-" + (m.origin||"").toLowerCase()) + (ok ? "" : " blocked"));
+    const txt = el("div","txt");
+    if(m.dir === "up"){
+      txt.appendChild(el("span","who", m.from + " → server"));
+      txt.appendChild(document.createTextNode(m.save !== undefined ? "the whole document: “" + m.save + "”" : opText(m.op)));
+    }else{
+      txt.appendChild(el("span","who","server → " + m.to));
+      txt.appendChild(document.createTextNode(m.save !== undefined ? "the whole document: “" + m.save + "”"
+        : opText(m.op) + (m.origin === m.to ? " — your own edit, confirmed" : " (from " + m.origin + ")")));
+    }
+    box.appendChild(txt);
+    const d = el("button", ok ? "primary" : null, "Deliver");
+    d.disabled = !ok;
+    d.title = ok ? "" : (state.clients[m.dir === "up" ? m.from : m.to].online
+      ? "an earlier message to " + m.to + " has to arrive first — one connection, in order"
+      : "that person is offline");
+    d.onclick = function(){ push(actDeliver(state, m.id)); };
+    const x = el("button", null, "Drop");
+    x.title = "the network eats this message";
+    x.onclick = function(){
+      const s = clone(state);
+      const i = s.inFlight.findIndex(function(q){ return q.id === m.id; });
+      s.inFlight.splice(i,1);
+      ev(s,"bad","The network dropped a message: " + (m.dir === "up" ? m.from + " → server" : "server → " + m.to) + ". Nobody was told.","");
+      push(s);
+    };
+    box.appendChild(d); box.appendChild(x);
+    wire.appendChild(box);
+  });
+  host.appendChild(wire);
+}
+
+function verdict(){
+  const v = document.getElementById("verdict");
+  v.innerHTML = "";
+  const docs = SITES.map(function(s){ return state.clients[s].doc; });
+  const same = docs.every(function(d){ return d === state.server.doc; });
+  const quiet = state.inFlight.length === 0;
+  v.className = "verdict " + (same ? "agree" : "disagree");
+  v.appendChild(el("div","dot"));
+  const body = el("div");
+  const head = el("b");
+  if(same) head.textContent = quiet ? "Everyone is reading the same thing: “" + state.server.doc + "”"
+                                    : "The screens agree so far: “" + state.server.doc + "”";
+  else head.textContent = "The screens disagree";
+  body.appendChild(head);
+  const why = el("div","why");
+  if(same){
+    why.textContent = quiet ? "The network is empty and all three copies match. This is what has to be true every time the typing stops."
+                            : "There are still messages in flight — keep delivering to see where it ends up.";
+  }else{
+    why.textContent = "Alice sees “" + state.clients.Alice.doc + "”, Bob sees “" + state.clients.Bob.doc + "”, the server holds “" + state.server.doc + "”."
+      + (quiet ? " Nothing is left in flight, so this is where it stays. Nobody will ever be told." : " Messages are still in flight; it may still heal.");
+  }
+  body.appendChild(why);
+  if(state.broke){ const b = el("div","why"); b.textContent = "Last error: " + state.broke; body.appendChild(b); }
+  v.appendChild(body);
+}
+
+function feed(){
+  const f = document.getElementById("feed");
+  f.innerHTML = "";
+  if(!state.events.length) f.appendChild(el("div","empty","Nothing has happened yet. Type something on one of the screens."));
+  state.events.slice(-40).forEach(function(e){
+    const box = el("div","ev " + e.kind);
+    box.appendChild(el("div","t", e.text));
+    if(e.note) box.appendChild(el("div","n", e.note));
+    f.appendChild(box);
+  });
+  f.scrollTop = f.scrollHeight;
+}
+
+function render(){
+  document.querySelectorAll("#modeSeg button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)); });
+  document.getElementById("modeNote").textContent = MODE_NOTE[state.mode];
+  document.getElementById("dedupBox").checked = state.dedup;
+  document.getElementById("dedupBox").disabled = state.mode === "save";
+  clientPanel("Alice"); clientPanel("Bob"); serverPanel(); verdict(); feed();
+  document.getElementById("stepBtn").disabled = !state.inFlight.some(function(m){ return deliverable(state, m); });
+  document.getElementById("allBtn").disabled = document.getElementById("stepBtn").disabled;
+  document.getElementById("backBtn").disabled = history.length === 0;
+}
+
+/* ---- top controls ---- */
+document.querySelectorAll("#modeSeg button").forEach(function(b){
+  b.onclick = function(){
+    stopPlaying();
+    history = [];
+    state = freshState(state.startDoc, b.dataset.mode, state.dedup);
+    render();
+  };
+});
+document.getElementById("dedupBox").onchange = function(e){
+  const s = clone(state); s.dedup = e.target.checked; push(s);
+};
+document.getElementById("stepBtn").onclick = function(){
+  const m = state.inFlight.find(function(x){ return deliverable(state, x); });
+  if(m) push(actDeliver(state, m.id));
+};
+document.getElementById("allBtn").onclick = function(){
+  let guard = 0, s = state;
+  while(guard++ < 500){
+    const m = s.inFlight.find(function(x){ return deliverable(s, x); });
+    if(!m) break;
+    s = actDeliver(s, m.id);
+  }
+  push(s);
+};
+document.getElementById("backBtn").onclick = stepBack;
+document.getElementById("resetBtn").onclick = function(){ stopPlaying(); reset("HAT"); };
+
+/* ============================================================ SCENARIOS */
+
+function deliverAllSteps(n){
+  const steps = [];
+  for(let i = 0; i < n; i++) steps.push({do:function(s){
+    const m = s.inFlight.find(function(x){ return deliverable(s, x); });
+    return m ? actDeliver(s, m.id) : s;
+  }});
+  return steps;
+}
+
+const SCENARIOS = [
+  {
+    id:"save",
+    title:"Both save the same file",
+    mode:"save", start:"HAT",
+    blurb:"Alice adds a C at the front, Bob adds an S at the end, and they both press Save. This is a file on a shared drive.",
+    question:"What does the document say afterwards?",
+    options:["CHATS — both changes are in it","HATS — one person's change is gone","The server refuses the second save"],
+    answer:1,
+    why:"The second save replaced the whole document, and Alice's C was only in the version it replaced. Nothing failed, nothing warned anybody. This is why editors send changes rather than documents.",
+    steps:[
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 0; return t; }, say:"Alice puts her cursor at the front"},
+      {do:function(s){ return actType(s, "Alice", "C"); }},
+      {do:function(s){ const t = clone(s); t.clients.Bob.caret = 3; return t; }, say:"Bob puts his cursor at the end"},
+      {do:function(s){ return actType(s, "Bob", "S"); }},
+      {do:function(s){ return actSave(s, "Alice"); }},
+      {do:function(s){ return actSave(s, "Bob"); }}
+    ].concat(deliverAllSteps(8))
+  },
+  {
+    id:"raw",
+    title:"Two people type at once, no rewriting",
+    mode:"raw", start:"HAT",
+    blurb:"The same two edits, but now each keystroke is sent as “put this character at this position” and applied exactly as sent.",
+    question:"When every message has been delivered, what will the two screens show?",
+    options:["Both CHATS","Both CHAST","Two different sentences"],
+    answer:2,
+    why:"Bob's edit said “put S at position 3”. By the time it reached Alice, her own C had pushed every letter one place to the right, so position 3 was no longer the end of the word. Alice ends at CHAST, Bob at CHATS — and neither of them is told.",
+    steps:[
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 0; return t; }, say:"Alice's cursor goes to the front"},
+      {do:function(s){ return actType(s, "Alice", "C"); }},
+      {do:function(s){ const t = clone(s); t.clients.Bob.caret = 3; return t; }, say:"Bob's cursor goes to the end"},
+      {do:function(s){ return actType(s, "Bob", "S"); }}
+    ].concat(deliverAllSteps(8))
+  },
+  {
+    id:"ot",
+    title:"The same two edits, rewritten",
+    mode:"ot", start:"HAT",
+    blurb:"Identical typing. The only change is that every edit is rewritten against the edits it was written without knowing about.",
+    question:"Where does it end up this time?",
+    options:["Both CHATS","Both CHAST","Two different sentences"],
+    answer:0,
+    why:"Watch the server's log: Bob's “insert S at 3” was written down as “insert S at 4”, because one character had been inserted in front of it. Both intentions survived — C at the front, S at the end — and both screens agree.",
+    steps:[
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 0; return t; }, say:"Alice's cursor goes to the front"},
+      {do:function(s){ return actType(s, "Alice", "C"); }},
+      {do:function(s){ const t = clone(s); t.clients.Bob.caret = 3; return t; }, say:"Bob's cursor goes to the end"},
+      {do:function(s){ return actType(s, "Bob", "S"); }}
+    ].concat(deliverAllSteps(8))
+  },
+  {
+    id:"offline",
+    title:"Bob keeps typing on a plane",
+    mode:"ot", start:"HAT",
+    blurb:"Bob loses his connection and types two characters anyway. Alice, still online, types one. Then Bob's connection comes back.",
+    question:"What happens when Bob reconnects?",
+    options:["Bob's two edits are lost","Everyone ends at CHATS!","Bob's screen keeps his version, Alice keeps hers"],
+    answer:1,
+    why:"While Bob was away his edits piled up on his own machine, and the server kept moving without him. On reconnect his edits were rewritten against everything he missed, and Alice's edit was rewritten against his. Nothing was lost and nothing was asked of either person.",
+    steps:[
+      {do:function(s){ return actToggleOnline(s, "Bob"); }},
+      {do:function(s){ const t = clone(s); t.clients.Bob.caret = 3; return t; }},
+      {do:function(s){ return actType(s, "Bob", "S"); }},
+      {do:function(s){ return actType(s, "Bob", "!"); }},
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 0; return t; }},
+      {do:function(s){ return actType(s, "Alice", "C"); }}
+    ].concat(deliverAllSteps(4)).concat([
+      {do:function(s){ return actToggleOnline(s, "Bob"); }, say:"Bob's connection comes back"}
+    ]).concat(deliverAllSteps(14))
+  },
+  {
+    id:"lostack",
+    title:"The confirmation gets lost",
+    mode:"ot", start:"HAT",
+    blurb:"Alice's edit reaches the server. The server's confirmation is eaten by the network. Alice's editor waits, gives up, and sends the edit again.",
+    question:"What does the document say after the retry?",
+    options:["CHAT — the retry is harmless","CCHAT — her keystroke happened twice","The server rejects the retry automatically"],
+    answer:1,
+    answerWhenDedup:0,
+    whyWhenDedup:"With duplicate recognition on, the server remembered that it had already seen edit #1 from Alice. It ignored the repeat and re-sent the original confirmation instead of applying the C twice. That memory — one edit number per person — is an idempotency key in the smallest possible form.",
+    why:"The server has no way to tell “Alice typed C again” from “that C again”. It applied it twice. Switch on “Recognise a repeated edit” above and run this again: the server then remembers the last edit number it saw from each person, ignores the repeat, and re-sends the original confirmation. That is an idempotency key, in the smallest possible form.",
+    steps:[
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 0; return t; }},
+      {do:function(s){ return actType(s, "Alice", "C"); }},
+      {do:function(s){
+        const m = s.inFlight.find(function(x){ return deliverable(s, x); });
+        return m ? actDeliver(s, m.id) : s;
+      }, say:"the edit reaches the server"},
+      {do:function(s){
+        const t = clone(s);
+        const i = t.inFlight.findIndex(function(x){ return x.dir === "down" && x.to === "Alice" && x.origin === "Alice"; });
+        if(i >= 0){ t.inFlight.splice(i,1); ev(t,"bad","The network dropped Alice's confirmation. She has no idea whether her edit arrived.",""); }
+        return t;
+      }, say:"the network eats her confirmation"}
+    ].concat(deliverAllSteps(3)).concat([
+      {do:function(s){ return actResend(s, "Alice"); }, say:"Alice's editor gives up waiting and retries"}
+    ]).concat(deliverAllSteps(8))
+  },
+  {
+    id:"deletes",
+    title:"Both delete the same letter",
+    mode:"ot", start:"CHATS",
+    blurb:"The document says CHATS. Alice and Bob both decide the T is wrong and delete it at the same moment.",
+    question:"What is left?",
+    options:["CHAS — the T is gone once","CHA — the T and the S are both gone","One screen shows CHAS, the other CHA"],
+    answer:0,
+    why:"The second delete would have removed whatever slid into the T's place — the S. The rewriting rule turns a delete of an already-deleted character into nothing at all. That “do nothing” case is not tidiness; it is what stops an innocent letter being eaten.",
+    steps:[
+      {do:function(s){ const t = clone(s); t.clients.Alice.caret = 4; t.clients.Bob.caret = 4; return t; }, say:"both cursors go just after the T"},
+      {do:function(s){ return actDelete(s, "Alice"); }},
+      {do:function(s){ return actDelete(s, "Bob"); }}
+    ].concat(deliverAllSteps(8))
+  }
+];
+
+const picked = {};
+function stopPlaying(){ if(playing){ clearInterval(playing); playing = null; document.querySelectorAll(".scn .c").forEach(function(c){ c.classList.remove("playing"); }); } }
+
+function runScenario(sc, card){
+  stopPlaying();
+  history = [];
+  state = freshState(sc.start, sc.mode, state.dedup);
+  render();
+  card.classList.add("playing");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let i = 0;
+  function stepOnce(){
+    if(i >= sc.steps.length){ stopPlaying(); showResult(sc, card); return; }
+    const st = sc.steps[i++];
+    const next = st.do(state);
+    if(st.say && next !== state){ const t = clone(next); ev(t,"server","— " + st.say + " —",""); push(t); }
+    else push(next);
+  }
+  if(reduced){ while(i < sc.steps.length) stepOnce(); stopPlaying(); showResult(sc, card); }
+  else playing = setInterval(stepOnce, 780);
+}
+
+function showResult(sc, card){
+  const box = card.querySelector(".result");
+  const choice = picked[sc.id];
+  // One scenario has a different right answer depending on a server setting.
+  const useAlt = sc.answerWhenDedup !== undefined && state.dedup;
+  const answer = useAlt ? sc.answerWhenDedup : sc.answer;
+  const why = useAlt ? sc.whyWhenDedup : sc.why;
+  box.style.display = "block";
+  if(choice === undefined){ box.className = "result"; box.textContent = why; return; }
+  const right = choice === answer;
+  box.className = "result " + (right ? "ok" : "no");
+  box.textContent = (right ? "You called it. " : "Not quite — the answer was “" + sc.options[answer] + "”. ") + why;
+}
+
+const scnHost = document.getElementById("scenarios");
+SCENARIOS.forEach(function(sc){
+  const card = el("div","card c");
+  card.appendChild(el("h4", null, sc.title));
+  card.appendChild(el("p", null, sc.blurb));
+  card.appendChild(el("p","tiny", sc.question));
+  const opts = el("div","opts");
+  sc.options.forEach(function(o, idx){
+    const b = el("button", null, o);
+    b.setAttribute("aria-pressed","false");
+    b.onclick = function(){
+      picked[sc.id] = idx;
+      opts.querySelectorAll("button").forEach(function(x, j){ x.setAttribute("aria-pressed", String(j === idx)); });
+    };
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);
+  const run = el("button","primary","Run it for me");
+  run.onclick = function(){ runScenario(sc, card); };
+  card.appendChild(run);
+  const res = el("div","result"); res.style.display = "none";
+  card.appendChild(res);
+  scnHost.appendChild(card);
+});
+
+render();
+</script>

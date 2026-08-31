@@ -1,0 +1,788 @@
+<title>The Overlap Rule</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#f4f3f6; --surface:#ffffff; --surface-2:#eceaf1; --line:#d8d5e0;
+  --ink:#1b1922; --ink-2:#4f4a5e; --muted:#7d7789;
+  --write:#1f6f9c; --write-soft:#dceaf3; --read:#a83372; --read-soft:#f7dced;
+  --both:#6b3f9e; --both-soft:#e8dcf5;
+  --accent:#6b3f9e; --accent-soft:#e8dcf5; --on-accent:#ffffff;
+  --warn:#96650c; --warn-soft:#f8ecd4;
+  --bad:#a8352b; --bad-soft:#f7dedb;
+  --ok:#1d6b4f; --ok-soft:#d9efe5;
+  --shadow:0 1px 2px rgba(27,25,34,.06), 0 8px 22px rgba(27,25,34,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#131119; --surface:#1b1823; --surface-2:#252031; --line:#37304a;
+    --ink:#eae7f1; --ink-2:#b7b0c6; --muted:#847d95;
+    --write:#63b6e2; --write-soft:#14293a; --read:#eb8ac0; --read-soft:#361429;
+    --both:#b295e8; --both-soft:#2a1e42;
+    --accent:#b295e8; --accent-soft:#2a1e42; --on-accent:#161022;
+    --warn:#e0ac4e; --warn-soft:#33260f; --bad:#f0776c; --bad-soft:#3a1a17;
+    --ok:#5cc79b; --ok-soft:#13301f;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 26px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131119; --surface:#1b1823; --surface-2:#252031; --line:#37304a;
+  --ink:#eae7f1; --ink-2:#b7b0c6; --muted:#847d95;
+  --write:#63b6e2; --write-soft:#14293a; --read:#eb8ac0; --read-soft:#361429;
+  --both:#b295e8; --both-soft:#2a1e42;
+  --accent:#b295e8; --accent-soft:#2a1e42; --on-accent:#161022;
+  --warn:#e0ac4e; --warn-soft:#33260f; --bad:#f0776c; --bad-soft:#3a1a17;
+  --ok:#5cc79b; --ok-soft:#13301f;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 26px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{margin:0; background:var(--ground); color:var(--ink);
+  font-family:Archivo,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1140px; margin:0 auto; padding:34px 20px 90px; display:flex; flex-direction:column; gap:22px}
+
+header .eyebrow{font-size:11px; letter-spacing:.15em; text-transform:uppercase; font-weight:700;
+  color:var(--accent); margin:0 0 10px}
+header h1{font-family:Spectral,Georgia,serif; font-weight:500; font-size:clamp(29px,4.4vw,45px);
+  line-height:1.08; margin:0 0 12px; text-wrap:balance; letter-spacing:-.015em}
+header .lede{font-family:Spectral,Georgia,serif; font-size:18px; color:var(--ink-2); max-width:66ch; margin:0}
+
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:11px; box-shadow:var(--shadow)}
+.panel-head{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:11px 15px; border-bottom:1px solid var(--line)}
+.panel-head h2{margin:0; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  font-weight:700; color:var(--muted)}
+
+/* ---- verdict ---- */
+.verdict{background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--accent);
+  border-radius:11px; padding:16px 19px; box-shadow:var(--shadow); display:flex; gap:22px; flex-wrap:wrap;
+  align-items:flex-start}
+.verdict.holds{border-left-color:var(--ok)} .verdict.broken{border-left-color:var(--bad)}
+.sum{font-family:"IBM Plex Mono",monospace; font-size:26px; font-weight:600; white-space:nowrap;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.sum .r{color:var(--read)} .sum .w{color:var(--write)} .sum .n{color:var(--muted)}
+.vtext{flex:1 1 320px; min-width:280px}
+.vtext .state{font-family:Spectral,Georgia,serif; font-size:20px; line-height:1.35; margin:0 0 5px; text-wrap:balance}
+.vtext .why{margin:0; font-size:14px; color:var(--ink-2); max-width:74ch}
+
+/* ---- controls ---- */
+.bar{display:flex; flex-wrap:wrap; gap:10px; align-items:stretch}
+.group{display:flex; gap:7px; align-items:center; background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; padding:8px 10px; box-shadow:var(--shadow); flex-wrap:wrap}
+.glabel{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:700}
+button{font:inherit; font-size:13px; font-weight:500; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:8px; padding:6px 11px; cursor:pointer;
+  transition:border-color .12s ease,color .12s ease,background .12s ease}
+button:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button.primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+button.primary:hover:not(:disabled){color:var(--on-accent); filter:brightness(1.07)}
+button.wbtn{border-color:var(--write); color:var(--write); background:var(--write-soft)}
+button.rbtn{border-color:var(--read); color:var(--read); background:var(--read-soft)}
+button.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+button.bad{background:var(--bad-soft); border-color:var(--bad); color:var(--bad)}
+.knob{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-2)}
+.knob input[type=range]{width:96px; accent-color:var(--accent)}
+.knob .val{font-family:"IBM Plex Mono",monospace; font-weight:600; min-width:1.2em; text-align:center}
+.knob.wk .val{color:var(--write)} .knob.rk .val{color:var(--read)}
+
+/* ---- the stage: two bands with the replicas between them ---- */
+.stage{padding:18px 16px 14px; display:flex; flex-direction:column; gap:0}
+.band{display:flex; align-items:center; gap:10px; font-size:11.5px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase; padding:5px 8px; border-radius:7px}
+.band.w{background:var(--write-soft); color:var(--write)}
+.band.r{background:var(--read-soft); color:var(--read)}
+.band .cnt{font-family:"IBM Plex Mono",monospace; letter-spacing:0; text-transform:none; font-size:12px; color:inherit}
+.reps{display:grid; gap:10px; padding:12px 0; grid-auto-flow:column; grid-auto-columns:1fr}
+.rep{position:relative; background:var(--surface-2); border:2px solid var(--line); border-radius:10px;
+  padding:9px 10px; cursor:pointer; min-width:0; transition:border-color .15s ease, background .15s ease}
+.rep:hover{border-color:var(--accent)}
+.rep.inW{border-color:var(--write); background:var(--write-soft)}
+.rep.inR{border-color:var(--read); background:var(--read-soft)}
+.rep.inBoth{border-color:var(--both); background:var(--both-soft); box-shadow:0 0 0 3px var(--both-soft)}
+.rep.dead{opacity:.45; border-style:dashed; border-color:var(--bad)}
+.rep.sel{outline:2px solid var(--accent); outline-offset:2px}
+.rep.flash{animation:pulse 1s ease}
+@keyframes pulse{0%{background:var(--accent-soft)}100%{}}
+.rep .rid{display:flex; align-items:center; gap:6px; font-weight:700; font-size:13px; margin-bottom:4px}
+.rep .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:0 0 auto}
+.rep.dead .dot{background:var(--bad)}
+.rep .held{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-2); word-break:break-word; line-height:1.5}
+.rep .tag{position:absolute; top:-9px; right:7px; font-size:9.5px; font-weight:700; letter-spacing:.05em;
+  padding:1px 5px; border-radius:5px; text-transform:uppercase}
+.tag.ack{background:var(--write); color:var(--surface)}
+.tag.ans{background:var(--read); color:var(--surface)}
+.tag.both{background:var(--both); color:var(--surface)}
+.tag.miss{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn)}
+.cutline{height:0; border-top:2px dashed var(--bad); margin:2px 0; position:relative}
+.cutline span{position:absolute; right:0; top:-9px; background:var(--bad-soft); color:var(--bad);
+  font-size:10px; font-weight:700; padding:1px 6px; border-radius:5px}
+
+/* ---- log + inspector ---- */
+.split{display:grid; grid-template-columns:1.55fr 1fr; gap:18px; align-items:start}
+.logbox{max-height:320px; overflow-y:auto}
+.ev{padding:8px 15px; border-bottom:1px solid var(--line); font-size:13.5px}
+.ev:last-child{border-bottom:none}
+.ev .said{font-family:Spectral,Georgia,serif; font-size:15px}
+.ev .tech{display:block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); margin-top:2px}
+.ev.good .said{color:var(--ok)} .ev.bad .said{color:var(--bad)} .ev.warn .said{color:var(--warn)}
+.ev.now{background:var(--accent-soft)}
+.insp{padding:13px 15px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2); line-height:1.75}
+.insp h3{font-family:Archivo,sans-serif; font-size:13px; margin:0 0 8px; color:var(--ink)}
+.insp .k{color:var(--muted)}
+
+/* ---- legend ---- */
+.legend{display:flex; flex-wrap:wrap; gap:9px 20px; font-size:12.5px; color:var(--ink-2); padding:13px 15px}
+.legend span{display:flex; align-items:center; gap:7px}
+.key{width:15px; height:11px; border-radius:3px; border:2px solid}
+
+/* ---- scenarios ---- */
+.scen{display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:14px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:15px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px}
+.card h3{margin:0; font-size:15px; font-weight:700}
+.card p{margin:0; font-size:13.5px; color:var(--ink-2)}
+.card .q{font-family:Spectral,Georgia,serif; font-size:15px; color:var(--ink)}
+.choices{display:flex; flex-direction:column; gap:5px}
+.choices button{text-align:left; font-size:12.5px}
+.result{font-size:13px; padding:9px 11px; border-radius:8px; display:none}
+.result.show{display:block}
+.result.right{background:var(--ok-soft); color:var(--ok)}
+.result.wrong{background:var(--warn-soft); color:var(--warn)}
+.note{font-size:12.5px; color:var(--muted); max-width:76ch}
+code{font-family:"IBM Plex Mono",monospace; font-size:.92em; background:var(--surface-2); padding:1px 4px; border-radius:4px}
+
+@media (max-width:860px){
+  .split{grid-template-columns:1fr}
+  .reps{grid-auto-flow:row; grid-auto-columns:auto}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Interactive lab · replicated data</p>
+  <h1>Why writing to two of three is enough</h1>
+  <p class="lede">Three machines each keep a copy of the same value. You do not have to reach all of them
+  to write, and you do not have to ask all of them to read — but if the group you write to and the group
+  you read from can miss each other, you will read something that is out of date and nothing will warn
+  you. Move the two sliders and watch the arithmetic decide.</p>
+</header>
+
+<div class="verdict" id="verdict">
+  <div class="sum" id="sum"></div>
+  <div class="vtext">
+    <p class="state" id="vstate">Nothing has been written yet.</p>
+    <p class="why" id="vwhy">Press <strong>Ana writes</strong>, then <strong>Read</strong>. Use <strong>Step</strong> to go one replica at a time.</p>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="group">
+    <span class="glabel">Do</span>
+    <button class="wbtn" id="bWriteA">Ana writes</button>
+    <button class="wbtn" id="bWriteB">Ben writes</button>
+    <button class="rbtn" id="bRead">Read</button>
+    <button class="primary" id="bStep">Step ▸</button>
+    <button id="bBack">◂ Back</button>
+    <button id="bFinish">Finish op</button>
+    <button id="bReset">Reset</button>
+  </div>
+  <div class="group">
+    <span class="glabel">Settings</span>
+    <label class="knob"><span>copies&nbsp;N</span><input type="range" id="kN" min="3" max="5" step="2" value="3"><span class="val" id="vN">3</span></label>
+    <label class="knob wk"><span>write&nbsp;W</span><input type="range" id="kW" min="1" max="5" step="1" value="2"><span class="val" id="vW">2</span></label>
+    <label class="knob rk"><span>read&nbsp;R</span><input type="range" id="kR" min="1" max="5" step="1" value="2"><span class="val" id="vR">2</span></label>
+  </div>
+  <div class="group">
+    <span class="glabel">Break it</span>
+    <button id="bPartition">Cut the network</button>
+    <span class="note" style="font-size:12px">double-click a replica to kill or revive it</span>
+  </div>
+  <div class="group">
+    <span class="glabel">Asks first</span>
+    <select id="probe" aria-label="Which replica the coordinator contacts first">
+      <option value="auto">rotate each operation</option>
+    </select>
+  </div>
+  <div class="group">
+    <span class="glabel">Design switches</span>
+    <button id="bMode" class="on">Conflicts: keep both</button>
+    <button id="bSloppy">Sloppy quorum: off</button>
+    <button id="bRepair" class="on">Read repair: on</button>
+  </div>
+</div>
+
+<div class="panel stage">
+  <div class="band w"><span>Write set — replicas that acknowledged the last write</span><span class="cnt" id="wcnt"></span></div>
+  <div class="reps" id="reps"></div>
+  <div class="band r"><span>Read set — replicas that answered the last read</span><span class="cnt" id="rcnt"></span></div>
+</div>
+
+<div class="panel legend">
+  <span><i class="key" style="border-color:var(--write);background:var(--write-soft)"></i> in the write set</span>
+  <span><i class="key" style="border-color:var(--read);background:var(--read-soft)"></i> in the read set</span>
+  <span><i class="key" style="border-color:var(--both);background:var(--both-soft)"></i> <strong>in both — the overlap that carries the truth</strong></span>
+  <span><i class="key" style="border-color:var(--bad);background:transparent;border-style:dashed"></i> dead replica</span>
+  <span><i class="key" style="border-color:var(--warn);background:var(--warn-soft)"></i> holds an out-of-date copy</span>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>What just happened, and why it matters</h2><span class="note" id="evcount"></span></div>
+    <div class="logbox" id="log"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Inspector</h2><span class="note" id="inspname">click a replica</span></div>
+    <div class="insp" id="insp">Click any replica to see exactly what it holds, including version information.</div>
+  </div>
+</div>
+
+<div>
+  <p class="eyebrow" style="margin-bottom:12px">Predict first, then run</p>
+  <div class="scen" id="scen"></div>
+</div>
+
+<p class="note">Every rule enforced here is the same rule the Java lab in <code>src/</code> enforces and tests:
+a write lands on every replica it can reach but is only <em>called</em> a success at W acknowledgements;
+a read stops at R answers; concurrent versions are kept apart rather than guessed between; and a failed
+write is never rolled back.</p>
+
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   THE SIMULATION — pure state, one reducer, snapshots for "Back".
+   One step = one replica's response, so the learner can watch the count of
+   acknowledgements cross W (or fail to).
+   ========================================================================== */
+
+function initial(n) {
+  const nodes = [];
+  for (let i = 0; i < n; i++) nodes.push({ id: "n" + i, alive: true, vals: [] });
+  return {
+    N: n, W: 2, R: 2,
+    lww: false, sloppy: false, repair: true, partition: false,
+    clock: 100, writeCounter: 0,
+    // Which replica does the coordinator ask FIRST? This is not a detail: with
+    // R less than N it decides which replicas answer at all, and therefore
+    // whether a read sees a recent write. Left on "rotate" it moves each
+    // operation, the way a real client library spreads load.
+    probeStart: 0, autoRotate: true,
+    nodes,
+    lastWriteSet: [], lastReadSet: [],
+    op: null,
+    log: [], flash: [],
+    counters: { writesOk: 0, writesFailed: 0, readsOk: 0, readsFailed: 0, stale: 0, repairs: 0, siblings: 0, hints: 0 },
+    committed: null            // the newest value the client was TOLD was stored
+  };
+}
+
+/* --- version vectors: the only honest way to ask "is this newer, or just different?" --- */
+function vvInc(vv, who) { const m = { ...vv }; m[who] = (m[who] || 0) + 1; return m; }
+function vvMerge(a, b) { const m = { ...a }; for (const k in b) m[k] = Math.max(m[k] || 0, b[k]); return m; }
+function vvCmp(a, b) {
+  let le = true, ge = true;
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[k] || 0, y = b[k] || 0;
+    if (x > y) le = false;
+    if (x < y) ge = false;
+  }
+  if (le && ge) return "EQUAL";
+  if (le) return "BEFORE";
+  if (ge) return "AFTER";
+  return "CONCURRENT";
+}
+function vvStr(vv) { const ks = Object.keys(vv).sort(); return ks.length ? "{" + ks.map(k => k + ":" + vv[k]).join(",") + "}" : "{}"; }
+
+function say(st, tone, said, tech) { st.log.push({ tone, said, tech }); }
+function flash(st, id) { if (!st.flash.includes(id)) st.flash.push(id); }
+function node(st, id) { return st.nodes.find(n => n.id === id); }
+
+/* Which replicas own the key? In this one-key lab, the first N. The real rule
+   (hash the key onto a ring of machines) is a separate lesson. */
+function owners(st) {
+  const all = st.nodes.slice(0, st.N).map(n => n.id);
+  const k = st.probeStart % st.N;
+  return all.slice(k).concat(all.slice(0, k));
+}
+
+/* The partition puts the coordinator and the SPARE machines on one side, and
+   the rest of this key's owners on the other. That is the shape that makes a
+   sloppy quorum tempting: there are healthy machines to talk to -- they just
+   are not the ones that own this key. */
+function reachable(st, id) {
+  if (!st.partition) return true;
+  const idx = st.nodes.findIndex(n => n.id === id);
+  return idx === 0 || idx >= st.N;
+}
+
+/* Merge a value into a replica, keeping concurrent versions apart. */
+function store(st, nd, val) {
+  if (st.lww) {
+    let best = val;
+    for (const v of nd.vals) if (v.ts > best.ts) best = v;
+    nd.vals = [best];
+    return;
+  }
+  const next = [];
+  let dominated = false;
+  for (const v of nd.vals) {
+    const rel = vvCmp(v.vv, val.vv);
+    if (rel === "AFTER" || rel === "EQUAL") { next.push(v); dominated = true; }
+    else if (rel === "CONCURRENT") next.push(v);
+    // BEFORE: superseded, drop it
+  }
+  if (!dominated) next.push(val);
+  nd.vals = next;
+}
+
+function resolve(st, vals) {
+  if (!vals.length) return [];
+  if (st.lww) { let best = vals[0]; for (const v of vals) if (v.ts > best.ts) best = v; return [best]; }
+  const out = [];
+  for (const v of vals) {
+    if (vals.some(o => o !== v && vvCmp(v.vv, o.vv) === "BEFORE")) continue;
+    if (out.some(o => vvCmp(o.vv, v.vv) === "EQUAL" && o.value === v.value)) continue;
+    out.push(v);
+  }
+  return out;
+}
+
+/* --- starting an operation ------------------------------------------------ */
+
+function startWrite(st, client) {
+  if (st.op && !st.op.done) return st;
+  st.writeCounter++;
+  const label = client + "-" + st.writeCounter;
+  // Context: what this client last read. Writing with an EMPTY context makes
+  // every write look concurrent with every other, which is a real and very
+  // confusing bug -- so a client that has read carries the version forward.
+  const ctx = st.committed ? st.committed.vv : {};
+  const val = { value: label, vv: vvInc(ctx, client), ts: st.clock++, writer: client };
+  const order = owners(st);
+  st.op = { kind: "write", client, val, queue: order.slice(), acks: [], applied: [], sloppyAcks: [], done: false, ok: null };
+  say(st, "", `${client} starts a write of “${label}”. It goes to all ${st.N} replicas that hold this key (starting with ${order[0]}), but is only called a success once ${st.W} of them acknowledge.`,
+      `PUT ${label} vv=${vvStr(val.vv)} W=${st.W}`);
+  return st;
+}
+
+function startRead(st) {
+  if (st.op && !st.op.done) return st;
+  const order = owners(st);
+  st.op = { kind: "read", queue: order.slice(), answered: [], gathered: [], done: false, ok: null, result: [] };
+  say(st, "", `A read starts, asking ${order[0]} first. It answers as soon as ${st.R} replicas have replied — it does not wait for the rest, which is exactly why WHICH replicas it asks matters.`,
+      `GET R=${st.R} order=[${order.join(", ")}]`);
+  return st;
+}
+
+/* --- one step = one replica -------------------------------------------- */
+
+function step(st) {
+  st.flash = [];
+  const op = st.op;
+  if (!op || op.done) return st;
+
+  if (op.kind === "write") {
+    if (op.queue.length) {
+      const id = op.queue.shift();
+      const nd = node(st, id);
+      if (!nd.alive) { say(st, "bad", `${id} is down, so it never receives the write. It will hold an out-of-date copy until something repairs it.`, `${id}: unreachable`); return st; }
+      if (!reachable(st, id)) { say(st, "bad", `The network is cut: the coordinator cannot reach ${id}. The write does not get there.`, `${id}: partitioned`); return st; }
+      store(st, nd, op.val);
+      op.applied.push(id);
+      op.acks.push(id);
+      flash(st, id);
+      const enough = op.acks.length === st.W;
+      say(st, enough ? "good" : "", `${id} stores “${op.val.value}” and acknowledges. That is ${op.acks.length} of the ${st.W} acknowledgements needed.` +
+          (enough ? " The client is told the write succeeded right now — the remaining replicas are still being written to in the background." : ""),
+          `${id}: ACK (${op.acks.length}/${st.W})`);
+      return st;
+    }
+    // queue exhausted
+    if (op.acks.length < st.W && st.sloppy) {
+      const spare = st.nodes.slice(st.N).filter(n => n.alive && reachable(st, n.id));
+      for (const s of spare) {
+        if (op.acks.length >= st.W) break;
+        op.sloppyAcks.push(s.id);
+        op.acks.push(s.id);
+        st.counters.hints++;
+        say(st, "warn", `${s.id} does not own this key, but it accepts the value anyway so the write can be called a success. A strict read will never look here.`,
+            `${s.id}: sloppy ack + hint`);
+      }
+    }
+    op.done = true;
+    if (st.autoRotate) st.probeStart = (st.probeStart + 1) % st.N;
+    op.ok = op.acks.length >= st.W;
+    if (op.ok) {
+      st.counters.writesOk++;
+      st.committed = op.val;
+      st.lastWriteSet = op.acks.slice();
+      say(st, "good", `The write of “${op.val.value}” succeeded with ${op.acks.length} acknowledgement(s). From here on, a read is only guaranteed to see it if the read set and this write set must overlap.`,
+          `PUT ok, acked by [${op.acks.join(", ")}]`);
+    } else {
+      st.counters.writesFailed++;
+      st.lastWriteSet = op.acks.slice();
+      say(st, "bad", `The write FAILED: only ${op.acks.length} of ${st.W} replicas acknowledged. But look at the replicas — ${op.applied.length ? op.applied.join(" and ") + " stored it anyway, and nothing rolls that back" : "nothing stored it"}.`,
+          `PUT failed (${op.acks.length}/${st.W}), applied on [${op.applied.join(", ")}]`);
+    }
+    return st;
+  }
+
+  // ---- read ----
+  if (op.answered.length < st.R && op.queue.length) {
+    const id = op.queue.shift();
+    const nd = node(st, id);
+    if (!nd.alive) { say(st, "bad", `${id} is down and cannot answer the read.`, `${id}: unreachable`); return st; }
+    if (!reachable(st, id)) { say(st, "bad", `The network is cut: ${id} cannot answer this read.`, `${id}: partitioned`); return st; }
+    op.answered.push(id);
+    op.gathered.push(...nd.vals);
+    flash(st, id);
+    const held = nd.vals.length ? nd.vals.map(v => v.value).join(" + ") : "nothing";
+    say(st, "", `${id} answers with ${held}. That is ${op.answered.length} of the ${st.R} answers needed.`,
+        `${id}: ${nd.vals.map(v => v.value + vvStr(v.vv)).join(" ") || "—"} (${op.answered.length}/${st.R})`);
+    return st;
+  }
+
+  op.done = true;
+  if (st.autoRotate) st.probeStart = (st.probeStart + 1) % st.N;
+  if (op.answered.length < st.R) {
+    op.ok = false; st.counters.readsFailed++;
+    st.lastReadSet = op.answered.slice();
+    say(st, "bad", `The read FAILED: only ${op.answered.length} replicas could answer and ${st.R} were required. A high R buys freshness and pays for it in availability.`,
+        `GET failed (${op.answered.length}/${st.R})`);
+    return st;
+  }
+  op.ok = true; st.counters.readsOk++;
+  op.result = resolve(st, op.gathered);
+  st.lastReadSet = op.answered.slice();
+
+  const seen = op.result.map(v => v.value);
+  if (op.result.length > 1) {
+    st.counters.siblings++;
+    say(st, "warn", `The read returns ${op.result.length} values that nobody wrote on top of each other: ${seen.join(" and ")}. These are concurrent versions, and the database is refusing to guess between them — the application has to decide.`,
+        `GET -> siblings [${op.result.map(v => v.value + vvStr(v.vv)).join(", ")}]`);
+  } else {
+    const stale = st.committed && !seen.includes(st.committed.value) &&
+      !op.result.some(v => vvCmp(st.committed.vv, v.vv) === "BEFORE");
+    if (stale) {
+      st.counters.stale++;
+      say(st, "bad", `STALE READ. The client was told “${st.committed.value}” was stored, but this read returned ${seen[0] ? "“" + seen[0] + "”" : "nothing"}. No error was raised — that is what makes it dangerous.`,
+          `GET -> ${seen[0] || "∅"} (committed was ${st.committed.value})`);
+    } else {
+      say(st, "good", `The read returns ${seen[0] ? "“" + seen[0] + "”" : "nothing"} — the newest value any of the answering replicas held.`,
+          `GET -> ${seen[0] || "∅"}`);
+    }
+  }
+
+  if (st.repair && op.result.length) {
+    for (const id of op.answered) {
+      const nd = node(st, id);
+      const before = nd.vals.map(v => v.value).sort().join(",");
+      for (const v of op.result) store(st, nd, v);
+      if (nd.vals.map(x => x.value).sort().join(",") !== before) {
+        st.counters.repairs++;
+        flash(st, id);
+        say(st, "good", `${id} was behind, so the read pushed the winning value back into it. Reads quietly repair the replicas they touch — and only those.`,
+            `read repair -> ${id}`);
+      }
+    }
+  }
+  return st;
+}
+
+function finishOp(st) { let guard = 0; while (st.op && !st.op.done && guard++ < 60) step(st); return st; }
+
+/* --- structural actions -------------------------------------------------- */
+
+function toggleNode(st, id) {
+  const nd = node(st, id);
+  nd.alive = !nd.alive;
+  flash(st, id);
+  say(st, nd.alive ? "good" : "bad", nd.alive
+      ? `${id} comes back. Note what it is holding: whatever it missed while it was away is still missing, and nothing has told it so.`
+      : `${id} goes down. It will miss every write until it returns.`,
+      `${id}.alive = ${nd.alive}`);
+  return st;
+}
+
+function setPartition(st, on) {
+  st.partition = on;
+  say(st, on ? "bad" : "good", on
+      ? "The network is cut. The coordinator can still reach n0 and the spare machines, but not the other replicas that own this key — which is exactly the situation a sloppy quorum is designed to exploit."
+      : "The network heals. All replicas are reachable again, though some may still hold out-of-date copies.",
+      "partition = " + on);
+  return st;
+}
+
+/* ==========================================================================
+   THE APP
+   ========================================================================== */
+
+let st = initial(3);
+let history = [];
+let selected = null;
+
+const $ = id => document.getElementById(id);
+function snap() { history.push(JSON.parse(JSON.stringify(st))); if (history.length > 300) history.shift(); }
+function commit(fn) { snap(); st = fn(st) || st; render(); }
+function back() { if (history.length) { st = history.pop(); render(); } }
+
+function render() {
+  $("vN").textContent = st.N; $("vW").textContent = st.W; $("vR").textContent = st.R;
+  $("kW").max = st.N; $("kR").max = st.N;
+  $("kN").value = st.N; $("kW").value = st.W; $("kR").value = st.R;
+  $("sum").innerHTML = `<span class="r">R ${st.R}</span> + <span class="w">W ${st.W}</span> = ${st.R + st.W}
+     ${st.R + st.W > st.N ? "&gt;" : "≤"} <span class="n">N ${st.N}</span>`;
+  refreshProbe();
+  renderReplicas(); renderVerdict(); renderLog(); renderInspector();
+  $("bStep").disabled = !st.op || st.op.done;
+  $("bFinish").disabled = !st.op || st.op.done;
+  $("bBack").disabled = !history.length;
+  $("bPartition").textContent = st.partition ? "Heal the network" : "Cut the network";
+  $("bPartition").className = st.partition ? "bad" : "";
+  $("bMode").textContent = "Conflicts: " + (st.lww ? "newest timestamp wins" : "keep both");
+  $("bMode").className = st.lww ? "" : "on";
+  $("bSloppy").textContent = "Sloppy quorum: " + (st.sloppy ? "on" : "off");
+  $("bSloppy").className = st.sloppy ? "bad" : "";
+  $("bRepair").textContent = "Read repair: " + (st.repair ? "on" : "off");
+  $("bRepair").className = st.repair ? "on" : "";
+  $("evcount").textContent = st.log.length + " events";
+  $("wcnt").textContent = st.lastWriteSet.length ? "{" + st.lastWriteSet.join(", ") + "}" : "— nothing written yet —";
+  $("rcnt").textContent = st.lastReadSet.length ? "{" + st.lastReadSet.join(", ") + "}" : "— nothing read yet —";
+}
+
+function renderReplicas() {
+  const op = st.op;
+  const inW = new Set(op && op.kind === "write" ? op.acks : st.lastWriteSet);
+  const inR = new Set(op && op.kind === "read" ? op.answered : st.lastReadSet);
+  const own = owners(st);
+  $("reps").style.gridTemplateColumns = "";
+  $("reps").innerHTML = st.nodes.map(n => {
+    const isOwner = own.includes(n.id);
+    const both = inW.has(n.id) && inR.has(n.id);
+    const behind = st.committed && isOwner && n.alive &&
+      !n.vals.some(v => vvCmp(st.committed.vv, v.vv) === "BEFORE" || vvCmp(st.committed.vv, v.vv) === "EQUAL");
+    const unreachable = n.alive && !reachable(st, n.id);
+    const cls = ["rep",
+      (!n.alive || unreachable) ? "dead" : "",
+      both ? "inBoth" : inW.has(n.id) ? "inW" : inR.has(n.id) ? "inR" : "",
+      selected === n.id ? "sel" : "",
+      st.flash.includes(n.id) ? "flash" : ""].filter(Boolean).join(" ");
+    const tag = both ? '<span class="tag both">in both</span>'
+      : inW.has(n.id) ? '<span class="tag ack">acked</span>'
+      : inR.has(n.id) ? '<span class="tag ans">answered</span>'
+      : unreachable ? '<span class="tag miss">cut off</span>'
+      : behind ? '<span class="tag miss">behind</span>' : "";
+    const held = n.vals.length ? n.vals.map(v => v.value + " " + vvStr(v.vv)).join("<br>") : "—";
+    return `<div class="${cls}" data-id="${n.id}" tabindex="0">${tag}
+      <div class="rid"><i class="dot"></i>${n.id}${isOwner ? "" : " <span style='font-weight:400;color:var(--muted)'>(spare)</span>"}</div>
+      <div class="held">${held}</div></div>`;
+  }).join("");
+}
+
+function renderVerdict() {
+  const v = $("verdict"), s = $("vstate"), w = $("vwhy");
+  const overlaps = st.R + st.W > st.N;
+  v.className = "verdict " + (st.sloppy ? "broken" : overlaps ? "holds" : "broken");
+  if (overlaps && !st.sloppy) {
+    s.innerHTML = "Every read is guaranteed to touch a replica that has the newest successful write.";
+    w.textContent = `Any ${st.R} replicas and any ${st.W} replicas out of ${st.N} must share at least one member — there is nowhere for ${st.R} + ${st.W} = ${st.R + st.W} replicas to fit inside ${st.N} without repeating one. That shared replica is the one carrying the truth, and it is coloured as "in both" below.`;
+  } else if (!overlaps) {
+    s.innerHTML = "A read can miss the newest write completely, and nothing will tell you.";
+    w.textContent = `${st.R} + ${st.W} = ${st.R + st.W}, which fits inside ${st.N} without overlapping. The read set and the write set can be entirely different replicas. You may still get fresh answers most of the time — that is what makes this so easy to ship by accident.`;
+  }
+  if (st.sloppy) {
+    s.innerHTML = "The arithmetic still says the guarantee holds. It does not.";
+    w.textContent = "With a sloppy quorum, acknowledgements may come from replicas that do not own this key. R + W > N is arithmetic about a set the write never touched, so the read set can miss it entirely. Availability is real; the guarantee is suspended until the parked values are handed home.";
+  }
+  const c = st.counters;
+  if (c.stale) w.textContent += `  ${c.stale} stale read(s) have happened so far in this session.`;
+}
+
+function renderLog() {
+  const el = $("log");
+  if (!st.log.length) { el.innerHTML = `<div class="ev"><span class="said">Nothing yet. Press “Ana writes”.</span></div>`; return; }
+  el.innerHTML = st.log.slice(-60).map((e, i, a) =>
+    `<div class="ev ${e.tone} ${i === a.length - 1 ? "now" : ""}"><span class="said">${e.said}</span><span class="tech">${e.tech}</span></div>`).join("");
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderInspector() {
+  const el = $("insp"), nm = $("inspname");
+  if (!selected) { nm.textContent = "click a replica"; el.textContent = "Click any replica to see exactly what it holds, including version information."; return; }
+  const n = node(st, selected);
+  nm.textContent = selected;
+  const c = st.counters;
+  el.innerHTML = `<h3>${selected}</h3>
+    <div><span class="k">alive</span> ${n.alive}</div>
+    <div><span class="k">owns this key</span> ${owners(st).includes(selected)}</div>
+    <div><span class="k">holds</span> ${n.vals.length ? n.vals.map(v => `${v.value} ${vvStr(v.vv)} @t${v.ts}`).join("<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;") : "nothing"}</div>
+    <div><span class="k">client believes stored</span> ${st.committed ? st.committed.value + " " + vvStr(st.committed.vv) : "nothing yet"}</div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:8px 0">
+    <div><span class="k">writes</span> ok ${c.writesOk} · failed ${c.writesFailed}</div>
+    <div><span class="k">reads</span> ok ${c.readsOk} · failed ${c.readsFailed} · <b>stale ${c.stale}</b></div>
+    <div><span class="k">read repairs</span> ${c.repairs} · <span class="k">sibling reads</span> ${c.siblings} · <span class="k">sloppy acks</span> ${c.hints}</div>`;
+}
+
+/* --- wiring -------------------------------------------------------------- */
+
+$("bWriteA").onclick = () => commit(s => startWrite(s, "ana"));
+$("bWriteB").onclick = () => commit(s => startWrite(s, "ben"));
+$("bRead").onclick = () => commit(startRead);
+$("bStep").onclick = () => commit(step);
+$("bFinish").onclick = () => commit(finishOp);
+$("bBack").onclick = back;
+$("bReset").onclick = () => { history = []; selected = null; const n = st.N, W = st.W, R = st.R, lww = st.lww, sl = st.sloppy, rp = st.repair;
+  st = initial(n); st.W = Math.min(W, n); st.R = Math.min(R, n); st.lww = lww; st.sloppy = sl; st.repair = rp; render(); };
+
+$("kN").oninput = e => commit(s => { s.N = +e.target.value;
+  while (s.nodes.length < s.N + 2) s.nodes.push({ id: "n" + s.nodes.length, alive: true, vals: [] });
+  s.W = Math.min(s.W, s.N); s.R = Math.min(s.R, s.N); return s; });
+$("kW").oninput = e => commit(s => { s.W = +e.target.value; return s; });
+$("kR").oninput = e => commit(s => { s.R = +e.target.value; return s; });
+
+function refreshProbe() {
+  const sel = $("probe");
+  const want = ["auto"].concat(st.nodes.slice(0, st.N).map(n => n.id));
+  if (sel.options.length !== want.length) {
+    sel.innerHTML = want.map(v => `<option value="${v}">${v === "auto" ? "rotate each operation" : "always " + v}</option>`).join("");
+  }
+  sel.value = st.autoRotate ? "auto" : st.nodes[st.probeStart % st.N].id;
+}
+$("probe").onchange = e => commit(s => {
+  if (e.target.value === "auto") { s.autoRotate = true; say(s, "", "The coordinator will now start with a different replica each operation, the way a real client library spreads load across replicas.", "probeStart = rotate"); }
+  else { s.autoRotate = false; s.probeStart = s.nodes.findIndex(n => n.id === e.target.value);
+    say(s, "", `Every operation will now start with ${e.target.value}. Pinning this is how you turn "sometimes stale" into "always stale" and make the failure reproducible.`, "probeStart = " + e.target.value); }
+  return s;
+});
+
+$("bPartition").onclick = () => commit(s => setPartition(s, !s.partition));
+$("bMode").onclick = () => commit(s => { s.lww = !s.lww;
+  say(s, s.lww ? "warn" : "good", s.lww
+    ? "Conflicts will now be settled by timestamp: of two values neither of which saw the other, the one written later simply wins and the other is destroyed with no record."
+    : "Conflicts will now be kept as separate versions and handed to the application, which is the only way a concurrent write is never silently lost.",
+    "lastWriteWins = " + s.lww); return s; });
+$("bSloppy").onclick = () => commit(s => { s.sloppy = !s.sloppy;
+  say(s, s.sloppy ? "warn" : "good", s.sloppy
+    ? "Sloppy quorum on: if the replicas that own the key cannot be reached, any other replica may accept the write so it can be called a success."
+    : "Sloppy quorum off: only replicas that own the key may acknowledge a write, so W means what it says.",
+    "sloppyQuorum = " + s.sloppy); return s; });
+$("bRepair").onclick = () => commit(s => { s.repair = !s.repair;
+  say(s, "", s.repair ? "Read repair on: a read will push the winning value back into any replica it finds behind."
+    : "Read repair off: replicas that fall behind stay behind until something else fixes them.",
+    "readRepair = " + s.repair); return s; });
+
+document.getElementById("reps").addEventListener("click", e => {
+  const el = e.target.closest("[data-id]"); if (!el) return;
+  if (e.shiftKey || e.metaKey) { commit(s => toggleNode(s, el.dataset.id)); return; }
+  selected = selected === el.dataset.id ? null : el.dataset.id;
+  render();
+});
+document.getElementById("reps").addEventListener("dblclick", e => {
+  const el = e.target.closest("[data-id]"); if (!el) return;
+  commit(s => toggleNode(s, el.dataset.id));
+});
+document.getElementById("reps").addEventListener("keydown", e => {
+  const el = e.target.closest("[data-id]"); if (!el) return;
+  if (e.key === "Enter") { e.preventDefault(); selected = selected === el.dataset.id ? null : el.dataset.id; render(); }
+  if (e.key === " ") { e.preventDefault(); commit(s => toggleNode(s, el.dataset.id)); }
+});
+
+/* --- predict-then-run ---------------------------------------------------- */
+
+const SCEN = [
+  {
+    t: "Write to two, read from two",
+    setup: "N=3, W=2, R=2. One replica is dead the whole time.",
+    q: "The write succeeds with two acknowledgements. Can the following read miss it?",
+    opts: [["No — any two replicas must include one that acknowledged", true],
+           ["Yes — the read might ask the two that did not acknowledge", false],
+           ["Only if the dead replica comes back first", false]],
+    why: "There are three replicas and two of them acknowledged. A read of two cannot avoid both of them, because that would need four distinct replicas out of three. The overlapping replica is highlighted 'in both' — that single replica is the entire guarantee.",
+    run: async s => { await set(3, 2, 2); await act(x => toggleNode(x, "n2")); await write("ana"); await read(); }
+  },
+  {
+    t: "Write to one, read from one",
+    setup: "N=3, W=1, R=1, and a replica that was offline during the write comes back.",
+    q: "1 + 1 = 2, which is not more than 3. What does the next read return?",
+    opts: [["It can return an out-of-date value, with no error", true],
+           ["It always returns the newest value; W=1 only affects durability", false],
+           ["The read fails, because only one replica has the value", false]],
+    why: "W=1 means exactly one replica is known to have it. R=1 means the read asks exactly one replica. Nothing forces those to be the same replica. Notice the read succeeds and looks completely normal — a stale read is not an error, which is precisely why this configuration ships by accident.",
+    run: async s => {
+      await set(3, 1, 1);
+      await act(x => { x.repair = false; x.autoRotate = false; x.probeStart = 0; return x; });
+      await act(x => toggleNode(x, "n1")); await act(x => toggleNode(x, "n2"));
+      await write("ana");                                   // only n0 gets it
+      await act(x => toggleNode(x, "n1")); await act(x => toggleNode(x, "n2"));
+      await act(x => { x.probeStart = 1; return x; });       // now ask n1 first
+      await read();
+    }
+  },
+  {
+    t: "Two people write at the same time",
+    setup: "N=3, W=2, R=2. Ana and Ben each write without having seen the other's value.",
+    q: "With conflicts set to 'keep both', what does the read return?",
+    opts: [["Both values, as separate versions the application must merge", true],
+           ["Ben's value, because it was written second", false],
+           ["An error, because the versions conflict", false]],
+    why: "Neither version's history contains the other, so there is no 'later' to pick — any answer would be a guess. Keeping both is the database admitting that honestly. Switch the mode to 'newest timestamp wins' and run it again: one value survives, the other is gone, and nothing anywhere records that it ever existed.",
+    run: async s => { await set(3, 2, 2); await write("ana"); await write("ben", true); await read(); }
+  },
+  {
+    t: "A sloppy quorum during a partition",
+    setup: "N=3, W=2, R=2, sloppy quorum on, and the network cut so only n0 is reachable.",
+    q: "R + W > N still holds. Is the write guaranteed to be visible to the next read?",
+    opts: [["No — the acknowledgements came from replicas that do not own the key", true],
+           ["Yes — the arithmetic is what matters and it is unchanged", false],
+           ["Yes, as long as read repair is switched on", false]],
+    why: "The arithmetic was never about numbers of machines; it is about two SETS being forced to intersect. A sloppy quorum collects its acknowledgements from outside the set of replicas that own the key, so the read set and the write set have nothing to intersect with. Availability is real and often worth it — but during that window you have an eventually-consistent store, not a quorum-consistent one.",
+    run: async s => { await set(3, 2, 2); await act(x => { x.sloppy = true; return x; }); await act(x => setPartition(x, true)); await write("ana"); await act(x => setPartition(x, false)); await read(); }
+  }
+];
+
+function pause(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function act(fn) { commit(fn); await pause(240); }
+async function set(n, w, r) { await act(s => { s.N = n; while (s.nodes.length < n + 2) s.nodes.push({ id: "n" + s.nodes.length, alive: true, vals: [] }); s.W = w; s.R = r; return s; }); }
+async function write(who, noCtx) {
+  commit(s => startWrite(s, who));
+  if (noCtx) { st.op.val.vv = { [who]: 1 }; }   // this client had not seen the other's write
+  await pause(240);
+  while (st.op && !st.op.done) { commit(step); await pause(230); }
+}
+async function read() { commit(startRead); await pause(240); while (st.op && !st.op.done) { commit(step); await pause(230); } }
+
+$("scen").innerHTML = SCEN.map((s, i) => `
+  <div class="card">
+    <h3>${s.t}</h3><p>${s.setup}</p><p class="q">${s.q}</p>
+    <div class="choices">${s.opts.map((o, j) => `<button data-s="${i}" data-o="${j}">${o[0]}</button>`).join("")}</div>
+    <div class="result" id="res${i}"></div>
+    <button data-run="${i}">Run it for me ▸</button>
+  </div>`).join("");
+
+$("scen").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.s !== undefined) {
+    const s = SCEN[+b.dataset.s], right = s.opts[+b.dataset.o][1], r = $("res" + b.dataset.s);
+    r.className = "result show " + (right ? "right" : "wrong");
+    r.innerHTML = `<strong>${right ? "That is what happens." : "Not quite."}</strong> ${s.why}`;
+    return;
+  }
+  if (b.dataset.run !== undefined) {
+    b.disabled = true; b.textContent = "running…";
+    history = []; selected = null; st = initial(3);
+    render();
+    await SCEN[+b.dataset.run].run();
+    b.disabled = false; b.textContent = "Run it again ▸";
+  }
+});
+
+render();
+</script>

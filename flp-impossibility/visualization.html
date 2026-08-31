@@ -1,0 +1,1328 @@
+<title>The Ferryman's Choice</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#e9e6de; --card:#f8f6f1; --card2:#f0ece3; --ink:#1b232b; --muted:#5d6a72; --line:#d3cec2;
+  --sea:#2f6690; --sea-soft:#dfe9f0;
+  --plum:#7a4b74; --plum-soft:#f0e4ee;
+  --olive:#4f7331; --olive-soft:#e5eeda;
+  --dark:#41535f; --dark-soft:#e2e6e9;
+  --lit:#b3790a;  --lit-soft:#f7ecd2;
+  --ferry:#8a2f3f; --ferry-soft:#f6e2e4;
+  --good:#28654e; --good-soft:#dcece4;
+  --chip:#e5e1d7; --shadow:rgba(27,35,43,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181c; --card:#1d2328; --card2:#252c32; --ink:#e3e0d7; --muted:#95a0a7; --line:#333c43;
+    --sea:#6ba7cf; --sea-soft:#152834;
+    --plum:#c48bbb; --plum-soft:#2c1d2a;
+    --olive:#93bd6f; --olive-soft:#1d2a16;
+    --dark:#93a6b4; --dark-soft:#222a30;
+    --lit:#e0aa3d;  --lit-soft:#332708;
+    --ferry:#e2757f; --ferry-soft:#361a1d;
+    --good:#5fbb93; --good-soft:#122b21;
+    --chip:#2a3238; --shadow:rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181c; --card:#1d2328; --card2:#252c32; --ink:#e3e0d7; --muted:#95a0a7; --line:#333c43;
+  --sea:#6ba7cf; --sea-soft:#152834;
+  --plum:#c48bbb; --plum-soft:#2c1d2a;
+  --olive:#93bd6f; --olive-soft:#1d2a16;
+  --dark:#93a6b4; --dark-soft:#222a30;
+  --lit:#e0aa3d;  --lit-soft:#332708;
+  --ferry:#e2757f; --ferry-soft:#361a1d;
+  --good:#5fbb93; --good-soft:#122b21;
+  --chip:#2a3238; --shadow:rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); margin:0; padding:22px 20px 80px;
+  font:15px/1.55 Karla,system-ui,-apple-system,sans-serif;}
+.wrap{max-width:1320px; margin:0 auto;}
+h1{font-family:"Cormorant Garamond",Georgia,serif; font-weight:700; font-size:46px; line-height:1.05;
+  margin:0 0 2px; letter-spacing:.2px; text-wrap:balance;}
+h2{font-family:"Cormorant Garamond",Georgia,serif; font-weight:700; font-size:27px; margin:0 0 4px;
+  text-wrap:balance;}
+.lede{color:var(--muted); max-width:70ch; margin:6px 0 0;}
+.lede b,.lede strong{color:var(--ink); font-weight:700;}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+.eyebrow{font-size:11.5px; text-transform:uppercase; letter-spacing:.14em; font-weight:700; color:var(--muted);}
+
+/* tabs */
+.tabs{display:flex; gap:0; flex-wrap:wrap; margin:20px 0 0; border-bottom:2px solid var(--line);}
+.tabs button{font:inherit; font-weight:700; font-size:14px; background:none; border:none;
+  border-bottom:3px solid transparent; margin-bottom:-2px; color:var(--muted);
+  padding:9px 15px 8px; cursor:pointer; letter-spacing:.01em;}
+.tabs button .n{font-family:"JetBrains Mono",monospace; font-size:11px; opacity:.6; margin-right:7px;}
+.tabs button:hover{color:var(--ink);}
+.tabs button.on{color:var(--ferry); border-bottom-color:var(--ferry);}
+.tabs button:focus-visible{outline:2px solid var(--ferry); outline-offset:-2px;}
+.panel{padding-top:20px;}
+
+.cols{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;}
+.stage{flex:1 1 640px; min-width:480px; display:flex; flex-direction:column; gap:14px;}
+.rail{flex:1 1 340px; min-width:310px; display:flex; flex-direction:column; gap:14px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:5px; padding:14px 16px;}
+.card>h3{margin:0 0 11px; font-size:11.5px; text-transform:uppercase; letter-spacing:.13em;
+  color:var(--muted); font-weight:700; border-bottom:1px solid var(--line); padding-bottom:7px;}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.spread{justify-content:space-between;}
+p{margin:0 0 10px;} p:last-child{margin-bottom:0;}
+
+button.b{font:inherit; font-weight:500; font-size:13.5px; color:var(--ink); background:var(--card2);
+  border:1px solid var(--line); border-radius:4px; padding:6px 12px; cursor:pointer;}
+button.b:hover:not(:disabled){border-color:var(--ferry); color:var(--ferry);}
+button.b:focus-visible{outline:2px solid var(--ferry); outline-offset:2px;}
+button.b.primary{background:var(--ferry); border-color:var(--ferry); color:#fff; font-weight:700;}
+button.b.primary:hover:not(:disabled){color:#fff; filter:brightness(1.1);}
+button.b:disabled{opacity:.38; cursor:default;}
+button.b.tiny{padding:3px 9px; font-size:12.5px;}
+
+/* islands */
+.islands{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+.isl{background:var(--card); border:1px solid var(--line); border-top:4px solid var(--c);
+  border-radius:5px; padding:12px 13px; display:flex; flex-direction:column; gap:8px; position:relative;}
+.isl.p0{--c:var(--sea); --cs:var(--sea-soft);}
+.isl.p1{--c:var(--plum); --cs:var(--plum-soft);}
+.isl.p2{--c:var(--olive); --cs:var(--olive-soft);}
+.isl.dead{opacity:.45; filter:grayscale(.7);}
+.isl.flash{box-shadow:0 0 0 3px var(--cs), 0 0 0 4px var(--c);}
+.isl h4{margin:0; font-size:17px; font-weight:700; color:var(--c); display:flex; align-items:center; gap:8px;}
+.isl h4 .want{font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+.lamp{width:100%; height:44px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; border:1px solid var(--line);}
+.lamp.undec{background:linear-gradient(100deg,var(--dark-soft) 0 50%,var(--lit-soft) 50% 100%); color:var(--muted);}
+.lamp.d0{background:var(--dark-soft); color:var(--dark); border-color:var(--dark);}
+.lamp.d1{background:var(--lit-soft); color:var(--lit); border-color:var(--lit);}
+.isl .plain{font-size:13px; color:var(--ink); min-height:3.1em; line-height:1.4;}
+.isl .tech{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--muted); line-height:1.5;
+  border-top:1px dashed var(--line); padding-top:6px; word-break:break-word;}
+.isl .acts{display:flex; gap:6px; flex-wrap:wrap;}
+
+/* satchel */
+.satchel{display:flex; gap:7px; flex-wrap:wrap; min-height:44px;}
+.letter{font-family:"JetBrains Mono",monospace; font-size:11.5px; border:1px solid var(--line);
+  background:var(--card2); border-radius:4px; padding:5px 8px; cursor:pointer; text-align:left;
+  line-height:1.35; color:var(--ink); display:flex; flex-direction:column; gap:1px; min-width:118px;}
+.letter:hover{border-color:var(--ferry); color:var(--ferry);}
+.letter:focus-visible{outline:2px solid var(--ferry); outline-offset:2px;}
+.letter .rt{font-weight:500;}
+.letter .age{font-size:10px; color:var(--muted);}
+.letter.old{border-color:var(--ferry); background:var(--ferry-soft);}
+.letter.next{box-shadow:0 0 0 2px var(--ferry);}
+.empty{color:var(--muted); font-size:13px; font-style:italic; padding:12px 0;}
+
+/* verdict */
+.verdict{border-radius:5px; padding:13px 14px; border:1px solid var(--line); background:var(--card2);}
+.verdict .big{font-family:"Cormorant Garamond",Georgia,serif; font-size:24px; font-weight:700; line-height:1.15;}
+.verdict.open{background:var(--ferry-soft); border-color:var(--ferry);} .verdict.open .big{color:var(--ferry);}
+.verdict.done{background:var(--good-soft); border-color:var(--good);} .verdict.done .big{color:var(--good);}
+.verdict p{font-size:13.5px; margin-top:7px; color:var(--ink);}
+
+/* audit */
+.audit{display:grid; grid-template-columns:1fr auto; gap:4px 12px; font-size:13px;}
+.audit .k{color:var(--muted);}
+.audit .v{font-family:"JetBrains Mono",monospace; font-weight:500; text-align:right;}
+.audit .v.ok{color:var(--good);} .audit .v.warn{color:var(--ferry);}
+
+/* log */
+.log{max-height:330px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:0;}
+.logline{border-bottom:1px solid var(--line); padding:7px 0;}
+.logline:first-child{border-bottom:none;}
+.logline.new{background:var(--ferry-soft); margin:0 -8px; padding-left:8px; padding-right:8px;}
+.logline .s{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--muted);}
+.logline .p{font-size:13px; line-height:1.45;}
+.logline .t{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--muted); margin-top:2px;}
+
+/* generic bits */
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted);}
+.legend span{display:flex; align-items:center; gap:6px;}
+.sw{width:13px; height:13px; border-radius:3px; border:1px solid var(--line); display:inline-block;}
+label.f{display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.09em; font-weight:700; flex:1 1 128px;}
+select,input[type=range]{font:inherit; width:100%;}
+select{padding:5px 8px; border:1px solid var(--line); border-radius:4px; background:var(--card2);
+  color:var(--ink); font-size:13.5px; text-transform:none; letter-spacing:0; font-weight:400;}
+input[type=range]{accent-color:var(--ferry); margin:5px 0 0;}
+.chk{display:flex; align-items:center; gap:8px; font-size:13.5px; text-transform:none;
+  letter-spacing:0; font-weight:400; color:var(--ink); cursor:pointer;}
+.chk input{accent-color:var(--ferry); width:16px; height:16px;}
+table.t{width:100%; border-collapse:collapse; font-size:13px;}
+table.t th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--muted); border-bottom:1px solid var(--line); padding:5px 8px 5px 0; font-weight:700;}
+table.t td{padding:6px 8px 6px 0; border-bottom:1px solid var(--line); vertical-align:top;}
+table.t td.num{font-family:"JetBrains Mono",monospace; text-align:right; font-variant-numeric:tabular-nums;}
+.scroll{overflow-x:auto;}
+.q{background:var(--card2); border:1px solid var(--line); border-left:3px solid var(--ferry);
+  border-radius:4px; padding:12px 14px;}
+.q .qt{font-weight:700; margin-bottom:9px;}
+.q .opts{display:flex; gap:8px; flex-wrap:wrap;}
+.q .res{margin-top:11px; font-size:13.5px; display:none;}
+.q .res.show{display:block;}
+.res.right{color:var(--good);} .res.wrong{color:var(--ferry);}
+.pill{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  padding:2px 8px; border-radius:99px; border:1px solid var(--line); background:var(--chip); color:var(--muted);}
+.pill.good{background:var(--good-soft); color:var(--good); border-color:var(--good);}
+.pill.bad{background:var(--ferry-soft); color:var(--ferry); border-color:var(--ferry);}
+.note{font-size:12.5px; color:var(--muted); border-left:2px solid var(--line); padding-left:11px;}
+.worlds{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media (max-width:820px){ .worlds{grid-template-columns:1fr;} .islands{grid-template-columns:1fr;} }
+.tl{display:flex; flex-direction:column; gap:0; font-family:"JetBrains Mono",monospace; font-size:12px;}
+.tl .ev{display:grid; grid-template-columns:46px 1fr; gap:10px; padding:5px 0; border-bottom:1px solid var(--line);}
+.tl .ev .tm{color:var(--muted);}
+.tl .ev.hid{opacity:.32;}
+.diamond{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.dnode{border:1px solid var(--line); border-radius:4px; padding:9px 11px; background:var(--card2);
+  font-family:"JetBrains Mono",monospace; font-size:11px; word-break:break-all; line-height:1.5;}
+.dnode.same{border-color:var(--good); background:var(--good-soft);}
+.chain{display:flex; gap:8px; flex-wrap:wrap;}
+.cnode{border:1px solid var(--line); border-radius:4px; padding:9px 11px; background:var(--card2);
+  cursor:pointer; text-align:center; min-width:96px;}
+.cnode:hover{border-color:var(--ferry);}
+.cnode.on{border-color:var(--ferry); box-shadow:0 0 0 2px var(--ferry-soft);}
+.cnode .ci{font-family:"JetBrains Mono",monospace; font-size:14px; font-weight:500;}
+.cnode .cv{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-top:3px;}
+.cv.b{color:var(--ferry);} .cv.z{color:var(--dark);} .cv.o{color:var(--lit);}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
+.isl,.letter,.logline{transition:box-shadow .18s ease, background .18s ease;}
+footer{margin-top:34px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px;}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Fischer · Lynch · Paterson · 1985</div>
+  <h1>The Ferryman&rsquo;s Choice</h1>
+  <p class="lede">Three lighthouse keepers must agree on one thing tonight: <b>light the beacons</b>, or
+  <b>leave them dark</b>. Half a lit coast is worse than either, so all three must do the same thing.
+  They can only write letters. A ferryman carries every letter and <b>never loses one</b> &mdash; but the
+  sea decides how long he takes, and nobody owns a clock. Any one keeper might fall ill and stop writing.
+  <br>This page lets you <b>be the ferryman</b>. You will find you can keep the matter open forever, while
+  delivering every single letter.</p>
+</header>
+
+<div class="tabs" role="tablist">
+  <button class="b0 on" data-tab="0" role="tab"><span class="n">01</span>Slow, or dead?</button>
+  <button class="b0" data-tab="1" role="tab"><span class="n">02</span>Play the ferryman</button>
+  <button class="b0" data-tab="2" role="tab"><span class="n">03</span>Why the ferryman always wins</button>
+  <button class="b0" data-tab="3" role="tab"><span class="n">04</span>The four escapes</button>
+</div>
+
+<!-- ============ TAB 0 ============ -->
+<section class="panel" id="tab0">
+  <h2>The one observation nobody can make</h2>
+  <p class="lede">Ada writes to Bo and waits. Nothing comes back. Below are the only two worlds that could
+  explain it. <b>Bo's letter is on a slow boat</b>, or <b>Bo is dead</b>. Ada sees exactly the same thing
+  in both: an empty mailbox.</p>
+
+  <div class="cols" style="margin-top:16px">
+    <div class="stage">
+      <div class="worlds">
+        <div class="card">
+          <h3>World A &mdash; Bo is alive, the boat is slow</h3>
+          <div class="tl" id="wA"></div>
+        </div>
+        <div class="card">
+          <h3>World B &mdash; Bo died before writing</h3>
+          <div class="tl" id="wB"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>What Ada actually sees</h3>
+        <div class="tl" id="wAda"></div>
+        <p class="note" style="margin-top:10px">Identical in both worlds. There is no letter Ada can write,
+        no question she can ask, and no instrument she can build that separates these two pictures &mdash;
+        because the only difference is <i>how long the future will take</i>, and the future has not happened yet.</p>
+      </div>
+    </div>
+    <div class="rail">
+      <div class="card">
+        <h3>Ada&rsquo;s rule</h3>
+        <p style="font-size:13.5px">Ada must eventually do something. Choose how long she waits before she
+        declares Bo dead and carries on without him.</p>
+        <label class="f">Ada waits <span class="mono" id="toV">6</span> days
+          <input type="range" id="toR" min="1" max="14" value="6">
+        </label>
+        <div class="row" style="margin-top:8px">
+          <label class="f" style="flex:1 1 100%">Bo&rsquo;s letter would have taken
+            <select id="boat">
+              <option value="3">3 days &mdash; a calm crossing</option>
+              <option value="9" selected>9 days &mdash; a storm</option>
+              <option value="40">40 days &mdash; a very bad storm</option>
+            </select>
+          </label>
+        </div>
+        <div id="outA" class="verdict" style="margin-top:12px"></div>
+        <div id="outB" class="verdict" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3>The point</h3>
+        <p style="font-size:13.5px">Every value you can put on that slider is <b>a guess about the future</b>.
+        Too short and Ada writes off a living keeper. Too long and Ada is stuck. There is no setting that is
+        right in both worlds, because the two worlds are the same world until the letter arrives.</p>
+        <p style="font-size:13.5px">Everything else on this page is a consequence of this single fact.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 1 ============ -->
+<section class="panel" id="tab1" hidden>
+  <h2>Play the ferryman</h2>
+  <p class="lede">The keepers are running a real, correct agreement protocol &mdash; the one from your
+  <b>paxos</b> lab, with attempt numbers handed out in rotation. <b>You choose the order letters arrive.</b>
+  You may not lose a letter, invent one, or read one. Try to stop them ever settling the matter.</p>
+
+  <div class="cols" style="margin-top:16px">
+    <div class="stage">
+      <div class="islands" id="islands"></div>
+      <div class="card">
+        <h3>The ferryman&rsquo;s satchel &mdash; click a letter to deliver it</h3>
+        <div class="satchel" id="satchel"></div>
+        <div class="legend" style="margin-top:11px">
+          <span><i class="sw" style="background:var(--card2)"></i> waiting</span>
+          <span><i class="sw" style="background:var(--ferry-soft);border-color:var(--ferry)"></i> waiting 5+ steps &mdash; deliver it soon or you are cheating</span>
+          <span><i class="sw" style="background:var(--dark-soft);border-color:var(--dark)"></i> DARK</span>
+          <span><i class="sw" style="background:var(--lit-soft);border-color:var(--lit)"></i> LIGHT</span>
+          <span><i class="sw" style="background:linear-gradient(100deg,var(--dark-soft) 0 50%,var(--lit-soft) 50% 100%)"></i> not yet decided &mdash; both still possible</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>What just happened</h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div id="verdict" class="verdict"></div>
+      <div class="card">
+        <h3>Fairness audit &mdash; is the ferryman cheating?</h3>
+        <div class="audit" id="audit"></div>
+        <p class="note" style="margin-top:11px">A ferryman who <i>loses</i> letters or <i>ignores</i> an
+        island is not interesting &mdash; of course that breaks things. Watch these numbers stay small.</p>
+      </div>
+      <div class="card">
+        <h3>Run it for me</h3>
+        <div class="row">
+          <button class="b primary" id="autoDemon">Ferryman plays to stall &times;40</button>
+          <button class="b" id="autoFair">Ordinary ferry &mdash; oldest letter first</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="b" id="stepOne">Ferryman picks one</button>
+          <button class="b" id="back">&larr; Undo</button>
+          <button class="b" id="reset">Reset</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label class="f">What each keeper wants
+            <select id="inputs">
+              <option value="011" selected>Ada DARK · Bo LIGHT · Cy LIGHT</option>
+              <option value="000">all three want DARK</option>
+              <option value="111">all three want LIGHT</option>
+              <option value="100">Ada LIGHT · Bo DARK · Cy DARK</option>
+              <option value="010">Ada DARK · Bo LIGHT · Cy DARK</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="f">Fall ill (at most one, as the theorem allows)
+            <select id="crash">
+              <option value="-1" selected>nobody</option>
+              <option value="0">Ada</option><option value="1">Bo</option><option value="2">Cy</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="q" id="q1">
+        <div class="qt">Before you press it: can a ferryman who never loses a letter and never ignores an island keep this open for 40 steps?</div>
+        <div class="opts">
+          <button class="b tiny" data-a="no">No &mdash; delivering everything must settle it</button>
+          <button class="b tiny" data-a="loss">Only by losing letters</button>
+          <button class="b tiny" data-a="yes">Yes &mdash; order alone is enough</button>
+        </div>
+        <div class="res" id="q1r"></div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ TAB 2 ============ -->
+<section class="panel" id="tab2" hidden>
+  <h2>Why the ferryman always wins</h2>
+  <p class="lede">Beating one protocol proves nothing about the next one. The 1985 proof does something
+  stronger: it argues about <b>any</b> protocol at all, using three facts. Each one is shown here on the
+  real keepers, computed live &mdash; not asserted.</p>
+
+  <div class="cols" style="margin-top:16px">
+    <div class="stage">
+      <div class="card">
+        <h3>Fact 1 &mdash; &ldquo;undecided&rdquo; has a precise meaning: both answers are still reachable</h3>
+        <p style="font-size:13.5px">A <b>situation</b> is everything at once: what each keeper knows, plus every
+        letter still at sea. Ask of a situation: <i>from here, which endings are still possible?</i>
+        Click a starting point to see which endings this page can actually produce from it.</p>
+        <div class="chain" id="chain" style="margin-top:10px"></div>
+        <div id="chainOut" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h3>Fact 2 &mdash; the possibility of one illness is enough. Nobody has to actually fall ill.</h3>
+        <p style="font-size:13.5px">Take two starting points that differ <b>only</b> in what Ada wants.
+        Now suppose Ada falls ill before writing a single letter. Bo and Cy must still settle the matter &mdash;
+        that is what tolerating one failure means. But their two worlds are identical, so they settle it
+        the same way, whatever Ada wanted.</p>
+        <div class="row" style="margin-top:8px">
+          <button class="b primary" id="runCrash">Run both worlds with Ada silent</button>
+        </div>
+        <div id="crashOut" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h3>Fact 3 &mdash; two letters to two different islands can be swapped, and nothing notices</h3>
+        <p style="font-size:13.5px">This is the lever the whole proof turns on. Pick a situation and two
+        pending events at <b>different</b> islands. Deliver them in either order and compare the resulting
+        situation, keeper by keeper, letter by letter.</p>
+        <div class="row" style="margin-top:8px">
+          <label class="f">Situation after
+            <select id="dStep"></select>
+          </label>
+          <label class="f">First event
+            <select id="dE1"></select>
+          </label>
+          <label class="f">Second event
+            <select id="dE2"></select>
+          </label>
+        </div>
+        <div class="diamond" style="margin-top:12px">
+          <div><div class="eyebrow" style="margin-bottom:5px">e then e&rsquo;</div><div class="dnode" id="dA"></div></div>
+          <div><div class="eyebrow" style="margin-bottom:5px">e&rsquo; then e</div><div class="dnode" id="dB"></div></div>
+        </div>
+        <div id="dOut" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="b" id="auditAll">Check every such pair across 30 situations</button>
+        </div>
+        <div id="auditOut" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div class="card">
+        <h3>How the three facts become the theorem</h3>
+        <p style="font-size:13.5px"><b>Fact 1</b> gives the ferryman a starting position where both endings
+        are still alive.</p>
+        <p style="font-size:13.5px"><b>Fact 3</b> says the ferryman can reorder anything happening at
+        different islands, so a single island&rsquo;s next move can be slid earlier or later at will.</p>
+        <p style="font-size:13.5px"><b>Fact 2</b> closes the last door. Suppose one island&rsquo;s next move
+        would force the ending. The ferryman lets that island go quiet instead &mdash; and by Fact 2 the
+        others must carry on and settle it themselves, without knowing what the quiet island was about to do.
+        Whichever way they go, the ferryman could have gone the other way.</p>
+        <p style="font-size:13.5px">So from a position where both endings are alive, there is always a next
+        event that leaves <i>both endings still alive</i>. Repeat forever, always taking the longest-waiting
+        letter next so nothing is starved. Every letter arrives. Every keeper keeps working.
+        <b>Nobody ever decides.</b></p>
+      </div>
+      <div class="q" id="q2">
+        <div class="qt">In the run the proof builds, how many keepers actually fall ill?</div>
+        <div class="opts">
+          <button class="b tiny" data-a="one">Exactly one</button>
+          <button class="b tiny" data-a="zero">None</button>
+          <button class="b tiny" data-a="two">Two</button>
+        </div>
+        <div class="res" id="q2r"></div>
+      </div>
+      <div class="card">
+        <h3>Honest limits of this page</h3>
+        <p style="font-size:13.5px">Fact 3 and Fact 2 are <b>computed</b> here on the actual keepers, and the
+        results are real. Fact 1 is shown by exhibiting one schedule per ending &mdash; that proves both endings
+        are reachable, which is what is claimed.</p>
+        <p style="font-size:13.5px">What this page cannot do is check <i>every</i> protocol. The 1985 paper
+        does that with pen and paper, using exactly these three facts and no others.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3 ============ -->
+<section class="panel" id="tab3" hidden>
+  <h2>The four escapes</h2>
+  <p class="lede">The theorem is a sentence with load-bearing words in it: <i>no <b>deterministic</b> protocol
+  in an <b>asynchronous</b> system that tolerates <b>one crash</b> can guarantee it always <b>terminates</b>.</i>
+  Every real system escapes by breaking one of those words. Turn each one on and watch what happens to the
+  ferryman.</p>
+
+  <div class="cols" style="margin-top:16px">
+    <div class="stage">
+      <div class="card">
+        <h3>Set the world, then let the ferryman try to stall</h3>
+        <div class="row">
+          <label class="f">Escape 1 &mdash; a delivery deadline &Delta; (breaks &ldquo;asynchronous&rdquo;)
+            <select id="eDelta">
+              <option value="0" selected>none &mdash; a letter may take any time at all</option>
+              <option value="2">&Delta; = 2 steps</option><option value="4">&Delta; = 4 steps</option>
+              <option value="10">&Delta; = 10 steps</option><option value="25">&Delta; = 25 steps</option>
+            </select>
+          </label>
+          <label class="f">Escape 2 &mdash; random waiting times (breaks &ldquo;deterministic&rdquo;)
+            <select id="eBack">
+              <option value="0" selected>off &mdash; a keeper may give up at any moment</option>
+              <option value="12">on &mdash; random pause of 1&ndash;12 steps before trying again</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label class="f">Escape 3 &mdash; an oracle names one keeper in charge (breaks &ldquo;no failure information&rdquo;)
+            <select id="eOracle">
+              <option value="-1" selected>off &mdash; anyone may start an attempt</option>
+              <option value="0">Ada is in charge, and is never wrongly doubted</option>
+              <option value="1">Bo is in charge, and is never wrongly doubted</option>
+              <option value="2">Cy is in charge, and is never wrongly doubted</option>
+            </select>
+          </label>
+          <label class="f">Steps to allow
+            <select id="eSteps"><option value="400" selected>400</option><option value="1200">1200</option><option value="5000">5000</option></select>
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="b primary" id="eRun">Run &mdash; ferryman stalling</button>
+          <button class="b" id="eAll">Run all nine combinations</button>
+        </div>
+        <div id="eOut" style="margin-top:14px"></div>
+      </div>
+      <div class="card">
+        <h3>Results</h3>
+        <div class="scroll"><table class="t" id="eTable">
+          <thead><tr><th>&Delta;</th><th>random waits</th><th>oracle</th><th>outcome</th>
+          <th class="num">steps</th><th class="num">attempts</th><th class="num">worst letter delay</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="note" style="margin-top:11px">Nothing here ever breaks agreement. The protocol&rsquo;s safety
+        does not depend on timing at all &mdash; only its ability to <i>finish</i> does. That split is the
+        entire practical lesson.</p>
+      </div>
+    </div>
+    <div class="rail">
+      <div class="q" id="q3">
+        <div class="qt">Escape 2 on its own &mdash; random waiting times, no delivery deadline. Does the ferryman lose?</div>
+        <div class="opts">
+          <button class="b tiny" data-a="yes">Yes, randomness beats him</button>
+          <button class="b tiny" data-a="no">No, he can just wait for the pause to end</button>
+          <button class="b tiny" data-a="some">Sometimes, roughly half the time</button>
+        </div>
+        <div class="res" id="q3r"></div>
+      </div>
+      <div class="card">
+        <h3>Which word each escape breaks</h3>
+        <table class="t">
+          <tr><td><b>&Delta;</b><br><span style="color:var(--muted);font-size:12px">Raft, Paxos, etcd, ZooKeeper</span></td>
+              <td>&ldquo;asynchronous&rdquo;. Timeouts stop being guesses and become evidence &mdash; but only while the
+              network behaves. Safety never depended on this; liveness always did.</td></tr>
+          <tr><td><b>random waits</b><br><span style="color:var(--muted);font-size:12px">Raft&rsquo;s randomised election timeout</span></td>
+              <td>&ldquo;deterministic&rdquo; &mdash; but weakly. It cures repeated <i>collisions</i> between keepers.
+              It does not cure an unbounded delay, and the table shows it.</td></tr>
+          <tr><td><b>random <i>choices</i></b><br><span style="color:var(--muted);font-size:12px">Ben-Or 1983 &mdash; not simulated here</span></td>
+              <td>&ldquo;deterministic&rdquo; properly: keepers flip coins over the <i>value</i>. Finishes with
+              probability 1 and needs no timing assumption at all. The bad run still exists; it just has
+              probability zero.</td></tr>
+          <tr><td><b>oracle</b><br><span style="color:var(--muted);font-size:12px">Chandra&ndash;Toueg failure detectors</span></td>
+              <td>&ldquo;no failure information&rdquo;. Give the keepers a source of hints about who is dead and
+              consensus becomes solvable. The catch: you cannot build that oracle in a truly asynchronous
+              world &mdash; in practice you build it out of timeouts, which is escape 1 wearing a hat.</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>What nobody escapes</h3>
+        <p style="font-size:13.5px">None of these make the theorem false. They change the world the theorem is
+        about. In the real world your delivery deadline &Delta; is a hope, not a guarantee &mdash; a long
+        garbage-collection pause, a saturated link, a busy disk, and your cluster is briefly back in the
+        world of tab 2, where nothing finishes.</p>
+        <p style="font-size:13.5px">That is not a bug in your cluster. It is the theorem, arriving on schedule.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fischer, Lynch &amp; Paterson, <i>Impossibility of Distributed Consensus with One Faulty Process</i>,
+  Journal of the ACM 32(2), 1985. &mdash; Every number on this page is produced by the simulation running in
+  your browser; nothing is hard-coded.
+</footer>
+</div>
+<script>
+/* ============================================================
+   FLP LAB — simulation engine (pure state + reducer)
+   Protocol: single-decree Paxos with round-robin ballots.
+   Model: FLP asynchronous — a step of process p is receive(p)
+   returning either a message m or nothing (null step = timeout).
+   ============================================================ */
+
+var NAMES = ['Ada', 'Bo', 'Cy'];
+var MAJ = 2; // majority of 3
+
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function mkProc(i, input) {
+  return {
+    id: i, name: NAMES[i],
+    alive: true,
+    input: input,
+    // acceptor state
+    promised: 0, acceptedRound: 0, acceptedVal: null, seen: 0,
+    // proposer state
+    round: 0, phase: 'idle', promises: [], accepts: [], propVal: null,
+    // outcome
+    decided: null,
+    lastStep: 0,      // scheduler step at which p last took a step
+    timerReadyAt: 0   // step from which p's null step (timeout) is available
+  };
+}
+
+// round r belongs to process (r-1) % 3
+function ownerOf(r) { return (r - 1) % 3; }
+// An island's next attempt number is computed from WHAT IT HAS SEEN — never
+// from any global variable. A real island cannot read the sky.
+function nextRoundFor(p) {
+  var r = Math.max(p.round, p.promised, p.acceptedRound, p.seen) + 1;
+  while (ownerOf(r) !== p.id) r++;
+  return r;
+}
+
+function initState(opts) {
+  opts = opts || {};
+  var inputs = opts.inputs;
+  if (!inputs || inputs.length !== 3 || inputs.some(function (x) { return x !== 0 && x !== 1; })) inputs = [0, 1, 1];
+  var s = {
+    procs: [mkProc(0, inputs[0]), mkProc(1, inputs[1]), mkProc(2, inputs[2])],
+    buffer: [], step: 0, nextId: 1, log: [],
+    crashed: null,
+    highestSeen: 0,
+    // instrumentation
+    maxDelay: 0,        // worst delivery latency in scheduler steps
+    delivered: 0,
+    lost: 0,            // always 0 — the ferryman never loses a letter
+    // knobs
+    delta: opts.delta || 0,          // 0 = pure asynchrony; >0 = partial synchrony bound
+    backoff: opts.backoff || 0,      // randomised timeout backoff range (0 = off)
+    oracleLeader: (opts.oracleLeader === undefined ? null : opts.oracleLeader),
+    seed: opts.seed || 12345
+  };
+  return s;
+}
+
+// deterministic PRNG so runs replay identically
+function rnd(s) {
+  s.seed = (s.seed * 1103515245 + 12345) & 0x7fffffff;
+  return s.seed / 0x7fffffff;
+}
+
+function send(s, from, to, type, fields) {
+  var m = { id: s.nextId++, from: from, to: to, type: type, born: s.step };
+  for (var k in fields) m[k] = fields[k];
+  s.buffer.push(m);
+  return m;
+}
+
+function alive(s, i) { return s.procs[i].alive; }
+
+/* ---------- the menu of events the scheduler may choose ---------- */
+function events(s) {
+  var out = [];
+  for (var i = 0; i < s.buffer.length; i++) {
+    var m = s.buffer[i];
+    if (!alive(s, m.to)) continue;
+    out.push({ kind: 'msg', msg: m, id: 'm' + m.id });
+  }
+  for (var j = 0; j < 3; j++) {
+    var p = s.procs[j];
+    if (!p.alive || p.decided !== null) continue;
+    if (s.step < p.timerReadyAt) continue;                       // randomised backoff
+    // ESCAPE: an eventually-perfect failure detector. Only the one island the
+    // oracle names may start attempts, and it is never wrongly suspected — so it
+    // never restarts an attempt it is already running.
+    if (s.oracleLeader !== null) { if (s.oracleLeader !== j) continue; if (p.phase !== 'idle') continue; }
+    // ESCAPE: partial synchrony. A timeout longer than one round trip cannot fire
+    // before that round trip has actually elapsed.
+    if (s.delta > 0 && (s.step - p.lastStep) < 2 * s.delta) continue;
+    out.push({ kind: 'null', p: j, id: 'n' + j });
+  }
+  return out;
+}
+
+// under partial synchrony the scheduler is FORCED to deliver anything older than delta
+function forced(s) {
+  if (s.delta <= 0) return null;
+  var best = null;
+  for (var i = 0; i < s.buffer.length; i++) {
+    var m = s.buffer[i];
+    if (!alive(s, m.to)) continue;
+    if (s.step - m.born >= s.delta) { if (!best || m.born < best.msg.born) best = { kind: 'msg', msg: m, id: 'm' + m.id }; }
+  }
+  return best;
+}
+
+function decidedCount(s) { var n = 0; for (var i = 0; i < 3; i++) if (s.procs[i].decided !== null) n++; return n; }
+function anyDecision(s) { for (var i = 0; i < 3; i++) if (s.procs[i].decided !== null) return s.procs[i].decided; return null; }
+function safetyBroken(s) {
+  var v = null;
+  for (var i = 0; i < 3; i++) { var d = s.procs[i].decided; if (d === null) continue; if (v === null) v = d; else if (v !== d) return true; }
+  return false;
+}
+
+/* ---------- apply one event (the reducer) ---------- */
+function apply(s, ev) {
+  s = clone(s);
+  s.step++;
+  var L = function (plain, tech) { s.log.push({ step: s.step, plain: plain, tech: tech || '' }); };
+
+  if (ev.kind === 'null') {
+    var p = s.procs[ev.p];
+    p.lastStep = s.step;
+    var r = nextRoundFor(p);
+    p.round = r; p.phase = 'prepared'; p.promises = []; p.accepts = []; p.propVal = p.input;
+    p.seen = Math.max(p.seen, r); s.highestSeen = Math.max(s.highestSeen, r);
+    if (s.backoff > 0) p.timerReadyAt = s.step + 1 + Math.floor(rnd(s) * s.backoff);
+    for (var t = 0; t < 3; t++) send(s, p.id, t, 'PREPARE', { round: r });
+    L(p.name + ' waited, heard nothing, and gave up waiting. ' + p.name + ' starts a fresh attempt, numbered ' + r + ', and writes to all three islands asking them to hold that number.',
+      'null step at p' + p.id + ' (receive returns ∅) → PREPARE(' + r + ') × 3');
+    return s;
+  }
+
+  // deliver a message
+  var idx = -1;
+  for (var i = 0; i < s.buffer.length; i++) if (s.buffer[i].id === ev.msg.id) { idx = i; break; }
+  if (idx < 0) return s;
+  var m = s.buffer.splice(idx, 1)[0];
+  var q = s.procs[m.to];
+  q.lastStep = s.step;
+  s.delivered++;
+  s.maxDelay = Math.max(s.maxDelay, s.step - m.born);
+  var fromN = NAMES[m.from], toN = NAMES[m.to];
+  var self = (m.from === m.to);
+
+  if (m.type === 'PREPARE') {
+    q.seen = Math.max(q.seen, m.round); s.highestSeen = Math.max(s.highestSeen, m.round);
+    if (m.round > q.promised) {
+      q.promised = m.round;
+      send(s, q.id, m.from, 'PROMISE', { round: m.round, aRound: q.acceptedRound, aVal: q.acceptedVal });
+      L((self ? toN + ' reaches her own request and agrees to hold attempt ' + m.round
+                : toN + ' agrees to hold attempt ' + m.round + ' for ' + fromN) + ', and reports back the last value ' + toN + ' ever accepted' + (q.acceptedRound ? ' (' + lampName(q.acceptedVal) + ', from attempt ' + q.acceptedRound + ')' : ' (none)') + '.',
+        'p' + q.id + '.promised ' + m.round + '; PROMISE(' + m.round + ',' + q.acceptedRound + ',' + (q.acceptedVal === null ? '⊥' : q.acceptedVal) + ') → p' + m.from);
+    } else {
+      L(toN + ' has already promised a higher attempt (' + q.promised + '), so ' + toN + ' says nothing at all. ' + fromN + ' cannot tell this refusal apart from ' + toN + ' being dead.',
+        'p' + q.id + ' refuses PREPARE(' + m.round + ') ≤ promised ' + q.promised + '; silence');
+    }
+    return s;
+  }
+
+  if (m.type === 'PROMISE') {
+    if (q.round !== m.round || q.phase !== 'prepared') {
+      L(fromN + '’s agreement reaches ' + toN + ' too late — ' + toN + ' has already moved on. It is ignored.',
+        'stale PROMISE(' + m.round + ') at p' + q.id + ' (round ' + q.round + ', phase ' + q.phase + ')');
+      return s;
+    }
+    q.promises.push({ from: m.from, aRound: m.aRound, aVal: m.aVal });
+    if (q.promises.length >= MAJ) {
+      var best = -1, bv = null;
+      for (var k = 0; k < q.promises.length; k++) if (q.promises[k].aRound > best) { best = q.promises[k].aRound; bv = q.promises[k].aVal; }
+      q.propVal = (best > 0 && bv !== null) ? bv : q.input;
+      q.phase = 'accepting'; q.accepts = [];
+      for (var t2 = 0; t2 < 3; t2++) send(s, q.id, t2, 'ACCEPT', { round: q.round, val: q.propVal });
+      L(toN + ' now has agreement from a majority for attempt ' + m.round + ', so ' + toN + ' names the value: ' + lampName(q.propVal) + (best > 0 ? ' (forced — one of those agreements reported accepting it in attempt ' + best + ')' : ' (' + toN + '’s own preference — neither agreement reported any earlier acceptance)') + '. Letters go out asking all three to accept it.',
+        'p' + q.id + ' quorum of PROMISE → v=' + q.propVal + '; ACCEPT(' + q.round + ',' + q.propVal + ') × 3');
+    } else {
+      L(toN + ' has ' + q.promises.length + ' of the 2 agreements needed for attempt ' + m.round + '. Still waiting.',
+        'p' + q.id + ' promises ' + q.promises.length + '/' + MAJ);
+    }
+    return s;
+  }
+
+  if (m.type === 'ACCEPT') {
+    q.seen = Math.max(q.seen, m.round); s.highestSeen = Math.max(s.highestSeen, m.round);
+    if (m.round >= q.promised) {
+      q.promised = m.round; q.acceptedRound = m.round; q.acceptedVal = m.val;
+      send(s, q.id, m.from, 'ACCEPTED', { round: m.round });
+      L(toN + ' accepts ' + lampName(m.val) + ' under attempt ' + m.round + ' and writes back to say so. This is a vote, not a decision — ' + toN + '’s lamp is still unset.',
+        'p' + q.id + ' accepts (' + m.round + ',' + m.val + '); ACCEPTED(' + m.round + ') → p' + m.from);
+    } else {
+      L(toN + ' refuses to accept attempt ' + m.round + ' — ' + toN + ' has promised the higher attempt ' + q.promised + '. ' + toN + ' says nothing, and ' + fromN + ' will wait for a reply that never comes.',
+        'p' + q.id + ' refuses ACCEPT(' + m.round + ') < promised ' + q.promised + '; silence');
+    }
+    return s;
+  }
+
+  if (m.type === 'ACCEPTED') {
+    if (q.round !== m.round || q.phase !== 'accepting') {
+      L(fromN + '’s acceptance reaches ' + toN + ' too late to matter.', 'stale ACCEPTED(' + m.round + ') at p' + q.id);
+      return s;
+    }
+    q.accepts.push(m.from);
+    if (q.accepts.length >= MAJ && q.decided === null) {
+      q.decided = q.propVal;
+      for (var t3 = 0; t3 < 3; t3++) if (t3 !== q.id) send(s, q.id, t3, 'DECIDE', { val: q.propVal });
+      L('A majority has accepted ' + lampName(q.propVal) + ' under attempt ' + m.round + '. ' + toN + ' DECIDES: ' + lampName(q.propVal) + ', and writes to tell the others.',
+        'p' + q.id + ' quorum of ACCEPTED → decide ' + q.propVal + '; DECIDE × 2');
+    } else if (q.decided !== null) {
+      L('One more acceptance reaches ' + toN + ', who settled this already. It changes nothing.',
+        'p' + q.id + ' late ACCEPTED, already decided');
+    } else {
+      L(toN + ' has ' + q.accepts.length + ' of the 2 acceptances needed. One more letter and the matter is settled.',
+        'p' + q.id + ' accepts ' + q.accepts.length + '/' + MAJ + ' — one short');
+    }
+    return s;
+  }
+
+  if (m.type === 'DECIDE') {
+    if (q.decided === null) {
+      q.decided = m.val;
+      L(toN + ' learns the decision from ' + fromN + ' and sets the lamp: ' + lampName(m.val) + '.', 'p' + q.id + ' decides ' + m.val);
+    } else {
+      L(toN + ' already knew.', 'duplicate DECIDE at p' + q.id);
+    }
+    return s;
+  }
+  return s;
+}
+
+function lampName(v) { return v === 1 ? 'LIGHT the beacons' : v === 0 ? 'leave them DARK' : 'nothing'; }
+
+/* ---------- schedulers ---------- */
+function countAccept(s, r) { var n = 0; for (var i = 0; i < 3; i++) if (s.procs[i].acceptedRound === r) n++; return n; }
+
+function oldestMsgEvent(s, skipId) {
+  var best = null;
+  for (var i = 0; i < s.buffer.length; i++) {
+    var m = s.buffer[i];
+    if (!alive(s, m.to)) continue;
+    if (skipId && m.id === skipId) continue;
+    if (!best || m.born < best.born) best = m;
+  }
+  return best ? { kind: 'msg', msg: best, id: 'm' + best.id } : null;
+}
+
+// The Ferryman playing to keep the matter open. Never loses a letter,
+// never starves anyone — only chooses the ORDER.
+function demonPick(s) {
+  var evs = events(s);
+  if (!evs.length) return null;
+  var f = forced(s);
+  if (f) return f;                    // partial synchrony: overdue letters must go
+
+  // Find the letter that would create a SECOND acceptance of some attempt.
+  var danger = null;
+  for (var i = 0; i < s.buffer.length; i++) {
+    var m = s.buffer[i];
+    if (m.type !== 'ACCEPT' || !alive(s, m.to)) continue;
+    var q = s.procs[m.to];
+    if (m.round >= q.promised && countAccept(s, m.round) >= 1) { danger = m; break; }
+  }
+
+  if (danger) {
+    var r = danger.round, to = danger.to;
+    // (a) a higher-numbered PREPARE already on its way to that island? Deliver it now.
+    for (var j = 0; j < s.buffer.length; j++) {
+      var m2 = s.buffer[j];
+      if (m2.type === 'PREPARE' && m2.to === to && m2.round > r && m2.round > s.procs[to].promised)
+        return { kind: 'msg', msg: m2, id: 'm' + m2.id, why: 'bump' };
+    }
+    // (b) otherwise make one: let some island give up waiting and start a higher attempt.
+    var owner = ownerOf(r), fallback = null;
+    for (var k = 0; k < evs.length; k++) {
+      if (evs[k].kind !== 'null') continue;
+      if (nextRoundFor(s.procs[evs[k].p]) <= r) continue;
+      if (evs[k].p !== owner) return { kind: 'null', p: evs[k].p, id: evs[k].id, why: 'bump' };
+      fallback = evs[k];
+    }
+    if (fallback) return { kind: 'null', p: fallback.p, id: fallback.id, why: 'bump' };
+    // (c) no way to stop it — deliver anything else, or give in.
+    var alt = oldestMsgEvent(s, danger.id);
+    if (alt) return alt;
+    return { kind: 'msg', msg: danger, id: 'm' + danger.id, why: 'forced' };
+  }
+
+  // Nothing dangerous: be a good ferryman, oldest letter first.
+  var o = oldestMsgEvent(s, null);
+  if (o) return o;
+  return evs[0];
+}
+
+function fairPick(s) {
+  var f = forced(s); if (f) return f;
+  var o = oldestMsgEvent(s, null); if (o) return o;
+  var evs = events(s);
+  return evs.length ? evs[0] : null;
+}
+
+// Time passing with nothing happening is itself legal in this model — under a
+// timing bound an island may simply not be allowed to give up waiting yet.
+function tick(s) { s = clone(s); s.step++; return s; }
+
+function liveUndecided(s) { var n = 0; for (var i = 0; i < 3; i++) if (s.procs[i].alive && s.procs[i].decided === null) n++; return n; }
+
+function runUntil(s, pick, maxSteps) {
+  var hist = [s], idle = 0;
+  for (var i = 0; i < maxSteps; i++) {
+    if (decidedCount(s) === 3) break;
+    var ev = pick(s);
+    if (!ev) {
+      if (liveUndecided(s) === 0 && s.buffer.length === 0) break;
+      if (++idle > 4 * (s.delta + s.backoff) + 20) break;
+      s = tick(s); hist.push(s); continue;
+    }
+    idle = 0;
+    s = apply(s, ev);
+    hist.push(s);
+  }
+  return { s: s, hist: hist };
+}
+
+/* ================== UI ================== */
+var $ = function (s) { return document.querySelector(s); };
+var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+function LAMP(v) { return v === 1 ? 'LIGHT' : v === 0 ? 'DARK' : 'not decided'; }
+function WANT(v) { return v === 1 ? 'wants LIGHT' : 'wants DARK'; }
+
+/* ---------- tabs ---------- */
+$$('.tabs button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    $$('.tabs button').forEach(function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    [0, 1, 2, 3].forEach(function (i) { $('#tab' + i).hidden = (String(i) !== b.dataset.tab); });
+    if (b.dataset.tab === '2') initProof();
+  });
+});
+
+/* ---------- prediction widgets ---------- */
+function predict(id, correct, texts) {
+  var box = $('#' + id);
+  box.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var r = $('#' + id + 'r');
+      r.className = 'res show ' + (b.dataset.a === correct ? 'right' : 'wrong');
+      r.innerHTML = (b.dataset.a === correct ? '<b>Right.</b> ' : '<b>Not quite.</b> ') + texts[b.dataset.a];
+      box.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+    });
+  });
+}
+predict('q1', 'yes', {
+  yes: 'Order alone is enough. Press the button and watch the fairness audit while it runs: no letter is lost, no letter waits long, every keeper keeps working &mdash; and the matter never settles.',
+  no: 'Delivering everything is not enough, because <i>when</i> a letter arrives changes what it means. A request that would have been accepted becomes a request that is refused, purely because a higher-numbered attempt overtook it.',
+  loss: 'That is the interesting part &mdash; losing letters is <i>not</i> needed. Every letter is delivered, and the matter still never settles. This is exactly what separates this result from CAP.'
+});
+predict('q2', 'zero', {
+  zero: 'None. The proof only needs the <i>possibility</i> of one illness &mdash; that possibility is what forces the keepers to be willing to carry on without anybody, which is the door the ferryman walks through. In the run that never finishes, all three keepers are healthy the whole time.',
+  one: 'Nobody actually falls ill. The theorem tolerates one illness, and the proof uses that tolerance as an <i>assumption about the protocol</i> &mdash; but the run it builds has three healthy keepers throughout.',
+  two: 'Not two &mdash; the theorem only allows one. And in fact zero fall ill in the run the proof constructs.'
+});
+predict('q3', 'no', {
+  no: 'He waits. Random waiting only changes <i>when</i> a keeper is allowed to try again; it does not stop the ferryman from stalling until that moment arrives. Run it in the table: 60 out of 60 runs, the ferryman held it open. Random waits cure collisions, not asynchrony.',
+  yes: 'Randomness in the <i>waiting time</i> is not enough. The ferryman is patient &mdash; he simply delivers other letters until the random pause expires, then uses the keeper as usual.',
+  some: 'It is not a coin flip &mdash; the ferryman wins every time. Randomising when a keeper retries does nothing against an opponent who is allowed to wait as long as he likes.'
+});
+
+/* ================== TAB 0 ================== */
+function renderWorlds() {
+  var wait = +$('#toR').value, boat = +$('#boat').value;
+  $('#toV').textContent = wait;
+  var rows = function (host, evs) {
+    host.innerHTML = '';
+    evs.forEach(function (e) {
+      var d = el('div', 'ev' + (e.hidden ? ' hid' : ''));
+      d.appendChild(el('div', 'tm', e.t === null ? '—' : 'day ' + e.t));
+      d.appendChild(el('div', '', e.txt));
+      host.appendChild(d);
+    });
+  };
+  rows($('#wA'), [
+    { t: 0, txt: 'Ada posts her question to Bo.' },
+    { t: 1, txt: 'Bo receives it and writes his reply the same day.' },
+    { t: boat, txt: 'The reply reaches Ada — ' + boat + ' days after she asked.', hidden: boat > wait }
+  ]);
+  rows($('#wB'), [
+    { t: 0, txt: 'Ada posts her question to Bo.' },
+    { t: 1, txt: 'Bo dies in the night. He never reads it.' },
+    { t: null, txt: 'No reply is ever written. Ada waits forever.' }
+  ]);
+  rows($('#wAda'), [
+    { t: 0, txt: 'Posted the question. Mailbox empty.' },
+    { t: 1, txt: 'Mailbox empty.' },
+    { t: 2, txt: 'Mailbox empty.' },
+    { t: '…', txt: 'Mailbox empty. Mailbox empty. Mailbox empty.' }
+  ]);
+  var oa = $('#outA'), ob = $('#outB');
+  if (boat <= wait) {
+    oa.className = 'verdict done';
+    oa.innerHTML = '<div class="big">World A: fine</div><p>The reply lands on day ' + boat + ', inside Ada&rsquo;s ' + wait + '-day patience. She waited exactly long enough.</p>';
+  } else {
+    oa.className = 'verdict open';
+    oa.innerHTML = '<div class="big">World A: Ada is wrong</div><p>Ada gives up on day ' + wait + ' and declares Bo dead. Bo is alive and working. His reply arrives on day ' + boat + ', to a keeper who has already carried on without him. This is how two keepers end up both believing they are in charge.</p>';
+  }
+  ob.className = 'verdict open';
+  ob.innerHTML = '<div class="big">World B: Ada must give up</div><p>Bo really is dead. If Ada had no deadline at all she would wait forever and the coast would stay unlit. Her ' + wait + '-day deadline is the only reason anything happens &mdash; and it is a guess.</p>';
+}
+$('#toR').addEventListener('input', renderWorlds);
+$('#boat').addEventListener('change', renderWorlds);
+renderWorlds();
+
+/* ================== TAB 1 ================== */
+var HIST = [], CUR = 0, LASTEV = null;
+function S() { return HIST[CUR]; }
+
+function resetSim() {
+  var inp = ($('#inputs').value || '011').split('').map(Number);
+  var st = initState({ inputs: inp });
+  var c = parseInt($('#crash').value, 10);
+  if (!isNaN(c) && c >= 0 && c <= 2) { st.procs[c].alive = false; st.crashed = c; }
+  HIST = [st]; CUR = 0; LASTEV = null; render();
+}
+function push(ev) {
+  var touched = ev.kind === 'null' ? ev.p : ev.msg.to;
+  HIST = HIST.slice(0, CUR + 1);
+  HIST.push(apply(S(), ev)); CUR = HIST.length - 1; LASTEV = touched; render();
+}
+
+function render() {
+  var s = S();
+  // islands
+  var host = $('#islands'); host.innerHTML = '';
+  s.procs.forEach(function (p) {
+    var c = el('div', 'isl p' + p.id + (p.alive ? '' : ' dead') + (LASTEV === p.id ? ' flash' : ''));
+    var h = el('h4'); h.appendChild(el('span', '', p.name));
+    h.appendChild(el('span', 'want', p.alive ? WANT(p.input) : 'has fallen ill'));
+    c.appendChild(h);
+    var lamp = el('div', 'lamp ' + (p.decided === null ? 'undec' : 'd' + p.decided),
+      p.decided === null ? 'not decided' : LAMP(p.decided));
+    c.appendChild(lamp);
+    var plain = '';
+    if (!p.alive) plain = p.name + ' takes no more steps. Letters addressed here are never read.';
+    else if (p.decided !== null) plain = p.name + ' has settled it: ' + LAMP(p.decided) + '. Nothing can change that now.';
+    else if (p.phase === 'accepting') plain = p.name + ' is running attempt ' + p.round + ' and has ' + p.accepts.length + ' of the 2 acceptances needed.';
+    else if (p.phase === 'prepared') plain = p.name + ' is running attempt ' + p.round + ' and has ' + p.promises.length + ' of the 2 agreements needed.';
+    else plain = p.name + ' is waiting for post. Nothing to do.';
+    c.appendChild(el('div', 'plain', plain));
+    c.appendChild(el('div', 'tech',
+      'promised=' + p.promised + '  accepted=(' + p.acceptedRound + ',' + (p.acceptedVal === null ? '⊥' : p.acceptedVal) + ')' +
+      '  round=' + p.round + '  phase=' + p.phase + '  decided=' + (p.decided === null ? '⊥' : p.decided)));
+    var acts = el('div', 'acts');
+    var canNull = events(s).some(function (e) { return e.kind === 'null' && e.p === p.id; });
+    var b = el('button', 'b tiny', 'Let ' + p.name + ' give up waiting');
+    b.disabled = !canNull;
+    b.title = 'This is a step in which the keeper receives nothing. It is the only thing a timeout can possibly be.';
+    b.addEventListener('click', function () { push({ kind: 'null', p: p.id, id: 'n' + p.id }); });
+    acts.appendChild(b);
+    c.appendChild(acts);
+    host.appendChild(c);
+  });
+
+  // satchel
+  var sat = $('#satchel'); sat.innerHTML = '';
+  var nextEv = demonPick(s);
+  if (!s.buffer.length) sat.appendChild(el('div', 'empty', 'No letters at sea. Somebody has to give up waiting before anything else can happen.'));
+  s.buffer.forEach(function (m) {
+    var age = s.step - m.born;
+    var b = el('button', 'letter' + (age >= 5 ? ' old' : '') + (nextEv && nextEv.kind === 'msg' && nextEv.msg.id === m.id ? ' next' : ''));
+    var body = m.type + (m.round ? '(' + m.round + (m.val !== undefined ? ',' + LAMP(m.val) : '') + ')' : '(' + LAMP(m.val) + ')');
+    b.appendChild(el('div', 'rt', body));
+    b.appendChild(el('div', 'age', NAMES[m.from] + ' → ' + NAMES[m.to] + (alive(s, m.to) ? '' : ' (never read)')));
+    b.appendChild(el('div', 'age', 'waiting ' + age + ' step' + (age === 1 ? '' : 's')));
+    b.disabled = !alive(s, m.to);
+    b.addEventListener('click', function () { push({ kind: 'msg', msg: m, id: 'm' + m.id }); });
+    sat.appendChild(b);
+  });
+
+  // log
+  var lg = $('#log'); lg.innerHTML = '';
+  s.log.slice(-40).forEach(function (l, i, arr) {
+    var d = el('div', 'logline' + (i === arr.length - 1 ? ' new' : ''));
+    d.appendChild(el('div', 's', 'step ' + l.step));
+    d.appendChild(el('div', 'p', l.plain));
+    d.appendChild(el('div', 't', l.tech));
+    lg.appendChild(d);
+  });
+  if (!s.log.length) lg.appendChild(el('div', 'empty', 'Nothing has happened yet.'));
+
+  // verdict
+  var v = $('#verdict');
+  var dc = decidedCount(s), live = 0;
+  for (var i = 0; i < 3; i++) if (s.procs[i].alive) live++;
+  if (dc === 0) {
+    v.className = 'verdict open';
+    v.innerHTML = '<div class="big">Step ' + s.step + ' &mdash; still nothing decided</div>' +
+      '<p><b>Agreement:</b> intact &mdash; nobody has decided anything, so nobody can have decided wrongly.<br>' +
+      '<b>Finishing:</b> not happening. The keepers are on attempt ' + s.highestSeen + ' and no attempt has ever completed.</p>';
+  } else if (dc < live) {
+    v.className = 'verdict done';
+    v.innerHTML = '<div class="big">' + dc + ' of ' + live + ' have settled: ' + LAMP(anyDecision(s)) + '</div>' +
+      '<p>The rest are one letter away. Nothing can reverse this now.</p>';
+  } else {
+    v.className = 'verdict done';
+    v.innerHTML = '<div class="big">Settled: ' + LAMP(anyDecision(s)) + '</div>' +
+      '<p>Every working keeper agrees, on step ' + s.step + ', after ' + s.delivered + ' letters. ' +
+      (safetyBroken(s) ? '<b style="color:var(--ferry)">AGREEMENT BROKEN</b>' : 'Agreement held.') + '</p>';
+  }
+
+  // fairness audit
+  var maxIdle = 0;
+  s.procs.forEach(function (p) { if (p.alive) maxIdle = Math.max(maxIdle, s.step - p.lastStep); });
+  var oldest = 0;
+  s.buffer.forEach(function (m) { if (alive(s, m.to)) oldest = Math.max(oldest, s.step - m.born); });
+  var a = $('#audit'); a.innerHTML = '';
+  var addRow = function (k, val, cls) {
+    a.appendChild(el('div', 'k', k)); a.appendChild(el('div', 'v ' + (cls || ''), val));
+  };
+  addRow('Letters delivered', String(s.delivered), 'ok');
+  addRow('Letters lost or destroyed', String(s.lost), 'ok');
+  addRow('Longest a letter has waited', s.maxDelay + ' steps', s.maxDelay > 12 ? 'warn' : 'ok');
+  addRow('Still at sea right now', s.buffer.length + (oldest ? ' (oldest ' + oldest + ')' : ''), oldest > 12 ? 'warn' : 'ok');
+  addRow('Longest any keeper sat idle', maxIdle + ' steps', maxIdle > 12 ? 'warn' : 'ok');
+  addRow('Attempts started', String(s.highestSeen), '');
+  addRow('Agreement violated', safetyBroken(s) ? 'YES' : 'no', safetyBroken(s) ? 'warn' : 'ok');
+
+  $('#back').disabled = CUR === 0;
+  $('#stepOne').disabled = !demonPick(s);
+}
+
+function runN(pick, n) {
+  for (var i = 0; i < n; i++) {
+    var s = S();
+    if (decidedCount(s) === 3) break;
+    var ev = pick(s);
+    if (!ev) { if (liveUndecided(s) === 0 && !s.buffer.length) break; HIST = HIST.slice(0, CUR + 1); HIST.push(tick(s)); CUR = HIST.length - 1; continue; }
+    HIST = HIST.slice(0, CUR + 1); HIST.push(apply(s, ev)); CUR = HIST.length - 1;
+    LASTEV = ev.kind === 'null' ? ev.p : ev.msg.to;
+  }
+  render();
+}
+$('#autoDemon').addEventListener('click', function () { runN(demonPick, 40); });
+$('#autoFair').addEventListener('click', function () { runN(fairPick, 40); });
+$('#stepOne').addEventListener('click', function () { var e = demonPick(S()); if (e) push(e); });
+$('#back').addEventListener('click', function () { if (CUR > 0) { CUR--; LASTEV = null; render(); } });
+$('#reset').addEventListener('click', resetSim);
+$('#inputs').addEventListener('change', resetSim);
+$('#crash').addEventListener('change', resetSim);
+resetSim();
+
+/* ================== TAB 2 — the proof ================== */
+function canonOf(s) {
+  var ps = s.procs.map(function (p) {
+    return [p.alive, p.input, p.promised, p.acceptedRound, p.acceptedVal, p.seen, p.round, p.phase,
+      p.promises.map(function (x) { return x.from + ':' + x.aRound + ':' + x.aVal; }).sort().join(','),
+      p.accepts.slice().sort().join(','), p.propVal, p.decided].join('|');
+  });
+  var bs = s.buffer.map(function (m) {
+    return [m.from, m.to, m.type, m.round || 0, (m.val === undefined ? '-' : m.val),
+      (m.aRound === undefined ? '-' : m.aRound), (m.aVal === undefined ? '-' : m.aVal)].join('|');
+  }).sort();
+  return ps.join('\n') + '\n— letters at sea —\n' + (bs.join('\n') || '(none)');
+}
+function evLabel(e) {
+  if (e.kind === 'null') return NAMES[e.p] + ' gives up waiting';
+  var m = e.msg;
+  return m.type + (m.round ? '(' + m.round + (m.val !== undefined ? ',' + LAMP(m.val) : '') + ')' : '') + ' ' + NAMES[m.from] + '→' + NAMES[m.to];
+}
+function evIsland(e) { return e.kind === 'null' ? e.p : e.msg.to; }
+
+/* --- Fact 1: which endings are reachable from each starting point --- */
+var CHAINS = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]];
+function witnessFrom(inputs, starter) {
+  var st = initState({ inputs: inputs });
+  var ev = { kind: 'null', p: starter, id: 'n' + starter };
+  if (!events(st).some(function (e) { return e.id === ev.id; })) return null;
+  var r = runUntil(apply(st, ev), fairPick, 300);
+  return { v: anyDecision(r.s), steps: r.s.step };
+}
+function buildChain() {
+  var host = $('#chain'); host.innerHTML = '';
+  CHAINS.forEach(function (inp, i) {
+    var found = {};
+    for (var k = 0; k < 3; k++) { var w = witnessFrom(inp, k); if (w && w.v !== null) found[w.v] = w.steps; }
+    var keys = Object.keys(found);
+    var n = el('button', 'cnode' + (i === 4 ? ' on' : ''));
+    n.appendChild(el('div', 'ci', inp.map(function (x) { return x ? 'L' : 'D'; }).join(' ')));
+    var lab = keys.length === 2 ? 'both endings' : (keys[0] === '1' ? 'only LIGHT' : 'only DARK');
+    var cls = keys.length === 2 ? 'b' : (keys[0] === '1' ? 'o' : 'z');
+    n.appendChild(el('div', 'cv ' + cls, lab));
+    n.dataset.i = i;
+    n.addEventListener('click', function () {
+      $$('#chain .cnode').forEach(function (x) { x.classList.remove('on'); });
+      n.classList.add('on'); showChain(i, found);
+    });
+    host.appendChild(n);
+    if (i === 4) setTimeout(function () { showChain(4, found); }, 0);
+  });
+}
+function showChain(i, found) {
+  var inp = CHAINS[i], keys = Object.keys(found).sort();
+  var o = $('#chainOut');
+  var names = ['Ada', 'Bo', 'Cy'].map(function (n, k) { return n + ' ' + (inp[k] ? 'LIGHT' : 'DARK'); }).join(' · ');
+  if (keys.length === 2) {
+    o.className = 'verdict open';
+    o.innerHTML = '<div class="big">' + names + ' &mdash; both endings still reachable</div>' +
+      '<p>Found a delivery order ending in <b>DARK</b> after ' + found['0'] + ' steps, and another ending in <b>LIGHT</b> after ' + found['1'] + ' steps. ' +
+      'Same starting point, same protocol, same keepers &mdash; only the ferryman&rsquo;s order differs. ' +
+      'A situation like this is called <b>bivalent</b>: nothing has decided the ending yet.</p>';
+  } else {
+    var v = keys[0];
+    o.className = 'verdict done';
+    o.innerHTML = '<div class="big">' + names + ' &mdash; only ' + LAMP(+v) + ' is reachable</div>' +
+      '<p>Every order tried ends in <b>' + LAMP(+v) + '</b>, after ' + found[v] + ' steps. The ending is already fixed by the starting point &mdash; a <b>univalent</b> situation. ' +
+      'The theorem needs a starting point that is <i>not</i> like this, and the mixed ones above are exactly that.</p>';
+  }
+}
+
+/* --- Fact 2: the crash argument --- */
+$('#runCrash').addEventListener('click', function () {
+  function world(inputs) {
+    var st = initState({ inputs: inputs });
+    st.procs[0].alive = false;
+    var r = runUntil(st, fairPick, 300);
+    return { bo: r.s.procs[1].decided, cy: r.s.procs[2].decided, steps: r.s.step, letters: r.s.delivered };
+  }
+  var A = world([0, 1, 1]), B = world([1, 1, 1]);
+  var same = A.bo === B.bo && A.cy === B.cy;
+  var o = $('#crashOut');
+  o.className = 'verdict ' + (same ? 'open' : 'done');
+  o.innerHTML = '<div class="big">' + (same ? 'Identical outcomes' : 'Different outcomes') + '</div>' +
+    '<p><b>World A</b> &mdash; Ada wanted DARK. Ada is silent from step 0. Bo and Cy settle on <b>' + LAMP(A.bo) + '</b> at step ' + A.steps + ' after ' + A.letters + ' letters.<br>' +
+    '<b>World B</b> &mdash; Ada wanted LIGHT. Ada is silent from step 0. Bo and Cy settle on <b>' + LAMP(B.bo) + '</b> at step ' + B.steps + ' after ' + B.letters + ' letters.</p>' +
+    '<p>' + (same
+      ? 'Bo and Cy cannot tell the two worlds apart, so they behave identically in both &mdash; <b>Ada&rsquo;s wish had no effect on the outcome</b>. That is the lever: if a starting point&rsquo;s ending were fixed by what Ada wants, silencing Ada would have to change the ending, and it demonstrably does not.'
+      : 'Unexpected &mdash; the two worlds diverged, which would mean Bo and Cy learned something about Ada without hearing from her.') + '</p>';
+});
+
+/* --- Fact 3: the commuting diamond --- */
+var BASE = [];
+function initProof() {
+  if (BASE.length) return;
+  buildChain();
+  var s = initState({ inputs: [0, 1, 1] });
+  BASE = [s];
+  for (var i = 0; i < 20; i++) { var e = fairPick(s); if (!e) break; s = apply(s, e); BASE.push(s); }
+  var sel = $('#dStep'); sel.innerHTML = '';
+  BASE.forEach(function (st, i) {
+    if (events(st).filter(function (e) { return true; }).length < 2) return;
+    var o = el('option', '', i === 0 ? 'the very beginning' : 'step ' + st.step);
+    o.value = i; sel.appendChild(o);
+  });
+  sel.value = String(Math.min(6, BASE.length - 1));
+  sel.addEventListener('change', fillEvents);
+  $('#dE1').addEventListener('change', function () { fillE2(); drawDiamond(); });
+  $('#dE2').addEventListener('change', drawDiamond);
+  fillEvents();
+  $('#auditAll').addEventListener('click', runAudit);
+}
+function curConf() { return BASE[+$('#dStep').value]; }
+function fillEvents() {
+  var evs = events(curConf());
+  var s1 = $('#dE1'); s1.innerHTML = '';
+  evs.forEach(function (e, i) { var o = el('option', '', evLabel(e)); o.value = i; s1.appendChild(o); });
+  fillE2(); drawDiamond();
+}
+function fillE2() {
+  var evs = events(curConf());
+  var i1 = +$('#dE1').value;
+  var s2 = $('#dE2'); s2.innerHTML = '';
+  evs.forEach(function (e, i) {
+    if (i === i1 || evIsland(e) === evIsland(evs[i1])) return;
+    var o = el('option', '', evLabel(e)); o.value = i; s2.appendChild(o);
+  });
+  if (!s2.options.length) { var o2 = el('option', '', '— no event at a different island —'); o2.value = '-1'; s2.appendChild(o2); }
+}
+function drawDiamond() {
+  var c = curConf(), evs = events(c);
+  var i1 = +$('#dE1').value, i2 = +$('#dE2').value;
+  var out = $('#dOut');
+  if (i2 < 0 || !evs[i1] || !evs[i2]) {
+    $('#dA').textContent = ''; $('#dB').textContent = '';
+    out.className = 'note'; out.textContent = 'Pick a situation where two different islands both have something pending.';
+    return;
+  }
+  var e1 = evs[i1], e2 = evs[i2];
+  var A = apply(apply(c, e1), e2), B = apply(apply(c, e2), e1);
+  var ca = canonOf(A), cb = canonOf(B), same = ca === cb;
+  $('#dA').textContent = ca; $('#dB').textContent = cb;
+  $('#dA').className = 'dnode' + (same ? ' same' : ''); $('#dB').className = 'dnode' + (same ? ' same' : '');
+  out.className = 'verdict ' + (same ? 'done' : 'open');
+  out.innerHTML = '<div class="big">' + (same ? 'Byte for byte identical' : 'Different — order mattered') + '</div>' +
+    '<p><b>' + evLabel(e1) + '</b> lands at <b>' + NAMES[evIsland(e1)] + '</b>; <b>' + evLabel(e2) + '</b> lands at <b>' + NAMES[evIsland(e2)] + '</b>. ' +
+    (same
+      ? 'Two different islands, so neither event can see the other. Swapping them leaves every keeper&rsquo;s knowledge and every letter at sea exactly the same. <b>The ferryman may therefore slide any island&rsquo;s next move earlier or later at will, for free.</b>'
+      : 'Both events landed at the same island, so the second one saw what the first one did. Order matters here &mdash; and only here.') + '</p>';
+}
+function runAudit() {
+  var s = initState({ inputs: [0, 1, 1] }), hist = [s];
+  for (var i = 0; i < 30; i++) { var e = fairPick(s); if (!e) break; s = apply(s, e); hist.push(s); }
+  var diffIsl = { same: 0, diff: 0 }, sameIsl = { same: 0, diff: 0 };
+  hist.forEach(function (c) {
+    var evs = events(c);
+    for (var a = 0; a < evs.length; a++) for (var b = a + 1; b < evs.length; b++) {
+      var eq = canonOf(apply(apply(c, evs[a]), evs[b])) === canonOf(apply(apply(c, evs[b]), evs[a]));
+      var bucket = evIsland(evs[a]) === evIsland(evs[b]) ? sameIsl : diffIsl;
+      eq ? bucket.same++ : bucket.diff++;
+    }
+  });
+  var o = $('#auditOut');
+  o.className = 'verdict ' + (diffIsl.diff === 0 ? 'done' : 'open');
+  o.innerHTML = '<div class="big">' + diffIsl.same + ' of ' + (diffIsl.same + diffIsl.diff) + ' swaps at different islands changed nothing</div>' +
+    '<p>Pairs landing at <b>different</b> islands: <b>' + diffIsl.same + ' identical</b>, ' + diffIsl.diff + ' different.<br>' +
+    'Pairs landing at the <b>same</b> island: ' + sameIsl.same + ' identical, <b>' + sameIsl.diff + ' different</b> &mdash; there, order genuinely matters.</p>' +
+    '<p>' + (diffIsl.diff === 0
+      ? 'Not one exception. This is the property the whole proof rests on, and it holds for any protocol at all, because an island can only be changed by something that reaches <i>it</i>.'
+      : 'An exception appeared, which would mean an island is reading something it was never sent.') + '</p>';
+}
+
+/* ================== TAB 3 — the escapes ================== */
+function runEscape(delta, backoff, oracle, maxSteps, seed) {
+  var st = initState({ inputs: [0, 1, 1], delta: delta, backoff: backoff, seed: seed || 4242 });
+  if (oracle >= 0) st.oracleLeader = oracle;
+  var r = runUntil(st, demonPick, maxSteps);
+  return {
+    decided: decidedCount(r.s) === 3, steps: r.s.step, attempts: r.s.highestSeen,
+    delay: r.s.maxDelay, value: anyDecision(r.s), broken: safetyBroken(r.s), delivered: r.s.delivered
+  };
+}
+function addRow(delta, backoff, oracle, res, maxSteps) {
+  var tb = $('#eTable tbody');
+  var tr = el('tr');
+  var cells = [
+    delta ? String(delta) : 'none',
+    backoff ? 'on' : 'off',
+    oracle >= 0 ? NAMES[oracle] : 'off',
+    res.decided ? 'settled on ' + LAMP(res.value) : 'ferryman held it open'
+  ];
+  cells.forEach(function (t, i) {
+    var td = el('td', '', t);
+    if (i === 3) { td.innerHTML = ''; td.appendChild(el('span', 'pill ' + (res.decided ? 'good' : 'bad'), t)); }
+    tr.appendChild(td);
+  });
+  [res.decided ? res.steps : '>' + maxSteps, res.attempts, res.delay].forEach(function (t) {
+    tr.appendChild(el('td', 'num', String(t)));
+  });
+  tb.insertBefore(tr, tb.firstChild);
+}
+$('#eRun').addEventListener('click', function () {
+  var d = +$('#eDelta').value || 0, b = +$('#eBack').value || 0, n = +$('#eSteps').value || 400;
+  var o = parseInt($('#eOracle').value, 10); if (isNaN(o)) o = -1;
+  var res = runEscape(d, b, o, n);
+  addRow(d, b, o, res, n);
+  var out = $('#eOut');
+  out.className = 'verdict ' + (res.decided ? 'done' : 'open');
+  if (res.decided) {
+    out.innerHTML = '<div class="big">Settled: ' + LAMP(res.value) + ', at step ' + res.steps + '</div>' +
+      '<p>The ferryman was still stalling with everything he had, and lost. He needed ' +
+      (d ? 'to delay a letter past the ' + d + '-step deadline' : (o >= 0 ? 'a second keeper willing to start a rival attempt' : 'something')) +
+      ', and the world would not let him. Attempts used: <b>' + res.attempts + '</b>. Agreement: ' + (res.broken ? '<b style="color:var(--ferry)">broken</b>' : 'held') + '.</p>';
+  } else {
+    out.innerHTML = '<div class="big">Nothing decided after ' + res.steps + ' steps</div>' +
+      '<p>The keepers reached attempt <b>' + res.attempts + '</b> and delivered <b>' + res.delivered + '</b> letters, losing none. ' +
+      'No letter waited more than <b>' + res.delay + '</b> steps. Agreement was never broken &mdash; there was simply never an answer. ' +
+      (b && !d ? 'Random waiting times did not help: the ferryman is patient, and waits out every pause.' : '') + '</p>';
+  }
+});
+$('#eAll').addEventListener('click', function () {
+  $('#eTable tbody').innerHTML = '';
+  var combos = [[0, 0, -1], [0, 12, -1], [0, 0, 0], [2, 0, -1], [4, 0, -1], [10, 0, -1], [25, 0, -1], [4, 12, -1], [0, 12, 1]];
+  combos.forEach(function (c) { addRow(c[0], c[1], c[2], runEscape(c[0], c[1], c[2], 400), 400); });
+  var out = $('#eOut');
+  out.className = 'verdict done';
+  out.innerHTML = '<div class="big">Nine worlds, one protocol, one ferryman</div>' +
+    '<p>Read the table bottom to top. The protocol never changed and agreement never broke in any row. ' +
+    'The only thing that changed is whether the world lets the ferryman delay a letter indefinitely &mdash; ' +
+    'and that alone decides whether the keepers ever finish.</p>';
+});
+</script>

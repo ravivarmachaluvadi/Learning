@@ -1,0 +1,372 @@
+<title>The Append-Only Bank</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+  :root {
+    --bg: #f1efe9; --surface: #fbfaf6; --surface2: #e9e5da;
+    --ink: #23262e; --muted: #77735f; --line: #d9d4c4;
+    --accent: #33456e; --accent-soft: #dfe3ee;
+    --gold: #96751c; --gold-soft: #f0e7cd;
+    --good: #3f7f5c; --good-soft: #dfeae4;
+    --bad: #b5493b; --bad-soft: #f1ddd9;
+    --scrub: #33456e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181f; --surface: #1e212b; --surface2: #272b37;
+      --ink: #e7e6df; --muted: #9d998a; --line: #383d4b;
+      --accent: #8fa3d6; --accent-soft: #252c40;
+      --gold: #d0aa45; --gold-soft: #352d15;
+      --good: #72b48f; --good-soft: #21332a;
+      --bad: #d9705f; --bad-soft: #3a221e;
+      --scrub: #8fa3d6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181f; --surface: #1e212b; --surface2: #272b37;
+    --ink: #e7e6df; --muted: #9d998a; --line: #383d4b;
+    --accent: #8fa3d6; --accent-soft: #252c40;
+    --gold: #d0aa45; --gold-soft: #352d15;
+    --good: #72b48f; --good-soft: #21332a;
+    --bad: #d9705f; --bad-soft: #3a221e;
+    --scrub: #8fa3d6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Spectral", Georgia, serif; font-size: 15px; line-height: 1.55; }
+  .mono { font-family: "Courier Prime", ui-monospace, Courier, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+  header h1 { font-size: 30px; font-weight: 700; margin: 4px 0 2px; text-wrap: balance; }
+  header .sub { color: var(--muted); max-width: 72ch; margin: 0 0 6px; }
+  .eyebrow { font-family: "Courier Prime", monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+
+  #verdict { margin: 14px 0; padding: 12px 16px; border-radius: 10px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 5px solid var(--accent); }
+  #verdict.good { border-left-color: var(--good); } #verdict.bad { border-left-color: var(--bad); }
+  #verdict .tech { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; font-family: "Courier Prime", monospace; }
+
+  .layout { display: grid; grid-template-columns: 285px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-family: "Courier Prime", monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); font-weight: 700; }
+
+  .stories, .cmds { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+  button { text-align: left; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface2); color: var(--ink); font: 600 13.5px "Spectral", serif; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stories button .hint { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+
+  .book { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; max-height: 340px; overflow-y: auto; }
+  .row { display: flex; gap: 10px; align-items: baseline; padding: 3px 14px;
+    font-family: "Courier Prime", monospace; font-size: 13px; border-left: 4px solid transparent; }
+  .row .v { color: var(--muted); width: 34px; text-align: right; }
+  .row .amt { margin-left: auto; font-weight: 700; }
+  .row.dep .amt { color: var(--good); } .row.wd .amt { color: var(--bad); }
+  .row.rev { background: var(--gold-soft); } .row.rev .amt { color: var(--gold); }
+  .row.included { border-left-color: var(--scrub); }
+  .row.excluded { opacity: .32; }
+  .row.snap { color: var(--accent); font-weight: 700; }
+  .scrubwrap { margin: 10px 0 4px; }
+  .scrubwrap input[type=range] { width: 100%; accent-color: var(--scrub); }
+  .scrublabel { font-family: "Courier Prime", monospace; font-size: 12px; color: var(--muted); }
+
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .card { flex: 1 1 160px; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .card.now { border-color: var(--good); } .card.past { border-color: var(--scrub); border-style: dashed; }
+  .card h4 { margin: 0 0 4px; font-family: "Courier Prime", monospace; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .card .bal { font-family: "Courier Prime", monospace; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card .meta { font-size: 12px; color: var(--muted); }
+  .card .bal.neg { color: var(--bad); }
+
+  .tellers { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .teller { flex: 1 1 220px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface2); }
+  .teller h4 { margin: 0 0 4px; font-size: 14px; }
+  .teller .loaded { font-family: "Courier Prime", monospace; font-size: 12px; color: var(--muted); }
+  .teller .btns { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .modechk { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--line); cursor: pointer; font-size: 13px; margin-top: 8px; }
+  .modechk:has(input:checked) { border-color: var(--bad); background: var(--bad-soft); }
+  .modechk input { accent-color: var(--bad); }
+
+  #loglines { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
+  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
+  .ll .t { font-size: 14px; }
+  .ll .tech { font-family: "Courier Prime", monospace; font-size: 11.5px; color: var(--muted); }
+  .ll.ok { border-left-color: var(--good); } .ll.err { border-left-color: var(--bad); }
+  .ll.gold { border-left-color: var(--gold); } .ll.nav { border-left-color: var(--accent); }
+  .foot { margin-top: 16px; color: var(--muted); font-size: 13px; max-width: 82ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">event sourcing · the passbook, simulated</div>
+    <h1>The Append-Only Bank</h1>
+    <p class="sub">This bank stores <b>no balance anywhere</b>. It keeps a passbook — an append-only list of facts —
+    and computes any balance, at any moment in history, by reading the book up to that line. Deposit and withdraw,
+    <b>drag the time slider</b> to revisit any past version, race two tellers against one account, post a mistake and
+    correct it in ink. The stories on the left narrate the scenes worth seeing.</p>
+  </header>
+
+  <div id="verdict"><span id="vtext">Pick a story, or just start banking.</span><span class="tech" id="vtech"></span></div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Play a story for me</h2>
+      <div class="stories">
+        <button data-story="fold"><span>1 · The balance is a sum, not a cell</span><span class="hint">Three facts in, one balance out</span></button>
+        <button data-story="scrub"><span>2 · Time travel</span><span class="hint">Scrub the slider — every past balance still exists</span></button>
+        <button data-story="race"><span>3 · Two tellers, one account</span><span class="hint">Stale write refused; the retry re-checks the rules</span></button>
+        <button data-story="determined"><span>4 · The determined retry</span><span class="hint">Skip the re-check and watch the balance go negative</span></button>
+        <button data-story="correct"><span>5 · Fixing a mistake in ink</span><span class="hint">No delete — a reversing entry, and both facts remain</span></button>
+        <button data-story="snapshot"><span>6 · The bookmark (snapshot)</span><span class="hint">Long books load fast; the answer never changes</span></button>
+      </div>
+
+      <h2>Commands</h2>
+      <div class="cmds">
+        <button id="cmdDep">Deposit ₹100</button>
+        <button id="cmdWd">Withdraw ₹30</button>
+        <button id="cmdWrong">Wire ₹500 (to the wrong account…)</button>
+        <button id="cmdReverse">Reverse the last wire</button>
+        <button id="cmdSnap">Take a snapshot here</button>
+        <button id="btnReset">Start a fresh account</button>
+      </div>
+      <label class="modechk"><input type="checkbox" id="determined">
+        <span><b>“determined retry” mode</b> — on conflict, re-send the same entry at the new version instead of re-deciding</span></label>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>The passbook — stream <span class="mono">account-7</span></h2>
+        <div class="book" id="book"></div>
+        <div class="scrubwrap">
+          <input type="range" id="scrub" min="0" max="0" value="0">
+          <div class="scrublabel" id="scrublabel">viewing: NOW</div>
+        </div>
+        <div class="cards">
+          <div class="card now"><h4>state NOW (full replay)</h4><div class="bal" id="balNow">₹0</div>
+            <div class="meta" id="metaNow">version 0 · 0 events replayed</div></div>
+          <div class="card past" id="pastCard" hidden><h4>state AS OF the slider</h4><div class="bal" id="balPast">₹0</div>
+            <div class="meta" id="metaPast"></div></div>
+          <div class="card"><h4>load cost</h4><div class="bal" id="cost">0</div>
+            <div class="meta" id="costMeta">events replayed on load (snapshot cuts this)</div></div>
+        </div>
+        <h2 style="margin-top:14px">The tellers (concurrency)</h2>
+        <div class="tellers">
+          <div class="teller"><h4>Teller 1</h4><div class="loaded" id="t1loaded">not holding the book</div>
+            <div class="btns"><button id="t1load">Open the book (load)</button><button id="t1wd">Withdraw ₹50 as loaded</button></div></div>
+          <div class="teller"><h4>Teller 2</h4><div class="loaded" id="t2loaded">not holding the book</div>
+            <div class="btns"><button id="t2load">Open the book (load)</button><button id="t2wd">Withdraw ₹50 as loaded</button></div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <h2>What just happened</h2>
+        <div id="loglines"></div>
+      </div>
+
+      <p class="foot"><b>Rules this page uses</b>: every command is decided against the state replayed from the book,
+      then appended only if the book still ends at the version the decider read (“expected version”) — that check is what
+      the tellers exercise. Withdrawals may not overdraw. A teller “holding the book” means they loaded some version and
+      will write against it; in real systems the two tellers are two app servers. The slider never changes the book —
+      time travel is a read, and that it is <i>always possible</i> is the pattern's gift.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- engine (no DOM — testable headlessly) ---------------- */
+function makeBank() {
+  const bank = { events: [], snapshotAt: 0, log: [] };   // events: {v, type, amount?}
+  const ev = (kind, text, tech) => bank.log.push({ kind, text, tech });
+
+  bank.version = () => bank.events.length;
+  bank.fold = function (upTo) {
+    let bal = 0, open = false;
+    for (const e of bank.events) {
+      if (upTo !== undefined && e.v > upTo) break;
+      if (e.type === "AccountOpened") open = true;
+      else if (e.type === "MoneyDeposited") bal += e.amount;
+      else if (e.type === "MoneyWithdrawn") bal -= e.amount;
+      else if (e.type === "DepositReversed") bal -= e.amount;
+    }
+    return { balance: bal, open, version: upTo !== undefined ? Math.min(upTo, bank.version()) : bank.version() };
+  };
+  bank.loadCost = () => bank.version() - bank.snapshotAt;
+
+  bank.append = function (expected, type, amount, label) {
+    if (expected !== bank.version())
+      return { ok: false, conflict: true, was: expected, now: bank.version() };
+    bank.events.push({ v: bank.version() + 1, type, amount });
+    ev(type === "DepositReversed" ? "gold" : "ok",
+       `${label} — entry #${bank.version()} written in ink.`,
+       `append(expected=${expected}) → v${bank.version()}`);
+    return { ok: true };
+  };
+
+  // the proper write path: load → decide → append; on conflict, RE-decide
+  bank.command = function (kind, amount) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const st = bank.fold();                            // load fresh
+      if (kind === "withdraw" && amount > st.balance) {
+        ev("err", `Withdrawal of ₹${amount} REFUSED: the replayed balance is ₹${st.balance}. The rule ran against the book as it is now.`,
+           `decide: insufficient funds (balance ${st.balance})`);
+        return false;
+      }
+      const r = bank.append(st.version,
+        kind === "deposit" ? "MoneyDeposited" : kind === "withdraw" ? "MoneyWithdrawn" : kind,
+        amount, kind === "deposit" ? `Deposited ₹${amount}` : `Withdrew ₹${amount}`);
+      if (r.ok) return true;                             // (conflict → loop reloads & re-decides)
+    }
+    return false;
+  };
+  return bank;
+}
+
+/* ---------------- headless self-test ---------------- */
+if (typeof document === "undefined") {
+  const b = makeBank();
+  b.append(0, "AccountOpened", 0, "Opened");
+  b.command("deposit", 100); b.command("withdraw", 30);
+  console.assert(b.fold().balance === 70 && b.version() === 3, "fold gives 70@3, got " + b.fold().balance);
+  console.assert(b.fold(2).balance === 100, "time travel to v2 = 100");
+  // race: teller1 appends at stale-free version; teller2's stale append conflicts
+  const t2v = b.version();
+  b.append(t2v, "MoneyWithdrawn", 50, "T1 withdrew 50");
+  const r = b.append(t2v, "MoneyWithdrawn", 40, "T2 stale");
+  console.assert(r.conflict, "stale append must conflict");
+  // proper retry re-decides: 40 > 20 -> refused
+  console.assert(b.command("withdraw", 40) === false && b.fold().balance === 20, "re-decision protects invariant");
+  // determined retry: force-append without re-deciding
+  b.append(b.version(), "MoneyWithdrawn", 40, "forced");
+  console.assert(b.fold().balance === -20, "forced append overdraws to -20, got " + b.fold().balance);
+  // correction keeps both facts
+  const c = makeBank(); c.append(0, "AccountOpened", 0, "Opened");
+  c.append(1, "MoneyDeposited", 500, "wire"); c.append(2, "DepositReversed", 500, "reversal");
+  console.assert(c.fold().balance === 0 && c.events.length === 3, "reversal compensates, history intact");
+  // snapshot cuts load cost, not answers
+  c.snapshotAt = 2;
+  console.assert(c.loadCost() === 1 && c.fold().balance === 0, "snapshot = cache only");
+  console.log("self-test: fold/timetravel/conflict/re-decide/forced(-20)/reversal/snapshot all verified");
+}
+
+/* ---------------- UI ---------------- */
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+  let bank = makeBank(), t1 = null, t2 = null, narration = null;
+  bank.append(0, "AccountOpened", 0, "Account opened for priya");
+
+  const DESC = { AccountOpened: "account opened · priya", MoneyDeposited: "deposit",
+                 MoneyWithdrawn: "withdrawal", DepositReversed: "REVERSAL of wire" };
+  const CLS = { MoneyDeposited: "dep", MoneyWithdrawn: "wd", DepositReversed: "rev", AccountOpened: "" };
+
+  function verdict(text, tech, cls) { $("vtext").textContent = text; $("vtech").textContent = tech || ""; $("verdict").className = cls || ""; }
+
+  function render() {
+    const scrubAt = +$("scrub").value, atNow = scrubAt === 0 || scrubAt >= bank.version();
+    $("scrub").max = bank.version();
+    $("book").replaceChildren(...bank.events.flatMap(e => {
+      const rows = [];
+      const d = document.createElement("div");
+      const inc = atNow || e.v <= scrubAt;
+      d.className = `row ${CLS[e.type] || ""} ${atNow ? "" : inc ? "included" : "excluded"}`;
+      d.innerHTML = `<span class="v">v${e.v}</span><span>${DESC[e.type] || e.type}</span>` +
+        (e.amount ? `<span class="amt">${e.type === "MoneyDeposited" ? "+" : "−"}₹${e.amount}</span>` : "");
+      rows.push(d);
+      if (bank.snapshotAt === e.v) {
+        const s = document.createElement("div"); s.className = "row snap";
+        s.innerHTML = `<span class="v">📌</span><span>snapshot: balance ₹${bank.fold(e.v).balance} at v${e.v} — loads start here</span>`;
+        rows.push(s);
+      }
+      return rows;
+    }));
+    const now = bank.fold();
+    $("balNow").textContent = "₹" + now.balance;
+    $("balNow").className = "bal" + (now.balance < 0 ? " neg" : "");
+    $("metaNow").textContent = `version ${now.version} · replay of ${now.version} events`;
+    $("cost").textContent = bank.loadCost();
+    if (!atNow) {
+      const past = bank.fold(scrubAt);
+      $("pastCard").hidden = false;
+      $("balPast").textContent = "₹" + past.balance;
+      $("metaPast").textContent = `as of v${scrubAt} — a pure read; the book is untouched`;
+      $("scrublabel").textContent = `viewing: version ${scrubAt} of ${bank.version()}`;
+    } else { $("pastCard").hidden = true; $("scrublabel").textContent = "viewing: NOW (drag to time-travel)"; }
+    $("t1loaded").textContent = t1 === null ? "not holding the book" : `loaded at v${t1} (balance ₹${bank.fold(t1).balance} as they saw it)`;
+    $("t2loaded").textContent = t2 === null ? "not holding the book" : `loaded at v${t2} (balance ₹${bank.fold(t2).balance} as they saw it)`;
+    $("loglines").replaceChildren(...bank.log.slice(-40).map(e => {
+      const d = document.createElement("div"); d.className = "ll " + e.kind;
+      d.innerHTML = `<div class="t">${e.text}</div><div class="tech">${e.tech}</div>`;
+      return d;
+    }).reverse());
+  }
+
+  function tellerWithdraw(which) {
+    const v = which === 1 ? t1 : t2;
+    if (v === null) { bank.log.push({ kind: "err", text: `Teller ${which} hasn't opened the book — load first.`, tech: "no loaded version" }); render(); return; }
+    const res = bank.append(v, "MoneyWithdrawn", 50, `Teller ${which} withdrew ₹50`);
+    if (res.conflict) {
+      bank.log.push({ kind: "err", text: `Teller ${which}'s write REFUSED: they loaded version ${res.was}, but the book is now at ${res.now}. Someone wrote in between.`,
+        tech: `ConcurrencyConflict(expected=${res.was}, actual=${res.now})` });
+      if ($("determined").checked) {
+        bank.append(bank.version(), "MoneyWithdrawn", 50, `Teller ${which} FORCED the same ₹50 entry (determined retry)`);
+        const b2 = bank.fold().balance;
+        bank.log.push({ kind: "err", text: `The forced entry was decided against a stale balance and never re-checked. Balance: ₹${b2}${b2 < 0 ? " — OVERDRAWN. The rule exists; nobody consulted it." : ""}`,
+          tech: "re-sent stale decision at fresh version" });
+        verdict(`Determined retry: the append 'succeeded' and the account sits at ₹${b2}. A conflict is the store saying “decide again” — this mode answers “no”.`, "", "bad");
+      } else {
+        const ok = bank.command("withdraw", 50);
+        verdict(ok ? "Proper retry: reloaded, re-decided, and the withdrawal was still valid — appended at the fresh version."
+                   : "Proper retry: reloaded and re-decided — and against the FRESH balance the rule said no. The conflict just saved the bank.",
+                "conflict → reload → re-decide", ok ? "good" : "good");
+      }
+      if (which === 1) t1 = null; else t2 = null;
+    } else {
+      if (which === 1) t1 = null; else t2 = null;
+      verdict(`Teller ${which}'s withdrawal appended cleanly — the book hadn't moved since they loaded it.`, "", "good");
+    }
+    render();
+  }
+
+  $("cmdDep").addEventListener("click", () => { narration = null; bank.command("deposit", 100); render(); });
+  $("cmdWd").addEventListener("click", () => { narration = null; bank.command("withdraw", 30); render(); });
+  $("cmdWrong").addEventListener("click", () => { narration = null; bank.command("deposit", 500);
+    bank.log.push({ kind: "gold", text: "…that ₹500 wire was meant for a different account. There is no UPDATE and no DELETE. The only tool is another entry.", tech: "immutable history" }); render(); });
+  $("cmdReverse").addEventListener("click", () => { narration = null;
+    const last = [...bank.events].reverse().find(e => e.type === "MoneyDeposited" && e.amount === 500);
+    if (!last) { bank.log.push({ kind: "err", text: "No ₹500 wire found to reverse.", tech: "" }); render(); return; }
+    bank.append(bank.version(), "DepositReversed", 500, `Reversed the wire from entry v${last.v}`);
+    verdict("Corrected in ink: a DepositReversed entry undoes the EFFECT while the book keeps BOTH facts — the mistake and its correction. Scrub time to watch the wrong balance exist, then stop existing.", "", "good");
+    render(); });
+  $("cmdSnap").addEventListener("click", () => { narration = null; bank.snapshotAt = bank.version();
+    bank.log.push({ kind: "nav", text: `Snapshot taken at v${bank.snapshotAt}: future loads start from this bookmark and replay only the tail. Delete it and nothing is lost but speed.`, tech: `snapshot(v${bank.snapshotAt})` }); render(); });
+  $("btnReset").addEventListener("click", () => { bank = makeBank(); t1 = t2 = null;
+    bank.append(0, "AccountOpened", 0, "Account opened for priya"); $("scrub").value = 0; $("determined").checked = false;
+    verdict("Fresh account, one entry in the book.", "", ""); render(); });
+  $("t1load").addEventListener("click", () => { t1 = bank.version(); render(); });
+  $("t2load").addEventListener("click", () => { t2 = bank.version(); render(); });
+  $("t1wd").addEventListener("click", () => tellerWithdraw(1));
+  $("t2wd").addEventListener("click", () => tellerWithdraw(2));
+  $("scrub").addEventListener("input", render);
+
+  const STORIES = {
+    fold: () => { $("btnReset").click(); bank.command("deposit", 100); bank.command("withdraw", 30);
+      verdict("Story 1 — three facts: opened, +100, −30. The ₹70 on the NOW card is not stored anywhere; it is recomputed by replaying the book every time. That absence of a balance cell is the entire pattern.", "state = fold(apply, events)", "good"); },
+    scrub: () => { $("btnReset").click(); [100, 250].forEach(x => bank.command("deposit", x)); bank.command("withdraw", 80); bank.command("deposit", 40);
+      $("scrub").value = 2;
+      verdict("Story 2 — drag the slider. Every position is a balance the account really had, reconstructed on demand. UPDATE-based systems destroyed this information; here it was never destroyed.", "as-of reads are free", ""); },
+    race: () => { $("btnReset").click(); bank.command("deposit", 70); $("determined").checked = false; t1 = bank.version(); t2 = bank.version();
+      verdict("Story 3 — both tellers loaded the book at the same version (balance ₹70). Have Teller 1 withdraw ₹50, then Teller 2: the stale write is refused, and the proper retry re-checks the rules against the fresh ₹20 — and refuses the withdrawal. Press their buttons.", "expected-version append", ""); },
+    determined: () => { $("btnReset").click(); bank.command("deposit", 70); $("determined").checked = true; t1 = bank.version(); t2 = bank.version();
+      verdict("Story 4 — same race, but 'determined retry' is ON: on conflict the teller re-sends the SAME entry at the new version, skipping the re-decision. Withdraw with Teller 1, then Teller 2, and watch the balance go negative.", "the BrokenEs.java bug, live", "bad"); },
+    correct: () => { $("btnReset").click(); bank.command("deposit", 100); $("cmdWrong").click(); $("cmdReverse").click(); },
+    snapshot: () => { $("btnReset").click(); for (let i = 0; i < 8; i++) bank.command("deposit", 10); $("cmdSnap").click(); bank.command("deposit", 10); bank.command("withdraw", 5);
+      verdict("Story 6 — the 📌 bookmark: loads now replay only the entries after it (see the load-cost card). The balance is identical with or without it — a snapshot is a cache of the fold, never a second truth.", "snapshot = memoized fold", "good"); },
+  };
+  document.querySelectorAll(".stories button").forEach(b => b.addEventListener("click", () => { STORIES[b.dataset.story](); render(); }));
+
+  verdict("Pick a story, or just start banking.", "", ""); render();
+}
+</script>

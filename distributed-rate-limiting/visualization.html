@@ -1,0 +1,891 @@
+<title>Twenty Gateways, One Promise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#EEF1F5; --surface:#FFFFFF; --surface-2:#E3E8EE; --surface-3:#D6DCE4;
+  --ink:#131821; --ink-2:#4B566A; --ink-3:#78849A;
+  --line:#C9D1DB; --line-2:#AEB9C7;
+  --accent:#5B45C7; --accent-soft:#EDE9FB;
+  --admit:#0A7A54; --admit-soft:#DDF0E8;
+  --reject:#BE3520; --reject-soft:#FADFDA;
+  --warn:#9A6300; --warn-soft:#FBEDD4;
+  --shadow:0 1px 0 rgba(19,24,33,.06), 0 2px 8px rgba(19,24,33,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10141A; --surface:#181D25; --surface-2:#212832; --surface-3:#2B333F;
+    --ink:#EAEFF5; --ink-2:#A2AEBE; --ink-3:#78859A;
+    --line:#2C3441; --line-2:#3C4757;
+    --accent:#9E8AFF; --accent-soft:#241F3D;
+    --admit:#3FC894; --admit-soft:#0F2D24;
+    --reject:#FF7C64; --reject-soft:#381914;
+    --warn:#E3A83E; --warn-soft:#332612;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 2px 10px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10141A; --surface:#181D25; --surface-2:#212832; --surface-3:#2B333F;
+  --ink:#EAEFF5; --ink-2:#A2AEBE; --ink-3:#78859A;
+  --line:#2C3441; --line-2:#3C4757;
+  --accent:#9E8AFF; --accent-soft:#241F3D;
+  --admit:#3FC894; --admit-soft:#0F2D24;
+  --reject:#FF7C64; --reject-soft:#381914;
+  --warn:#E3A83E; --warn-soft:#332612;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 2px 10px rgba(0,0,0,.25);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:28px 22px 72px}
+
+h1,h2,h3,.sign{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(28px,4.2vw,44px); line-height:1.04; margin:0 0 10px; font-weight:700; letter-spacing:-.02em; text-wrap:balance}
+h2{font-size:13px; text-transform:uppercase; letter-spacing:.14em; font-weight:600; color:var(--ink-2); margin:0 0 12px}
+.lede{max-width:66ch; color:var(--ink-2); margin:0 0 6px}
+.lede strong{color:var(--ink); font-weight:600}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+
+header.hd{border-bottom:3px solid var(--ink); padding-bottom:20px; margin-bottom:22px}
+.kicker{font-family:Archivo,sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:.2em; color:var(--accent); font-weight:600; margin-bottom:10px}
+
+/* ---- design rail: an ordered sequence, so numbering is real ---- */
+.rail{display:flex; flex-wrap:wrap; gap:0; border:2px solid var(--ink); background:var(--surface); margin:0 0 6px}
+.rail button{
+  flex:1 1 110px; appearance:none; border:0; border-right:1px solid var(--line);
+  background:transparent; color:var(--ink-2); padding:9px 8px 10px; cursor:pointer;
+  font-family:Archivo,sans-serif; font-size:12px; font-weight:600; text-align:left;
+  display:flex; flex-direction:column; gap:2px; line-height:1.2; transition:background .12s;
+}
+.rail button:last-child{border-right:0}
+.rail button .v{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.08em; color:var(--ink-3)}
+.rail button:hover{background:var(--surface-2)}
+.rail button[aria-pressed="true"]{background:var(--ink); color:var(--paper)}
+.rail button[aria-pressed="true"] .v{color:var(--paper); opacity:.7}
+.railnote{font-size:12.5px; color:var(--ink-3); margin:0 0 20px}
+
+/* ---- main grid ---- */
+.grid{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr); gap:18px; align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+.panel{background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow)}
+.panel .hdr{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:11px 14px; border-bottom:1px solid var(--line)}
+.panel .hdr h2{margin:0}
+.panel .bd{padding:14px}
+
+svg.stage{display:block; width:100%; height:auto; background:var(--surface)}
+
+/* ---- scoreboard ---- */
+.verdict{padding:14px; border-bottom:1px solid var(--line)}
+.verdict .big{font-family:Archivo,sans-serif; font-weight:700; font-size:23px; line-height:1.1; letter-spacing:-.01em; margin-bottom:5px; text-wrap:balance}
+.verdict .why{font-size:13.5px; color:var(--ink-2); margin:0}
+.verdict.ok .big{color:var(--admit)} .verdict.over .big{color:var(--reject)}
+.verdict.under .big{color:var(--warn)} .verdict.neutral .big{color:var(--ink)}
+
+.meters{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line)}
+.meter{background:var(--surface); padding:11px 13px}
+.meter .lab{font-family:Archivo,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); font-weight:600}
+.meter .val{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:22px; font-weight:600; line-height:1.25}
+.meter .sub{font-size:11.5px; color:var(--ink-3)}
+
+.bar{height:9px; background:var(--surface-3); position:relative; overflow:hidden; margin-top:7px}
+.bar i{position:absolute; inset:0 auto 0 0; background:var(--admit); transition:width .18s linear}
+.bar.over i{background:var(--reject)} .bar.under i{background:var(--warn)}
+.bar u{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink); left:50%}
+
+/* ---- controls ---- */
+.ctl{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:14px}
+.ctl label{display:block; font-family:Archivo,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); font-weight:600; margin-bottom:5px}
+.ctl .rowv{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink); float:right; letter-spacing:0; text-transform:none}
+input[type=range]{width:100%; accent-color:var(--accent); margin:0}
+select{width:100%; padding:6px 8px; background:var(--surface-2); color:var(--ink); border:1px solid var(--line-2); font-family:inherit; font-size:13px}
+button.btn{
+  appearance:none; border:2px solid var(--ink); background:var(--surface); color:var(--ink);
+  font-family:Archivo,sans-serif; font-weight:600; font-size:12.5px; padding:8px 13px; cursor:pointer;
+  letter-spacing:.02em; transition:background .12s,color .12s;
+}
+button.btn:hover{background:var(--ink); color:var(--paper)}
+button.btn.solid{background:var(--ink); color:var(--paper)}
+button.btn.solid:hover{background:var(--accent); border-color:var(--accent)}
+button.btn.danger{border-color:var(--reject); color:var(--reject)}
+button.btn.danger:hover{background:var(--reject); color:#fff}
+button.btn[aria-pressed="true"]{background:var(--reject); border-color:var(--reject); color:#fff}
+.btnrow{display:flex; flex-wrap:wrap; gap:8px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ---- legend ---- */
+.legend{display:flex; flex-wrap:wrap; gap:6px 16px; padding:10px 14px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:11px; height:11px; display:inline-block; border-radius:50%}
+
+/* ---- log ---- */
+.log{height:210px; overflow-y:auto; padding:0; margin:0; list-style:none; font-size:13px}
+.log li{padding:8px 14px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:52px 1fr; gap:10px}
+.log li:first-child{background:var(--accent-soft)}
+.log .ts{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3); padding-top:1px}
+.log .tx strong{font-weight:600}
+.log .tx em{font-style:normal; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2); display:block; margin-top:2px}
+
+/* ---- predict ---- */
+.predict{border:2px solid var(--accent); background:var(--accent-soft); padding:14px; margin-top:18px}
+.predict h2{color:var(--accent)}
+.predict .q{font-weight:600; margin:0 0 10px; max-width:70ch}
+.predict .ans{margin-top:11px; padding-top:11px; border-top:1px solid var(--line-2); font-size:14px; max-width:74ch}
+.scen{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:2px}
+.scen button{
+  appearance:none; border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
+  padding:7px 11px; font-family:Archivo,sans-serif; font-size:12.5px; font-weight:600; cursor:pointer;
+}
+.scen button:hover{border-color:var(--accent); color:var(--accent)}
+.scen button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+
+.tag{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:1px 6px; border:1px solid currentColor; letter-spacing:.04em}
+.foot{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-3); max-width:76ch}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+
+<div class="wrap">
+
+<header class="hd">
+  <div class="kicker">Distributed rate limiting · architecture simulator</div>
+  <h1>Twenty Gateways, One Promise</h1>
+  <p class="lede">You promised a customer <strong>60 requests per second</strong>. They are sending 180. One
+  machine could enforce that perfectly. You run several, behind a load balancer, and each one only knows
+  what it has seen itself.</p>
+  <p class="lede">Every design below is an answer to one question: <strong>how often does a gateway talk to
+  the shared counter, and what does it do in between?</strong> Pick one and watch the four numbers on the
+  right — accuracy, cost to the store, added latency, and what happens when the store dies.</p>
+</header>
+
+<div class="rail" id="rail" role="group" aria-label="Coordination design"></div>
+<p class="railnote" id="railnote"></p>
+
+<div class="grid">
+
+  <div>
+    <div class="panel">
+      <div class="hdr">
+        <h2>The request path</h2>
+        <span class="mono" style="font-size:11.5px;color:var(--ink-3)" id="clock">t = 0.0 s</span>
+      </div>
+      <svg class="stage" id="stage" viewBox="0 0 920 570" role="img"
+           aria-label="Live architecture diagram: clients, load balancer, gateway nodes, counter store and backend"></svg>
+      <div class="legend">
+        <span><i style="background:var(--admit)"></i> request admitted</span>
+        <span><i style="background:var(--reject)"></i> request rejected (429)</span>
+        <span><i style="background:var(--accent)"></i> coordination traffic</span>
+        <span><i style="background:var(--warn)"></i> running degraded</span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="hdr"><h2>Controls</h2>
+        <span style="font-size:12px;color:var(--ink-3)">every one of these changes the answer</span></div>
+      <div class="bd">
+        <div class="ctl">
+          <div>
+            <label for="nodes">Gateway nodes <span class="rowv" id="nodesv">4</span></label>
+            <input type="range" id="nodes" min="1" max="8" step="1" value="4">
+          </div>
+          <div>
+            <label for="rps">Traffic offered <span class="rowv" id="rpsv">180 rps</span></label>
+            <input type="range" id="rps" min="20" max="400" step="10" value="180">
+          </div>
+          <div>
+            <label for="lb">Which node gets the request?</label>
+            <select id="lb">
+              <option value="rr">Round robin — perfectly even</option>
+              <option value="rand">Random</option>
+              <option value="skew">Skewed — 90% to one node</option>
+              <option value="sticky">Sticky — always the same node (key owner)</option>
+            </select>
+          </div>
+          <div>
+            <label for="fallback">If the store is unreachable</label>
+            <select id="fallback">
+              <option value="degrade">Degrade to local limit ÷ N</option>
+              <option value="open">Fail open — allow everything</option>
+              <option value="closed">Fail closed — reject everything</option>
+            </select>
+          </div>
+          <div id="wrapSync">
+            <label for="sync">Sync interval <span class="rowv" id="syncv">500 ms</span></label>
+            <input type="range" id="sync" min="50" max="1000" step="50" value="500">
+          </div>
+          <div id="wrapBatch">
+            <label for="batch">Lease batch size <span class="rowv" id="batchv">10</span></label>
+            <input type="range" id="batch" min="2" max="30" step="1" value="10">
+          </div>
+          <div id="wrapShards">
+            <label for="shards">Sub-keys per hot key <span class="rowv" id="shardsv">4</span></label>
+            <input type="range" id="shards" min="1" max="8" step="1" value="4">
+          </div>
+          <div>
+            <label for="rtt">Hop to the store <span class="rowv" id="rttv">3 ms</span></label>
+            <input type="range" id="rtt" min="1" max="12" step="1" value="3">
+          </div>
+          <div>
+            <label for="speed">Simulation speed <span class="rowv" id="speedv">1×</span></label>
+            <input type="range" id="speed" min="1" max="4" step="1" value="3">
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:16px">
+          <button class="btn solid" id="story">▶ Run the whole story</button>
+          <button class="btn" id="pause">Pause</button>
+          <button class="btn" id="reset">Reset counters</button>
+          <button class="btn danger" id="kill" aria-pressed="false">Kill the store</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="hdr"><h2>Is the promise holding?</h2></div>
+      <div class="verdict neutral" id="verdict">
+        <div class="big" id="vbig">Warming up…</div>
+        <p class="why" id="vwhy">Give it a second of traffic.</p>
+      </div>
+      <div class="meters">
+        <div class="meter" style="grid-column:1 / -1">
+          <div class="lab">Admitted in the last second</div>
+          <div class="val"><span id="mAdmit">0</span> <span style="font-size:13px;color:var(--ink-3)">/ 60 promised</span></div>
+          <div class="bar" id="mBar"><i style="width:0%"></i><u></u></div>
+          <div class="sub" id="mAdmitSub">the black tick is the limit</div>
+        </div>
+        <div class="meter">
+          <div class="lab">Store operations</div>
+          <div class="val" id="mOps">0</div>
+          <div class="sub">per second</div>
+        </div>
+        <div class="meter">
+          <div class="lab">Added latency</div>
+          <div class="val" id="mLat">0.0</div>
+          <div class="sub">ms on every request</div>
+        </div>
+        <div class="meter">
+          <div class="lab">Offered</div>
+          <div class="val" id="mOffer">0</div>
+          <div class="sub">requests per second</div>
+        </div>
+        <div class="meter">
+          <div class="lab">Store</div>
+          <div class="val" id="mStore" style="font-size:15px;font-family:Archivo,sans-serif">healthy</div>
+          <div class="sub" id="mStoreSub">source of truth</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="hdr"><h2>What just happened</h2></div>
+      <ul class="log" id="log"></ul>
+    </div>
+  </div>
+</div>
+
+<div class="predict">
+  <h2>Predict, then run</h2>
+  <div class="scen" id="scen"></div>
+  <p class="q" id="pq">Pick a scenario. Each one asks you to commit to an answer before it runs — that is
+  where the learning is.</p>
+  <div id="popts" class="btnrow"></div>
+  <div class="ans" id="pans" hidden></div>
+</div>
+
+<p class="foot">This is a simulation of the architecture, not of any real product. The hop to the store is a control:
+3&nbsp;ms is a loaded in-region store, 1&nbsp;ms a healthy one, 10&nbsp;ms+ cross-availability-zone. The counter is a token bucket with burst equal to
+the limit, which is why a healthy design can briefly show slightly more than 60 — burst is permission to
+exceed the average rate. Full write-up: <span class="mono">README.md</span> in the same lab.</p>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ============================================================
+   1. THE DESIGNS — ordered, because each one answers the
+      previous one's failure. The numbering is a sequence.
+   ============================================================ */
+const DESIGNS = [
+ {id:"v1", name:"No coordination",   blurb:"Every gateway runs the full limiter alone, with no shared state at all. This is what you get by accident the day you add a second instance."},
+ {id:"v2", name:"Divide the quota",  blurb:"Each gateway enforces limit ÷ N. The ceiling is now right. Change the load balancer to anything uneven and watch the floor collapse."},
+ {id:"v3", name:"Read-modify-write", blurb:"One shared counter in Redis: read it, decide, write it back. Two round trips — and between them, every other gateway reads the same stale value."},
+ {id:"v4", name:"Atomic at the store",blurb:"Send the decision to the store instead of fetching the data. One round trip, no gap, exact. This is the correct default, and for many systems the final answer."},
+ {id:"v5", name:"Sharded atomic",    blurb:"A hot key is one key on one core, so adding store machines cannot help it. Split the key into sub-buckets of limit ÷ k — v2's trade, in miniature."},
+ {id:"v6", name:"Batched leases",    blurb:"Take 10 tokens at a time and spend them locally. Store traffic drops by the batch size; tokens a node took and never spent are stranded."},
+ {id:"v7", name:"Periodic sync",     blurb:"Nothing touches the network on the hot path. Nodes count locally and swap totals every T milliseconds. The error is whatever they spend while out of touch."}
+];
+const NEEDS_STORE = {v3:1,v4:1,v5:1,v6:1};   // v7 uses the store, but not on the hot path
+
+/* ============================================================
+   2. STATE
+   ============================================================ */
+const S = {
+  design:"v1", nodes:4, lb:"rr", rps:180, limit:60, burst:60,
+  rtt:3, sync:500, batch:10, shards:4,
+  storeUp:true, fallback:"degrade",
+  running:true, speed:3, t:0
+};
+let nodeS=[], degS=[], store=null, rr=0, acc=0;
+let admitLog=[], offerLog=[], opsLog=[], latLog=[], dots=[], perNodeAdmit=[];
+let lastVerdictKey="", storyTimer=null;
+
+function resetSim(keepTime){
+  nodeS=[]; degS=[]; perNodeAdmit=[];
+  for(let i=0;i<S.nodes;i++){
+    nodeS.push({tokens:S.burst,last:S.t,expiry:0,denyUntil:0,known:0,mine:0,
+               lastSync:S.t-S.sync+i*S.sync/Math.max(1,S.nodes),win:-1});
+    degS.push({tokens:S.burst/S.nodes,last:S.t});
+    perNodeAdmit.push([]);
+  }
+  store={tokens:S.burst,last:S.t,pending:[],shards:[],win:-1,total:0};
+  for(let i=0;i<8;i++) store.shards.push({tokens:S.burst/S.shards,last:S.t,ops:[]});
+  admitLog=[];offerLog=[];opsLog=[];latLog=[];dots=[];rr=0;acc=0;
+  if(!keepTime) S.t=0;
+  lastVerdictKey="";
+}
+
+/* ---- token bucket, refilled lazily from a timestamp ---- */
+function refill(b,t,cap,ratePerMs){
+  const d=Math.max(0,t-b.last);
+  b.tokens=Math.min(cap,b.tokens+d*ratePerMs);
+  b.last=t;
+}
+const rateMs = () => S.limit/1000;
+
+/* ============================================================
+   3. THE SEVEN DECISION PROCEDURES
+      Each returns {allowed, ops, lat, coord}
+   ============================================================ */
+function decide(i,t){
+  const d=S.design, cap=S.burst, r=rateMs();
+
+  if(d==="v1"){
+    const b=nodeS[i]; refill(b,t,cap,r);
+    const ok=b.tokens>=1; if(ok)b.tokens-=1;
+    return {allowed:ok,ops:0,lat:0,coord:false};
+  }
+  if(d==="v2"){
+    const b=nodeS[i], c=cap/S.nodes, rr2=r/S.nodes;
+    refill(b,t,c,rr2);
+    const ok=b.tokens>=1; if(ok)b.tokens-=1;
+    return {allowed:ok,ops:0,lat:0,coord:false};
+  }
+  if(!S.storeUp && NEEDS_STORE[d]) return degrade(i,t);
+
+  if(d==="v3"){
+    applyPending(t);
+    // The node reasons about a COPY. Anyone reading before its write lands
+    // sees the same copy — that is the lost update, reproduced exactly.
+    const snap={tokens:store.tokens,last:store.last};
+    refill(snap,t,cap,r);
+    const ok=snap.tokens>=1;
+    if(ok){snap.tokens-=1; store.pending.push({at:t+2*S.rtt,tokens:snap.tokens,last:snap.last});}
+    return {allowed:ok,ops:2,lat:4*S.rtt,coord:true};
+  }
+  if(d==="v4"){
+    applyPending(t); refill(store,t,cap,r);
+    const ok=store.tokens>=1; if(ok)store.tokens-=1;      // no observable middle state
+    return {allowed:ok,ops:1,lat:2*S.rtt,coord:true};
+  }
+  if(d==="v5"){
+    const k=S.shards, sh=store.shards[Math.floor(Math.random()*k)];
+    refill(sh,t,cap/k,r/k);
+    const ok=sh.tokens>=1; if(ok)sh.tokens-=1;
+    return {allowed:ok,ops:1,lat:2*S.rtt,coord:true,shard:sh};
+  }
+  if(d==="v6"){
+    const l=nodeS[i];
+    if(t>=l.expiry) l.tokens=0;                            // unspent lease is LOST
+    let ops=0,lat=0,coord=false;
+    if(l.tokens<1){
+      // NEGATIVE CACHE: this key was empty 100 ms ago. Without this line every
+      // rejected request costs a full round trip, exactly when the store is busiest.
+      if(t<l.denyUntil) return {allowed:false,ops:0,lat:0,coord:false};
+      applyPending(t); refill(store,t,cap,r);
+      const grant=Math.min(S.batch,Math.floor(store.tokens));
+      store.tokens-=grant; l.tokens=grant; l.expiry=t+1000;
+      if(grant<=0) l.denyUntil=t+100;
+      ops=1; lat=2*S.rtt; coord=true;
+    }
+    const ok=l.tokens>=1; if(ok)l.tokens-=1;
+    return {allowed:ok,ops,lat,coord};
+  }
+  // v7
+  const n=nodeS[i], win=Math.floor(t/1000);
+  if(n.win!==win){n.win=win;n.known=0;n.mine=0;}
+  if(store.win!==win){store.win=win;store.total=0;}
+  let ops=0,coord=false;
+  if(t-n.lastSync>=S.sync){
+    if(S.storeUp){ store.total+=n.mine; n.known=store.total; n.mine=0; ops=1; coord=true; }
+    n.lastSync=t;
+  }
+  const ok = n.known+n.mine+1 <= S.limit;
+  if(ok) n.mine+=1;
+  return {allowed:ok,ops,lat:0,coord};
+}
+
+function applyPending(t){
+  store.pending.sort((a,b)=>a.at-b.at);
+  while(store.pending.length && store.pending[0].at<=t){
+    const w=store.pending.shift(); store.tokens=w.tokens; store.last=w.last;
+  }
+}
+function degrade(i,t){
+  if(S.fallback==="open")   return {allowed:true, ops:0,lat:0,coord:false,deg:true};
+  if(S.fallback==="closed") return {allowed:false,ops:0,lat:0,coord:false,deg:true};
+  const b=degS[i], c=S.burst/S.nodes, r=rateMs()/S.nodes;
+  refill(b,t,c,r);
+  const ok=b.tokens>=1; if(ok)b.tokens-=1;
+  return {allowed:ok,ops:0,lat:0,coord:false,deg:true};
+}
+
+function pickNode(){
+  switch(S.lb){
+    case "rr":     return (rr++)%S.nodes;
+    case "rand":   return Math.floor(Math.random()*S.nodes);
+    case "sticky": return 0;                       // one key → one owner
+    default:       return Math.random()<0.9?0:(S.nodes>1?1+Math.floor(Math.random()*(S.nodes-1)):0);
+  }
+}
+
+/* ============================================================
+   4. SIMULATION STEP
+   ============================================================ */
+const TICK=20;
+function step(){
+  S.t+=TICK;
+  acc += S.rps*TICK/1000;
+  const count=Math.floor(acc); acc-=count;
+  for(let q=0;q<count;q++){
+    // spread arrivals across the tick — requests in the real world do not all
+    // land on the same microsecond, and pretending they do fakes the v3 race
+    const i=pickNode(), t=S.t-TICK+Math.round(q/count*TICK);
+    const d=decide(i,t);
+    offerLog.push(t);
+    opsLog.push({t,n:d.ops});
+    latLog.push({t,v:d.lat});
+    if(d.allowed){ admitLog.push(t); perNodeAdmit[i].push(t); }
+    spawnDot(i,d);
+  }
+  const cut=S.t-1000;
+  const prune=a=>{while(a.length&&(a[0].t!==undefined?a[0].t:a[0])<cut)a.shift();};
+  prune(admitLog);prune(offerLog);prune(opsLog);prune(latLog);
+  perNodeAdmit.forEach(prune);
+}
+
+/* ============================================================
+   5. GEOMETRY + STATIC SVG
+   ============================================================ */
+const CL={x:34,y:200,w:104,h:64}, LB={x:186,y:200,w:104,h:64},
+      BE={x:648,y:200,w:118,h:64}, ST={x:326,y:462,w:262,h:86};
+const NX=372, NW=152, NH=46;
+function nodeY(i){ const total=S.nodes, top=26, bottom=402;
+  const span=(bottom-top-NH), step=total>1?span/(total-1):0;
+  return total===1 ? 209 : top+step*i; }
+const NS="http://www.w3.org/2000/svg";
+function el(n,a){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function box(g,o,label,sub,fill){
+  g.appendChild(el("rect",{x:o.x,y:o.y,width:o.w,height:o.h,fill:fill||"var(--surface-2)",
+    stroke:"var(--ink)","stroke-width":2}));
+  const t=el("text",{x:o.x+o.w/2,y:o.y+(sub?o.h/2-3:o.h/2+5),"text-anchor":"middle",
+    fill:"var(--ink)","font-family":"Archivo,sans-serif","font-size":13,"font-weight":600,
+    "letter-spacing":"0.06em"}); t.textContent=label; g.appendChild(t);
+  if(sub){const s=el("text",{x:o.x+o.w/2,y:o.y+o.h/2+15,"text-anchor":"middle",fill:"var(--ink-3)",
+    "font-family":"IBM Plex Mono,monospace","font-size":10.5}); s.textContent=sub; g.appendChild(s);}
+}
+function line(g,x1,y1,x2,y2,dash){
+  g.appendChild(el("line",{x1,y1,x2,y2,stroke:dash?"var(--accent)":"var(--line-2)",
+    "stroke-width":dash?2:3,"stroke-dasharray":dash?"5 5":"", "stroke-linecap":"square"}));
+}
+let refs={};
+function drawStatic(){
+  const svg=$("stage"); svg.textContent="";
+  const gL=el("g",{}), gB=el("g",{}), gD=el("g",{});
+  svg.appendChild(gL); svg.appendChild(gB); svg.appendChild(gD);
+  refs={dotsG:gD, nodes:[], shards:[]};
+
+  const usesStore = NEEDS_STORE[S.design]||S.design==="v7";
+  for(let i=0;i<S.nodes;i++){
+    const y=nodeY(i)+NH/2;
+    line(gL,LB.x+LB.w,232,NX,y);
+    line(gL,NX+NW,y,BE.x,232);
+    if(usesStore) line(gL,NX+NW/2,nodeY(i)+NH,NX+NW/2,ST.y,true);
+  }
+  line(gL,CL.x+CL.w,232,LB.x,232);
+
+  box(gB,CL,"CLIENTS","180 rps");
+  box(gB,LB,"ROUTER",null);
+  box(gB,BE,"BACKEND",null);
+
+  for(let i=0;i<S.nodes;i++){
+    const y=nodeY(i), g=el("g",{});
+    g.appendChild(el("rect",{x:NX,y,width:NW,height:NH,fill:"var(--surface)",stroke:"var(--ink)","stroke-width":2}));
+    const nm=el("text",{x:NX+9,y:y+18,fill:"var(--ink)","font-family":"Archivo,sans-serif",
+      "font-size":12,"font-weight":600}); nm.textContent="GATEWAY "+(i+1); g.appendChild(nm);
+    const st=el("text",{x:NX+NW-9,y:y+18,"text-anchor":"end",fill:"var(--ink-2)",
+      "font-family":"IBM Plex Mono,monospace","font-size":11}); g.appendChild(st);
+    g.appendChild(el("rect",{x:NX+9,y:y+26,width:NW-18,height:7,fill:"var(--surface-3)"}));
+    const bar=el("rect",{x:NX+9,y:y+26,width:0,height:7,fill:"var(--accent)"});
+    g.appendChild(bar);
+    const cap=el("text",{x:NX+9,y:y+43,fill:"var(--ink-3)","font-family":"IBM Plex Mono,monospace",
+      "font-size":9.5}); g.appendChild(cap);
+    gB.appendChild(g);
+    refs.nodes.push({stat:st,bar,cap,rect:g.firstChild});
+  }
+
+  if(usesStore){
+    const dead=!S.storeUp;
+    gB.appendChild(el("rect",{x:ST.x,y:ST.y,width:ST.w,height:ST.h,
+      fill:dead?"var(--reject-soft)":"var(--accent-soft)",
+      stroke:dead?"var(--reject)":"var(--accent)","stroke-width":2}));
+    const t=el("text",{x:ST.x+12,y:ST.y+21,fill:"var(--ink)","font-family":"Archivo,sans-serif",
+      "font-size":12.5,"font-weight":600,"letter-spacing":"0.06em"});
+    t.textContent="COUNTER STORE"; gB.appendChild(t);
+    const sub=el("text",{x:ST.x+ST.w-12,y:ST.y+21,"text-anchor":"end",
+      fill:dead?"var(--reject)":"var(--ink-3)","font-family":"IBM Plex Mono,monospace","font-size":10.5});
+    sub.textContent=dead?"UNREACHABLE":"source of truth"; gB.appendChild(sub);
+    refs.storeTxt=el("text",{x:ST.x+12,y:ST.y+44,fill:"var(--ink-2)",
+      "font-family":"IBM Plex Mono,monospace","font-size":11}); gB.appendChild(refs.storeTxt);
+
+    if(S.design==="v5"){
+      const k=S.shards, w=(ST.w-24)/k;
+      for(let i=0;i<k;i++){
+        gB.appendChild(el("rect",{x:ST.x+12+i*w,y:ST.y+54,width:w-3,height:20,
+          fill:"var(--surface)",stroke:"var(--line-2)"}));
+        const b=el("rect",{x:ST.x+12+i*w,y:ST.y+54,width:0,height:20,fill:"var(--accent)","opacity":.5});
+        gB.appendChild(b); refs.shards.push(b);
+      }
+    }
+  }
+  const cap=el("text",{x:CL.x,y:556,fill:"var(--ink-3)","font-family":"IBM Plex Mono,monospace","font-size":10.5});
+  cap.textContent = usesStore ? "dashed violet = coordination traffic (this is the design decision)"
+                              : "no dashed lines: this design never talks to a shared store";
+  svg.appendChild(cap);
+}
+
+/* ============================================================
+   6. DOTS
+   ============================================================ */
+function spawnDot(i,d){
+  if(REDUCED || dots.length>70) return;
+  if(Math.random() > Math.min(1, 26/Math.max(1,S.rps))) return;
+  const y=nodeY(i)+NH/2;
+  const path = d.allowed
+    ? [[CL.x+CL.w,232],[LB.x,232],[LB.x+LB.w,232],[NX,y],[NX+NW,y],[BE.x,232]]
+    : [[CL.x+CL.w,232],[LB.x,232],[LB.x+LB.w,232],[NX,y]];
+  dots.push({path,p:0,sp:.055,c:d.allowed?"var(--admit)":"var(--reject)",r:4});
+  if(d.coord) dots.push({path:[[NX+NW/2,nodeY(i)+NH],[NX+NW/2,ST.y]],p:0,sp:.075,c:"var(--accent)",r:3.2});
+}
+function moveDots(){
+  const g=refs.dotsG; if(!g) return;
+  g.textContent="";
+  for(let k=dots.length-1;k>=0;k--){
+    const d=dots[k]; d.p+=d.sp;
+    if(d.p>=1){dots.splice(k,1);continue;}
+    const segs=d.path.length-1, f=d.p*segs, s=Math.min(segs-1,Math.floor(f)), lf=f-s;
+    const a=d.path[s], b=d.path[s+1];
+    g.appendChild(el("circle",{cx:a[0]+(b[0]-a[0])*lf, cy:a[1]+(b[1]-a[1])*lf,
+      r:d.r, fill:d.c, opacity:.9}));
+  }
+}
+
+/* ============================================================
+   7. SCOREBOARD
+   ============================================================ */
+function pct(n){return Math.round(n*100);}
+function render(){
+  const admit=admitLog.length, offer=offerLog.length;
+  const ops=opsLog.reduce((s,o)=>s+o.n,0);
+  const lat=latLog.length?latLog.reduce((s,o)=>s+o.v,0)/latLog.length:0;
+  const ratio=admit/S.limit;
+
+  $("mAdmit").textContent=admit;
+  $("mOps").textContent=ops;
+  $("mLat").textContent=lat.toFixed(1);
+  $("mOffer").textContent=offer;
+  $("clock").textContent="t = "+(S.t/1000).toFixed(1)+" s";
+
+  const bar=$("mBar"), fill=bar.firstElementChild;
+  fill.style.width=Math.min(100,ratio*50)+"%";
+  bar.className="bar"+(ratio>1.15?" over":(ratio<.85&&offer>S.limit?" under":""));
+
+  const usesStore=NEEDS_STORE[S.design]||S.design==="v7";
+  $("mStore").textContent = !usesStore ? "not used" : (S.storeUp?"healthy":"DEAD");
+  $("mStore").style.color = !usesStore?"var(--ink-3)":(S.storeUp?"var(--admit)":"var(--reject)");
+  $("mStoreSub").textContent = !usesStore ? "this design has no shared state"
+    : (S.storeUp?"source of truth":({open:"failing open",closed:"failing closed",degrade:"degraded to local"})[S.fallback]);
+
+  // verdict
+  let cls="neutral", big="", why="";
+  const degrading = usesStore && !S.storeUp;
+  if(S.t<1200){ big="Warming up…"; why="Collecting a full second of traffic."; }
+  else if(admit===0 && offer>0){
+    cls="over"; big="Nothing is getting through";
+    why=degrading&&S.fallback==="closed"
+      ? "Fail-closed. The store is unreachable, so every gateway rejects everything. The limit is perfectly enforced and your API is down — caused by a component that does no actual work."
+      : "The limit is exhausted and no allowance is refilling fast enough.";
+  } else if(ratio>1.15){
+    cls="over"; big="Over-admitting "+ratio.toFixed(1)+"×";
+    why=overWhy(ratio,degrading);
+  } else if(offer>S.limit*1.05 && ratio<0.85){
+    cls="under"; big="Under-admitting — "+pct(ratio)+"% of the limit";
+    why=underWhy(degrading);
+  } else {
+    cls="ok"; big="Holding the promise";
+    why=okWhy(ops,lat);
+  }
+  const v=$("verdict"); v.className="verdict "+cls;
+  $("vbig").textContent=big; $("vwhy").textContent=why;
+
+  const key=cls+"|"+S.design+"|"+(degrading?"deg":"")+"|"+S.lb;
+  if(key!==lastVerdictKey && S.t>1200){ lastVerdictKey=key; log(big, why); }
+
+  // per-node readouts
+  for(let i=0;i<refs.nodes.length;i++){
+    const r=refs.nodes[i]; if(!r) continue;
+    r.stat.textContent=perNodeAdmit[i].length+"/s";
+    let frac=0, capTxt="";
+    if(S.design==="v1"){frac=nodeS[i].tokens/S.burst; capTxt="local bucket, full limit";}
+    else if(S.design==="v2"){frac=nodeS[i].tokens/(S.burst/S.nodes); capTxt="local bucket, limit ÷ "+S.nodes;}
+    else if(S.design==="v6"){frac=nodeS[i].tokens/S.batch; capTxt="lease held: "+Math.floor(nodeS[i].tokens)+" of "+S.batch;}
+    else if(S.design==="v7"){frac=Math.min(1,(nodeS[i].known+nodeS[i].mine)/S.limit);
+      capTxt="believes "+(nodeS[i].known+nodeS[i].mine)+" of "+S.limit+" spent";}
+    else if(degrading&&S.fallback==="degrade"){frac=degS[i].tokens/(S.burst/S.nodes); capTxt="degraded local bucket";}
+    else {frac=0; capTxt="no local state — asks the store";}
+    r.bar.setAttribute("width",Math.max(0,Math.min(1,frac))*(NW-18));
+    r.bar.setAttribute("fill", degrading?"var(--warn)":"var(--accent)");
+    r.cap.textContent=capTxt;
+    r.rect.setAttribute("stroke", degrading?"var(--warn)":"var(--ink)");
+  }
+  if(refs.storeTxt){
+    if(S.design==="v7") refs.storeTxt.textContent="global count this second: "+store.total+"  ·  "+ops+" ops/s";
+    else if(S.design==="v5") refs.storeTxt.textContent=S.shards+" sub-keys of "+(S.limit/S.shards).toFixed(1)+"/s each  ·  "+ops+" ops/s";
+    else refs.storeTxt.textContent="tokens left: "+Math.max(0,store.tokens).toFixed(1)+"  ·  "+ops+" ops/s";
+  }
+  refs.shards.forEach((b,i)=>{
+    const k=S.shards; if(i>=k){b.setAttribute("width",0);return;}
+    const w=(ST.w-24)/k-3;
+    b.setAttribute("width", Math.max(0,Math.min(1,store.shards[i].tokens/(S.burst/k)))*w);
+  });
+}
+function overWhy(ratio,deg){
+  if(deg&&S.fallback==="open") return "Fail-open. The store is unreachable so every gateway allows everything — the limiter has stopped existing, and your backend is taking 100% of the traffic the limit was suppressing.";
+  switch(S.design){
+    case "v1": return "Each of the "+S.nodes+" gateways enforces the full 60/s using only its own memory, so the customer's real allowance is roughly 60 × "+S.nodes+". Autoscale and this number moves.";
+    case "v3": return "The counter is shared, but reading and writing are two separate trips. The write lands "+(2*S.rtt)+" ms after the read, and at "+S.rps+" rps that means about "+(S.rps*2*S.rtt/1000).toFixed(1)+" requests are reading the same stale value at any moment — each of them spending tokens the others already spent. A shared store does not make an operation atomic, and this bug grows with your traffic.";
+    case "v7": return "Each gateway is deciding from a global count it last heard "+S.sync+" ms ago, plus its own spending since. What the other gateways spent in that interval is invisible to it. Shorten the sync interval and this shrinks.";
+    default:   return "More is getting through than the limit promised. Burst allowance accounts for a little of this; the rest is coordination error.";
+  }
+}
+function underWhy(deg){
+  if(deg) return "Running degraded: each gateway has fallen back to enforcing limit ÷ "+S.nodes+" on its own. Traffic is not spread evenly across them, so some gateways reject while others hold unused allowance.";
+  switch(S.design){
+    case "v2": return "Each gateway may only allow "+(S.limit/S.nodes).toFixed(1)+"/s, but the router is not spreading traffic evenly, so the busy gateway rejects while the quiet ones sit on allowance nobody can reach. The ceiling is right and the floor collapsed.";
+    case "v5": return "Each sub-key carries only "+(S.limit/S.shards).toFixed(1)+"/s. Requests land on sub-keys at random, so one can be exhausted while another still has room. Fewer sub-keys means less of this — and a hotter shard.";
+    case "v6": return "Gateways lease "+S.batch+" tokens at a time. A gateway that took a batch and then went quiet is holding tokens already deducted from the shared counter — stranded allowance nobody else can spend until the lease expires.";
+    default:   return "Requests are being rejected while global allowance was still available.";
+  }
+}
+function okWhy(ops,lat){
+  if(S.design==="v1"&&S.lb==="sticky") return "Every request for this key goes to one gateway, so that gateway's local state is complete and exact — with no coordination at all. This is key-owner routing: the distributed problem disappears because the router solved it.";
+  switch(S.design){
+    case "v2": return "Round-robin is spreading traffic evenly, so limit ÷ "+S.nodes+" per gateway happens to add up. Change the router and watch this break — it holds only while the assumption holds.";
+    case "v4": return "The decision happens inside the store, so no two gateways can spend the same token. Exact — and it costs "+ops+" store operations per second and "+lat.toFixed(1)+" ms on every single request.";
+    case "v5": return "Sharded across "+S.shards+" sub-keys, so no single core carries the whole key, and the random spread is even enough to stay accurate at this traffic level.";
+    case "v6": return "Leases of "+S.batch+" tokens: "+ops+" store operations per second instead of "+offerLog.length+", and most requests pay no network latency at all.";
+    case "v7": return "Zero added latency and only "+ops+" store operations per second — the store no longer sees your traffic at all, just "+S.nodes+" gateways checking in every "+S.sync+" ms.";
+    default:   return "Admitted traffic is tracking the promised limit.";
+  }
+}
+
+/* ============================================================
+   8. LOG
+   ============================================================ */
+function log(title,detail){
+  const ul=$("log"), li=document.createElement("li");
+  li.innerHTML='<span class="ts">'+(S.t/1000).toFixed(1)+'s</span><span class="tx"><strong></strong><em></em></span>';
+  li.querySelector("strong").textContent=title;
+  li.querySelector("em").textContent=detail||"";
+  ul.insertBefore(li,ul.firstChild);
+  while(ul.children.length>40) ul.removeChild(ul.lastChild);
+}
+
+/* ============================================================
+   9. WIRING
+   ============================================================ */
+function buildRail(){
+  const r=$("rail");
+  DESIGNS.forEach(d=>{
+    const b=document.createElement("button");
+    b.type="button"; b.setAttribute("aria-pressed", d.id===S.design);
+    b.innerHTML='<span class="v">'+d.id+'</span><span>'+d.name+'</span>';
+    b.onclick=()=>setDesign(d.id,true);
+    r.appendChild(b);
+  });
+}
+function setDesign(id,fromUser){
+  S.design=id;
+  [...$("rail").children].forEach((b,i)=>b.setAttribute("aria-pressed",DESIGNS[i].id===id));
+  const d=DESIGNS.find(x=>x.id===id);
+  $("railnote").textContent=d.blurb;
+  $("wrapSync").style.display   = id==="v7"?"":"none";
+  $("wrapBatch").style.display  = id==="v6"?"":"none";
+  $("wrapShards").style.display = id==="v5"?"":"none";
+  resetSim(true); drawStatic();
+  if(fromUser) log(d.id+" · "+d.name, d.blurb);
+}
+function bindRange(id,key,fmt){
+  const inp=$(id), out=$(id+"v");
+  inp.oninput=()=>{
+    S[key]=+inp.value; out.textContent=fmt(+inp.value);
+    if(key==="nodes"||key==="shards"){resetSim(true);drawStatic();}
+    if(key==="speed") return;
+    lastVerdictKey="";
+  };
+}
+buildRail(); setDesign("v1",false);
+bindRange("nodes","nodes",v=>v);
+bindRange("rps","rps",v=>v+" rps");
+bindRange("sync","sync",v=>v+" ms");
+bindRange("batch","batch",v=>v);
+bindRange("shards","shards",v=>v);
+bindRange("rtt","rtt",v=>v+" ms");
+bindRange("speed","speed",v=>[".25×",".5×","1×","2×"][v-1]);
+const SPEEDS=[.25,.5,1,2];
+$("lb").onchange=e=>{S.lb=e.target.value;lastVerdictKey="";
+  log("Router policy changed", {rr:"Round robin — every gateway gets an equal share.",
+    rand:"Random — roughly even, with real variance.",
+    skew:"Skewed — one gateway is taking 90% of this key's traffic. Real traffic is lumpy like this; perfectly even distribution is the unusual case.",
+    sticky:"Sticky — every request for this key now goes to the same gateway."}[S.lb]);};
+$("fallback").onchange=e=>{S.fallback=e.target.value;lastVerdictKey="";};
+$("pause").onclick=()=>{S.running=!S.running;$("pause").textContent=S.running?"Pause":"Resume";};
+$("reset").onclick=()=>{resetSim(false);drawStatic();log("Counters reset","Simulation clock back to zero.");};
+$("kill").onclick=()=>{
+  S.storeUp=!S.storeUp; $("kill").setAttribute("aria-pressed",!S.storeUp);
+  $("kill").textContent=S.storeUp?"Kill the store":"Revive the store";
+  lastVerdictKey=""; drawStatic();
+  log(S.storeUp?"Counter store is back":"Counter store is unreachable",
+    S.storeUp?"Gateways can reach the source of truth again."
+      :"Every gateway lost the truth at the same instant. There is no correct answer here — only three choices with different victims. Try each one in the fallback control.");
+};
+
+/* ---- scripted story ---- */
+const STORY=[
+ {ms:0,   f:()=>{S.nodes=1;$("nodes").value=1;$("nodesv").textContent=1;S.lb="rr";$("lb").value="rr";setDesign("v1");},
+  t:["One gateway, no coordination","With a single machine the limiter is exact. Everything that follows is the cost of adding the second one."]},
+ {ms:4200,f:()=>{S.nodes=4;$("nodes").value=4;$("nodesv").textContent=4;resetSim(true);drawStatic();},
+  t:["Scale to four gateways","Nobody changed the limit. Each gateway enforces the full 60/s from its own memory, so the customer's real allowance just quadrupled."]},
+ {ms:4200,f:()=>setDesign("v2"),
+  t:["v2 — divide the quota by the node count","Each gateway now allows 15/s. Round robin is spreading traffic evenly, so it adds up. Watch what one assumption change does."]},
+ {ms:4200,f:()=>{S.lb="skew";$("lb").value="skew";lastVerdictKey="";},
+  t:["Make the traffic uneven","One gateway now takes 90% of the requests. It rejects at 15/s while the other three sit on allowance no request will ever reach."]},
+ {ms:4200,f:()=>{S.lb="rr";$("lb").value="rr";setDesign("v3");S.rps=400;$("rps").value=400;$("rpsv").textContent="400 rps";},
+  t:["v3 — put the counter in Redis, and turn the traffic up","One shared counter, read then written back. Traffic is now 400 rps so the gap between the two trips is crowded. This bug is invisible in staging at 10 rps and severe in production — it grows with your success."]},
+ {ms:4600,f:()=>{S.rps=180;$("rps").value=180;$("rpsv").textContent="180 rps";setDesign("v4");},
+  t:["v4 — move the decision into the store","One atomic round trip. No gap, no race, exact across every gateway — at the price of a store operation and 4 ms on every single request."]},
+ {ms:4200,f:()=>{S.storeUp=false;$("kill").setAttribute("aria-pressed","true");$("kill").textContent="Revive the store";drawStatic();lastVerdictKey="";},
+  t:["Now kill the store","Every gateway lost the truth simultaneously. This run is set to degrade to a local limit ÷ N — switch the fallback control to see the other two answers."]},
+ {ms:4600,f:()=>{S.storeUp=true;$("kill").setAttribute("aria-pressed","false");$("kill").textContent="Kill the store";setDesign("v6");},
+  t:["v6 — take tokens in batches","Store traffic drops by roughly the batch size and most requests pay no network cost. The bill arrives as stranded allowance."]},
+ {ms:4200,f:()=>setDesign("v7"),
+  t:["v7 — take the store off the hot path","Zero added latency. Gateways count locally and swap totals every 500 ms; the over-admission you see is exactly what they spend while out of touch."]},
+ {ms:4200,f:()=>{S.sync=100;$("sync").value=100;$("syncv").textContent="100 ms";lastVerdictKey="";},
+  t:["Turn the staleness dial down","Sync every 100 ms instead of 500. The error shrinks by five times and the store load grows by five times. That is the whole trade, in one slider."]},
+ {ms:4200,f:()=>{},
+  t:["That is the design space","There is no winner. You pick per limit: exact and expensive for the long tail of small limits, approximate and free for the handful of enormous ones."]}
+];
+$("story").onclick=()=>{
+  if(storyTimer){clearTimeout(storyTimer);storyTimer=null;$("story").textContent="▶ Run the whole story";return;}
+  $("story").textContent="■ Stop the story";
+  let i=0;
+  const next=()=>{
+    if(i>=STORY.length){storyTimer=null;$("story").textContent="▶ Run the whole story";return;}
+    const s=STORY[i++]; s.f(); log(s.t[0],s.t[1]);
+    storyTimer=setTimeout(next, STORY[Math.min(i,STORY.length-1)].ms||4200);
+  };
+  resetSim(false); next();
+};
+
+/* ---- predict, then run ---- */
+const SCEN=[
+ {n:"Add gateways",
+  q:"One gateway with no coordination enforces 60/s exactly. You scale to 4 gateways and change nothing else. What does the customer actually get?",
+  o:["Still 60/s — the limit is the limit","About 240/s — four independent limiters","About 15/s — the limit gets split"],
+  a:1,
+  e:"About 240/s. Nothing divides the limit for you. Each gateway holds its own counter and has never heard of the others, so the effective limit is the configured limit times the number of machines — and it silently changes every time you autoscale.",
+  f:()=>{setDesign("v1");S.nodes=4;$("nodes").value=4;$("nodesv").textContent=4;S.lb="rr";$("lb").value="rr";resetSim(true);drawStatic();}},
+ {n:"Divide, then skew",
+  q:"Each of 4 gateways is given limit ÷ 4 = 15/s, and it is holding perfectly. Now 90% of this customer's traffic starts landing on one gateway. What breaks?",
+  o:["Nothing — 4 × 15 is still 60","Over-admission — the busy gateway lets extra through","Under-admission — the customer is rejected far below their limit"],
+  a:2,
+  e:"Under-admission. The busy gateway can only allow its own 15/s and rejects everything else, while the three quiet gateways hold allowance that no request will ever reach. The customer is told 'limit exceeded' at roughly half the limit you sold them — and your dashboards show the limiter working perfectly.",
+  f:()=>{setDesign("v2");S.nodes=4;$("nodes").value=4;$("nodesv").textContent=4;S.lb="skew";$("lb").value="skew";resetSim(true);drawStatic();}},
+ {n:"One shared counter",
+  q:"You move the counter into Redis so all gateways share it: each one reads the value, decides, and writes it back. Does that fix over-admission?",
+  o:["Yes — there is one counter now, so it is exact","No — the gap between read and write leaks tokens","No — Redis is too slow to keep up"],
+  a:1,
+  e:"No. Sharing the data is not the same as sharing the decision. Between a gateway's read landing and its write landing there is a window of a few milliseconds, and every other gateway reading in that window sees the same value and spends the same tokens. The fix is not a better store — it is sending the decision to the store instead of fetching the data to the gateway.",
+  f:()=>{setDesign("v3");S.nodes=4;$("nodes").value=4;$("nodesv").textContent=4;S.lb="rr";$("lb").value="rr";resetSim(true);drawStatic();}},
+ {n:"Kill the store",
+  q:"Atomic central limiting is holding the promise exactly. Redis becomes unreachable. Which fallback keeps your API serving without handing the backend an unfiltered flood?",
+  o:["Fail open — allow everything","Fail closed — reject everything","Degrade to a local limit ÷ N"],
+  a:2,
+  e:"Degrade to local. Fail-open turns a Redis blip into a backend outage by removing the limit entirely; fail-closed turns it into a total API outage caused by a component that does no actual work. Degrading to limit ÷ N is neither correct nor catastrophic — you keep serving, roughly inside the envelope you intended. Real systems choose this per limit, and write the choice down next to the limit itself.",
+  f:()=>{setDesign("v4");S.nodes=4;$("nodes").value=4;$("nodesv").textContent=4;S.fallback="degrade";$("fallback").value="degrade";
+        S.storeUp=false;$("kill").setAttribute("aria-pressed","true");$("kill").textContent="Revive the store";resetSim(true);drawStatic();}}
+];
+(function(){
+  const bar=$("scen");
+  SCEN.forEach((s,i)=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=s.n;
+    b.onclick=()=>{
+      [...bar.children].forEach((x,j)=>x.setAttribute("aria-pressed",i===j));
+      $("pq").textContent=s.q; $("pans").hidden=true;
+      const po=$("popts"); po.textContent="";
+      s.o.forEach((opt,j)=>{
+        const ob=document.createElement("button"); ob.className="btn"; ob.textContent=opt;
+        ob.onclick=()=>{
+          s.f();
+          const right=j===s.a;
+          const a=$("pans"); a.hidden=false;
+          a.innerHTML='<span class="tag" style="color:'+(right?"var(--admit)":"var(--reject)")+'">'
+            +(right?"CORRECT":"NOT QUITE")+'</span> <span></span>';
+          a.lastElementChild.textContent=" "+s.e;
+          log(right?"Prediction correct":"Prediction was wrong", s.e);
+        };
+        po.appendChild(ob);
+      });
+    };
+    bar.appendChild(b);
+  });
+})();
+
+/* ============================================================
+   10. LOOP
+   ============================================================ */
+resetSim(false); drawStatic();
+log("Simulator ready","One customer, a promised limit of 60 requests per second, and 180 rps arriving. Start with v1 or press Run the whole story.");
+let last=performance.now(), carry=0;
+function frame(now){
+  const real=Math.min(120, now-last); last=now;
+  if(S.running){
+    carry += real*SPEEDS[S.speed-1];
+    let guard=0;
+    while(carry>=TICK && guard++<40){ carry-=TICK; step(); }
+  }
+  moveDots(); render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>

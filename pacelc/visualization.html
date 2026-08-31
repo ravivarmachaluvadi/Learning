@@ -1,0 +1,1366 @@
+<title>The Price of Now</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f2f5f7; --card:#ffffff; --ink:#20303f; --muted:#5d6f7f; --line:#d5dde3;
+  --accent:#0e7a8f; --accent-soft:#e2eff2;
+  --bom:#b97f16; --fra:#5a63c9; --iad:#a34f8c;
+  --bom-soft:#f6ecd7; --fra-soft:#e6e8f8; --iad-soft:#f3e3ee;
+  --stale:#c23b4e; --stale-soft:#f8e3e6; --fresh:#2f8f5b; --fresh-soft:#e0f0e7;
+  --warn:#8a6d1d; --warn-soft:#f4ecd4;
+  --wire:#9fb0bc; --chipbg:#eef2f5;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101720; --card:#19232e; --ink:#e4ebf1; --muted:#93a4b2; --line:#2c3a47;
+    --accent:#4fb3c6; --accent-soft:#15303a;
+    --bom:#d99b31; --fra:#8b93e8; --iad:#c876ad;
+    --bom-soft:#33290f; --fra-soft:#20243d; --iad-soft:#33202d;
+    --stale:#e06a7a; --stale-soft:#3a1b21; --fresh:#5cb98a; --fresh-soft:#16301f;
+    --warn:#d1af4a; --warn-soft:#332b10;
+    --wire:#4b5c6a; --chipbg:#22303c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101720; --card:#19232e; --ink:#e4ebf1; --muted:#93a4b2; --line:#2c3a47;
+  --accent:#4fb3c6; --accent-soft:#15303a;
+  --bom:#d99b31; --fra:#8b93e8; --iad:#c876ad;
+  --bom-soft:#33290f; --fra-soft:#20243d; --iad-soft:#33202d;
+  --stale:#e06a7a; --stale-soft:#3a1b21; --fresh:#5cb98a; --fresh-soft:#16301f;
+  --warn:#d1af4a; --warn-soft:#332b10;
+  --wire:#4b5c6a; --chipbg:#22303c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif; margin:0; padding:18px 20px 60px;}
+h1{font-family:"Fraunces",Georgia,serif; font-weight:700; font-size:30px; margin:0; letter-spacing:.2px; text-wrap:balance;}
+h2{font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:19px; margin:0 0 8px;}
+.sub{color:var(--muted); max-width:72ch; margin:6px 0 16px;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+.wrap{max-width:1220px; margin:0 auto;}
+.cols{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;}
+.stagecol{flex:1 1 640px; min-width:560px; display:flex; flex-direction:column; gap:12px;}
+.rail{flex:1 1 300px; min-width:300px; display:flex; flex-direction:column; gap:12px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px;}
+.card h3{margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600;}
+svg text{font-family:"IBM Plex Sans",system-ui,sans-serif;}
+svg .m{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+button{font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer;}
+button:hover{border-color:var(--accent);}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+button.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+button:disabled{opacity:.45; cursor:default;}
+.transport{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.clock{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:17px; padding:4px 10px; background:var(--chipbg); border-radius:8px; min-width:110px; text-align:right; font-variant-numeric:tabular-nums;}
+.clientrow{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+.clientbox{border:1px solid var(--line); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:6px;}
+.clientbox .who{font-weight:600; font-size:13px;}
+.clientbox .lat{color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums;}
+.clientbox .btns{display:flex; gap:6px;}
+.clientbox button{padding:4px 9px; font-size:13px;}
+.clientbox .via{color:var(--muted); font-size:12px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
+.clientbox .via select{font-size:12px; padding:2px 4px;}
+.clientbox .tok{font-size:12px; color:var(--muted); font-family:"IBM Plex Mono",ui-monospace,monospace;}
+.verdict{border-left:4px solid var(--accent); padding:10px 12px; border-radius:6px; background:var(--accent-soft); min-height:64px;}
+.verdict.stale{border-left-color:var(--stale); background:var(--stale-soft);}
+.verdict.fresh{border-left-color:var(--fresh); background:var(--fresh-soft);}
+.verdict.warn{border-left-color:var(--warn); background:var(--warn-soft);}
+.chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+.chip{background:var(--chipbg); border-radius:999px; padding:2px 10px; font-size:12px; font-variant-numeric:tabular-nums;}
+.chip b{font-weight:600;}
+.chip.bad{background:var(--stale-soft); color:var(--stale);}
+.designpick{display:flex; flex-direction:column; gap:8px;}
+.design{border:1px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; display:flex; gap:8px; align-items:flex-start;}
+.design input{margin-top:4px; accent-color:var(--accent);}
+.design.sel{border-color:var(--accent); background:var(--accent-soft);}
+.design .dn{font-weight:600; font-size:14px;}
+.design .dd{color:var(--muted); font-size:12.5px;}
+.classchip{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; border:1px solid var(--line); border-radius:5px; padding:1px 6px; margin-left:6px; color:var(--muted); white-space:nowrap;}
+.ctl{display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap;}
+.ctl label{font-size:13px; color:var(--muted); min-width:96px;}
+select,input[type=range]{font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:6px; padding:4px 6px;}
+input[type=range]{flex:1; accent-color:var(--accent); padding:0; border:none; background:transparent;}
+.log{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px; line-height:1.55; max-height:230px; overflow-y:auto; white-space:pre-wrap;}
+.log .t-stale{color:var(--stale);}
+.log .t-fresh{color:var(--fresh);}
+.log .t-warn{color:var(--warn);}
+.log .t-dim{color:var(--muted);}
+.scen{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--card);}
+.scengrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-top:12px;}
+.scen .sq{margin:6px 0 10px;}
+.scen .opts{display:flex; flex-direction:column; gap:6px;}
+.scen .opts button{text-align:left;}
+.scen .res{margin-top:10px; padding:8px 10px; border-radius:6px; font-size:13.5px; display:none;}
+.scen .res.show{display:block;}
+.scen .res.right{background:var(--fresh-soft);}
+.scen .res.wrong{background:var(--stale-soft);}
+.scen .res.plain{background:var(--chipbg);}
+.legend{display:flex; flex-wrap:wrap; gap:10px 16px; font-size:12.5px; color:var(--muted); align-items:center;}
+.sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px;}
+.note{font-size:12.5px; color:var(--muted); margin-top:8px; max-width:72ch;}
+.pacelc{display:flex; gap:8px; align-items:center; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:14px; flex-wrap:wrap;}
+.pacelc .cell{border:1px solid var(--line); border-radius:6px; padding:4px 9px; background:var(--chipbg);}
+.pacelc .on{border-color:var(--accent); background:var(--accent-soft); font-weight:600;}
+.tabs{display:flex; gap:8px; margin:14px 0 4px; flex-wrap:wrap;}
+.tab{font-weight:600; padding:8px 14px; border-radius:10px 10px 0 0; border-bottom-color:transparent;}
+.tab.on{background:var(--accent-soft); border-color:var(--accent); color:var(--ink);}
+.shopgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+.shop{border:1px solid var(--line); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;}
+.shop .who{font-weight:600; font-size:13px;}
+.shop .role{font-size:12px; color:var(--muted); min-height:32px;}
+.shop .big{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:26px; font-variant-numeric:tabular-nums; line-height:1;}
+.shop .biglabel{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);}
+.shop .lat{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
+.shop.dark{background:var(--stale-soft);}
+.chip.good{background:var(--fresh-soft); color:var(--fresh);}
+@media (max-width:960px){ .stagecol{min-width:0;} }
+</style>
+
+<div class="wrap">
+<h1>The Price of Now</h1>
+<p class="sub">Three cities, real network delays, and the two questions a replicated system actually faces. <b>Tab 1</b> asks how fresh an <em>answer</em> is — who waits, who gets refused, who is served a stale price. <b>Tab 2</b> asks whether a <em>rule</em> can break — ten necklaces, and an eleventh sale that must be impossible.</p>
+<div class="tabs" role="tablist">
+  <button id="tabA" class="tab on" role="tab" aria-selected="true">1 · The price of now</button>
+  <button id="tabB" class="tab" role="tab" aria-selected="false">2 · The last ten necklaces</button>
+</div>
+<div id="pane1">
+<p class="sub">One product price, three cities, real network delays. Pick one of five replication designs — one per PACELC class, plus one that sits between them — write and read from any city, send a client's reads through a different city, cut a region off, and watch <em>who waits, who gets refused, who gets a stale answer, and who loses sight of their own change</em>. New here? Run <b>Scenario 1</b> below: it plays itself and narrates.</p>
+
+
+<div class="cols">
+  <div class="stagecol">
+    <div class="card">
+      <svg id="stage" viewBox="0 0 780 330" role="img" aria-label="Three replicas with messages in flight"></svg>
+      <div class="transport">
+        <button id="bPlay" class="primary">▶ Play</button>
+        <button id="bStep" title="Advance to the next event">Step ⏭</button>
+        <button id="bBack" title="Rewind one step">⏮ Step back</button>
+        <button id="bFast">Speed 1×</button>
+        <button id="bReset">Reset</button>
+        <span class="clock" id="clock">t = 0 ms</span>
+        <span id="quiet" class="note" style="margin:0"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Clients — each city has one</h3>
+      <div class="clientrow" id="clients"></div>
+      <div class="note">A <b>write</b> proposes the next price for the necklace (₹54,000, ₹58,000, …). A <b>read</b> asks “what is the price right now?”. Every read is judged by the recency rule: <em>it must not return a value older than the newest write acknowledged before the read began.</em></div>
+    </div>
+    <div class="card">
+      <h3>Event log — every event, in a full sentence</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card">
+      <h3>Replication design</h3>
+      <div class="designpick" id="designs"></div>
+    </div>
+    <div class="card">
+      <h3>Controls</h3>
+      <div class="ctl"><label for="selPart">Cut off a region</label>
+        <select id="selPart"><option value="">none — network healthy</option><option value="BOM">Mumbai</option><option value="FRA">Frankfurt</option><option value="IAD">Virginia</option></select>
+      </div>
+      <div class="ctl"><label for="selHome">Home office</label>
+        <select id="selHome"><option value="BOM">Mumbai</option><option value="FRA">Frankfurt</option><option value="IAD">Virginia</option></select>
+        <span class="note" style="margin:0">(used by the home-office design)</span>
+      </div>
+      <div class="ctl"><label for="rtt">Network distance</label>
+        <input type="range" id="rtt" min="0.1" max="20" step="0.1" value="1">
+        <span class="mono" id="rttv">1×</span>
+      </div>
+      <div class="note">Drag distance <b>down to 0.1×</b> to put the three replicas about 10&nbsp;ms apart, the way three datacentres on one continent are: the majority design's write ack falls from 110&nbsp;ms to 12&nbsp;ms. “Consistency is slow” is partly a claim about your map, not about physics.</div>
+      <div class="note">The failure detector everywhere is a <b>1000&nbsp;ms timeout</b>: a coordinator that waits that long gives up (refuses, or — in the bottom-right design — acknowledges without the missing region). Drag distance up and watch designs cross that line <em>with no partition anywhere</em>: the P in PACELC is a threshold you configure, not a physical event.</div>
+    </div>
+    <div class="card">
+      <h3>Verdict</h3>
+      <div class="verdict" id="verdict">Waiting for the first event.</div>
+      <div class="chips" id="chips"></div>
+      <div style="margin-top:10px" class="pacelc" id="pacelc"></div>
+    </div>
+    <div class="card">
+      <h3>Legend</h3>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--bom)"></span>Mumbai</span>
+        <span><span class="sw" style="background:var(--fra)"></span>Frankfurt</span>
+        <span><span class="sw" style="background:var(--iad)"></span>Virginia</span>
+        <span><span class="sw" style="background:var(--stale)"></span>stale / lost</span>
+        <span><span class="sw" style="background:var(--fresh)"></span>fresh / acked</span>
+        <span>● big dot = a price update travelling · ○ small dot = a confirmation or read query</span>
+        <span>⛔ a message parked at a cut — it re-travels after the network heals</span>
+        <span>⏳ on a city card = a read held there until that copy catches up to the client it owes</span>
+        <span>Each client shows its <b>session token</b>: the newest price it has saved or been shown</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scen" style="margin-top:16px">
+  <h2>Predict, then run</h2>
+  <p class="sub" style="margin-top:0">Commit to an answer before you press it — being wrong here is the useful part. Each scenario resets the simulator, plays a script, and then compares what happened with what you predicted.</p>
+  <div class="scengrid" id="scens"></div>
+</div>
+</div><!-- /pane1 -->
+
+<div id="pane2" hidden>
+<p class="sub">Tab 1 asked how fresh an <em>answer</em> is. This tab asks whether a <em>rule</em> can break. Meera has exactly <b>ten</b> necklaces and three branches. Send customers into a branch, cut a region off, and watch three numbers: how many were sold, how many were sold <b>that do not exist</b>, and how many customers were turned away <b>while necklaces sat unsold somewhere else</b>. New here? Run <b>Scenario 10</b> below.</p>
+
+<div class="cols">
+  <div class="stagecol">
+    <div class="card">
+      <h3>The three branches — send a customer into one</h3>
+      <div class="shopgrid" id="shops"></div>
+      <div class="transport" style="margin-top:12px">
+        <button id="b2Settle" class="primary">Let the network settle</button>
+        <button id="b2Reset">Reset</button>
+        <span class="clock" id="clock2">t = 0 ms</span>
+        <span class="note" id="flight2" style="margin:0"></span>
+      </div>
+      <div class="note">Each customer arrives 20&nbsp;ms after the last one. News of a sale travels at the same real delays as Tab 1 — 55&nbsp;ms Mumbai↔Frankfurt, 45&nbsp;ms Frankfurt↔Virginia, 95&nbsp;ms Mumbai↔Virginia — so a branch's book is always a little behind the world.</div>
+    </div>
+    <div class="card">
+      <h3>The count</h3>
+      <div class="chips" id="chips2"></div>
+      <div class="verdict" id="verdict2" style="margin-top:10px">Ten necklaces, three branches. Sell one and watch what the rule costs.</div>
+    </div>
+    <div class="card">
+      <h3>Event log — every sale and every refusal, in a full sentence</h3>
+      <div class="log" id="log2"></div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="card">
+      <h3>Design</h3>
+      <div class="designpick" id="designs2"></div>
+    </div>
+    <div class="card">
+      <h3>Controls</h3>
+      <div class="ctl"><label for="selPart2">Cut off a region</label>
+        <select id="selPart2"><option value="">none — network healthy</option><option value="BOM">Mumbai</option><option value="FRA">Frankfurt</option><option value="IAD">Virginia</option></select>
+      </div>
+      <div class="ctl"><label for="selSplit2">Split the stock</label>
+        <select id="selSplit2"><option value="even">4 / 3 / 3 — evenly</option><option value="demand">6 / 2 / 2 — by where the customers are</option></select>
+        <span class="note" style="margin:0">(used by the split-the-stock design)</span>
+      </div>
+      <div class="ctl"><label>Move allowance</label><span id="xferBtns" style="display:flex;gap:6px;flex-wrap:wrap"></span></div>
+      <div class="note">Moving allowance is coordination — but it happens once per several sales, and no customer waits for it. Try moving it <b>across a cut</b>: the handover is refused rather than assumed, because a branch you cannot talk to may still be selling.</div>
+    </div>
+    <div class="card">
+      <h3>What this design promises</h3>
+      <div class="note" id="promise2" style="margin-top:0"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scen" style="margin-top:16px">
+  <h2>Predict, then run</h2>
+  <p class="sub" style="margin-top:0">Every scenario uses the same demand: <b>six customers walk into Mumbai and five into Virginia</b> — eleven people, ten necklaces — while Virginia is cut off from the other two branches. Only the design changes.</p>
+  <div class="scengrid" id="scens2"></div>
+</div>
+</div><!-- /pane2 -->
+</div>
+
+<script id="engine">
+/* ============ PURE ENGINE — no DOM. Verified headlessly. ============ */
+var REGIONS=["BOM","FRA","IAD"];
+var CITY={BOM:"Mumbai",FRA:"Frankfurt",IAD:"Virginia"};
+var WHO={BOM:"Asha",FRA:"Priya",IAD:"Omar"};
+var ONEWAY={ "BOM|FRA":55,"FRA|BOM":55,"FRA|IAD":45,"IAD|FRA":45,"BOM|IAD":95,"IAD|BOM":95 };
+var TIMEOUT=1000;
+function oneway(s,a,b){ return Math.max(1, Math.round(ONEWAY[a+"|"+b]*s.rttScale)); }
+function rupees(v){ return "₹"+String(v).replace(/\B(?=(\d{3})+(?!\d))/g,","); }
+
+function mkState(cfg){
+  cfg=cfg||{};
+  var s={
+    now:0, design:cfg.design||"local", home:cfg.home||"BOM",
+    isolated:null, rttScale:cfg.rttScale||1,
+    seq:1, priceStep:0,
+    replicas:{}, msgs:[], writes:[], reads:[], log:[],
+    counters:{stale:0,fresh:0,refusedW:0,refusedR:0,degraded:0,ryw:0,back:0},
+    headline:"Waiting for the first event.", headCls:"",
+    script:(cfg.script||[]).slice()
+  };
+  /* initial ts is -1 so a write issued at t=0 (ts 0) is still strictly newer */
+  REGIONS.forEach(function(r){ s.replicas[r]={val:50000,ts:-1,tsr:"",wid:0,applied:[]}; });
+  /* One client per city. token = stamp of the newest write THIS client was told was saved.
+     seenTs/seenVal = the newest value this client has been shown. via = which replica serves its reads. */
+  s.clients={};
+  REGIONS.forEach(function(r){ s.clients[r]={token:-1,tokenWid:0,seenTs:-1,seenVal:50000,via:null}; });
+  return s;
+}
+/* A client learns of its own write only when that write is acknowledged to it. */
+function noteAck(s,w){
+  var c=s.clients[w.region];
+  if(w.ts>c.token){ c.token=w.ts; c.tokenWid=w.id; }
+}
+/* What this client's own history demands of any replica that answers it. */
+function sessionNeed(s,region){ var c=s.clients[region]; return Math.max(c.token,c.seenTs); }
+function log(s,text,cls){ s.log.push({t:s.now,text:text,cls:cls||""}); if(s.log.length>400) s.log.shift(); }
+function head(s,text,cls){ s.headline=text; s.headCls=cls||""; }
+function crossesCut(s,a,b){ return s.isolated!==null && ((a===s.isolated)!==(b===s.isolated)); }
+function send(s,from,to,kind,payload){
+  var d=oneway(s,from,to);
+  var m={id:s.seq++,from:from,to:to,kind:kind,sentAt:s.now,dur:d,arriveAt:s.now+d,blocked:false};
+  for(var k in payload) m[k]=payload[k];
+  if(crossesCut(s,from,to)){ m.blocked=true; m.arriveAt=Infinity; }
+  s.msgs.push(m);
+  return m;
+}
+/* LWW apply. Returns true if the value took effect. "applied" records every wid seen. */
+function applyVal(s,r,u){
+  var rep=s.replicas[r];
+  if(rep.applied.indexOf(u.wid)<0) rep.applied.push(u.wid);
+  var newer = u.ts>rep.ts || (u.ts===rep.ts && (u.tsr>rep.tsr || (u.tsr===rep.tsr && u.wid>rep.wid)));
+  if(newer){ rep.val=u.val; rep.ts=u.ts; rep.tsr=u.tsr; rep.wid=u.wid; return true; }
+  return false;
+}
+function findWrite(s,id){ for(var i=0;i<s.writes.length;i++) if(s.writes[i].id===id) return s.writes[i]; return null; }
+function findRead(s,id){ for(var i=0;i<s.reads.length;i++) if(s.reads[i].id===id) return s.reads[i]; return null; }
+function ackedWrites(s){ return s.writes.filter(function(w){ return w.status==="acked"||w.status==="acked-degraded"; }); }
+
+function doWrite(s,region){
+  var val=50000+4000*(++s.priceStep);
+  var w={id:s.seq++,region:region,val:val,ts:s.now,tsr:region,issuedAt:s.now,ackAt:null,
+         status:"pending",acks:[],needed:1,deadline:null,seen:s.replicas[region].applied.slice()};
+  s.writes.push(w);
+  var u={wid:w.id,val:val,ts:w.ts,tsr:w.tsr};
+  var others=REGIONS.filter(function(r){return r!==region;});
+  var name=WHO[region]+" ("+CITY[region]+")";
+  if(s.design==="local"||s.design==="session"){
+    applyVal(s,region,u);
+    w.acks=[region]; w.status="acked"; w.ackAt=s.now+1; noteAck(s,w);
+    log(s,name+" wrote "+rupees(val)+" — acknowledged in 1 ms; the news travels afterwards.","");
+    head(s,name+" was told “saved” after 1 ms. The other two cities have not heard yet — the update is in flight behind the ack.","warn");
+    others.forEach(function(r){ send(s,region,r,"update",u); });
+  } else if(s.design==="majority"){
+    applyVal(s,region,u);
+    w.acks=[region]; w.needed=2; w.deadline=s.now+TIMEOUT;
+    log(s,name+" wrote "+rupees(val)+" — waiting for a second region before saying “saved”.","");
+    others.forEach(function(r){ send(s,region,r,"repl",u); });
+  } else if(s.design==="home"){
+    if(region===s.home){
+      applyVal(s,region,u);
+      w.acks=[region]; w.status="acked"; w.ackAt=s.now+1; noteAck(s,w);
+      log(s,name+" wrote "+rupees(val)+" at the home office — acknowledged in 1 ms; copies stream out.","");
+      head(s,"The home office applied "+rupees(val)+" locally: 1 ms ack. Other cities will lag by the one-way delay.","warn");
+      others.forEach(function(r){ send(s,region,r,"update",u); });
+    } else {
+      w.needed=1; w.deadline=s.now+TIMEOUT;
+      log(s,name+" wrote "+rupees(val)+" — forwarded to the home office in "+CITY[s.home]+" for approval.","");
+      send(s,region,s.home,"fwd",{wid:w.id,val:val});
+    }
+  } else if(s.design==="degraded"){
+    applyVal(s,region,u);
+    w.acks=[region]; w.needed=3; w.deadline=s.now+TIMEOUT;
+    log(s,name+" wrote "+rupees(val)+" — waiting for EVERY region before saying “saved”.","");
+    others.forEach(function(r){ send(s,region,r,"repl",u); });
+  }
+  return w;
+}
+
+/* Two different promises are checked on every read.
+   1. RECENCY (global, real time): did anyone's acknowledged write get hidden?
+   2. SESSION (this one client's own history): did this client lose its own write,
+      or see the price move backwards? A system can keep 2 and break 1 all day. */
+function judgeSession(s,rd){
+  var c=s.clients[rd.region];
+  if(rd.ts<c.token){
+    s.counters.ryw++;
+    var m1="YOUR OWN CHANGE VANISHED: "+WHO[rd.region]+" saved a price (write #"+c.tokenWid+", stamped t = "+c.token+" ms) and the answer just served from "+CITY[rd.via]+" is older than it. Nothing failed — the read was simply served by a copy that has not received that write yet.";
+    log(s,m1,"t-stale"); head(s,m1,"stale");
+  } else if(rd.ts<c.seenTs){
+    s.counters.back++;
+    var m2="THE PRICE WENT BACKWARDS for "+WHO[rd.region]+": already shown "+rupees(c.seenVal)+", and this answer from "+CITY[rd.via]+" is the older "+rupees(rd.val)+". A value that un-happens alarms a user far more than a value that is merely old — this is the monotonic-reads guarantee breaking.";
+    log(s,m2,"t-stale"); head(s,m2,"stale");
+  }
+  if(rd.ts>c.seenTs){ c.seenTs=rd.ts; c.seenVal=rd.val; }
+}
+function judge(s,rd){
+  var newest=null;
+  ackedWrites(s).forEach(function(w){ if(w.ackAt<=rd.issuedAt && (!newest || w.ts>newest.ts)) newest=w; });
+  if(newest && rd.ts<newest.ts){
+    rd.verdict="stale"; rd.staleBy=rd.issuedAt-newest.ackAt; s.counters.stale++;
+    var msg=WHO[rd.region]+"'s read returned "+rupees(rd.val)+" — that price was replaced by an acknowledged write "+rd.staleBy+" ms before the read began. STALE."+(s.isolated===null?" And the network is perfectly healthy.":"");
+    log(s,msg,"t-stale"); head(s,msg,"stale");
+  } else {
+    rd.verdict="fresh"; s.counters.fresh++;
+    log(s,WHO[rd.region]+"'s read returned "+rupees(rd.val)+" — fresh (no acknowledged write is newer). Latency "+(rd.doneAt-rd.issuedAt)+" ms.","t-fresh");
+    head(s,WHO[rd.region]+" got "+rupees(rd.val)+" — fresh, in "+(rd.doneAt-rd.issuedAt)+" ms.","fresh");
+  }
+  judgeSession(s,rd);
+}
+function doRead(s,region,viaArg){
+  var via=viaArg||s.clients[region].via||region;
+  var rd={id:s.seq++,region:region,via:via,issuedAt:s.now,doneAt:null,val:null,ts:null,verdict:"pending",
+          replies:null,needed:0,deadline:null,need:sessionNeed(s,region),parked:false};
+  s.reads.push(rd);
+  var whoWhere=WHO[region]+" ("+CITY[region]+")"+(via!==region?", whose connection is routed through "+CITY[via]+" this time,":"");
+  if(s.design==="majority"){
+    var rep=s.replicas[via];
+    rd.replies=[{region:via,val:rep.val,ts:rep.ts}]; rd.needed=2; rd.deadline=s.now+TIMEOUT;
+    log(s,whoWhere+" asked the price — the coordinator polls a majority before answering.","");
+    REGIONS.forEach(function(r){ if(r!==via) send(s,via,r,"rreq",{rid:rd.id}); });
+  } else if(s.design==="session" && s.replicas[via].ts<rd.need){
+    rd.parked=true; rd.deadline=s.now+TIMEOUT;
+    var owed=(s.clients[region].token>=rd.need? WHO[region]+"'s own saved write" : "the newer price "+WHO[region]+" was already shown");
+    log(s,whoWhere+" asked the price — but "+CITY[via]+" has not yet received "+owed+" (stamped t = "+rd.need+" ms), so the read is parked until that copy catches up.","t-warn");
+    head(s,WHO[region]+"'s read is waiting at "+CITY[via]+". Only this one client waits, and only until that copy catches up — nobody else on the system is slowed down by it.","warn");
+  } else {
+    var rep2=s.replicas[via];
+    rd.val=rep2.val; rd.ts=rep2.ts; rd.doneAt=s.now+1;
+    judge(s,rd);
+  }
+  return rd;
+}
+/* A parked session read is released the moment its replica reaches the version the client is owed. */
+function wakeReads(s,region){
+  s.reads.forEach(function(rd){
+    if(rd.verdict==="pending" && rd.parked && rd.via===region && s.replicas[region].ts>=rd.need){
+      var rep=s.replicas[region];
+      rd.val=rep.val; rd.ts=rep.ts; rd.doneAt=s.now; rd.parked=false;
+      log(s,CITY[region]+" has caught up to the version "+WHO[rd.region]+" is owed, so the parked read is answered — after a wait of "+(rd.doneAt-rd.issuedAt)+" ms, paid by this one client alone.","t-dim");
+      judge(s,rd);
+    }
+  });
+}
+
+function deliver(s,m){
+  if(m.kind==="update"){
+    var took=applyVal(s,m.to,m);
+    log(s,CITY[m.to]+" received the update to "+rupees(m.val)+(took?" and applied it.":" but kept its newer value — the older update lost the tie."),"t-dim");
+    wakeReads(s,m.to);
+  } else if(m.kind==="repl"){
+    applyVal(s,m.to,m);
+    wakeReads(s,m.to);
+    send(s,m.to,m.from,"ack",{wid:m.wid});
+  } else if(m.kind==="ack"){
+    var w=findWrite(s,m.wid);
+    if(w && w.status==="pending"){
+      if(w.acks.indexOf(m.from)<0) w.acks.push(m.from);
+      if(w.acks.length>=w.needed){
+        w.status="acked"; w.ackAt=s.now; noteAck(s,w);
+        var lat=w.ackAt-w.issuedAt;
+        log(s,"Write "+rupees(w.val)+" acknowledged to "+WHO[w.region]+" after "+lat+" ms — enough regions confirmed ("+w.acks.join(", ")+").","t-fresh");
+        head(s,WHO[w.region]+"'s write is now official: "+lat+" ms. That is the everyday price of waiting for others — the EC bill.","fresh");
+      }
+    }
+  } else if(m.kind==="fwd"){
+    var w2=findWrite(s,m.wid);
+    if(w2 && w2.status==="refused"){
+      log(s,"The forwarded write "+rupees(m.val)+" finally reached the home office — but it was already reported failed, so the home office discarded it. The timeline stays intact.","t-warn");
+      return;
+    }
+    var u={wid:m.wid,val:m.val,ts:s.now,tsr:s.home};
+    applyVal(s,s.home,u);
+    wakeReads(s,s.home);
+    if(w2) w2.ts=s.now;
+    log(s,"Home office ("+CITY[s.home]+") approved "+rupees(m.val)+" and put it into the single timeline.","t-dim");
+    send(s,s.home,m.from,"wack",{wid:m.wid,val:m.val,ts:u.ts,tsr:s.home});
+    REGIONS.forEach(function(r){ if(r!==s.home && r!==m.from) send(s,s.home,r,"update",u); });
+  } else if(m.kind==="wack"){
+    applyVal(s,m.to,m);
+    wakeReads(s,m.to);
+    var w3=findWrite(s,m.wid);
+    if(w3 && w3.status==="pending"){
+      w3.status="acked"; w3.ackAt=s.now; noteAck(s,w3);
+      log(s,"Write "+rupees(w3.val)+" acknowledged to "+WHO[w3.region]+" after "+(w3.ackAt-w3.issuedAt)+" ms — the home office round trip.","t-fresh");
+      head(s,WHO[w3.region]+"'s write took "+(w3.ackAt-w3.issuedAt)+" ms: it had to travel to the home office and back.","fresh");
+    }
+  } else if(m.kind==="rreq"){
+    var rep=s.replicas[m.to];
+    send(s,m.to,m.from,"rrep",{rid:m.rid,val:rep.val,ts:rep.ts});
+  } else if(m.kind==="rrep"){
+    var rd=findRead(s,m.rid);
+    if(rd && rd.verdict==="pending"){
+      rd.replies.push({region:m.from,val:m.val,ts:m.ts});
+      if(rd.replies.length>=rd.needed){
+        var best=rd.replies[0];
+        rd.replies.forEach(function(x){ if(x.ts>best.ts) best=x; });
+        rd.val=best.val; rd.ts=best.ts; rd.doneAt=s.now;
+        judge(s,rd);
+      }
+    }
+  }
+}
+
+function expireAt(s,t){
+  s.writes.forEach(function(w){
+    if(w.status==="pending" && w.deadline!==null && w.deadline<=t){
+      if(s.design==="degraded"){
+        w.status="acked-degraded"; w.ackAt=w.deadline; noteAck(s,w); s.counters.degraded++;
+        var missing=REGIONS.filter(function(r){return w.acks.indexOf(r)<0;});
+        var msg="DEGRADED ACK: after "+TIMEOUT+" ms of silence, the coordinator gave up waiting for "+missing.map(function(r){return CITY[r];}).join(", ")+" and told "+WHO[w.region]+" “saved” anyway ("+w.acks.length+" of 3).";
+        log(s,msg,"t-warn"); head(s,msg+" This ack is a promise the missing region never heard about.","warn");
+      } else {
+        w.status="refused"; s.counters.refusedW++;
+        var msg2="REFUSED: "+WHO[w.region]+"'s write "+rupees(w.val)+" timed out after "+TIMEOUT+" ms — not enough regions reachable. The system would rather fail loudly than promise quietly.";
+        log(s,msg2,"t-stale"); head(s,msg2,"warn");
+        if(s.design==="majority") log(s,"Note: the value was already applied at "+CITY[w.region]+"'s own replica — “failed” means “unconfirmed”, never “undone”.","t-dim");
+      }
+    }
+  });
+  s.reads.forEach(function(rd){
+    if(rd.verdict==="pending" && rd.deadline!==null && rd.deadline<=t){
+      rd.verdict="refused"; rd.doneAt=rd.deadline; s.counters.refusedR++;
+      var msg = rd.parked
+        ? "REFUSED: "+CITY[rd.via]+" never caught up to the version "+WHO[rd.region]+" is owed, so after "+TIMEOUT+" ms the read was refused rather than quietly showing an older price. A session promise is still a promise — and a promise that cannot be kept has to be refused."
+        : "REFUSED: "+WHO[rd.region]+"'s read could not assemble a majority within "+TIMEOUT+" ms.";
+      log(s,msg,"t-stale"); head(s,msg,"warn");
+    }
+  });
+}
+
+function nextEventTime(s){
+  var t=Infinity;
+  s.msgs.forEach(function(m){ if(!m.blocked && m.arriveAt<t) t=m.arriveAt; });
+  s.writes.forEach(function(w){ if(w.status==="pending" && w.deadline!==null && w.deadline<t) t=w.deadline; });
+  s.reads.forEach(function(r){ if(r.verdict==="pending" && r.deadline!==null && r.deadline<t) t=r.deadline; });
+  if(s.script.length && s.script[0].at<t) t=s.script[0].at;
+  return t;
+}
+function processAt(s,t){
+  while(s.script.length && s.script[0].at<=t){
+    var a=s.script.shift(); s.now=a.at; applyAction(s,a.action);
+  }
+  var due=s.msgs.filter(function(m){ return !m.blocked && m.arriveAt<=t; });
+  due.sort(function(a,b){ return a.arriveAt-b.arriveAt || a.id-b.id; });
+  due.forEach(function(m){
+    s.msgs.splice(s.msgs.indexOf(m),1);
+    s.now=m.arriveAt;
+    deliver(s,m);
+  });
+  s.now=t;
+  expireAt(s,t);
+}
+function advance(s,dt){
+  var target=s.now+dt;
+  var guard=0;
+  while(guard++<10000){
+    var t=nextEventTime(s);
+    if(t<=target){ processAt(s,t); } else break;
+  }
+  s.now=target;
+}
+function stepNext(s){
+  var t=nextEventTime(s);
+  if(t===Infinity) return false;
+  processAt(s,t);
+  return true;
+}
+function applyAction(s,a){
+  if(a.type==="write") doWrite(s,a.region);
+  else if(a.type==="read") doRead(s,a.region,a.via);
+  else if(a.type==="via"){
+    s.clients[a.region].via=a.value||null;
+    log(s,WHO[a.region]+"'s reads are now served by "+(a.value?CITY[a.value]+" — the kind of thing a load balancer, a mobile network or a read-replica router does without telling anyone.":CITY[a.region]+" (own city).") ,"t-dim");
+  }
+  else if(a.type==="partition"){
+    if(a.region){
+      s.isolated=a.region;
+      s.msgs.forEach(function(m){ if(crossesCut(s,m.from,m.to)){ m.blocked=true; m.arriveAt=Infinity; } });
+      var msg="PARTITION: "+CITY[a.region]+" is cut off. Messages to and from it are parked at the break.";
+      log(s,msg,"t-warn"); head(s,msg,"warn");
+    } else {
+      s.isolated=null;
+      s.msgs.forEach(function(m){ if(m.blocked){ m.blocked=false; m.sentAt=s.now; m.arriveAt=s.now+m.dur; } });
+      log(s,"HEAL: the network is whole again. Parked messages resume their journey — now watch what the promises made on each side do to each other.","t-warn");
+      head(s,"The partition healed. Every message parked at the break is travelling again.","");
+    }
+  }
+  else if(a.type==="rtt"){ s.rttScale=a.value; log(s,"Network distance set to "+a.value+"× ("+CITY.BOM+"↔"+CITY.IAD+" one-way is now "+Math.round(95*a.value)+" ms).","t-dim"); }
+}
+
+/* Converged = every replica identical and nothing in flight or pending. */
+function quiescent(s){
+  if(s.msgs.length) return false;
+  for(var i=0;i<s.writes.length;i++) if(s.writes[i].status==="pending") return false;
+  for(var j=0;j<s.reads.length;j++) if(s.reads[j].verdict==="pending") return false;
+  return s.script.length===0;
+}
+function converged(s){
+  if(!quiescent(s)) return false;
+  var w=s.replicas.BOM;
+  return REGIONS.every(function(r){ return s.replicas[r].wid===w.wid && s.replicas[r].val===w.val; });
+}
+/* An acked write is a CASUALTY if the final winner never saw it (its author could not have known about it). */
+function casualties(s){
+  if(!converged(s)) return [];
+  var winId=s.replicas.BOM.wid;
+  var winner=findWrite(s,winId);
+  return ackedWrites(s).filter(function(w){
+    return winner && w.id!==winner.id && winner.seen.indexOf(w.id)<0 && w.ts<winner.ts;
+  });
+}
+/* Scripted run to completion — used by scenarios and by the headless validator. */
+function runScript(cfg){
+  var s=mkState(cfg);
+  var guard=0;
+  while(guard++<5000 && stepNext(s)){}
+  return s;
+}
+</script>
+
+<script id="engine2">
+/* ====== TAB 2 ENGINE — "The Last Ten Necklaces". Pure, no DOM. Verified headlessly. ======
+   Tab 1 asks how fresh an ANSWER is. This one asks whether a RULE can break:
+   ten necklaces exist, and the eleventh must be unsellable.                              */
+var STOCK_TOTAL=10;
+var SPLITS={ even:{BOM:4,FRA:3,IAD:3}, demand:{BOM:6,FRA:2,IAD:2} };
+var SPLITNAME={ even:"4 / 3 / 3 — split evenly", demand:"6 / 2 / 2 — split by where the customers are" };
+function zero2(){ return {BOM:0,FRA:0,IAD:0}; }
+function copy2(o){ return {BOM:o.BOM,FRA:o.FRA,IAD:o.IAD}; }
+function ow2(a,b){ return ONEWAY[a+"|"+b]; }
+
+function mk2(cfg){
+  cfg=cfg||{};
+  var sp=cfg.split||"even";
+  return {
+    now:0, design:cfg.design||"local", split:sp, isolated:cfg.isolated||null, leader:"BOM",
+    sold:zero2(),                                   // ground truth: sales actually made, per branch
+    allow:copy2(SPLITS[sp]),                        // escrow allowance left, per branch
+    known:{BOM:zero2(),FRA:zero2(),IAD:zero2()},    // what each branch believes about each branch's sales
+    inflight:[], held:[], log:[], nextId:1,
+    counters:{sold:0,oversold:0,refused:0,refusedWithStock:0,coordinatedMs:0},
+    lastLat:{BOM:null,FRA:null,IAD:null},
+    refusedBy:zero2(),
+    headline:"Ten necklaces, three branches. Sell one and watch what the rule costs.", headCls:""
+  };
+}
+function remaining2(s){ return STOCK_TOTAL - s.counters.sold; }
+function believes2(s,r){ var k=s.known[r]; return STOCK_TOTAL-(k.BOM+k.FRA+k.IAD); }
+function cut2(s,a,b){ return s.isolated!==null && ((a===s.isolated)!==(b===s.isolated)); }
+function log2(s,text,cls){ s.log.push({t:s.now,text:text,cls:cls||""}); if(s.log.length>300) s.log.shift(); }
+function head2(s,text,cls){ s.headline=text; s.headCls=cls||""; }
+
+function send2(s,from,to,kind,payload){
+  var m={id:s.nextId++, from:from, to:to, kind:kind, payload:payload, sent:s.now, arrive:s.now+ow2(from,to)};
+  if(cut2(s,from,to)){ s.held.push(m); return m; }
+  s.inflight.push(m); return m;
+}
+function applyMsg2(s,m){
+  if(m.kind==="sale"){
+    var k=s.known[m.to];
+    if(m.payload.count>k[m.payload.region]) k[m.payload.region]=m.payload.count;
+  } else if(m.kind==="allow"){
+    s.allow[m.to]+=m.payload.n;
+    log2(s,CITY[m.to]+" receives an allowance of "+m.payload.n+" from "+CITY[m.from]+" — it may now sell "+s.allow[m.to]+".","t-fresh");
+  }
+}
+function advance2(s,dt){
+  var target=s.now+dt;
+  s.inflight.sort(function(a,b){ return a.arrive-b.arrive; });
+  while(s.inflight.length && s.inflight[0].arrive<=target){
+    var m=s.inflight.shift(); s.now=m.arrive; applyMsg2(s,m);
+  }
+  s.now=target;
+  return s;
+}
+function settle2(s){
+  s.inflight.sort(function(a,b){ return a.arrive-b.arrive; });
+  while(s.inflight.length){ var m=s.inflight[0]; advance2(s, Math.max(0,m.arrive-s.now)); }
+  advance2(s,1);
+  return s;
+}
+function setIsolated2(s,r){
+  var was=s.isolated;
+  s.isolated=r||null;
+  if(was && !s.isolated && s.held.length){
+    var n=s.held.length;
+    s.held.forEach(function(m){ m.arrive=s.now+ow2(m.from,m.to); s.inflight.push(m); });
+    s.held=[];
+    log2(s,"Network healed — "+n+" held message(s) set off again. The counts are about to meet.","t-fresh");
+  } else if(s.isolated){
+    log2(s,CITY[s.isolated]+" is cut off from the other two branches.","t-warn");
+  }
+  return s;
+}
+function commit2(s,r,latency,how){
+  s.sold[r]+=1; s.counters.sold+=1; s.known[r][r]=s.sold[r];
+  s.counters.oversold=Math.max(0, s.counters.sold-STOCK_TOTAL);
+  s.lastLat[r]=latency;
+  var over = s.counters.sold>STOCK_TOTAL;
+  log2(s,CITY[r]+" sells one necklace — "+how+" ("+latency+" ms)."+(over?" That is necklace number "+s.counters.sold+" out of ten.":""), over?"t-stale":"t-fresh");
+  head2(s, over
+    ? CITY[r]+" just sold necklace number "+s.counters.sold+". Only ten exist. Nothing failed — no error, no conflict, no lost write. The rule broke because nobody was in a position to enforce it."
+    : CITY[r]+" sold one in "+latency+" ms — "+how+". "+remaining2(s)+" left.",
+    over?"stale":"fresh");
+  return s;
+}
+function refuse2(s,r,latency,why){
+  s.counters.refused+=1; s.refusedBy[r]+=1; s.lastLat[r]=latency;
+  var stockLeft=remaining2(s);
+  if(stockLeft>0) s.counters.refusedWithStock+=1;
+  log2(s,CITY[r]+" turns a customer away after "+latency+" ms — "+why+(stockLeft>0?" (and "+stockLeft+" necklace(s) still exist).":" (genuinely sold out)."),"t-warn");
+  head2(s, CITY[r]+" turned a customer away after "+latency+" ms because "+why+"."+
+    (stockLeft>0?" There are still "+stockLeft+" necklaces — they are simply not "+CITY[r]+"'s to sell.":" This one is a genuine sell-out."),"warn");
+  return s;
+}
+function sell2(s,r){
+  if(s.design==="local"){
+    if(believes2(s,r)<=0) return refuse2(s,r,1,"its own book says nothing is left");
+    REGIONS.forEach(function(x){ if(x!==r) send2(s,r,x,"sale",{region:r,count:s.sold[r]+1}); });
+    return commit2(s,r,1,"straight out of its own book, with no permission asked from anyone");
+  }
+  if(s.design==="escrow"){
+    if(s.allow[r]<=0) return refuse2(s,r,1,"its own allowance is used up");
+    s.allow[r]-=1;
+    REGIONS.forEach(function(x){ if(x!==r) send2(s,r,x,"sale",{region:r,count:s.sold[r]+1}); });
+    return commit2(s,r,1,"out of its own allowance — no permission needed from anyone");
+  }
+  // "quorum": every sale is decided by the head office, which then needs one more branch to agree
+  var L=s.leader;
+  var peers=REGIONS.filter(function(x){ return x!==L && !cut2(s,L,x); });
+  if(cut2(s,r,L)) return refuse2(s,r,TIMEOUT,"it could not reach the head office at all");
+  if(peers.length===0) return refuse2(s,r,TIMEOUT,"the head office could not get a second branch to agree");
+  var majority=2*Math.min.apply(null,peers.map(function(x){ return ow2(L,x); }));
+  var trip=(r===L?0:2*ow2(r,L));
+  var lat=trip+majority;
+  if(remaining2(s)<=0) return refuse2(s,r,lat,"the head office's book is genuinely empty");
+  s.counters.coordinatedMs+=lat;
+  return commit2(s,r,lat,"after asking the head office ("+trip+" ms there and back) which then needed one more branch to agree ("+majority+" ms)");
+}
+function transfer2(s,from,to,n){
+  if(s.design!=="escrow"){ log2(s,"Allowances only exist in the split-the-stock design.","t-dim"); return s; }
+  if(s.allow[from]<n){ log2(s,CITY[from]+" does not have "+n+" to give.","t-warn"); return s; }
+  if(cut2(s,from,to)){
+    log2(s,"Cannot hand allowance from "+CITY[from]+" to "+CITY[to]+" — they cannot reach each other. Reassigning it anyway is how both branches end up selling the same necklace: a handover needs a fence, not an assumption.","t-stale");
+    head2(s,"Blocked on purpose. Moving an allowance to a branch you cannot talk to is the stale-holder problem with physical goods attached — the old holder may still be selling.","warn");
+    return s;
+  }
+  s.allow[from]-=n;
+  send2(s,from,to,"allow",{n:n});
+  log2(s,CITY[from]+" hands "+n+" of its allowance to "+CITY[to]+" — in flight for "+ow2(from,to)+" ms, during which NOBODY may sell it. Coordination, but off the sale path.","t-dim");
+  return s;
+}
+function act2(s,a){
+  if(a.type==="sell"){ advance2(s, a.gap===undefined?20:a.gap); return sell2(s,a.region); }
+  if(a.type==="cut"){ advance2(s, a.gap===undefined?20:a.gap); return setIsolated2(s,a.region); }
+  if(a.type==="heal"){ advance2(s, a.gap===undefined?20:a.gap); return setIsolated2(s,null); }
+  if(a.type==="settle"){ return settle2(s); }
+  if(a.type==="transfer"){ advance2(s, a.gap===undefined?20:a.gap); return transfer2(s,a.from,a.to,a.n); }
+  return s;
+}
+function runScript2(cfg,actions){
+  var s=mk2(cfg);
+  actions.forEach(function(a){ act2(s,a); });
+  return s;
+}
+</script>
+
+<script>
+/* ============ UI ============ */
+(function(){
+"use strict";
+var POS={IAD:{x:60,y:120}, FRA:{x:315,y:38}, BOM:{x:580,y:150}};
+var CW=180, CH=118;
+var COLORS={BOM:"var(--bom)",FRA:"var(--fra)",IAD:"var(--iad)"};
+var SOFT={BOM:"var(--bom-soft)",FRA:"var(--fra-soft)",IAD:"var(--iad-soft)"};
+var DESIGNS=[
+  {id:"local", name:"Answer locally, spread the news later", cls:"PA/EL",
+   desc:"Writes and reads ack at the nearest replica in ~1 ms. Updates travel afterwards. Under a cut, both sides keep going — and diverge."},
+  {id:"session", name:"Answer locally — but never show a client its own past", cls:"PA/EL + session",
+   desc:"Writes acknowledge locally in ~1 ms, exactly like the design above. But every client carries a token of the newest price it has saved or been shown, and a copy that is behind that token must catch up before it may answer that client. Only the person who just wrote ever waits — and only for their own next read."},
+  {id:"majority", name:"A write needs a majority; a read asks a majority", cls:"PC/EC",
+   desc:"Nothing is acknowledged until 2 of 3 regions agree. A cut-off region refuses rather than guesses."},
+  {id:"home", name:"One home office approves every price change", cls:"PC/EL",
+   desc:"All writes pass through one master (pick it in Controls); everyone reads their own local book. One timeline, never a fork — but stale reads daily, and no writes when the home office is unreachable."},
+  {id:"degraded", name:"Wait for everyone — unless someone stops answering", cls:"PA/EC",
+   desc:"Writes wait for all 3 regions (the priciest everyday bill). After 1000 ms of silence, the coordinator acknowledges with whoever answered — and the missing region diverges."}
+];
+var CLASSTEXT={
+  local:"PA/EL — nobody waits, ever; conflicts are settled after the fact.",
+  session:"PA/EL with session guarantees — still nobody's write waits, and strangers still get stale answers; but no client is ever shown its own past.",
+  majority:"PC/EC — someone always waits; refuse rather than lie.",
+  home:"PC/EL — reads never wait; writes follow one master; lose the master, lose writes.",
+  degraded:"PA/EC — everyone waits while waiting works; when it stops working, stop waiting."
+};
+
+var state=mkState({design:"local"});
+var history=[];             // snapshots for step-back
+var playing=false, speed=1, timer=null;
+var lastSnapAt=-1;
+
+function snapshot(){
+  if(state.now===lastSnapAt && history.length) return;
+  history.push(structuredClone(state));
+  lastSnapAt=state.now;
+  if(history.length>500) history.shift();
+}
+function el(id){ return document.getElementById(id); }
+function svgEl(tag,attrs){
+  var e=document.createElementNS("http://www.w3.org/2000/svg",tag);
+  for(var k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+}
+
+/* ---- stage ---- */
+function center(r){ return {x:POS[r].x+CW/2, y:POS[r].y+CH/2}; }
+function edgePair(a,b){ return [center(a),center(b)]; }
+function renderStage(){
+  var svg=el("stage");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  var pairs=[["IAD","FRA"],["FRA","BOM"],["IAD","BOM"]];
+  pairs.forEach(function(p){
+    var pts=edgePair(p[0],p[1]);
+    var cut=state.isolated!==null && ((p[0]===state.isolated)!==(p[1]===state.isolated));
+    var ln=svgEl("line",{x1:pts[0].x,y1:pts[0].y,x2:pts[1].x,y2:pts[1].y,
+      stroke:cut?"var(--stale)":"var(--wire)","stroke-width":cut?1.5:2,
+      "stroke-dasharray":cut?"4 5":"none",opacity:cut?0.8:0.9});
+    svg.appendChild(ln);
+    var mx=(pts[0].x+pts[1].x)/2, my=(pts[0].y+pts[1].y)/2;
+    if(cut){
+      var t=svgEl("text",{x:mx,y:my-8,"text-anchor":"middle","font-size":15,fill:"var(--stale)"});
+      t.textContent="✕"; svg.appendChild(t);
+    }
+    var lbl=svgEl("text",{x:mx,y:my+16,"text-anchor":"middle","font-size":11,fill:"var(--muted)","class":"m"});
+    lbl.textContent=(oneway(state,p[0],p[1])*2)+" ms RTT";
+    svg.appendChild(lbl);
+  });
+  // messages
+  state.msgs.forEach(function(m){
+    var pts=edgePair(m.from,m.to);
+    var frac;
+    if(m.blocked){ frac=0.5; }
+    else { frac=Math.min(1,Math.max(0,(state.now-m.sentAt)/m.dur)); }
+    var x=pts[0].x+(pts[1].x-pts[0].x)*frac, y=pts[0].y+(pts[1].y-pts[0].y)*frac;
+    var big=(m.kind==="update"||m.kind==="repl"||m.kind==="fwd"||m.kind==="wack");
+    var c=svgEl("circle",{cx:x,cy:y,r:big?6:3.5,
+      fill:big?COLORS[m.tsr||m.from]:"none",
+      stroke:m.blocked?"var(--stale)":(big?"var(--card)":"var(--muted)"),"stroke-width":big?1.5:1.5});
+    svg.appendChild(c);
+    if(m.blocked){
+      var bt=svgEl("text",{x:x,y:y-9,"text-anchor":"middle","font-size":10,fill:"var(--stale)"});
+      bt.textContent="⛔"; svg.appendChild(bt);
+    }
+  });
+  // region cards
+  REGIONS.forEach(function(r){
+    var p=POS[r], rep=state.replicas[r];
+    var iso=state.isolated===r;
+    var g=svgEl("g",{cursor:"pointer"});
+    g.addEventListener("click",function(){ inspect(r); });
+    var rect=svgEl("rect",{x:p.x,y:p.y,width:CW,height:CH,rx:10,fill:"var(--card)",
+      stroke:iso?"var(--stale)":"var(--line)","stroke-width":iso?2:1.2,
+      "stroke-dasharray":iso?"5 4":"none"});
+    g.appendChild(rect);
+    var band=svgEl("rect",{x:p.x,y:p.y,width:CW,height:26,rx:10,fill:SOFT[r]});
+    g.appendChild(band);
+    var band2=svgEl("rect",{x:p.x,y:p.y+14,width:CW,height:12,fill:SOFT[r]});
+    g.appendChild(band2);
+    var nm=svgEl("text",{x:p.x+10,y:p.y+18,"font-size":13,"font-weight":600,fill:COLORS[r]});
+    nm.textContent=CITY[r]+(state.design==="home"&&state.home===r?"  ★ home":"");
+    g.appendChild(nm);
+    if(iso){
+      var it=svgEl("text",{x:p.x+CW-10,y:p.y+18,"text-anchor":"end","font-size":10,fill:"var(--stale)","font-weight":600});
+      it.textContent="CUT OFF"; g.appendChild(it);
+    }
+    var pv=svgEl("text",{x:p.x+10,y:p.y+58,"font-size":21,"font-weight":600,fill:"var(--ink)","class":"m"});
+    pv.textContent=rupees(rep.val);
+    g.appendChild(pv);
+    var vv=svgEl("text",{x:p.x+10,y:p.y+78,"font-size":10.5,fill:"var(--muted)","class":"m"});
+    vv.textContent=rep.wid?("write #"+rep.wid+" · ts "+rep.ts+" ms · from "+(rep.tsr||"—")):"initial price";
+    g.appendChild(vv);
+    var cl=svgEl("text",{x:p.x+10,y:p.y+100,"font-size":11,fill:"var(--muted)"});
+    cl.textContent="clerk: "+WHO[r]+" · click to inspect";
+    g.appendChild(cl);
+    var parked=state.reads.filter(function(x){ return x.verdict==="pending" && x.parked && x.via===r; });
+    if(parked.length){
+      var pw=svgEl("text",{x:p.x+CW-10,y:p.y+100,"text-anchor":"end","font-size":11,fill:"var(--warn)","font-weight":600});
+      pw.textContent="⏳ "+parked.length+" read waiting to catch up";
+      g.appendChild(pw);
+    }
+    svg.appendChild(g);
+  });
+}
+function inspect(r){
+  var rep=state.replicas[r];
+  var lines="Replica "+CITY[r]+" holds "+rupees(rep.val)+" (write #"+(rep.wid||0)+", stamped t="+rep.ts+" ms by "+(rep.tsr||"nobody")+"). It has seen "+rep.applied.length+" update(s): ["+rep.applied.join(", ")+"].";
+  setVerdict(lines,"");
+}
+
+/* ---- panels ---- */
+function setVerdict(text,cls){
+  var v=el("verdict");
+  v.textContent=text;
+  v.className="verdict"+(cls?" "+cls:"");
+}
+function renderPanels(){
+  el("clock").textContent="t = "+state.now+" ms";
+  setVerdict(state.headline,state.headCls);
+  var c=state.counters;
+  var lost=casualties(state);
+  var chips=[
+    '<span class="chip'+(c.stale?' bad':'')+'">stale reads <b>'+c.stale+'</b></span>',
+    '<span class="chip">fresh reads <b>'+c.fresh+'</b></span>',
+    '<span class="chip'+((c.refusedW+c.refusedR)?' bad':'')+'">refused <b>'+(c.refusedW+c.refusedR)+'</b></span>',
+    '<span class="chip'+(c.degraded?' bad':'')+'">degraded acks <b>'+c.degraded+'</b></span>',
+    '<span class="chip'+(lost.length?' bad':'')+'">acked writes lost <b>'+lost.length+'</b></span>',
+    '<span class="chip'+(c.ryw?' bad':'')+'">your own change vanished <b>'+c.ryw+'</b></span>',
+    '<span class="chip'+(c.back?' bad':'')+'">price went backwards <b>'+c.back+'</b></span>'
+  ];
+  el("chips").innerHTML=chips.join("");
+  var d=state.design;
+  var pa=(d==="local"||d==="degraded"||d==="session");
+  var elc=(d==="local"||d==="home"||d==="session");
+  el("pacelc").innerHTML=
+    '<span class="cell'+(pa?" on":"")+'">P → A</span><span class="cell'+(!pa?" on":"")+'">P → C</span>'+
+    '<span style="color:var(--muted)">·</span>'+
+    '<span class="cell'+(elc?" on":"")+'">E → L</span><span class="cell'+(!elc?" on":"")+'">E → C</span>'+
+    '<div class="note" style="margin-top:6px">'+CLASSTEXT[d]+'</div>';
+  var lg=el("log");
+  lg.innerHTML=state.log.map(function(e){
+    return '<div class="'+e.cls+'"><span class="t-dim">'+String(e.t).padStart(5," ")+' ms</span>  '+e.text+'</div>';
+  }).join("");
+  lg.scrollTop=lg.scrollHeight;
+  var q=nextEventTime(state);
+  el("quiet").textContent = q===Infinity ? (converged(state)?"quiet — all replicas agree":"quiet — nothing in flight") : "";
+  // clients latencies
+  REGIONS.forEach(function(r){
+    var lw=null, lr=null;
+    state.writes.forEach(function(w){ if(w.region===r && w.ackAt!==null) lw=w.ackAt-w.issuedAt; });
+    state.reads.forEach(function(x){ if(x.region===r && x.doneAt!==null) lr=x.doneAt-x.issuedAt; });
+    el("lat-"+r).textContent="last write ack: "+(lw===null?"—":lw+" ms")+" · last read: "+(lr===null?"—":lr+" ms");
+    var c=state.clients[r];
+    el("tok-"+r).textContent = "session token: "+(c.token<0?"nothing saved yet":"write #"+c.tokenWid+" (t = "+c.token+" ms)")+
+      " · last shown "+rupees(c.seenVal);
+    var sel=document.querySelector('select[data-via="'+r+'"]');
+    if(sel) sel.value=c.via||"";
+  });
+}
+function renderAll(){ renderStage(); renderPanels(); }
+
+/* ---- actions ---- */
+function userAction(a){
+  snapshot();
+  applyAction(state,a);
+  advance(state,1);
+  renderAll();
+}
+function resetSim(cfg){
+  stopPlay();
+  state=mkState(cfg||{design:state.design,home:state.home,rttScale:state.rttScale});
+  history=[]; lastSnapAt=-1;
+  document.querySelectorAll(".scen .res").forEach(function(n){ n.className=n.className.replace(" show",""); });
+  renderAll();
+  syncControls();
+}
+function stopPlay(){
+  playing=false; if(timer){ clearInterval(timer); timer=null; }
+  el("bPlay").textContent="▶ Play";
+}
+function togglePlay(){
+  if(playing){ stopPlay(); return; }
+  playing=true; el("bPlay").textContent="⏸ Pause";
+  timer=setInterval(function(){
+    var q=nextEventTime(state);
+    if(q===Infinity){                      // idle: don't advance the clock into nothing
+      renderPanels();
+      if(onRunDone) checkRunDone();        // a finished scenario reports its verdict here
+      return;
+    }
+    snapshot();
+    advance(state,10*speed);
+    renderAll();
+    if(onRunDone) checkRunDone();
+  },33);
+}
+
+/* ---- scenarios ---- */
+var onRunDone=null;
+function checkRunDone(){
+  if(nextEventTime(state)===Infinity && state.script.length===0){
+    var f=onRunDone; onRunDone=null; stopPlay(); f();
+  }
+}
+var SCENARIOS=[
+ {id:1, title:"S1 · Stale on a healthy network", design:"local",
+  q:"Design: answer locally. Asha (Mumbai) writes at t=0 and is told “saved” at t=1 ms. At t=40 ms Omar (Virginia) reads. The network is perfectly healthy. What does Omar see?",
+  opts:[{l:"₹54,000 — the write was acknowledged 39 ms ago",c:false},
+        {l:"₹50,000 — the old price, even though nothing failed",c:true}],
+  script:function(){ return [{at:0,action:{type:"write",region:"BOM"}},{at:40,action:{type:"read",region:"IAD"}},{at:200,action:{type:"read",region:"IAD"}}]; },
+  cfg:{design:"local"},
+  explain:"Omar read ₹50,000 — stale by an acknowledged 39 ms — because nobody waited: the ack raced ahead of the update, which was still crossing the ocean. The t=200 ms read is fresh again: EL staleness is a window (the one-way delay), not a permanent state. This is the EL choice, and no partition was involved.",
+  check:function(s){ return s.reads.length===2 && s.reads[0].verdict==="stale" && s.reads[1].verdict==="fresh"; }},
+ {id:2, title:"S2 · The latency bill arrives", design:"majority",
+  q:"Same write from Asha in Mumbai, but now the design is majority (2 of 3). Mumbai↔Frankfurt RTT is 110 ms, Mumbai↔Virginia 190 ms. How long until Asha hears “saved”?",
+  opts:[{l:"~1 ms — her own replica applied it",c:false},
+        {l:"~110 ms — the nearest second region's round trip",c:true},
+        {l:"~190 ms — the farthest region's round trip",c:false}],
+  script:function(){ return [{at:0,action:{type:"write",region:"BOM"}},{at:250,action:{type:"read",region:"IAD"}}]; },
+  cfg:{design:"majority"},
+  explain:"110 ms: the coordinator needs ONE more region, and Frankfurt answers first. The same write that acked in 1 ms under EL now bills a European round trip — every time, forever, on a healthy network. Omar's majority read afterwards is fresh (overlap!) but costs ~90 ms itself. That is EC: the milliseconds are the product.",
+  check:function(s){ var w=s.writes[0]; return w && w.status==="acked" && (w.ackAt-w.issuedAt)===110 && s.reads[0] && s.reads[0].verdict==="fresh"; }},
+ {id:3, title:"S3 · The minority goes dark", design:"majority",
+  q:"Majority design. Virginia is cut off at t=0. Omar (Virginia) writes at t=10; Asha (Mumbai) writes at t=20. What happens to each?",
+  opts:[{l:"Both eventually succeed — writes queue until the heal",c:false},
+        {l:"Omar's is refused after the timeout; Asha's succeeds in ~110 ms",c:true},
+        {l:"Both are refused — a partition stops a PC system entirely",c:false}],
+  script:function(){ return [{at:0,action:{type:"partition",region:"IAD"}},{at:10,action:{type:"write",region:"IAD"}},{at:20,action:{type:"write",region:"BOM"}},{at:1500,action:{type:"partition",region:null}}]; },
+  cfg:{design:"majority"},
+  explain:"Omar can reach nobody, so his coordinator times out at 1000 ms and REFUSES — loudly and honestly. Asha still has Frankfurt: majority holds, 110 ms, business as usual. PC is a scoped outage on the cut-off side, not a global one. (Watch the log: Omar's refused value was still applied at his own replica — “failed” means “unconfirmed”, never “undone”.)",
+  check:function(s){ return s.counters.refusedW===1 && s.writes.filter(function(w){return w.status==="acked";}).length===1 && converged(s); }},
+ {id:4, title:"S4 · Divergence, then the silent execution", design:"local",
+  q:"Answer-locally design. Virginia is cut off. Asha writes ₹54,000 (acked). Omar writes ₹58,000 (acked). The network heals. After everything settles, how many acknowledged writes survive?",
+  opts:[{l:"Both — each city keeps its own value",c:false},
+        {l:"One — the conflict rule picks a winner and the other acked write silently vanishes",c:true}],
+  script:function(){ return [{at:0,action:{type:"partition",region:"IAD"}},{at:10,action:{type:"write",region:"BOM"}},{at:20,action:{type:"write",region:"IAD"}},{at:500,action:{type:"partition",region:null}}]; },
+  cfg:{design:"local"},
+  explain:"Both writes were acknowledged; replicas cannot keep both. Last-write-wins keeps Omar's later timestamp and Asha's acked ₹54,000 vanishes with no error anywhere — the “acked writes lost” counter is the only witness. This is PA's bill, paid at heal, by whichever writer the conflict rule disfavors (the quorums lab measured a fast clock winning 1000/1000 such fights).",
+  check:function(s){ return converged(s) && casualties(s).length===1; }},
+ {id:5, title:"S5 · The home office goes dark", design:"home",
+  q:"Home-office design, home = Mumbai. Mumbai is cut off at t=0; Asha (at the home office) writes at t=10. At t=50 Priya (Frankfurt) reads; at t=60 Priya writes. What happens to Priya's two operations?",
+  opts:[{l:"Both fail — Frankfurt is cut off from the master",c:false},
+        {l:"Read succeeds (1 ms, possibly stale); write is refused",c:true},
+        {l:"Both succeed — reads and writes are local in this design",c:false}],
+  script:function(){ return [{at:0,action:{type:"partition",region:"BOM"}},{at:10,action:{type:"write",region:"BOM"}},{at:50,action:{type:"read",region:"FRA"}},{at:60,action:{type:"write",region:"FRA"}},{at:1500,action:{type:"partition",region:null}}]; },
+  cfg:{design:"home",home:"BOM"},
+  explain:"Reads never needed the master: Priya reads her frozen local book in 1 ms — and it is STALE, because Asha's write was acked at the unreachable home office 39 ms earlier. Priya's write must reach Mumbai and cannot: refused at the timeout. PC/EL splits availability down the middle — reads live, writes die — and note what never happens: divergence. One master, one timeline, no fork to reconcile at heal.",
+  check:function(s){ return s.reads[0] && s.reads[0].verdict==="stale" && s.counters.refusedW===1 && converged(s) && casualties(s).length===0; }},
+ {id:6, title:"S6 · Paying daily, folding anyway", design:"degraded",
+  q:"Wait-for-everyone design (with the 1000 ms give-up rule). Virginia is cut off. Omar writes ₹54,000 at t=10; Asha writes ₹58,000 at t=20. Both eventually hear “saved”. The network heals. What happens to Omar's write?",
+  opts:[{l:"It survives — it was acknowledged, and acknowledged means durable",c:false},
+        {l:"It is discarded at heal — a degraded ack is a promise the merge can break",c:true}],
+  script:function(){ return [{at:0,action:{type:"partition",region:"IAD"}},{at:10,action:{type:"write",region:"IAD"}},{at:20,action:{type:"write",region:"BOM"}},{at:1500,action:{type:"partition",region:null}}]; },
+  cfg:{design:"degraded"},
+  explain:"Every day this design pays the worst bill on the board (waiting for ALL regions). Yet under partition the timeout converts “wait for everyone” into “wait for whoever's here”: both sides got acks, the heal forced a merge, and Omar's acknowledged write was discarded. The worst of S4 after paying the price of S2 — unless the degrade is a documented, alarmed event (this is classic MongoDB's rollback-files signature).",
+  check:function(s){ return s.counters.degraded===2 && converged(s) && casualties(s).length===1 && casualties(s)[0].region==="IAD"; }},
+ {id:7, title:"S7 · “Where did my own change go?”", design:"local",
+  q:"Answer-locally design, healthy network. Asha (Mumbai) writes ₹54,000 at t=0 and is told “saved” at t=1 ms. At t=10 ms she hits refresh — and this time her connection is routed through Frankfurt (a load balancer decision she never sees). What does Asha's own screen show?",
+  opts:[{l:"₹54,000 — it was acknowledged, so it is hers to see",c:false},
+        {l:"₹50,000 — her own change is missing from her own screen",c:true}],
+  script:function(){ return [{at:0,action:{type:"write",region:"BOM"}},
+                             {at:5,action:{type:"via",region:"BOM",value:"FRA"}},
+                             {at:10,action:{type:"read",region:"BOM"}},
+                             {at:120,action:{type:"read",region:"BOM"}}]; },
+  cfg:{design:"local"},
+  explain:"Frankfurt gets the update at t=55 ms, so at t=10 ms it answers with the price Asha herself replaced nine milliseconds earlier. This is the complaint that actually reaches your team — not “region B lagged 39 ms” but “I changed it, I refreshed, my change was gone”. Note the two counters moving together but meaning different things: “stale read” is about real time and everybody; “your own change vanished” is about one person's own history. Her second read at t=120 ms is fine — the window closed on its own. Now run S8 for the cheap fix.",
+  check:function(s){ return s.counters.ryw===1 && s.reads[0].verdict==="stale" && s.reads[1].verdict==="fresh" && s.counters.ryw===1; }},
+ {id:8, title:"S8 · The cheap fix: make only the writer wait", design:"session",
+  q:"Same script, but the session design: each client carries a token of the newest price it saved, and a copy behind that token must catch up before answering that client. Asha writes at t=0 and reads through Frankfurt at t=10. Priya reads her own Frankfurt copy at t=20. What happens?",
+  opts:[{l:"Asha's read waits ~45 ms and shows ₹54,000; Priya's read is immediate and STALE",c:true},
+        {l:"Both reads show ₹54,000 — the token fixes the system for everyone",c:false},
+        {l:"Asha's read is refused — Frankfurt cannot serve her at all",c:false}],
+  script:function(){ return [{at:0,action:{type:"write",region:"BOM"}},
+                             {at:5,action:{type:"via",region:"BOM",value:"FRA"}},
+                             {at:10,action:{type:"read",region:"BOM"}},
+                             {at:20,action:{type:"read",region:"FRA"}}]; },
+  cfg:{design:"session"},
+  explain:"Asha's read parks at Frankfurt and is answered the instant her own update lands (t=55) — a 45 ms wait, paid once, by the only person who needed it. Compare the majority design, where EVERY read by EVERYONE pays 90–110 ms forever. And look at what did not get fixed: Priya, who wrote nothing, is answered immediately with ₹50,000 and the recency judge correctly calls it stale. Session guarantees make the system consistent with one client's own history — never with real time. Both facts are on the screen at once: “your own change vanished” stays 0 while “stale reads” climbs.",
+  check:function(s){ return s.counters.ryw===0 && s.reads[0].val===54000 && (s.reads[0].doneAt-s.reads[0].issuedAt)===45 && s.reads[1].verdict==="stale"; }},
+ {id:9, title:"S9 · The price goes backwards", design:"local",
+  q:"Answer-locally design, healthy network. Asha writes ₹54,000 at t=0. Priya (Frankfurt) reads her own copy at t=60 ms — Frankfurt received the update at t=55, so she sees ₹54,000. At t=70 ms her next read is routed through Virginia, which gets the update at t=95. What does Priya see?",
+  opts:[{l:"₹54,000 — a price she has already been shown cannot un-happen",c:false},
+        {l:"₹50,000 — the price moves backwards on her screen",c:true}],
+  script:function(){ return [{at:0,action:{type:"write",region:"BOM"}},
+                             {at:60,action:{type:"read",region:"FRA"}},
+                             {at:65,action:{type:"via",region:"FRA",value:"IAD"}},
+                             {at:70,action:{type:"read",region:"FRA"}}]; },
+  cfg:{design:"local"},
+  explain:"Priya wrote nothing at all, so read-your-writes was never in play — and she is still shown a value that un-happens. This is the monotonic-reads guarantee breaking, and users report it as “the site is broken”, not “the site is stale”. It is caused entirely by moving between copies that are at different points in the same timeline. The session design prevents it, because the token records the newest version a client has been SHOWN, not only what it wrote: switch the design to “never show a client its own past” and run this again — Priya's second read parks for 25 ms instead of travelling back in time.",
+  check:function(s){ return s.counters.back===1 && s.reads[0].val===54000 && s.reads[1].val===50000; }}
+];
+
+function renderScenarios(){
+  var host=el("scens");
+  SCENARIOS.forEach(function(sc){
+    var d=document.createElement("div");
+    d.className="scen";
+    d.innerHTML='<h2 style="font-size:16px">'+sc.title+'</h2><div class="sq">'+sc.q+'</div>'+
+      '<div class="opts">'+sc.opts.map(function(o,i){ return '<button data-s="'+sc.id+'" data-i="'+i+'">'+o.l+'</button>'; }).join("")+
+      '<button data-s="'+sc.id+'" data-i="-1">▶ Just run it for me</button></div>'+
+      '<div class="res" id="res-'+sc.id+'"></div>';
+    host.appendChild(d);
+  });
+  host.addEventListener("click",function(ev){
+    var b=ev.target.closest("button[data-s]");
+    if(!b) return;
+    runScenario(+b.dataset.s, +b.dataset.i);
+  });
+}
+function runScenario(id,optIdx){
+  var sc=SCENARIOS.filter(function(x){return x.id===id;})[0];
+  var cfg=Object.assign({rttScale:1},sc.cfg,{script:sc.script()});
+  resetSim(cfg);
+  log(state,"— Scenario "+sc.id+" begins ("+sc.title.replace(/^S\d+ · /,"")+") —","t-dim");
+  renderAll();
+  onRunDone=function(){
+    var ok=sc.check(state);
+    var res=el("res-"+id);
+    var pre;
+    if(optIdx<0){ pre="<b>What happened:</b> "; res.className="res show plain"; }
+    else if(sc.opts[optIdx].c){ pre="<b>Your prediction was right.</b> "; res.className="res show right"; }
+    else { pre="<b>Not quite — here's why.</b> "; res.className="res show wrong"; }
+    res.innerHTML=pre+sc.explain+(ok?"":" <i>(engine check failed — please report)</i>");
+    res.scrollIntoView({block:"nearest",behavior:"smooth"});
+  };
+  togglePlay();
+}
+
+/* ---- wiring ---- */
+function renderDesigns(){
+  var host=el("designs");
+  host.innerHTML=DESIGNS.map(function(d){
+    return '<label class="design'+(state.design===d.id?" sel":"")+'">'+
+      '<input type="radio" name="design" value="'+d.id+'"'+(state.design===d.id?" checked":"")+'>'+
+      '<span><span class="dn">'+d.name+'<span class="classchip">'+d.cls+'</span></span><br><span class="dd">'+d.desc+'</span></span></label>';
+  }).join("");
+  host.querySelectorAll("input").forEach(function(inp){
+    inp.addEventListener("change",function(){
+      resetSim({design:inp.value,home:state.home,rttScale:state.rttScale});
+      log(state,"Design changed — simulator reset. Same cities, same delays, different promises.","t-dim");
+      renderAll();
+    });
+  });
+}
+function renderClients(){
+  el("clients").innerHTML=REGIONS.map(function(r){
+    return '<div class="clientbox" style="border-top:3px solid '+COLORS[r]+'">'+
+      '<span class="who">'+WHO[r]+' · '+CITY[r]+'</span>'+
+      '<span class="btns"><button data-a="write" data-r="'+r+'">Write next price</button>'+
+      '<button data-a="read" data-r="'+r+'">Read</button></span>'+
+      '<span class="lat" id="lat-'+r+'">last write ack: — · last read: —</span>'+
+      '<label class="via">reads served by <select data-via="'+r+'">'+
+        '<option value="">'+CITY[r]+' (own city)</option>'+
+        REGIONS.filter(function(x){return x!==r;}).map(function(x){ return '<option value="'+x+'">'+CITY[x]+'</option>'; }).join("")+
+      '</select></label>'+
+      '<span class="tok" id="tok-'+r+'"></span></div>';
+  }).join("");
+  el("clients").addEventListener("click",function(ev){
+    var b=ev.target.closest("button[data-a]");
+    if(!b) return;
+    userAction({type:b.dataset.a,region:b.dataset.r});
+  });
+  el("clients").addEventListener("change",function(ev){
+    var sel=ev.target.closest("select[data-via]");
+    if(!sel) return;
+    userAction({type:"via",region:sel.dataset.via,value:sel.value||null});
+  });
+}
+function syncControls(){
+  el("selPart").value=state.isolated||"";
+  el("selHome").value=state.home;
+  el("rtt").value=state.rttScale;
+  el("rttv").textContent=state.rttScale+"×";
+  renderDesigns();
+}
+el("bPlay").addEventListener("click",togglePlay);
+el("bStep").addEventListener("click",function(){ snapshot(); if(!stepNext(state)) log(state,"Nothing in flight — issue a write or a read.","t-dim"); renderAll(); if(onRunDone) checkRunDone(); });
+el("bBack").addEventListener("click",function(){
+  if(history.length){ state=history.pop(); lastSnapAt=-1; stopPlay(); onRunDone=null; renderAll(); syncControls(); }
+});
+el("bFast").addEventListener("click",function(){ speed=(speed===1?4:1); el("bFast").textContent="Speed "+speed+"×"; });
+el("bReset").addEventListener("click",function(){ resetSim(); });
+el("selPart").addEventListener("change",function(){ userAction({type:"partition",region:el("selPart").value||null}); });
+el("selHome").addEventListener("change",function(){
+  resetSim({design:state.design,home:el("selHome").value,rttScale:state.rttScale});
+  log(state,"Home office moved to "+CITY[state.home]+" — simulator reset.","t-dim");
+  renderAll();
+});
+el("rtt").addEventListener("input",function(){
+  userAction({type:"rtt",value:+el("rtt").value});
+  el("rttv").textContent=state.rttScale+"×";
+});
+renderClients();
+renderScenarios();
+syncControls();
+renderAll();
+})();
+</script>
+
+<script>
+/* ============ UI — TAB 2 ============ */
+(function(){
+"use strict";
+function el(id){ return document.getElementById(id); }
+var COLORS2={BOM:"var(--bom)",FRA:"var(--fra)",IAD:"var(--iad)"};
+
+var DESIGNS2=[
+  {id:"local", name:"Sell now, tell the others afterwards", cls:"PA/EL",
+   desc:"Every branch sells straight out of its own book in ~1 ms and posts the news afterwards. Nobody waits for anybody."},
+  {id:"quorum", name:"Every sale is approved by the head office", cls:"PC/EC",
+   desc:"Mumbai keeps the only real book. A sale travels there and back, and the head office needs one more branch to agree before the customer hears yes. A branch that cannot reach it refuses."},
+  {id:"escrow", name:"Split the stock — each branch may sell only its own share", cls:"PA/EL + a divided rule",
+   desc:"Ten necklaces are divided into per-branch allowances that add up to ten. Each branch sells locally in ~1 ms, with no messages and no permission — and the eleventh sale is arithmetically unavailable."}
+];
+var PROMISE={
+  local:"<b>Fast, and the rule is unenforced.</b> Every sale is local and instant. Nothing in this design knows the global total, so nothing can stop the eleventh sale — and the merge afterwards is <i>perfect</i>: no write is lost, no conflict is resolved wrongly. Convergent data, broken rule.",
+  quorum:"<b>Correct, and everyone pays.</b> The head office's book is the truth, so the eleventh sale is impossible. Mumbai's own customers wait 110&nbsp;ms; Frankfurt's 220&nbsp;ms; Virginia's 300&nbsp;ms (190 to reach the head office plus a 110&nbsp;ms majority). A branch cut off from the head office refuses every sale, even with necklaces on its own shelf.",
+  escrow:"<b>Fast <i>and</i> correct — at the cost of flexibility.</b> Each branch enforces a purely local rule (\"I have not exceeded my allowance\"), and because the allowances sum to ten, the local rules together imply the global one. Sales stay at 1&nbsp;ms and continue straight through a cut. What you give up is the ability to sell stock that was allocated to someone else."
+};
+
+var st2=mk2({design:"local"});
+
+function render2(){
+  el("clock2").textContent="t = "+st2.now+" ms";
+  var nf=st2.inflight.length, nh=st2.held.length;
+  el("flight2").textContent = (nf||nh) ? (nf+" message(s) travelling"+(nh?", "+nh+" held at the cut":"")) : "nothing in flight";
+
+  el("shops").innerHTML=REGIONS.map(function(r){
+    var dark = st2.isolated===r;
+    var big, label, sub;
+    if(st2.design==="escrow"){ big=st2.allow[r]; label="allowance left"; sub="sold "+st2.sold[r]+" · turned away "+st2.refusedBy[r]; }
+    else if(st2.design==="quorum"){ big=(r===st2.leader? remaining2(st2) : "—"); label=(r===st2.leader?"head office book":"asks Mumbai"); sub="sold "+st2.sold[r]+" · turned away "+st2.refusedBy[r]; }
+    else { big=believes2(st2,r); label="its book says left"; sub="sold "+st2.sold[r]+" · turned away "+st2.refusedBy[r]; }
+    return '<div class="shop'+(dark?" dark":"")+'" style="border-top:3px solid '+COLORS2[r]+'">'+
+      '<span class="who">'+CITY[r]+(dark?" · cut off":"")+'</span>'+
+      '<span class="biglabel">'+label+'</span><span class="big">'+big+'</span>'+
+      '<button data-sell="'+r+'">Send a customer in</button>'+
+      '<span class="lat">'+sub+'</span>'+
+      '<span class="lat">last answer: '+(st2.lastLat[r]===null?"—":st2.lastLat[r]+" ms")+'</span></div>';
+  }).join("");
+
+  var c=st2.counters;
+  el("chips2").innerHTML=
+    '<span class="chip'+(c.sold>10?" bad":"")+'"><b>'+c.sold+'</b> sold, of 10 that exist</span>'+
+    '<span class="chip'+(c.oversold?" bad":" good")+'"><b>'+c.oversold+'</b> sold that do not exist</span>'+
+    '<span class="chip"><b>'+c.refused+'</b> turned away</span>'+
+    '<span class="chip'+(c.refusedWithStock?" bad":"")+'"><b>'+c.refusedWithStock+'</b> turned away while necklaces remained</span>'+
+    '<span class="chip"><b>'+c.coordinatedMs+'</b> ms spent waiting for permission</span>';
+
+  var v=el("verdict2");
+  v.className="verdict"+(st2.headCls?" "+st2.headCls:"");
+  v.innerHTML=st2.headline;
+
+  el("log2").innerHTML=st2.log.slice(-60).map(function(l){
+    return '<div class="'+l.cls+'"><span class="t-dim">t='+String(l.t).padStart(5," ")+'</span>  '+l.text+'</div>';
+  }).join("");
+  el("log2").scrollTop=el("log2").scrollHeight;
+
+  el("promise2").innerHTML=PROMISE[st2.design];
+  el("xferBtns").innerHTML=(st2.design!=="escrow") ? '<span class="note" style="margin:0">— only in the split-the-stock design</span>' :
+    [["FRA","BOM"],["IAD","BOM"],["BOM","IAD"]].map(function(pr){
+      return '<button data-xf="'+pr[0]+'|'+pr[1]+'">'+CITY[pr[0]]+' → '+CITY[pr[1]]+'</button>';
+    }).join("");
+  el("designs2").innerHTML=DESIGNS2.map(function(d){
+    return '<label class="design'+(st2.design===d.id?" sel":"")+'">'+
+      '<input type="radio" name="design2" value="'+d.id+'"'+(st2.design===d.id?" checked":"")+'>'+
+      '<span><span class="dn">'+d.name+'<span class="classchip">'+d.cls+'</span></span><br><span class="dd">'+d.desc+'</span></span></label>';
+  }).join("");
+  el("selPart2").value=st2.isolated||"";
+  el("selSplit2").value=st2.split;
+}
+function reset2(cfg){
+  st2=mk2(cfg||{design:st2.design,split:st2.split});
+  render2();
+}
+function doAct(a){ act2(st2,a); render2(); }
+
+el("shops").addEventListener("click",function(ev){
+  var b=ev.target.closest("button[data-sell]"); if(!b) return;
+  doAct({type:"sell",region:b.dataset.sell});
+});
+el("xferBtns").addEventListener("click",function(ev){
+  var b=ev.target.closest("button[data-xf]"); if(!b) return;
+  var pr=b.dataset.xf.split("|");
+  doAct({type:"transfer",from:pr[0],to:pr[1],n:2});
+});
+el("designs2").addEventListener("change",function(ev){
+  var inp=ev.target.closest("input[name=design2]"); if(!inp) return;
+  reset2({design:inp.value,split:st2.split});
+  log2(st2,"Design changed — the shop is restocked to ten. Same branches, same delays, a different way of deciding.","t-dim");
+  render2();
+});
+el("selPart2").addEventListener("change",function(){ doAct({type: el("selPart2").value?"cut":"heal", region: el("selPart2").value||null, gap:0}); });
+el("selSplit2").addEventListener("change",function(){
+  reset2({design:st2.design,split:el("selSplit2").value});
+  log2(st2,"Stock re-divided as "+SPLITNAME[st2.split]+" — the shop is restocked to ten.","t-dim");
+  render2();
+});
+el("b2Settle").addEventListener("click",function(){ doAct({type:"settle"}); });
+el("b2Reset").addEventListener("click",function(){ reset2({design:st2.design,split:st2.split}); });
+
+/* ---- scenarios ---- */
+function demand(nB,nI){
+  var a=[], i=0, j=0;
+  while(i<nB || j<nI){
+    if(i<nB){ a.push({type:"sell",region:"BOM"}); i++; }
+    if(j<nI){ a.push({type:"sell",region:"IAD"}); j++; }
+  }
+  return a;
+}
+function fullScript(){ return [{type:"cut",region:"IAD"}].concat(demand(6,5),[{type:"heal"},{type:"settle"}]); }
+
+var SCEN2=[
+ {id:10, title:"S10 · Sell now, tell the others afterwards", cfg:{design:"local"},
+  q:"Virginia is cut off. Six customers buy in Mumbai, five in Virginia, all within about 200 ms — eleven people, ten necklaces. Every branch sells from its own book in 1 ms. When the network heals and the books meet, what do you have?",
+  opts:[{l:"One side is refused — a cut stops somebody from selling",c:false},
+        {l:"Both sides sell; at heal the merge throws one side's sales away, so ten stand",c:false},
+        {l:"Both sides sell, the books merge perfectly, and eleven necklaces have been sold",c:true}],
+  explain:"Eleven sold, ten exist. Look closely at what did <i>not</i> go wrong: no write was lost, no conflict rule fired, no acknowledgment was broken, and after the heal every branch agrees the total is 11. The data converged exactly as an eventually-consistent design promises. The promise simply never covered the rule. And this is not a partition story — clear the cut, press reset and run the same eleven customers on a perfectly healthy network: it still sells eleven, because Virginia's news of a Mumbai sale takes 95 ms and the customers arrive every 20 ms. A stale read that <i>authorizes</i> something cannot be repaired by a later read: five necklaces are already in vans.",
+  check:function(s){ return s.counters.sold===11 && s.counters.oversold===1 && s.counters.refused===0; }},
+
+ {id:11, title:"S11 · Every sale approved by the head office", cfg:{design:"quorum"},
+  q:"Same eleven customers, same cut. Now every sale must be approved by Mumbai, which also needs one more branch to agree. What happens?",
+  opts:[{l:"All eleven are refused — the cut has broken the head office",c:false},
+        {l:"Mumbai's six sell at 110 ms each; Virginia's five are refused after a 1000 ms wait; nothing is oversold",c:true},
+        {l:"Everyone still sells, just more slowly",c:false}],
+  explain:"Six sold, five refused, zero oversold — and 660 ms of pure waiting spent on the six that succeeded. This is the honest PC/EC bargain: the rule is now unbreakable, and Virginia's customers are turned away <i>while necklaces sit on Virginia's own shelf</i>, because the shelf is not the authority. Note also what the refusal cost before it arrived: a full 1000 ms timeout each, which is why an unreachable coordinator shows up as latency long before it shows up as errors. Then compare the price on a healthy network — Frankfurt pays 220 ms per sale and Virginia 300 ms, which is §12's decomposition (the trip to the coordinator, plus the majority round trip) charged to a customer standing at a counter.",
+  check:function(s){ return s.counters.sold===6 && s.counters.refused===5 && s.counters.oversold===0 && s.lastLat.BOM===110; }},
+
+ {id:12, title:"S12 · Split the stock into allowances (4 / 3 / 3)", cfg:{design:"escrow",split:"even"},
+  q:"Same eleven customers, same cut. The ten necklaces are divided in advance: Mumbai may sell 4, Frankfurt 3, Virginia 3. No branch asks anyone for permission, ever. What happens?",
+  opts:[{l:"It oversells like S10 — nobody is coordinating, so nothing stops the eleventh sale",c:false},
+        {l:"Seven sold, four customers turned away, three necklaces unsold — and no oversell, no waiting, no coordination",c:true},
+        {l:"All ten sell: the branches balance themselves",c:false}],
+  explain:"Seven sold at 1 ms each, straight through the partition, and the eleventh sale was not unlikely — it was arithmetically unavailable. Nothing coordinated; the invariant held anyway, because it was <i>divided</i> rather than enforced: each branch checks only \"have I exceeded my own allowance\", and 4+3+3=10 makes those local checks imply the global rule. Now the bill, which is a genuinely new kind of refusal: four customers were turned away <b>on a healthy shelf</b> — Mumbai ran out of allowance while Frankfurt still held three. That is stranded capacity, and it is invisible unless you count refusals-while-stock-remains as its own metric. Two fixes to try right now: change the split to 6/2/2 (Scenario 13), or press <b>Frankfurt → Mumbai</b> under Move allowance and sell again — coordination that happens once per several sales instead of once per sale.",
+  check:function(s){ return s.counters.sold===7 && s.counters.refused===4 && s.counters.oversold===0 && s.counters.refusedWithStock===4; }},
+
+ {id:13, title:"S13 · The same allowances, split where the customers are (6 / 2 / 2)", cfg:{design:"escrow",split:"demand"},
+  q:"Identical mechanism, identical demand, identical cut — only the division changes: Mumbai 6, Frankfurt 2, Virginia 2. Six of the eleven customers are in Mumbai. What changes?",
+  opts:[{l:"Nothing — the design refuses the same four customers",c:false},
+        {l:"Eight sold instead of seven, three turned away instead of four; still no oversell",c:true},
+        {l:"It oversells now that one branch holds most of the stock",c:false}],
+  explain:"One more sale, one fewer refusal, same guarantee. That is the whole character of a divided invariant: correctness is free and unconditional, while <i>utilization</i> is a bet on where demand will land — and a bet you can lose quietly, since a stranded refusal looks exactly like a genuine sell-out to the customer and to your error dashboard. This is why real systems that use this pattern (a rate limiter handing leases to its nodes, an ORM handing out blocks of primary keys, a ticketing system holding seat pools) always end up with three extra things: a demand-weighted split, a background rebalancer, and a fallback that coordinates only when a local allowance hits zero.",
+  check:function(s){ return s.counters.sold===8 && s.counters.refused===3 && s.counters.oversold===0; }}
+];
+
+function renderScen2(){
+  var host=el("scens2");
+  SCEN2.forEach(function(sc){
+    var d=document.createElement("div");
+    d.className="scen";
+    d.innerHTML='<h2 style="font-size:16px">'+sc.title+'</h2><div class="sq">'+sc.q+'</div>'+
+      '<div class="opts">'+sc.opts.map(function(o,i){ return '<button data-s="'+sc.id+'" data-i="'+i+'">'+o.l+'</button>'; }).join("")+
+      '<button data-s="'+sc.id+'" data-i="-1">▶ Just run it for me</button></div>'+
+      '<div class="res" id="res2-'+sc.id+'"></div>';
+    host.appendChild(d);
+  });
+  host.addEventListener("click",function(ev){
+    var b=ev.target.closest("button[data-s]"); if(!b) return;
+    runScen2(+b.dataset.s, +b.dataset.i);
+  });
+}
+function runScen2(id,optIdx){
+  var sc=SCEN2.filter(function(x){ return x.id===id; })[0];
+  st2=mk2(sc.cfg);
+  log2(st2,"— Scenario "+sc.id+" begins ("+sc.title.replace(/^S\d+ · /,"")+") —","t-dim");
+  fullScript().forEach(function(a){ act2(st2,a); });
+  render2();
+  var ok=sc.check(st2);
+  var res=el("res2-"+id), pre;
+  if(optIdx<0){ pre="<b>What happened:</b> "; res.className="res show plain"; }
+  else if(sc.opts[optIdx].c){ pre="<b>Your prediction was right.</b> "; res.className="res show right"; }
+  else { pre="<b>Not quite — here's why.</b> "; res.className="res show wrong"; }
+  res.innerHTML=pre+sc.explain+(ok?"":" <i>(engine check failed — please report)</i>");
+}
+
+/* ---- tabs ---- */
+function showTab(which){
+  el("pane1").hidden = (which!==1);
+  el("pane2").hidden = (which!==2);
+  el("tabA").classList.toggle("on", which===1);
+  el("tabB").classList.toggle("on", which===2);
+  el("tabA").setAttribute("aria-selected", which===1?"true":"false");
+  el("tabB").setAttribute("aria-selected", which===2?"true":"false");
+}
+el("tabA").addEventListener("click",function(){ showTab(1); });
+el("tabB").addEventListener("click",function(){ showTab(2); });
+
+renderScen2();
+render2();
+showTab(1);
+})();
+</script>

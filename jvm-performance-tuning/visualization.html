@@ -1,0 +1,1824 @@
+<title>The Bottleneck Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#eef1f5; --card:#ffffff; --card2:#f6f8fa; --line:#d3dae4; --line2:#e3e9f0;
+  --tx:#141b26; --tx2:#4a5769; --tx3:#7b8798;
+  --amber:#b5651d; --teal:#1e7a70; --violet:#5b4bc4; --crimson:#b23225;
+  --slate:#5d6d84; --sky:#1f6fbf; --pink:#a3357f;
+  --good:#1e7a70; --warn:#b5651d; --bad:#b23225;
+  --shadow:0 1px 2px rgba(20,27,38,.06),0 8px 24px rgba(20,27,38,.06);
+  --focus:#1f6fbf;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0d1119; --card:#151b26; --card2:#1b2331; --line:#2b3546; --line2:#222b3a;
+    --tx:#e6ecf4; --tx2:#a3b0c2; --tx3:#6f7d92;
+    --amber:#e69440; --teal:#3fb8a8; --violet:#8f81ef; --crimson:#e2604f;
+    --slate:#8496ad; --sky:#4d9ce8; --pink:#dc6ab5;
+    --good:#3fb8a8; --warn:#e69440; --bad:#e2604f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --focus:#4d9ce8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0d1119; --card:#151b26; --card2:#1b2331; --line:#2b3546; --line2:#222b3a;
+  --tx:#e6ecf4; --tx2:#a3b0c2; --tx3:#6f7d92;
+  --amber:#e69440; --teal:#3fb8a8; --violet:#8f81ef; --crimson:#e2604f;
+  --slate:#8496ad; --sky:#4d9ce8; --pink:#dc6ab5;
+  --good:#3fb8a8; --warn:#e69440; --bad:#e2604f;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  --focus:#4d9ce8;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--tx);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.55; margin:0; padding:0 18px 80px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto}
+h1,h2,h3,h4{font-family:"Chivo","IBM Plex Sans",sans-serif;text-wrap:balance;margin:0}
+h1{font-weight:900;font-size:clamp(28px,4.4vw,46px);letter-spacing:-.02em;line-height:1.03}
+h2{font-weight:800;font-size:19px;letter-spacing:-.01em}
+h3{font-weight:700;font-size:15px;letter-spacing:-.005em}
+code,.mono,.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--sky)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+/* ---- masthead ---- */
+header.top{padding:34px 0 18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:10px}
+.lede{color:var(--tx2);max-width:66ch;margin:14px 0 0;font-size:15.5px}
+.lede strong{color:var(--tx);font-weight:600}
+
+/* ---- tabs ---- */
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 22px;
+  border-bottom:1px solid var(--line);padding-bottom:0}
+nav.tabs button{
+  font-family:"Chivo",sans-serif;font-weight:700;font-size:13.5px;letter-spacing:-.005em;
+  background:none;border:0;border-bottom:2px solid transparent;color:var(--tx3);
+  padding:9px 13px;cursor:pointer;margin-bottom:-1px}
+nav.tabs button:hover{color:var(--tx2)}
+nav.tabs button[aria-selected="true"]{color:var(--tx);border-bottom-color:var(--amber)}
+nav.tabs button .tn{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);
+  margin-right:6px;font-weight:500}
+nav.tabs button[aria-selected="true"] .tn{color:var(--amber)}
+
+/* ---- layout ---- */
+.grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:940px){.grid{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:9px;
+  box-shadow:var(--shadow);padding:15px 16px}
+.card.tight{padding:12px 13px}
+.card > h2, .card > h3{margin-bottom:4px}
+.sub{color:var(--tx3);font-size:12.5px;margin:0 0 12px;max-width:70ch}
+.sub.nb{margin-bottom:0}
+
+/* ---- controls ---- */
+.ctl{margin:0 0 13px}
+.ctl:last-child{margin-bottom:0}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:12px;color:var(--tx2);gap:8px;margin-bottom:4px}
+.ctl label .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  color:var(--tx);font-weight:600;font-size:12px}
+.ctl input[type=range]{width:100%;accent-color:var(--amber);margin:0;height:18px}
+.ctl select{width:100%;background:var(--card2);color:var(--tx);border:1px solid var(--line);
+  border-radius:6px;padding:5px 7px;font-family:inherit;font-size:12.5px}
+.hint{font-size:11px;color:var(--tx3);margin-top:3px;line-height:1.4}
+.chk{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--tx2);
+  margin:0 0 9px;cursor:pointer}
+.chk input{margin:2px 0 0;accent-color:var(--amber);flex:0 0 auto}
+.grp{border-top:1px solid var(--line2);padding-top:12px;margin-top:14px}
+.grp:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.grpname{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:9px;font-weight:600}
+
+/* ---- buttons ---- */
+.btn{font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;font-weight:500;
+  background:var(--card2);color:var(--tx);border:1px solid var(--line);border-radius:6px;
+  padding:6px 11px;cursor:pointer}
+.btn:hover{border-color:var(--tx3)}
+.btn.pri{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:600}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.4;cursor:default}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* ---- verdict ---- */
+.verdict{border-left:3px solid var(--amber);background:var(--card2);
+  border-radius:0 8px 8px 0;padding:12px 15px}
+.verdict .vt{font-family:"Chivo",sans-serif;font-weight:800;font-size:16.5px;
+  letter-spacing:-.01em;margin-bottom:4px;line-height:1.25}
+.verdict .vb{color:var(--tx2);font-size:13px;max-width:78ch}
+.verdict.ok{border-left-color:var(--good)}
+.verdict.bad{border-left-color:var(--bad)}
+
+/* ---- stats ---- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.stat{background:var(--card);padding:9px 11px}
+.stat .k{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600}
+.stat .n{font-family:"Chivo",sans-serif;font-weight:800;font-size:21px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.25;margin-top:1px}
+.stat .u{font-size:11px;color:var(--tx3);font-weight:400;margin-left:2px;
+  font-family:"IBM Plex Sans",sans-serif}
+.stat.hot .n{color:var(--bad)}
+.stat.warm .n{color:var(--warn)}
+.stat.cool .n{color:var(--good)}
+
+/* ---- bucket legend + bars ---- */
+.legend{display:flex;flex-wrap:wrap;gap:5px 13px;margin:0 0 11px}
+.lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--tx2);cursor:default}
+.sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto;border:1px solid rgba(128,128,128,.28)}
+.b-cpu{background:var(--teal)} .b-jit{background:var(--violet)} .b-gc{background:var(--amber)}
+.b-lock{background:var(--crimson)} .b-queue{background:var(--slate)} .b-io{background:var(--sky)}
+.b-thr{background:var(--pink)}
+.budget{display:flex;height:38px;border-radius:6px;overflow:hidden;border:1px solid var(--line);
+  background:var(--card2)}
+.budget div{transition:width .28s ease;min-width:0;position:relative}
+.budget div span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#fff;font-weight:600;
+  text-shadow:0 1px 2px rgba(0,0,0,.45);overflow:hidden;white-space:nowrap}
+.budgetscale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--tx3);margin-top:4px}
+.brk{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:7px;margin-top:12px}
+.brkrow{display:flex;align-items:center;gap:7px;font-size:12px;padding:4px 7px;
+  border-radius:5px;background:var(--card2)}
+.brkrow.top{outline:1.5px solid var(--amber);background:color-mix(in srgb,var(--amber) 11%,var(--card2))}
+.brkrow .bn{color:var(--tx2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.brkrow .bv{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-weight:600;color:var(--tx)}
+
+/* ---- resources (USE) ---- */
+.res{display:flex;flex-direction:column;gap:8px}
+.resrow{display:grid;grid-template-columns:118px 1fr 62px;gap:9px;align-items:center;font-size:12px}
+.resrow .rn{color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meter{height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line2);
+  overflow:hidden;position:relative}
+.meter i{display:block;height:100%;background:var(--teal);transition:width .25s ease}
+.meter i.w{background:var(--warn)} .meter i.b{background:var(--bad)}
+.meter u{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--tx3);opacity:.55}
+.resrow .rv{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  text-align:right;color:var(--tx);font-weight:500}
+
+/* ---- workers ---- */
+.wgrid{display:flex;flex-wrap:wrap;gap:4px}
+.w{width:26px;height:26px;border-radius:5px;background:var(--card2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;
+  font-size:9.5px;color:var(--tx3);cursor:pointer;transition:background .15s,border-color .15s}
+.w.s-cpu{background:var(--teal);color:#fff;border-color:var(--teal)}
+.w.s-jit{background:var(--violet);color:#fff;border-color:var(--violet)}
+.w.s-gc{background:var(--amber);color:#fff;border-color:var(--amber)}
+.w.s-lock{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.w.s-io{background:var(--sky);color:#fff;border-color:var(--sky)}
+.w.s-thr{background:var(--pink);color:#fff;border-color:var(--pink)}
+.w.flash{box-shadow:0 0 0 2px var(--tx3)}
+.qbar{display:flex;gap:2px;flex-wrap:wrap;margin-top:8px}
+.qi{width:7px;height:16px;border-radius:2px;background:var(--slate);opacity:.75}
+.qi.over{background:var(--bad);opacity:1}
+
+/* ---- log ---- */
+.log{max-height:250px;overflow-y:auto;border:1px solid var(--line2);border-radius:7px;
+  background:var(--card2);padding:4px}
+.le{padding:6px 9px;border-bottom:1px solid var(--line2);font-size:12.5px}
+.le:last-child{border-bottom:0}
+.le .t{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);
+  font-variant-numeric:tabular-nums;margin-right:7px}
+.le .m{color:var(--tx)}
+.le .d{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--tx3);
+  margin-top:2px;display:block}
+.le.gc{border-left:2px solid var(--amber);padding-left:7px}
+.le.bad{border-left:2px solid var(--bad);padding-left:7px}
+.le.jit{border-left:2px solid var(--violet);padding-left:7px}
+.le.ok{border-left:2px solid var(--good);padding-left:7px}
+
+/* ---- scenarios / predict ---- */
+.scen{display:flex;flex-direction:column;gap:7px}
+.sc{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);
+  border-radius:7px;background:var(--card2);cursor:pointer;text-align:left;width:100%;
+  font-family:inherit;font-size:12.5px;color:var(--tx)}
+.sc:hover{border-color:var(--amber)}
+.sc[aria-current="true"]{border-color:var(--amber);
+  background:color-mix(in srgb,var(--amber) 10%,var(--card2))}
+.sc .sn{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--amber);
+  font-weight:600;flex:0 0 auto;padding-top:1px}
+.sc .st{font-weight:600;display:block;margin-bottom:1px}
+.sc .sd{color:var(--tx3);font-size:11.5px;display:block;line-height:1.4}
+.predict{border:1px solid var(--amber);border-radius:8px;padding:13px 15px;
+  background:color-mix(in srgb,var(--amber) 7%,var(--card))}
+.predict .q{font-weight:600;margin-bottom:3px;font-size:14px}
+.predict .qs{color:var(--tx2);font-size:12.5px;margin-bottom:11px;max-width:74ch}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{text-align:left;font-family:inherit;font-size:13px;padding:8px 11px;border-radius:6px;
+  border:1px solid var(--line);background:var(--card);color:var(--tx);cursor:pointer}
+.opt:hover{border-color:var(--amber)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 13%,var(--card))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 11%,var(--card))}
+.opt .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);
+  margin-right:8px;font-weight:600}
+.reveal{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:13px;
+  color:var(--tx2);max-width:78ch}
+.reveal b{color:var(--tx)}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:440px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line2)}
+th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;white-space:nowrap}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+tr.hl td{background:color-mix(in srgb,var(--amber) 12%,transparent)}
+tr.dim td{color:var(--tx3)}
+.bar{height:9px;border-radius:2px;background:var(--teal);display:block}
+.bar.v2{background:var(--violet)} .bar.v3{background:var(--crimson)}
+
+canvas{display:block;max-width:100%}
+.cwrap{overflow-x:auto;padding:2px 0}
+.note{font-size:12px;color:var(--tx3);border-top:1px dashed var(--line);
+  padding-top:10px;margin-top:12px;max-width:80ch;line-height:1.5}
+.kbd{font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--card2);
+  border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--tx2)}
+.hidden{display:none}
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:2px 7px;
+  border-radius:99px;border:1px solid var(--line);color:var(--tx3);vertical-align:middle}
+.pill.hot{color:var(--bad);border-color:var(--bad)}
+.pill.warm{color:var(--warn);border-color:var(--warn)}
+.pill.cool{color:var(--good);border-color:var(--good)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Lab · JVM performance tuning</div>
+  <h1>The Bottleneck Machine</h1>
+  <p class="lede">This is a made-up Java service handling made-up orders. It is slow.
+  Your job is not to make it fast — it is to find out <strong>where the milliseconds
+  actually go</strong>, because every change you make to a part that isn't the
+  bottleneck buys you exactly nothing. Turn a knob, watch the coloured bar move.
+  If the bar doesn't move, you tuned the wrong thing.</p>
+</header>
+
+<nav class="tabs" role="tablist" id="tabs">
+  <button role="tab" id="tb-svc"  aria-selected="true"  aria-controls="tp-svc"><span class="tn">01</span>The service</button>
+  <button role="tab" id="tb-scale" aria-selected="false" aria-controls="tp-scale"><span class="tn">02</span>Why more never scales</button>
+  <button role="tab" id="tb-meas" aria-selected="false" aria-controls="tp-meas"><span class="tn">03</span>How measurement lies</button>
+  <button role="tab" id="tb-about" aria-selected="false" aria-controls="tp-about"><span class="tn">04</span>What this model is</button>
+</nav>
+
+<!-- ============================ TAB 1 ============================ -->
+<section id="tp-svc" role="tabpanel" aria-labelledby="tb-svc">
+<div class="grid">
+
+  <!-- control rail -->
+  <div class="stack">
+    <div class="card tight">
+      <div class="btnrow" style="margin-bottom:10px">
+        <button class="btn pri" id="playBtn">Run</button>
+        <button class="btn" id="stepBtn">Step 1s</button>
+        <button class="btn" id="backBtn">Back</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+      <div class="hint" id="clockLine">Model clock 0.0 s · 0 requests finished</div>
+    </div>
+
+    <div class="card tight">
+      <div class="grp">
+        <div class="grpname">Incoming traffic</div>
+        <div class="ctl">
+          <label for="c-lambda">Requests arriving per second<span class="v" id="v-lambda">120</span></label>
+          <input type="range" id="c-lambda" min="10" max="600" step="10" value="120">
+        </div>
+        <div class="ctl">
+          <label for="c-work">Work per request, at full speed<span class="v" id="v-work">18 ms</span></label>
+          <input type="range" id="c-work" min="2" max="60" step="1" value="18">
+          <div class="hint">Pure CPU time the handler needs once the JIT compiler has finished with it.</div>
+        </div>
+        <div class="ctl">
+          <label for="c-io">Waiting on the database<span class="v" id="v-io">25 ms</span></label>
+          <input type="range" id="c-io" min="0" max="200" step="5" value="25">
+          <div class="hint">Time the request spends asleep, using no CPU at all.</div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grpname">The machine it runs on</div>
+        <div class="ctl">
+          <label for="c-cores">CPU cores the machine has<span class="v" id="v-cores">8</span></label>
+          <input type="range" id="c-cores" min="1" max="32" step="1" value="8">
+        </div>
+        <div class="ctl">
+          <label for="c-quota">CPU the container is allowed<span class="v" id="v-quota">8.0</span></label>
+          <input type="range" id="c-quota" min="1" max="32" step="1" value="8">
+          <div class="hint">Set this below the core count to simulate a Kubernetes CPU limit.</div>
+        </div>
+        <div class="ctl">
+          <label for="c-pool">Handler threads<span class="v" id="v-pool">16</span></label>
+          <input type="range" id="c-pool" min="1" max="128" step="1" value="16">
+        </div>
+        <div class="ctl">
+          <label for="c-qcap">Queue capacity<span class="v" id="v-qcap">200</span></label>
+          <input type="range" id="c-qcap" min="0" max="500" step="10" value="200">
+          <div class="hint">Requests waiting for a free thread. Full queue means refusals.</div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grpname">Sharing and contention</div>
+        <div class="ctl">
+          <label for="c-serial">Share of the work under one lock<span class="v" id="v-serial">5 %</span></label>
+          <input type="range" id="c-serial" min="0" max="60" step="1" value="5">
+          <div class="hint">Only one thread at a time may be in this part. This is the number Amdahl's law cares about.</div>
+        </div>
+        <div class="ctl">
+          <label for="c-kappa">Cross-talk between threads<span class="v" id="v-kappa">0.30 %</span></label>
+          <input type="range" id="c-kappa" min="0" max="300" step="5" value="30">
+          <div class="hint">Cache-line ping-pong and coherence traffic: each extra busy thread makes every other thread's work slightly slower.</div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grpname">Memory and the collector</div>
+        <div class="ctl">
+          <label for="c-alloc">Garbage made per request<span class="v" id="v-alloc">64 KB</span></label>
+          <input type="range" id="c-alloc" min="4" max="1024" step="4" value="64">
+        </div>
+        <div class="ctl">
+          <label for="c-heap">Heap size<span class="v" id="v-heap">512 MB</span></label>
+          <input type="range" id="c-heap" min="64" max="8192" step="64" value="512">
+        </div>
+        <div class="ctl">
+          <label for="c-live">Long-lived data kept in the heap<span class="v" id="v-live">120 MB</span></label>
+          <input type="range" id="c-live" min="10" max="2000" step="10" value="120">
+          <div class="hint">Caches, sessions, connection pools. A collection costs time in proportion to this, not to the garbage.</div>
+        </div>
+        <div class="ctl">
+          <label for="c-gc">Collector</label>
+          <select id="c-gc">
+            <option value="serial">Serial — one GC thread</option>
+            <option value="parallel">Parallel — throughput first</option>
+            <option value="g1" selected>G1 — the default since JDK 9</option>
+            <option value="zgc">ZGC — pause first</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label for="c-ttsp">Time to reach a safe stopping point<span class="v" id="v-ttsp">1 ms</span></label>
+          <input type="range" id="c-ttsp" min="0" max="400" step="1" value="1">
+          <div class="hint">Before any pause can start, every thread must volunteer to stop. A thread inside a tight counting loop never checks.</div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grpname">The compiler</div>
+        <label class="chk"><input type="checkbox" id="c-jit" checked>
+          <span>Let the JIT compiler warm the code up (uncheck = interpreter only, like <code>-Xint</code>)</span></label>
+        <label class="chk"><input type="checkbox" id="c-fresh">
+          <span>Restart cold on every run (a fresh deployment taking full traffic immediately)</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- main stage -->
+  <div class="stack">
+    <div class="card" id="verdictCard">
+      <div class="verdict" id="verdict">
+        <div class="vt" id="verdictTitle">Press Run.</div>
+        <div class="vb" id="verdictBody">Nothing has happened yet. The panel below will name the single
+        biggest consumer of request time and tell you what would actually move it.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What a request's time is spent on</h3>
+      <p class="sub">Averaged over the last 400 finished requests. Read it left to right: this is one
+      request's life, from the moment it arrived to the moment it was answered. The widest block is
+      your bottleneck — and it is the only block worth attacking.</p>
+      <div class="legend" id="legend"></div>
+      <div class="budget" id="budget"></div>
+      <div class="budgetscale"><span>arrives</span><span id="budgetTotal">0 ms</span></div>
+      <div class="brk" id="breakdown"></div>
+    </div>
+
+    <div class="card">
+      <h3>The numbers on the dashboard</h3>
+      <p class="sub nb">Two latency numbers on purpose. <strong>p50</strong> is the typical request;
+      <strong>p99</strong> is the one in a hundred that decides whether people trust your service.</p>
+      <div class="stats" id="stats" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Where the pressure is</h3>
+      <p class="sub">For each resource: how busy it has been <em>on average since the run started</em>,
+      and — the number people forget — how much work is <em>queued behind it</em>. A resource at 100%
+      busy with nothing queued is fine. A resource at 100% busy with a growing queue is the whole
+      problem.</p>
+      <div class="res" id="resources"></div>
+    </div>
+
+    <div class="card">
+      <h3>Threads, right now</h3>
+      <p class="sub">One square per handler thread, coloured by what it is doing this instant. Click a
+      square to see what that thread is working on. Grey squares below are requests still waiting for
+      any thread at all.</p>
+      <div class="wgrid" id="workers"></div>
+      <div class="qbar" id="queue"></div>
+      <div class="hint" id="threadInspect" style="margin-top:9px">No thread selected.</div>
+    </div>
+
+    <div class="card">
+      <h3>Try these, and guess first</h3>
+      <p class="sub">Each one sets the knobs to a situation that really happens, asks you what you think
+      will occur, and then runs it. Guessing wrong is the point — that is where the lesson sticks.</p>
+      <div class="scen" id="scenarios"></div>
+      <div id="predictBox" style="margin-top:13px"></div>
+    </div>
+
+    <div class="card">
+      <h3>What just happened</h3>
+      <p class="sub nb">Every event in a full sentence, newest first.</p>
+      <div class="log" id="log" style="margin-top:11px"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============================ TAB 2 ============================ -->
+<section id="tp-scale" role="tabpanel" aria-labelledby="tb-scale" class="hidden">
+  <div class="grid">
+    <div class="stack">
+      <div class="card tight">
+        <div class="grp">
+          <div class="grpname">Your program</div>
+          <div class="ctl">
+            <label for="s-serial">Share that must run one-at-a-time<span class="v" id="v-sserial">5.0 %</span></label>
+            <input type="range" id="s-serial" min="0" max="500" step="5" value="50">
+            <div class="hint">Locks, a single writer, a shared counter, one connection pool.</div>
+          </div>
+          <div class="ctl">
+            <label for="s-kappa">Cost of threads talking to each other<span class="v" id="v-skappa">0.100 %</span></label>
+            <input type="range" id="s-kappa" min="0" max="200" step="1" value="10">
+            <div class="hint">Every pair of threads has to keep a shared view consistent. This grows with the <em>square</em> of the thread count.</div>
+          </div>
+          <div class="ctl">
+            <label for="s-n">Threads you are running now<span class="v" id="v-sn">16</span></label>
+            <input type="range" id="s-n" min="1" max="256" step="1" value="16">
+          </div>
+        </div>
+      </div>
+      <div class="card tight">
+        <div class="grpname">Preset situations</div>
+        <div class="scen" id="scalePresets"></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <div class="verdict" id="scaleVerdict">
+          <div class="vt" id="scaleTitle">—</div>
+          <div class="vb" id="scaleBody">—</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>How much faster you get for how many threads</h3>
+        <p class="sub">Flat line at the top = a hard ceiling you cannot buy your way past.
+        The curve that turns downward is the one nobody expects: past a certain point, adding threads
+        makes the program <em>slower</em>, and no amount of hardware fixes it.</p>
+        <div class="legend">
+          <span class="lg"><span class="sw" style="background:var(--tx3)"></span>Perfect — every thread pays off in full</span>
+          <span class="lg"><span class="sw" style="background:var(--violet)"></span>With a one-at-a-time section (Amdahl)</span>
+          <span class="lg"><span class="sw" style="background:var(--amber)"></span>Also paying for cross-talk (USL)</span>
+        </div>
+        <div class="cwrap"><canvas id="scaleCanvas" width="900" height="420"></canvas></div>
+        <div class="note" id="scaleNote"></div>
+      </div>
+      <div class="card">
+        <h3>The same thing as a table</h3>
+        <p class="sub nb">"Speed-up" means: how many times more work per second than a single thread.</p>
+        <div class="tw" style="margin-top:11px"><table id="scaleTable"></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TAB 3 ============================ -->
+<section id="tp-meas" role="tabpanel" aria-labelledby="tb-meas" class="hidden">
+  <div class="stack">
+    <div class="card">
+      <div class="verdict bad">
+        <div class="vt">Three ways a perfectly working measurement tells you a lie</div>
+        <div class="vb">None of these involve a bug. In each case the tool reports exactly what it was
+        built to report — and what it was built to report is not the question you were asking. This tab
+        uses the run currently loaded in tab 1, so run something there first for live numbers.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Lie one — the average</h3>
+      <p class="sub">A dashboard showing average response time. Each bar is how many of the last few
+      hundred requests fell into that time band. The average sits where you'd expect. The problem is
+      that nobody experiences the average.</p>
+      <div class="cwrap"><canvas id="histCanvas" width="900" height="260"></canvas></div>
+      <div class="stats" id="measStats" style="margin-top:13px"></div>
+      <div class="note" id="measNote1"></div>
+    </div>
+
+    <div class="card">
+      <h3>Lie two — the stopwatch started too late</h3>
+      <p class="sub">Two timers on the same requests. The left one starts when the handler picks the
+      request up. The right one starts when the request actually arrived. When there is a queue, or a
+      pause, these are not the same number — and only one of them is what a person waiting outside
+      experienced.</p>
+      <div class="tw"><table id="coTable"></table></div>
+      <div class="note" id="measNote2"></div>
+    </div>
+
+    <div class="card">
+      <h3>Lie three — the profiler pointing at the wrong method</h3>
+      <p class="sub">One request, one code path, three profilers watching it. They disagree completely
+      about which method to optimise, and two of the three would send you off to rewrite code that
+      barely matters. The path being profiled:</p>
+      <div class="tw"><table id="profPath"></table></div>
+      <div class="tw" style="margin-top:14px"><table id="profTable"></table></div>
+      <div class="note" id="measNote3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TAB 4 ============================ -->
+<section id="tp-about" role="tabpanel" aria-labelledby="tb-about" class="hidden">
+  <div class="stack">
+    <div class="card">
+      <h2>What this page is, and what it is not</h2>
+      <p class="sub" style="max-width:74ch;font-size:13px;color:var(--tx2)">
+      Everything here runs inside your browser. There is no Java process anywhere. What you are
+      driving is a small simulator built from stated rules — so its <strong>ratios and shapes</strong>
+      are worth learning from, and its <strong>absolute millisecond values are not real measurements
+      of any JVM</strong>. The rules are printed below in full so you can check every number the page
+      shows against them.</p>
+      <div class="tw"><table id="rulesTable"></table></div>
+      <div class="note">
+        <strong>Deliberately not modelled:</strong> class loading and metaspace, on-stack replacement,
+        deoptimisation storms, biased-locking revocation, NUMA effects, page faults and swap, disk and
+        network variability, TLB and cache hierarchy, connection-pool limits, downstream services that
+        themselves queue, and the operating system scheduler's own decisions. Each of those has produced
+        a real production incident; none of them is here. The lab's README lists what each one looks like
+        when it is the answer.
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+<script>
+/* =====================================================================
+   THE BOTTLENECK MACHINE — simulation engine
+   Pure state + reducer. step(state) -> new state, one model millisecond.
+   Deterministic: same config + same seed => same run, every time.
+   No DOM access anywhere in this block, so it can be replayed headlessly.
+   ===================================================================== */
+var ENGINE = (function () {
+  "use strict";
+
+  /* ---- collector cost model. Every number here is a MODEL number: it sets
+     the shape (Serial's pause grows fast with retained data, ZGC's barely
+     grows) and is not a measurement of any JVM. --------------------------- */
+  var COLLECTORS = {
+    serial:   { name: "Serial",   yBase: 6.0, yPerMB: 0.55, oBase: 14.0, oPerMB: 0.42, taxCoef: 0.00 },
+    parallel: { name: "Parallel", yBase: 3.0, yPerMB: 0.16, oBase:  8.0, oPerMB: 0.12, taxCoef: 0.00 },
+    g1:       { name: "G1",       yBase: 2.5, yPerMB: 0.12, oBase:  6.0, oPerMB: 0.05, taxCoef: 0.06 },
+    zgc:      { name: "ZGC",      yBase: 0.4, yPerMB: 0.004, oBase: 0.6, oPerMB: 0.004, taxCoef: 0.18 }
+  };
+  var OLD_EVERY = 8;           // one old-generation collection per 8 young ones
+  var CSW = 0.035;             // scheduling overhead per unit of thread oversubscription
+  var SPIKE_LO = 2, SPIKE_HI = 14;   // a "heavy" request costs 2x to 14x the typical one
+  var EDEN_SHARE = 0.30;       // share of the heap used as the allocation area
+  var TAX_REF_MBPS = 60;       // allocation rate at which a collector pays its full CPU tax
+
+  /* ---- JIT tier model: multiplier applied to the handler's CPU work ------ */
+  var TIER = [
+    { at: 0,    mult: 5.0, name: "interpreted",         tag: "tier 0" },
+    { at: 300,  mult: 1.9, name: "compiled, quickly",   tag: "tier 3 (C1)" },
+    { at: 3000, mult: 1.0, name: "compiled, properly",  tag: "tier 4 (C2)" }
+  ];
+
+  var BUCKETS = ["cpu", "jit", "gc", "lock", "queue", "io", "thr"];
+  var BUCKET_LABEL = {
+    cpu:   "Running your code",
+    jit:   "Code not yet compiled",
+    gc:    "Frozen for the collector",
+    lock:  "Waiting for a lock",
+    queue: "Waiting for a thread",
+    io:    "Waiting on the database",
+    thr:   "Waiting for a CPU"
+  };
+
+  function defaults() {
+    return {
+      lambda: 120, work: 18, io: 25,
+      cores: 8, quota: 8, pool: 16, qcap: 200,
+      serialPct: 5, kappaPct: 30,       /* kappaPct is in hundredths of a percent */
+      spikePct: 3,                      /* share of requests that are 8x heavier */
+      allocKB: 128, heapMB: 512, liveMB: 200,
+      gc: "g1", ttsp: 1,
+      jit: true, fresh: false,
+      seed: 20260830
+    };
+  }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function init(cfg) {
+    var c = clone(cfg);
+    var st = {
+      cfg: c, t: 0, rng: (c.seed | 0) || 1,
+      nextId: 1, nextArrival: 0,
+      queue: [], workers: [], done: [], compTimes: [],
+      arrived: 0, completed: 0, rejected: 0,
+      invocations: c.fresh ? 0 : 40000,
+      allocKB: 0, gcYoung: 0, gcOld: 0, gcPauseMs: 0, pauses: [],
+      pauseRemain: 0, pauseTotal: 0, pauseKind: "", ttspRemain: 0,
+      lockHolder: -1, lockBusyTicks: 0,
+      cpuShareLast: 1, cpuDemandLast: 0, cpuCapLast: 0,
+      cpuUsedTotal: 0, cpuCapTotal: 0,
+      log: [], flash: {}, ended: false
+    };
+    for (var i = 0; i < c.pool; i++) st.workers.push({ id: i, req: null });
+    logIt(st, "ok", "Service started with " + c.pool + " handler threads on " +
+      Math.min(c.cores, c.quota) + " usable CPU cores, " + c.heapMB + " MB of heap, " +
+      COLLECTORS[c.gc].name + " collector.",
+      (c.jit ? (c.fresh ? "JIT on, starting cold" : "JIT on, already warm") : "JIT off (-Xint)"));
+    return st;
+  }
+
+  function rnd(st) { st.rng = (st.rng * 1103515245 + 12345) & 0x7fffffff; return st.rng / 0x7fffffff; }
+  function expo(st, mean) { var u = rnd(st); if (u < 1e-9) u = 1e-9; return -Math.log(u) * mean; }
+
+  function logIt(st, cls, msg, detail) {
+    st.log.unshift({ t: st.t, cls: cls, m: msg, d: detail || "" });
+    if (st.log.length > 90) st.log.pop();
+  }
+
+  function tierOf(st) {
+    if (!st.cfg.jit) return TIER[0];
+    var r = TIER[0];
+    for (var i = 0; i < TIER.length; i++) if (st.invocations >= TIER[i].at) r = TIER[i];
+    return r;
+  }
+
+  function edenKB(st) { return st.cfg.heapMB * 1024 * EDEN_SHARE; }
+
+  function inFlight(st) {
+    var n = 0; for (var i = 0; i < st.workers.length; i++) if (st.workers[i].req) n++; return n;
+  }
+
+  function allocRateMBps(st) { return st.cfg.lambda * st.cfg.allocKB / 1024; }
+
+  function gcTax(st) {
+    var col = COLLECTORS[st.cfg.gc];
+    if (!col.taxCoef) return 0;
+    return Math.min(0.40, col.taxCoef * allocRateMBps(st) / TAX_REF_MBPS);
+  }
+
+  function cpuCapacity(st) {
+    return Math.min(st.cfg.cores, st.cfg.quota) * (1 - gcTax(st));
+  }
+
+  function workMultiplier(st) {
+    /* A share of requests are much heavier than the rest. Same mean either way,
+       so utilisation is unchanged and only the SPREAD moves - which is the whole
+       point: two services with identical average load can have wildly different
+       tails. (This is the c-squared term from the queueing-theory lab.) */
+    var p = st.cfg.spikePct / 100;
+    if (p <= 0) return 1;
+    var meanHeavy = (SPIKE_LO + SPIKE_HI) / 2;
+    if (rnd(st) < p) return SPIKE_LO + rnd(st) * (SPIKE_HI - SPIKE_LO);
+    return (1 - meanHeavy * p) / (1 - p);
+  }
+
+  function newRequest(st) {
+    var work = st.cfg.work * workMultiplier(st);
+    var s = work * st.cfg.serialPct / 100;
+    var par = work - s;
+    return {
+      id: st.nextId++, arr: st.t, start: -1,
+      p1: par * 0.55, ioN: st.cfg.io, ser: s, p2: par * 0.45, work: work,
+      phase: "queue", stage: 0,
+      b: { cpu: 0, jit: 0, gc: 0, lock: 0, queue: 0, io: 0, thr: 0 }
+    };
+  }
+
+  function triggerGC(st) {
+    var col = COLLECTORS[st.cfg.gc];
+    st.gcYoung++;
+    var isOld = (st.gcYoung % OLD_EVERY === 0);
+    var survMB = inFlight(st) * st.cfg.allocKB / 1024 * 0.6 + 1;
+    var ms, kind;
+    if (isOld) {
+      st.gcOld++;
+      ms = col.oBase + col.oPerMB * st.cfg.liveMB;
+      kind = "old-generation";
+    } else {
+      ms = col.yBase + col.yPerMB * survMB;
+      kind = "young-generation";
+    }
+    ms += st.cfg.ttsp;
+    st.pauseRemain = ms; st.pauseTotal = ms; st.pauseKind = kind;
+    st.gcPauseMs += ms;
+    st.pauses.push(ms); if (st.pauses.length > 300) st.pauses.shift();
+    st.allocKB = 0;
+    var det = kind === "old-generation"
+      ? ("cost = " + col.oBase + " + " + col.oPerMB + " x " + st.cfg.liveMB + " MB retained + " +
+         st.cfg.ttsp + " ms to stop the threads")
+      : ("cost = " + col.yBase + " + " + col.yPerMB + " x " + survMB.toFixed(1) +
+         " MB of survivors + " + st.cfg.ttsp + " ms to stop the threads");
+    logIt(st, "gc", "The allocation area filled up, so every application thread was frozen for a " +
+      kind + " collection lasting " + ms.toFixed(1) + " ms. Requests already in flight just got " +
+      ms.toFixed(1) + " ms longer, through no fault of their own.", det);
+    return ms;
+  }
+
+  /* --------------------------- ONE MODEL MILLISECOND -------------------- */
+  function step(prev) {
+    /* mutates in place for speed; step-backward is done by replaying from a
+       periodic snapshot, which is exact because the engine is deterministic. */
+    var st = prev;
+    st.t += 1;
+    var cfg = st.cfg, i, w, r;
+
+    /* 1 — arrivals */
+    while (st.nextArrival <= st.t) {
+      r = newRequest(st);
+      st.arrived++;
+      if (st.queue.length >= cfg.qcap) {
+        st.rejected++;
+        if (st.rejected === 1 || st.rejected % 250 === 0)
+          logIt(st, "bad", "The queue is full, so request #" + r.id + " was refused outright " +
+            "(" + st.rejected + " refused so far). The service is now returning errors rather than " +
+            "getting slower — which, past a point, is the kinder failure.",
+            "queue " + st.queue.length + "/" + cfg.qcap);
+      } else {
+        st.queue.push(r);
+      }
+      st.nextArrival += expo(st, 1000 / cfg.lambda);
+    }
+
+    /* 2 — should a collection start? */
+    if (st.pauseRemain <= 0 && st.allocKB >= edenKB(st)) triggerGC(st);
+
+    /* 3 — a stop-the-world pause freezes everything on CPU; native waits continue */
+    if (st.pauseRemain > 0) {
+      var slice = Math.min(1, st.pauseRemain);
+      st.pauseRemain -= 1;
+      for (i = 0; i < st.workers.length; i++) {
+        w = st.workers[i]; if (!w.req) continue;
+        if (w.req.phase === "io") { w.req.b.io += 1; w.req.ioN -= 1; if (w.req.ioN <= 0) advance(st, w); }
+        else w.req.b.gc += slice;
+      }
+      for (i = 0; i < st.queue.length; i++) st.queue[i].b.queue += 1;
+      if (st.pauseRemain <= 0) {
+        logIt(st, "ok", "The collection finished and all threads resumed. " +
+          "Allocation starts filling the area again immediately.",
+          "next collection in about " + (edenKB(st) / Math.max(0.001, allocRateMBps(st) * 1024) ).toFixed(2) + " s at this allocation rate");
+      }
+      sample(st);
+      return st;
+    }
+
+    /* 4 — hand queued requests to free threads */
+    for (i = 0; i < st.workers.length; i++) {
+      w = st.workers[i];
+      if (!w.req && st.queue.length) {
+        r = st.queue.shift();
+        r.start = st.t; r.phase = "cpu"; r.stage = 1;
+        w.req = r;
+        st.allocKB += cfg.allocKB;
+        st.invocations++;
+        var before = tierOf(st);
+        if (cfg.jit) {
+          for (var k = 0; k < TIER.length; k++) {
+            if (st.invocations === TIER[k].at && TIER[k].at > 0) {
+              logIt(st, "jit", "After " + TIER[k].at + " calls the JIT compiler decided this handler is " +
+                "worth compiling, and every request from now on runs " +
+                (TIER[k - 1].mult / TIER[k].mult).toFixed(1) + "x faster than a moment ago.",
+                TIER[k].tag + " — CPU work multiplier now " + TIER[k].mult + "x");
+            }
+          }
+        }
+      }
+    }
+    for (i = 0; i < st.queue.length; i++) st.queue[i].b.queue += 1;
+
+    /* 5 — who wants CPU this millisecond? */
+    var wantCpu = [];
+    for (i = 0; i < st.workers.length; i++) {
+      w = st.workers[i]; if (!w.req) continue;
+      var ph = w.req.phase;
+      if (ph === "cpu" || ph === "p2") wantCpu.push(w);
+      else if (ph === "lock") {
+        if (st.lockHolder === -1) { st.lockHolder = w.id; }
+        if (st.lockHolder === w.id) wantCpu.push(w);
+      }
+    }
+    var cap = cpuCapacity(st);
+    var demand = wantCpu.length;
+    var share = demand > 0 ? Math.min(1, cap / demand) : 1;
+    st.cpuShareLast = share; st.cpuDemandLast = demand; st.cpuCapLast = cap;
+    st.cpuUsedTotal += Math.min(demand, cap); st.cpuCapTotal += cap;
+
+    var kappa = cfg.kappaPct / 10000;              /* slider is hundredths of a percent */
+    var running = Math.min(demand, cap);           /* only threads actually on a core cross-talk */
+    var over = cap > 0 ? Math.max(0, demand / cap - 1) : 0;
+    var coh = 1 + kappa * Math.max(0, running - 1) + CSW * over;
+    st.cohLast = coh;
+    var mult = tierOf(st).mult;
+    if (st.lockHolder !== -1) st.lockBusyTicks++;
+
+    /* 6 — advance every thread by one millisecond of wall time */
+    for (i = 0; i < st.workers.length; i++) {
+      w = st.workers[i]; if (!w.req) continue;
+      r = w.req;
+      if (r.phase === "io") {
+        r.b.io += 1; r.ioN -= 1;
+        if (r.ioN <= 0) advance(st, w);
+        continue;
+      }
+      if (r.phase === "lock" && st.lockHolder !== w.id) { r.b.lock += 1; continue; }
+      /* on CPU (or holding the lock and on CPU) */
+      var got = share;                              /* cpu-ms actually received */
+      var effective = got / coh;                    /* after cross-talk overhead */
+      var progress = effective / mult;              /* optimal-equivalent work done */
+      r.b.thr += (1 - got);
+      r.b.jit += effective * (1 - 1 / mult);
+      r.b.cpu += got - effective * (1 - 1 / mult);
+      if (r.phase === "cpu") { r.p1 -= progress; if (r.p1 <= 0) advance(st, w); }
+      else if (r.phase === "lock") { r.ser -= progress; if (r.ser <= 0) { st.lockHolder = -1; advance(st, w); } }
+      else if (r.phase === "p2") { r.p2 -= progress; if (r.p2 <= 0) finish(st, w); }
+    }
+
+    sample(st);
+    return st;
+  }
+
+  /* cpu -> io -> lock -> p2 -> done */
+  function advance(st, w) {
+    var r = w.req;
+    if (r.phase === "cpu") { r.phase = r.ioN > 0 ? "io" : "lock"; if (r.phase === "lock" && r.ser <= 0) r.phase = "p2"; }
+    else if (r.phase === "io") { r.phase = r.ser > 0 ? "lock" : "p2"; }
+    else if (r.phase === "lock") { r.phase = "p2"; }
+    if (r.phase === "p2" && r.p2 <= 0) finish(st, w);
+  }
+
+  function finish(st, w) {
+    var r = w.req;
+    if (st.lockHolder === w.id) st.lockHolder = -1;
+    var rec = { id: r.id, arr: r.arr, work: r.work,
+                wall: st.t + 1 - r.arr, service: st.t + 1 - r.start, b: r.b, t: st.t };
+    st.done.push(rec); if (st.done.length > 500) st.done.shift();
+    st.compTimes.push(st.t); if (st.compTimes.length > 900) st.compTimes.shift();
+    st.completed++;
+    w.req = null;
+    st.flash[w.id] = st.t;
+  }
+
+  function sample(st) {
+    while (st.compTimes.length && st.compTimes[0] < st.t - 3000) st.compTimes.shift();
+  }
+
+  /* ------------------------------ readouts ------------------------------ */
+  function pct(arr, p) {
+    if (!arr.length) return 0;
+    var a = arr.slice().sort(function (x, y) { return x - y; });
+    var idx = Math.min(a.length - 1, Math.max(0, Math.ceil(p / 100 * a.length) - 1));
+    return a[idx];
+  }
+
+  function report(st, window) {
+    var n = window || 400;
+    var d = st.done.slice(-n);
+    var sums = {}, i, k, tot = 0;
+    for (k = 0; k < BUCKETS.length; k++) sums[BUCKETS[k]] = 0;
+    for (i = 0; i < d.length; i++) for (k = 0; k < BUCKETS.length; k++) sums[BUCKETS[k]] += d[i].b[BUCKETS[k]];
+    for (k = 0; k < BUCKETS.length; k++) { sums[BUCKETS[k]] /= (d.length || 1); tot += sums[BUCKETS[k]]; }
+
+    /* The same decomposition again, but only over the SLOWEST 5% of requests.
+       This is usually a completely different picture from the average, and the
+       slow 5% is what a person actually complains about. */
+    var slow = d.slice().sort(function (a, b) { return b.wall - a.wall; });
+    slow = slow.slice(0, Math.max(1, Math.round(d.length * 0.05)));
+    var sums99 = {}, tot99 = 0, top99 = null;
+    for (k = 0; k < BUCKETS.length; k++) sums99[BUCKETS[k]] = 0;
+    for (i = 0; i < slow.length; i++) for (k = 0; k < BUCKETS.length; k++) sums99[BUCKETS[k]] += slow[i].b[BUCKETS[k]];
+    for (k = 0; k < BUCKETS.length; k++) { sums99[BUCKETS[k]] /= (slow.length || 1); tot99 += sums99[BUCKETS[k]]; }
+    for (k = 0; k < BUCKETS.length; k++) if (!top99 || sums99[BUCKETS[k]] > sums99[top99]) top99 = BUCKETS[k];
+
+    var walls = [], svcs = [];
+    for (i = 0; i < d.length; i++) { walls.push(d[i].wall); svcs.push(d[i].service); }
+    var mean = 0; for (i = 0; i < walls.length; i++) mean += walls[i]; mean = walls.length ? mean / walls.length : 0;
+
+    var busy = 0; for (i = 0; i < st.workers.length; i++) if (st.workers[i].req) busy++;
+    var secs = Math.min(3, st.t / 1000) || 1;
+
+    var top = null;
+    for (k = 0; k < BUCKETS.length; k++) if (!top || sums[BUCKETS[k]] > sums[top]) top = BUCKETS[k];
+
+    return {
+      n: d.length, buckets: sums, total: tot, top: top,
+      bucketsSlow: sums99, totalSlow: tot99, topSlow: top99, nSlow: slow.length,
+      mean: mean, p50: pct(walls, 50), p95: pct(walls, 95), p99: pct(walls, 99),
+      max: walls.length ? Math.max.apply(null, walls) : 0,
+      svcP99: pct(svcs, 99), svcP50: pct(svcs, 50),
+      throughput: st.compTimes.length / secs,
+      offered: st.cfg.lambda,
+      busy: busy, pool: st.workers.length, queue: st.queue.length,
+      cpuUtil: st.cpuCapTotal > 0 ? Math.min(1, st.cpuUsedTotal / st.cpuCapTotal) : 0,
+      cpuUtilNow: st.cpuCapLast > 0 ? Math.min(1, st.cpuDemandLast / st.cpuCapLast) : 0,
+      cpuBusyCores: st.t ? st.cpuUsedTotal / st.t : 0,
+      cpuDemand: st.cpuDemandLast, cpuCap: cpuCapacity(st),
+      lockUtil: st.t ? Math.min(1, st.lockBusyTicks / st.t) : 0,
+      gcYoung: st.gcYoung, gcOld: st.gcOld,
+      gcPct: st.t ? st.gcPauseMs / st.t : 0,
+      maxPause: st.pauses.length ? Math.max.apply(null, st.pauses) : 0,
+      gcTax: gcTax(st),
+      rejected: st.rejected, arrived: st.arrived, completed: st.completed,
+      tier: tierOf(st), invocations: st.invocations,
+      allocMBps: allocRateMBps(st), coh: st.cohLast || 1,
+      gcEverySec: edenKB(st) / Math.max(0.001, allocRateMBps(st) * 1024)
+    };
+  }
+
+  /* ---- scaling laws (tab 2), closed form ------------------------------- */
+  function amdahl(s, n) { return 1 / (s + (1 - s) / n); }
+  function usl(s, k, n) { return n / (1 + s * (n - 1) + k * n * (n - 1)); }
+  function uslPeak(s, k) { return k <= 0 ? Infinity : Math.sqrt((1 - s) / k); }
+
+  return {
+    defaults: defaults, init: init, step: step, report: report, clone: clone,
+    COLLECTORS: COLLECTORS, TIER: TIER, BUCKETS: BUCKETS, BUCKET_LABEL: BUCKET_LABEL,
+    OLD_EVERY: OLD_EVERY, EDEN_SHARE: EDEN_SHARE, TAX_REF_MBPS: TAX_REF_MBPS,
+    CSW: CSW, SPIKE_LO: SPIKE_LO, SPIKE_HI: SPIKE_HI,
+    amdahl: amdahl, usl: usl, uslPeak: uslPeak, pct: pct, tierOf: tierOf,
+    edenKB: edenKB, gcTax: gcTax, cpuCapacity: cpuCapacity
+  };
+})();
+if (typeof module !== "undefined") module.exports = ENGINE;
+</script>
+<script>
+/* =====================================================================
+   UI layer. Reads the engine, never simulates anything itself.
+   ===================================================================== */
+(function () {
+  "use strict";
+  var E = ENGINE;
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = E.defaults();
+  var st = null, playing = false, raf = 0, view = "mean", selWorker = -1, curScen = -1;
+  var SPEED = 260;               /* model milliseconds advanced per animation frame */
+  var WARM_MS = 12000;           /* fast-forward after a knob moves, so stats are live */
+
+  var ADVICE = {
+    cpu: ["Your own code is the bottleneck.",
+      "Most of the request is spent executing your handler on a CPU. Adding threads cannot help — the cores are already doing work every millisecond. The only things that move this number are doing less work per request (a better algorithm, fewer objects, fewer round trips) or buying more cores. In a real JVM this is the case where a CPU profiler is genuinely the right tool, because the time really is on-CPU."],
+    jit: ["The code has not been compiled yet.",
+      "The handler is still being interpreted or only lightly compiled, so every request costs several times what it will cost in a minute. Nothing is wrong and no tuning is required — but if this is what your first canary or your load test measures, you are measuring a JVM that no longer exists by the time real traffic arrives."],
+    gc: ["The garbage collector is stopping your threads.",
+      "Requests are losing time to pauses in which every application thread is frozen. Two things drive it: how often a collection happens (set by how much garbage you make per request, divided by how much room there is) and how long each one lasts (set by how much data is still alive, not by how much garbage there is). Reach for allocation rate first, heap size second, collector choice third."],
+    lock: ["Threads are queueing for one exclusive section.",
+      "Only one thread at a time may be inside part of your handler, and the others are standing in line for it. This is the number in Amdahl's law: it puts a hard ceiling on how much faster this service can ever get, no matter how many cores or threads you add. Shrink the section, shard it, or make it lock-free."],
+    queue: ["Requests are waiting for a handler thread that does not exist yet.",
+      "The work has not started. The service is not slow, it is too small — requests arrive faster than threads free up. Either raise capacity, or make each request cheaper so threads free up sooner. Note what this does to your dashboards: if your timer starts when the handler picks the request up, this entire block is invisible to you and visible to your users."],
+    io: ["The request is mostly waiting on something else.",
+      "Most of the elapsed time is spent asleep, holding a thread, using no CPU. Nothing you tune inside this JVM will move it. Look at the thing being called, or stop waiting on it: batch the calls, cache the answer, fetch in parallel, or hand the waiting to a virtual thread so at least it costs you nothing to wait."],
+    thr: ["Threads are ready to run and cannot get a CPU.",
+      "There is runnable work and no core free to run it — either genuinely more threads than cores, or a container CPU limit far below the core count the JVM thinks it has. This one is nasty because it does not look like a CPU problem on a host dashboard: the machine looks idle while your container is being held at the door."]
+  };
+
+  /* ------------------------------ driver ------------------------------- */
+  function rebuild(ffMs) {
+    st = E.init(cfg);
+    var n = ffMs || 0;
+    for (var i = 0; i < n; i++) st = E.step(st);
+    render();
+  }
+  function advance(ms) { for (var i = 0; i < ms; i++) st = E.step(st); }
+  function loop() {
+    if (!playing) return;
+    advance(SPEED);
+    render();
+    raf = requestAnimationFrame(loop);
+  }
+  function setPlaying(p) {
+    playing = p;
+    $("playBtn").textContent = p ? "Pause" : "Run";
+    $("playBtn").classList.toggle("pri", !p);
+    if (p) raf = requestAnimationFrame(loop); else cancelAnimationFrame(raf);
+  }
+  function rewind(ms) {
+    var target = Math.max(0, st.t - ms);
+    st = E.init(cfg);
+    for (var i = 0; i < target; i++) st = E.step(st);
+    render();
+  }
+
+  /* ---------------------------- formatting ----------------------------- */
+  function ms(x) { return x >= 100 ? Math.round(x) : (x >= 10 ? x.toFixed(0) : x.toFixed(1)); }
+  function f1(x) { return Number(x).toFixed(1); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  /* ------------------------------ render ------------------------------- */
+  function render() {
+    var r = E.report(st);
+    renderClock(r); renderVerdict(r); renderLegend(); renderBudget(r);
+    renderStats(r); renderResources(r); renderWorkers(); renderLog();
+    renderMeasure(r);
+  }
+
+  function renderClock(r) {
+    $("clockLine").innerHTML = "Model clock <b>" + (st.t / 1000).toFixed(1) + " s</b> · " +
+      r.completed + " requests finished · " + r.arrived + " arrived" +
+      (r.rejected ? " · <b style='color:var(--bad)'>" + r.rejected + " refused</b>" : "");
+  }
+
+  function renderVerdict(r) {
+    var v = $("verdict"), t = $("verdictTitle"), b = $("verdictBody");
+    if (!r.n) {
+      t.textContent = "Nothing has finished yet.";
+      b.textContent = "Give it a moment, or press Run.";
+      v.className = "verdict"; return;
+    }
+    var a = ADVICE[r.top] || ADVICE.cpu;
+    var share = Math.round(100 * r.buckets[r.top] / (r.total || 1));
+    t.textContent = a[0];
+    var extra = "";
+    if (r.topSlow !== r.top) {
+      var a2 = ADVICE[r.topSlow] || ADVICE.cpu;
+      var sh2 = Math.round(100 * r.bucketsSlow[r.topSlow] / (r.totalSlow || 1));
+      extra = " <br><br><b>But your slowest 5% are slow for a different reason.</b> " +
+        "The typical request loses most of its time to <b>" + E.BUCKET_LABEL[r.top].toLowerCase() +
+        "</b>, while the slowest 5% lose " + sh2 + "% of theirs to <b>" +
+        E.BUCKET_LABEL[r.topSlow].toLowerCase() + "</b> (" + ms(r.bucketsSlow[r.topSlow]) +
+        " ms of " + ms(r.totalSlow) + " ms). " + a2[1] +
+        " Fix the average and the tail stays. This is why an average is not a diagnosis.";
+    }
+    b.innerHTML = share + "% of a typical request's " + ms(r.total) + " ms goes here (" +
+      ms(r.buckets[r.top]) + " ms). " + a[1] + extra;
+    v.className = "verdict" + (r.p99 > 400 ? " bad" : (r.p99 < 120 ? " ok" : ""));
+  }
+
+  function renderLegend() {
+    var h = "", B = E.BUCKETS, cls = { cpu: "b-cpu", jit: "b-jit", gc: "b-gc", lock: "b-lock", queue: "b-queue", io: "b-io", thr: "b-thr" };
+    for (var i = 0; i < B.length; i++)
+      h += '<span class="lg"><span class="sw ' + cls[B[i]] + '"></span>' + E.BUCKET_LABEL[B[i]] + "</span>";
+    h += '<span style="flex:1"></span>' +
+      '<button class="btn" id="viewMean" style="padding:3px 9px;font-size:11.5px">Average request</button>' +
+      '<button class="btn" id="viewSlow" style="padding:3px 9px;font-size:11.5px">Slowest 5%</button>';
+    $("legend").innerHTML = h;
+    $("viewMean").classList.toggle("pri", view === "mean");
+    $("viewSlow").classList.toggle("pri", view === "slow");
+    $("viewMean").onclick = function () { view = "mean"; render(); };
+    $("viewSlow").onclick = function () { view = "slow"; render(); };
+  }
+
+  function renderBudget(r) {
+    var B = E.BUCKETS, cls = { cpu: "b-cpu", jit: "b-jit", gc: "b-gc", lock: "b-lock", queue: "b-queue", io: "b-io", thr: "b-thr" };
+    var data = view === "slow" ? r.bucketsSlow : r.buckets;
+    var tot = (view === "slow" ? r.totalSlow : r.total) || 1;
+    var h = "", i, k, top = view === "slow" ? r.topSlow : r.top;
+    for (i = 0; i < B.length; i++) {
+      k = B[i]; var w = 100 * data[k] / tot;
+      if (w < 0.15) continue;
+      h += '<div class="' + cls[k] + '" style="width:' + w.toFixed(2) + '%" title="' +
+        E.BUCKET_LABEL[k] + ": " + ms(data[k]) + ' ms">' + (w > 7 ? "<span>" + ms(data[k]) + " ms</span>" : "") + "</div>";
+    }
+    $("budget").innerHTML = h || '<div style="width:100%"></div>';
+    $("budgetTotal").textContent = ms(tot) + " ms" + (view === "slow" ? "  (slowest 5%, n=" + r.nSlow + ")" : "  (average of " + r.n + ")");
+    var br = "";
+    for (i = 0; i < B.length; i++) {
+      k = B[i];
+      br += '<div class="brkrow' + (k === top ? " top" : "") + '"><span class="sw ' + cls[k] + '"></span>' +
+        '<span class="bn">' + E.BUCKET_LABEL[k] + '</span><span class="bv">' + ms(data[k]) + " ms</span></div>";
+    }
+    $("breakdown").innerHTML = br;
+  }
+
+  function renderStats(r) {
+    function s(k, n, u, cl) { return '<div class="stat ' + (cl || "") + '"><div class="k">' + k + '</div><div class="n">' + n + '<span class="u">' + (u || "") + "</span></div></div>"; }
+    var tail = r.p50 ? r.p99 / r.p50 : 0;
+    $("stats").innerHTML =
+      s("median", ms(r.p50), " ms", r.p50 > 300 ? "hot" : r.p50 > 100 ? "warm" : "cool") +
+      s("p99", ms(r.p99), " ms", r.p99 > 500 ? "hot" : r.p99 > 200 ? "warm" : "cool") +
+      s("worst seen", ms(r.max), " ms") +
+      s("p99 ÷ median", f1(tail), "x", tail > 6 ? "hot" : tail > 3 ? "warm" : "cool") +
+      s("answered", f1(r.throughput), " /s", r.throughput < r.offered * 0.9 ? "hot" : "cool") +
+      s("asked for", r.offered, " /s") +
+      s("refused", r.rejected, "", r.rejected ? "hot" : "") +
+      s("compiler", r.tier.tag.replace("tier ", "T"), "", r.tier.mult > 1 ? "warm" : "cool");
+  }
+
+  function renderResources(r) {
+    function row(name, frac, label, mark) {
+      var c = frac > 0.95 ? "b" : frac > 0.8 ? "w" : "";
+      return '<div class="resrow"><span class="rn">' + name + '</span><span class="meter"><i class="' + c +
+        '" style="width:' + Math.min(100, frac * 100).toFixed(1) + '%"></i>' +
+        (mark !== undefined ? '<u style="left:' + Math.min(100, mark * 100).toFixed(1) + '%"></u>' : "") +
+        '</span><span class="rv">' + label + "</span></div>";
+    }
+    var h = "";
+    h += row("CPU cores", r.cpuUtil, f1(r.cpuBusyCores) + "/" + f1(r.cpuCap));
+    h += row("Handler threads", r.pool ? r.busy / r.pool : 0, r.busy + "/" + r.pool);
+    h += row("Waiting for a thread", Math.min(1, r.queue / Math.max(1, st.cfg.qcap)), r.queue + " q");
+    h += row("The exclusive section", r.lockUtil, Math.round(r.lockUtil * 100) + "%");
+    h += row("Allocation → collections", Math.min(1, 1 / Math.max(0.15, r.gcEverySec)),
+      f1(r.allocMBps) + " MB/s");
+    h += row("Collector CPU tax", r.gcTax, Math.round(r.gcTax * 100) + "%");
+    h += row("Work inflation from thread count", Math.min(1, (r.coh - 1) / 1.0), f1(r.coh) + "x");
+    $("resources").innerHTML = h +
+      '<div class="hint" style="margin-top:6px">A collection every ' + f1(r.gcEverySec) +
+      ' s (' + r.gcYoung + ' young, ' + r.gcOld + ' old so far). Longest freeze so far: <b>' +
+      ms(r.maxPause) + ' ms</b>. Total time frozen: ' + (r.gcPct * 100).toFixed(2) + '% of the clock.</div>';
+  }
+
+  function renderWorkers() {
+    var h = "", i, w, cls, ph;
+    for (i = 0; i < st.workers.length && i < 160; i++) {
+      w = st.workers[i];
+      cls = "";
+      if (w.req) {
+        ph = w.req.phase;
+        if (st.pauseRemain > 0 && ph !== "io") cls = "s-gc";
+        else if (ph === "io") cls = "s-io";
+        else if (ph === "lock") cls = st.lockHolder === w.id ? "s-cpu" : "s-lock";
+        else if (st.cpuShareLast < 0.999) cls = "s-thr";
+        else cls = E.tierOf(st).mult > 1 ? "s-jit" : "s-cpu";
+      }
+      h += '<div class="w ' + cls + (st.flash[w.id] && st.t - st.flash[w.id] < 40 ? " flash" : "") +
+        '" data-w="' + i + '" tabindex="0" role="button">' + i + "</div>";
+    }
+    if (st.workers.length > 160) h += '<div class="hint">…and ' + (st.workers.length - 160) + " more</div>";
+    $("workers").innerHTML = h;
+    var q = "", qn = Math.min(st.queue.length, 220);
+    for (i = 0; i < qn; i++) q += '<span class="qi' + (st.queue.length >= st.cfg.qcap ? " over" : "") + '"></span>';
+    $("queue").innerHTML = q + (st.queue.length > qn ? '<span class="hint" style="margin-left:6px">' + st.queue.length + " waiting</span>" : "");
+    var nodes = $("workers").querySelectorAll(".w");
+    for (i = 0; i < nodes.length; i++) nodes[i].onclick = function () { selWorker = +this.getAttribute("data-w"); inspect(); };
+    inspect();
+  }
+
+  function inspect() {
+    var el = $("threadInspect");
+    if (selWorker < 0 || !st.workers[selWorker]) { el.textContent = "Click a square to see what that thread is doing."; return; }
+    var w = st.workers[selWorker];
+    if (!w.req) { el.innerHTML = "<b>Thread " + selWorker + "</b> is idle — it has no request to work on."; return; }
+    var r = w.req, names = { cpu: "running your code", io: "asleep waiting for the database", lock: "in (or waiting for) the exclusive section", p2: "running your code" };
+    var frozen = st.pauseRemain > 0 && r.phase !== "io";
+    el.innerHTML = "<b>Thread " + selWorker + "</b> is handling request #" + r.id + ", which arrived " +
+      (st.t - r.arr) + " ms ago and is " +
+      (frozen ? "<b style='color:var(--amber)'>frozen for a collection</b>" :
+        (r.phase === "lock" && st.lockHolder !== w.id ? "<b style='color:var(--crimson)'>waiting for the lock another thread holds</b>" : names[r.phase])) +
+      ". So far it has spent " + ms(r.b.cpu + r.b.jit) + " ms on a CPU, " + ms(r.b.io) + " ms waiting on the database, " +
+      ms(r.b.lock) + " ms waiting for the lock, " + ms(r.b.gc) + " ms frozen, " + ms(r.b.queue) +
+      " ms waiting for a thread, and " + ms(r.b.thr) + " ms ready-to-run with no core free.";
+  }
+
+  function renderLog() {
+    var h = "", L = st.log, i;
+    for (i = 0; i < L.length && i < 40; i++)
+      h += '<div class="le ' + L[i].cls + '"><span class="t">' + (L[i].t / 1000).toFixed(2) + 's</span>' +
+        '<span class="m">' + esc(L[i].m) + "</span>" + (L[i].d ? '<span class="d">' + esc(L[i].d) + "</span>" : "") + "</div>";
+    $("log").innerHTML = h;
+  }
+
+  /* ---------------------------- controls ------------------------------- */
+  var SLIDERS = [
+    ["c-lambda", "lambda", function (v) { return v; }, function (v) { return v + " /s"; }],
+    ["c-work", "work", null, function (v) { return v + " ms"; }],
+    ["c-io", "io", null, function (v) { return v + " ms"; }],
+    ["c-cores", "cores", null, function (v) { return v; }],
+    ["c-quota", "quota", null, function (v) { return Number(v).toFixed(1); }],
+    ["c-pool", "pool", null, function (v) { return v; }],
+    ["c-qcap", "qcap", null, function (v) { return v; }],
+    ["c-serial", "serialPct", null, function (v) { return v + " %"; }],
+    ["c-kappa", "kappaPct", null, function (v) { return (v / 100).toFixed(2) + " %"; }],
+    ["c-alloc", "allocKB", null, function (v) { return v >= 1024 ? (v / 1024).toFixed(1) + " MB" : v + " KB"; }],
+    ["c-heap", "heapMB", null, function (v) { return v >= 1024 ? (v / 1024).toFixed(1) + " GB" : v + " MB"; }],
+    ["c-live", "liveMB", null, function (v) { return v + " MB"; }],
+    ["c-ttsp", "ttsp", null, function (v) { return v + " ms"; }]
+  ];
+  var debounce = 0;
+  function syncLabels() {
+    for (var i = 0; i < SLIDERS.length; i++) {
+      var s = SLIDERS[i], el = $(s[0]);
+      if (!el) continue;
+      el.value = cfg[s[1]];
+      var lab = $("v-" + s[0].slice(2));
+      if (lab) lab.textContent = s[3](cfg[s[1]]);
+    }
+    $("c-gc").value = cfg.gc; $("c-jit").checked = cfg.jit; $("c-fresh").checked = cfg.fresh;
+  }
+  function onChange() {
+    clearTimeout(debounce);
+    debounce = setTimeout(function () { rebuild(WARM_MS); }, 130);
+  }
+  (function wire() {
+    for (var i = 0; i < SLIDERS.length; i++) {
+      (function (s) {
+        var el = $(s[0]); if (!el) return;
+        el.oninput = function () {
+          cfg[s[1]] = Number(el.value);
+          if (s[1] === "quota" && cfg.quota > cfg.cores) { /* allowed: quota above cores just means no limit */ }
+          $("v-" + s[0].slice(2)).textContent = s[3](el.value);
+          curScen = -1; renderScenarios();
+          onChange();
+        };
+      })(SLIDERS[i]);
+    }
+    $("c-gc").onchange = function () { cfg.gc = this.value; onChange(); };
+    $("c-jit").onchange = function () { cfg.jit = this.checked; onChange(); };
+    $("c-fresh").onchange = function () { cfg.fresh = this.checked; onChange(); };
+    $("playBtn").onclick = function () { setPlaying(!playing); };
+    $("stepBtn").onclick = function () { setPlaying(false); advance(1000); render(); };
+    $("backBtn").onclick = function () { setPlaying(false); rewind(2000); };
+    $("resetBtn").onclick = function () { setPlaying(false); cfg = E.defaults(); syncLabels(); curScen = -1; renderScenarios(); $("predictBox").innerHTML = ""; rebuild(WARM_MS); };
+  })();
+
+  /* ---------------------------- scenarios ------------------------------ */
+  function C(o) { var c = E.defaults(); for (var k in o) c[k] = o[k]; return c; }
+  function runHeadless(conf, msLen) {
+    var s = E.init(conf); for (var i = 0; i < (msLen || 30000); i++) s = E.step(s);
+    return E.report(s);
+  }
+
+  var SCEN = [
+    {
+      t: "The heap upgrade that changed nothing",
+      d: "A service with a bad p99. Somebody suggests more memory.",
+      before: { serialPct: 45, lambda: 100, pool: 32, io: 6, cores: 16, quota: 16, heapMB: 512 },
+      after: { serialPct: 45, lambda: 100, pool: 32, io: 6, cores: 16, quota: 16, heapMB: 4096 },
+      q: "This service answers 100 requests a second on 16 cores. Its p99 is terrible. The CPUs are only about 11% busy, so somebody proposes quadrupling the heap from 512 MB to 4 GB. What happens to p99?",
+      sub: "Guess before you look at the breakdown bar.",
+      opts: [["It drops sharply — more heap means fewer collections", false],
+             ["It barely moves at all", true],
+             ["It gets much worse — bigger heaps mean longer pauses", false]],
+      reveal: function (a, b) {
+        return "p99 went from <b>" + ms(a.p99) + " ms</b> to <b>" + ms(b.p99) + " ms</b>. Nothing happened, because " +
+          "nothing was ever wrong with memory: the collector ran " + a.gcYoung + " times in the whole run and the " +
+          "average request lost " + ms(a.buckets.gc) + " ms to it. What the request actually lost was <b>" +
+          ms(a.buckets.lock) + " ms waiting for a lock</b> that only one thread at a time may hold. " +
+          "Now set <em>Share of the work under one lock</em> to 6% and watch p99 fall to about " +
+          ms(runHeadless(C({ serialPct: 6, lambda: 100, pool: 32, io: 6, cores: 16, quota: 16 })).p99) +
+          " ms. <b>The rule this teaches:</b> a change that does not touch the bottleneck buys exactly nothing, " +
+          "and 'it seemed like it might help' is not a diagnosis.";
+      }
+    },
+    {
+      t: "More threads, less work done",
+      d: "A CPU-bound service on 8 cores. The pool goes from 8 threads to 128.",
+      before: { pool: 8, lambda: 450, cores: 8, quota: 8, serialPct: 0, kappaPct: 300, io: 0, work: 20, qcap: 500 },
+      after: { pool: 128, lambda: 450, cores: 8, quota: 8, serialPct: 0, kappaPct: 300, io: 0, work: 20, qcap: 500 },
+      len: 40000,
+      q: "Eight threads on eight cores, all of them busy computing, and a queue of requests waiting. You raise the pool to 128 threads. Same machine, same cores, same work. What happens to the number of requests answered per second?",
+      sub: "The queue is full, so there is definitely work for the extra threads to do.",
+      opts: [["It rises — more threads, more parallelism", false],
+             ["It stays the same — the cores were already saturated", false],
+             ["It falls — measurably fewer requests answered", true]],
+      reveal: function (a, b) {
+        return "Throughput fell from <b>" + f1(a.throughput) + "/s</b> to <b>" + f1(b.throughput) + "/s</b> — that is " +
+          Math.round((1 - b.throughput / a.throughput) * 100) + "% <em>less</em> work done on identical hardware — " +
+          "and p99 went from " + ms(a.p99) + " ms to " + ms(b.p99) + " ms. The cores were already busy every " +
+          "millisecond, so the extra 120 threads added no capacity; what they added was overhead. Each thread's work " +
+          "inflated by <b>" + f1(b.coh) + "x</b> from cache traffic and scheduler churn. " +
+          "<b>The rule:</b> past the point where the cores are full, threads stop being workers and start being " +
+          "customers. Tab 2 draws the curve this sits on.";
+      }
+    },
+    {
+      t: "The deployment that looked broken for a minute",
+      d: "A fresh JVM taking full production traffic from its first millisecond.",
+      before: { fresh: false, lambda: 80, pool: 24, io: 25 },
+      after: { fresh: true, lambda: 80, pool: 24, io: 25 },
+      len: 6000,
+      q: "You deploy a new instance and immediately send it its full share of traffic. The code is identical to the instance beside it, which is answering in about 41 ms. What does the new instance's median look like in its first second and a half?",
+      sub: "Nothing is misconfigured. The heap, the pool and the collector are all the same.",
+      opts: [["About the same — 40-ish ms", false],
+             ["Roughly 2 to 3 times worse", true],
+             ["Roughly 50 times worse", false]],
+      reveal: function (a, b) {
+        var hot = runHeadless(C({ fresh: true, lambda: 80, pool: 24, io: 0, work: 18 }), 1500);
+        var hotw = runHeadless(C({ fresh: false, lambda: 80, pool: 24, io: 0, work: 18 }), 6000);
+        return "The cold instance opened at <b>" + ms(b.p50) + " ms</b> against the warm one's <b>" + ms(a.p50) +
+          " ms</b>. Java code starts life interpreted; only after a method has been called a few hundred times does the " +
+          "compiler decide it is worth compiling, and only after a few thousand does it compile it properly. " +
+          "Keep pressing <em>Step 1s</em> and watch the log announce each compilation, and the median drop each time. " +
+          "<br><br><b>The part that is easy to miss:</b> this handler waits 25 ms on a database, and no compiler can " +
+          "speed up waiting — so the penalty is diluted to about " + f1(b.p50 / Math.max(1, a.p50)) + "x. " +
+          "Set the database wait to 0 and the same cold start costs <b>" + f1(hot.p50 / Math.max(1, hotw.p50)) +
+          "x</b> instead. <b>The rule:</b> benchmark results from an unwarmed JVM are fiction, and a canary that " +
+          "looks bad for thirty seconds may be perfectly healthy.";
+      }
+    },
+    {
+      t: "Sixteen cores the JVM was never allowed to use",
+      d: "The machine has 16 cores. The container limit says 2.",
+      before: { cores: 16, quota: 16, pool: 32, lambda: 200 },
+      after: { cores: 16, quota: 2, pool: 32, lambda: 200 },
+      q: "Same JVM, same code, same 16-core machine. The only change is a container CPU limit of 2 cores. The host dashboard will still show 16 cores that are 87% idle. What does p99 do?",
+      sub: "This is the single most common production surprise in containerised Java.",
+      opts: [["Rises by roughly the ratio, so about 8x", false],
+             ["Rises catastrophically — far more than 8x", true],
+             ["Barely changes, because the service mostly waits on the database", false]],
+      reveal: function (a, b) {
+        return "p99 went from <b>" + ms(a.p99) + " ms</b> to <b>" + ms(b.p99) + " ms</b> — a factor of " +
+          f1(b.p99 / Math.max(1, a.p99)) + ", not 8 — and throughput fell from " + f1(a.throughput) + "/s to " +
+          f1(b.throughput) + "/s. Capacity did not fall smoothly; it fell past the point where arrivals exceed " +
+          "capacity, and after that the queue grows without limit. " +
+          "<br><br><b>Now look at the breakdown bar, because it is the real lesson.</b> The biggest block is not " +
+          "'waiting for a CPU' (" + ms(b.buckets.thr) + " ms) — it is <b>waiting for a handler thread</b> (" +
+          ms(b.buckets.queue) + " ms). Throttling does not announce itself as a CPU problem. It shows up on your " +
+          "dashboard as queueing, on a host graph as an idle machine, and in your inbox as a latency alert.";
+      }
+    },
+    {
+      t: "Garbage per request, not gigabytes of heap",
+      d: "The same service, four different attempts at fixing its pauses.",
+      before: { gc: "serial", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 },
+      after: { gc: "serial", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 128 },
+      len: 40000,
+      q: "A service keeps 1.2 GB of long-lived data and produces about 1 MB of garbage per request. Its p99 is bad and the log is full of collections. Four fixes are on the table: quadruple the heap, switch collector, allocate eight times less per request, or add more threads. Which single change does the most for p99?",
+      sub: "All four are things people really try.",
+      opts: [["Quadruple the heap", false],
+             ["Allocate eight times less per request", true],
+             ["Add four times the handler threads", false]],
+      reveal: function (a, b) {
+        var base = { gc: "serial", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 };
+        function w(o) { var c = {}; for (var k in base) c[k] = base[k]; for (var k2 in o) c[k2] = o[k2]; return c; }
+        var h4 = runHeadless(C(w({ heapMB: 2048 })), 40000);
+        var g1 = runHeadless(C(w({ gc: "g1" })), 40000);
+        var th = runHeadless(C(w({ pool: 96 })), 40000);
+        var co = runHeadless(C(w({ cores: 32, quota: 32 })), 40000);
+        return "<table style='min-width:0'><tr><th>change</th><th class='n'>p99</th><th class='n'>longest freeze</th><th class='n'>collections</th></tr>" +
+          "<tr><td>nothing</td><td class='n'>" + ms(a.p99) + " ms</td><td class='n'>" + ms(a.maxPause) + " ms</td><td class='n'>" + a.gcYoung + " + " + a.gcOld + "</td></tr>" +
+          "<tr><td>4x the heap</td><td class='n'>" + ms(h4.p99) + " ms</td><td class='n'>" + ms(h4.maxPause) + " ms</td><td class='n'>" + h4.gcYoung + " + " + h4.gcOld + "</td></tr>" +
+          "<tr><td>switch to G1</td><td class='n'>" + ms(g1.p99) + " ms</td><td class='n'>" + ms(g1.maxPause) + " ms</td><td class='n'>" + g1.gcYoung + " + " + g1.gcOld + "</td></tr>" +
+          "<tr class='hl'><td>allocate 8x less</td><td class='n'>" + ms(b.p99) + " ms</td><td class='n'>" + ms(b.maxPause) + " ms</td><td class='n'>" + b.gcYoung + " + " + b.gcOld + "</td></tr>" +
+          "<tr class='dim'><td>4x the threads</td><td class='n'>" + ms(th.p99) + " ms</td><td class='n'>" + ms(th.maxPause) + " ms</td><td class='n'>" + th.gcYoung + " + " + th.gcOld + "</td></tr>" +
+          "<tr class='dim'><td>4x the cores</td><td class='n'>" + ms(co.p99) + " ms</td><td class='n'>" + ms(co.maxPause) + " ms</td><td class='n'>" + co.gcYoung + " + " + co.gcOld + "</td></tr></table>" +
+          "<br>Two things fixed the frequency (more heap, less garbage) and only one fixed the <em>length</em> of each " +
+          "freeze — allocating less, because fewer requests are in flight holding live objects when the collector runs. " +
+          "Threads and cores did nothing, and more threads made it worse. <b>The rule:</b> collection frequency is " +
+          "your garbage divided by your room; collection cost is how much is still alive. Attack the first with " +
+          "allocation, the second with retention, and the heap size only when you have done neither.";
+      }
+    },
+    {
+      t: "A 180 ms freeze with no garbage collection in it",
+      d: "The collector's own pause is under a millisecond. The freeze is not.",
+      before: { ttsp: 1, lambda: 200, pool: 24, gc: "zgc", liveMB: 200, allocKB: 1024, heapMB: 256 },
+      after: { ttsp: 180, lambda: 200, pool: 24, gc: "zgc", liveMB: 200, allocKB: 1024, heapMB: 256 },
+      len: 40000,
+      q: "You are running ZGC, whose collection pauses are well under a millisecond, and you are still seeing freezes of about 180 ms. The garbage-collection log shows tiny pauses. Where is the time going?",
+      sub: "Before a pause can begin, every application thread must volunteer to stop at a point where the collector can safely look at it.",
+      opts: [["The collector log is lying about its pause times", false],
+             ["The time is spent waiting for threads to reach a stopping point", true],
+             ["ZGC is falling back to a full collection", false]],
+      reveal: function (a, b) {
+        return "With threads stopping promptly, the longest freeze was <b>" + ms(a.maxPause) + " ms</b> and p99 was " +
+          ms(a.p99) + " ms. With one thread that takes 180 ms to notice it has been asked to stop, the longest freeze " +
+          "became <b>" + ms(b.maxPause) + " ms</b> and p99 became <b>" + ms(b.p99) + " ms</b> — even though the " +
+          "collector's own work did not change at all. Every other thread was already stopped and waiting for the " +
+          "slow one. <b>The rule:</b> a stop-the-world pause costs the collector's work <em>plus</em> the time the " +
+          "last thread takes to arrive, and a thread inside a tight counting loop over an array may not check for a " +
+          "very long time. In a real JVM you find this with safepoint logging, not garbage-collection logging — they " +
+          "are different logs, and the garbage-collection one will look innocent.";
+      }
+    },
+    {
+      t: "Four collectors, one honest trade",
+      d: "A 1.2 GB live set and a heavy allocation rate. Nobody wins outright.",
+      before: { gc: "serial", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 },
+      after: { gc: "zgc", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 },
+      len: 40000,
+      q: "Switching from the Serial collector to ZGC cuts the longest freeze from around half a second to a few milliseconds. What does it do to p99?",
+      sub: "ZGC does most of its work while your threads keep running — but that work still has to happen somewhere.",
+      opts: [["p99 improves by roughly the same factor as the pause", false],
+             ["p99 improves, but nowhere near as much as the pause did", true],
+             ["p99 gets worse, because concurrent collectors are slower overall", false]],
+      reveal: function (a, b) {
+        var pa = runHeadless(C({ gc: "parallel", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 }), 40000);
+        var g1 = runHeadless(C({ gc: "g1", lambda: 200, pool: 24, liveMB: 1200, heapMB: 512, allocKB: 1024 }), 40000);
+        return "<table style='min-width:0'><tr><th>collector</th><th class='n'>median</th><th class='n'>p99</th><th class='n'>longest freeze</th><th class='n'>CPU tax</th></tr>" +
+          "<tr><td>Serial</td><td class='n'>" + ms(a.p50) + "</td><td class='n'>" + ms(a.p99) + "</td><td class='n'>" + ms(a.maxPause) + " ms</td><td class='n'>" + Math.round(a.gcTax * 100) + "%</td></tr>" +
+          "<tr><td>Parallel</td><td class='n'>" + ms(pa.p50) + "</td><td class='n'>" + ms(pa.p99) + "</td><td class='n'>" + ms(pa.maxPause) + " ms</td><td class='n'>" + Math.round(pa.gcTax * 100) + "%</td></tr>" +
+          "<tr><td>G1</td><td class='n'>" + ms(g1.p50) + "</td><td class='n'>" + ms(g1.p99) + "</td><td class='n'>" + ms(g1.maxPause) + " ms</td><td class='n'>" + Math.round(g1.gcTax * 100) + "%</td></tr>" +
+          "<tr class='hl'><td>ZGC</td><td class='n'>" + ms(b.p50) + "</td><td class='n'>" + ms(b.p99) + "</td><td class='n'>" + ms(b.maxPause) + " ms</td><td class='n'>" + Math.round(b.gcTax * 100) + "%</td></tr></table>" +
+          "<br>The freeze fell by a factor of " + Math.round(a.maxPause / Math.max(0.1, b.maxPause)) + ", p99 by a factor of " +
+          f1(a.p99 / Math.max(1, b.p99)) + ". At this allocation rate ZGC is spending " + Math.round(b.gcTax * 100) +
+          "% of the machine's CPU on collecting while your code runs, and that CPU comes out of your requests. " +
+          "<b>The rule:</b> a concurrent collector does not delete the work, it moves it off the pause and onto the " +
+          "CPU bill — and the bill scales with how much garbage you make. Drop the allocation rate and ZGC becomes " +
+          "cheap; leave it high and you pay for the low pause in throughput.";
+      }
+    },
+    {
+      t: "The dashboard that was green while users waited",
+      d: "One overloaded run, measured by two different stopwatches.",
+      before: { lambda: 300, pool: 12, cores: 8, quota: 8, work: 18, io: 25 },
+      after: { lambda: 300, pool: 12, cores: 8, quota: 8, work: 18, io: 25 },
+      len: 40000,
+      q: "A service is overloaded. Its own metric — a timer started at the top of the handler method and stopped at the bottom — reports a p99 of about 120 ms, which is inside the SLA. Users report multi-second waits. Who is wrong?",
+      sub: "Both numbers come from the same requests on the same run. Neither timer is buggy.",
+      opts: [["The users — 120 ms is measured, their impression is not", false],
+             ["The metric — it never counted the time before the handler started", true],
+             ["Neither: the users are hitting a different instance", false]],
+      reveal: function (a) {
+        return "On this run the in-handler timer reports p50 <b>" + ms(a.svcP50) + " ms</b> / p99 <b>" + ms(a.svcP99) +
+          " ms</b>. A timer started when the request actually <em>arrived</em> reports p50 <b>" + ms(a.p50) +
+          " ms</b> / p99 <b>" + ms(a.p99) + " ms</b> — " + f1(a.p99 / Math.max(1, a.svcP99)) + " times higher. " +
+          "The difference is " + ms(a.buckets.queue) + " ms of sitting in a queue before any handler touched the " +
+          "request, which the in-handler timer is structurally incapable of seeing. " +
+          "<br><br>The same bug has a second form that catches load tests: a load generator with a fixed number of " +
+          "client threads stops sending while the server is stalled, so the stall never appears in its results. Both " +
+          "are the same mistake — <b>measuring from when you got served rather than from when you started waiting</b>. " +
+          "Tab 3 shows both timers side by side on the run you have loaded.";
+      }
+    }
+  ];
+
+  function renderScenarios() {
+    var h = "", i;
+    for (i = 0; i < SCEN.length; i++)
+      h += '<button class="sc" data-s="' + i + '" aria-current="' + (curScen === i) + '"><span class="sn">' +
+        (i + 1 < 10 ? "0" : "") + (i + 1) + '</span><span><span class="st">' + SCEN[i].t +
+        '</span><span class="sd">' + SCEN[i].d + "</span></span></button>";
+    $("scenarios").innerHTML = h;
+    var n = $("scenarios").querySelectorAll(".sc");
+    for (i = 0; i < n.length; i++) n[i].onclick = function () { openScenario(+this.getAttribute("data-s")); };
+  }
+
+  function openScenario(i) {
+    curScen = i; renderScenarios();
+    var s = SCEN[i], h = '<div class="predict"><div class="q">' + s.q + '</div><div class="qs">' + s.sub +
+      '</div><div class="opts">';
+    for (var j = 0; j < s.opts.length; j++)
+      h += '<button class="opt" data-o="' + j + '"><span class="tag">' + "ABC".charAt(j) + '</span>' + s.opts[j][0] + "</button>";
+    h += "</div><div id='revealBox'></div></div>";
+    $("predictBox").innerHTML = h;
+    var nodes = $("predictBox").querySelectorAll(".opt");
+    for (var k = 0; k < nodes.length; k++) nodes[k].onclick = function () { answer(i, +this.getAttribute("data-o")); };
+    setPlaying(false);
+    cfg = C(s.before); syncLabels(); rebuild(s.len || 30000);
+  }
+
+  function answer(i, choice) {
+    var s = SCEN[i], nodes = $("predictBox").querySelectorAll(".opt"), j;
+    for (j = 0; j < nodes.length; j++) {
+      nodes[j].classList.remove("right", "wrong");
+      if (s.opts[j][1]) nodes[j].classList.add("right");
+      else if (j === choice) nodes[j].classList.add("wrong");
+      nodes[j].disabled = true;
+    }
+    var len = s.len || 30000;
+    var a = runHeadless(C(s.before), len);
+    var b = runHeadless(C(s.after), len);
+    var was = s.opts[choice][1];
+    $("revealBox").innerHTML = '<div class="reveal"><b>' + (was ? "That is right." : "Not this time — and this is the useful kind of wrong.") +
+      "</b> " + s.reveal(a, b) + "<br><br><em>The knobs on the left are now set to the second case, and the run is " +
+      "loaded. Press Run, or move any slider, to keep experimenting from here.</em></div>";
+    cfg = C(s.after); syncLabels(); rebuild(len);
+  }
+
+  /* ------------------------- TAB 2: scaling laws ----------------------- */
+  var sCfg = { serial: 0.05, kappa: 0.001, n: 16 };
+  var SPRESETS = [
+    { t: "A shared counter on every request", d: "2% one-at-a-time, heavy cache traffic", s: 0.02, k: 0.004 },
+    { t: "One connection pool, one database", d: "12% one-at-a-time, light cross-talk", s: 0.12, k: 0.0004 },
+    { t: "Almost perfectly independent work", d: "0.5% one-at-a-time, negligible cross-talk", s: 0.005, k: 0.00005 },
+    { t: "A synchronized cache everyone writes to", d: "8% one-at-a-time, heavy cross-talk", s: 0.08, k: 0.003 }
+  ];
+
+  function scaleDraw() {
+    var cv = $("scaleCanvas"), ctx = cv.getContext("2d");
+    var css = getComputedStyle(document.documentElement);
+    var col = function (v) { return css.getPropertyValue(v).trim() || "#888"; };
+    var W = cv.width, H = cv.height, L = 56, R = 18, T = 18, B = 42;
+    ctx.clearRect(0, 0, W, H);
+    var maxN = 256;
+    var ys = [];
+    for (var n = 1; n <= maxN; n++) ys.push(Math.max(E.amdahl(sCfg.serial, n), E.usl(sCfg.serial, sCfg.kappa, n)));
+    var maxY = Math.max(4, Math.ceil(Math.max.apply(null, ys) * 1.12));
+    function X(n) { return L + (Math.log2(n) / Math.log2(maxN)) * (W - L - R); }
+    function Y(v) { return H - B - (v / maxY) * (H - T - B); }
+
+    ctx.strokeStyle = col("--line"); ctx.fillStyle = col("--tx3");
+    ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.lineWidth = 1;
+    var gy;
+    for (gy = 0; gy <= maxY; gy += Math.max(1, Math.round(maxY / 6))) {
+      ctx.beginPath(); ctx.moveTo(L, Y(gy)); ctx.lineTo(W - R, Y(gy)); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(gy + "x", L - 8, Y(gy) + 4);
+    }
+    ctx.textAlign = "center";
+    for (var p = 0; p <= 8; p++) {
+      var nn = Math.pow(2, p);
+      ctx.fillText(nn, X(nn), H - B + 17);
+    }
+    ctx.fillText("threads", (L + W - R) / 2, H - 8);
+    ctx.save(); ctx.translate(14, (T + H - B) / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText("speed-up over one thread", 0, 0); ctx.restore();
+
+    function curve(fn, color, dash, width) {
+      ctx.beginPath(); ctx.setLineDash(dash || []); ctx.strokeStyle = color; ctx.lineWidth = width || 2;
+      for (var n = 1; n <= maxN; n++) { var x = X(n), y = Y(fn(n)); if (n === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    curve(function (n) { return n; }, col("--tx3"), [4, 4], 1.5);
+    curve(function (n) { return E.amdahl(sCfg.serial, n); }, col("--violet"), [], 2);
+    curve(function (n) { return E.usl(sCfg.serial, sCfg.kappa, n); }, col("--amber"), [], 2.5);
+
+    /* Amdahl ceiling */
+    var ceil = 1 / sCfg.serial;
+    if (sCfg.serial > 0 && ceil <= maxY) {
+      ctx.setLineDash([2, 5]); ctx.strokeStyle = col("--violet"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(L, Y(ceil)); ctx.lineTo(W - R, Y(ceil)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col("--violet"); ctx.textAlign = "left";
+      ctx.fillText("ceiling " + ceil.toFixed(1) + "x — unreachable with any number of threads", L + 8, Y(ceil) - 6);
+    }
+    /* USL peak */
+    var pk = E.uslPeak(sCfg.serial, sCfg.kappa);
+    if (isFinite(pk) && pk >= 1 && pk <= maxN) {
+      var pv = E.usl(sCfg.serial, sCfg.kappa, pk);
+      ctx.fillStyle = col("--amber");
+      ctx.beginPath(); ctx.arc(X(pk), Y(pv), 4.5, 0, 6.284); ctx.fill();
+      ctx.textAlign = "center";
+      ctx.fillText("best at " + Math.round(pk) + " threads", X(pk), Y(pv) - 12);
+    }
+    /* current n */
+    var cv2 = E.usl(sCfg.serial, sCfg.kappa, sCfg.n);
+    ctx.strokeStyle = col("--tx2"); ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(X(sCfg.n), T); ctx.lineTo(X(sCfg.n), H - B); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = col("--tx"); ctx.beginPath(); ctx.arc(X(sCfg.n), Y(cv2), 4, 0, 6.284); ctx.fill();
+  }
+
+  function scaleRender() {
+    $("v-sserial").textContent = (sCfg.serial * 100).toFixed(1) + " %";
+    $("v-skappa").textContent = (sCfg.kappa * 100).toFixed(3) + " %";
+    $("v-sn").textContent = sCfg.n;
+    var ceil = sCfg.serial > 0 ? 1 / sCfg.serial : Infinity;
+    var now = E.usl(sCfg.serial, sCfg.kappa, sCfg.n);
+    var pk = E.uslPeak(sCfg.serial, sCfg.kappa);
+    var dbl = E.usl(sCfg.serial, sCfg.kappa, sCfg.n * 2);
+    $("scaleTitle").textContent = sCfg.n + " threads is doing the work of " + now.toFixed(1) + ".";
+    $("scaleBody").innerHTML =
+      "Doubling to " + (sCfg.n * 2) + " threads would take you to <b>" + dbl.toFixed(1) + "x</b> — " +
+      (dbl > now ? "a gain of " + ((dbl / now - 1) * 100).toFixed(0) + "% for 100% more threads."
+                 : "<b style='color:var(--bad)'>a loss of " + ((1 - dbl / now) * 100).toFixed(0) + "%</b>. Past this point threads are subtracting.") +
+      (isFinite(ceil) ? " Even with unlimited threads and zero cross-talk you could never exceed <b>" + ceil.toFixed(1) +
+        "x</b>, because " + (sCfg.serial * 100).toFixed(1) + "% of the work has to happen one thread at a time." : "") +
+      (isFinite(pk) && pk >= 1 ? " With this much cross-talk the best you can do is <b>" +
+        E.usl(sCfg.serial, sCfg.kappa, pk).toFixed(1) + "x at " + Math.round(pk) + " threads</b>." : "");
+    $("scaleVerdict").className = "verdict" + (dbl <= now ? " bad" : "");
+    $("scaleNote").innerHTML = "<b>Amdahl</b>: speed-up = 1 / (s + (1-s)/N). It only knows about the one-at-a-time " +
+      "share s, so it flattens but never turns down. <b>Universal Scalability Law</b>: speed-up = N / (1 + s(N-1) + " +
+      "kN(N-1)). The extra term is the cost of every thread having to agree with every other thread, which grows with " +
+      "the <em>square</em> of N — and that is what pulls the curve back down. Both are closed-form formulas, " +
+      "evaluated here exactly; nothing is simulated on this tab.";
+
+    var rows = "<tr><th>threads</th><th class='n'>perfect</th><th class='n'>Amdahl</th><th class='n'>with cross-talk</th><th>what that means</th></tr>";
+    var ns = [1, 2, 4, 8, 16, 32, 64, 128, 256], prev = null;
+    for (var i = 0; i < ns.length; i++) {
+      var n = ns[i], u = E.usl(sCfg.serial, sCfg.kappa, n);
+      var note = prev === null ? "the baseline" :
+        (u > prev * 1.02 ? "still buying something" : (u > prev * 0.98 ? "the extra threads are free but useless" : "actively losing work"));
+      rows += "<tr" + (Math.abs(n - sCfg.n) < 0.5 ? " class='hl'" : "") + "><td class='n'>" + n + "</td><td class='n'>" + n +
+        "x</td><td class='n'>" + E.amdahl(sCfg.serial, n).toFixed(1) + "x</td><td class='n'>" + u.toFixed(1) + "x</td><td>" + note + "</td></tr>";
+      prev = u;
+    }
+    $("scaleTable").innerHTML = rows;
+    scaleDraw();
+  }
+
+  (function wireScale() {
+    $("s-serial").oninput = function () { sCfg.serial = Number(this.value) / 1000; scaleRender(); };
+    $("s-kappa").oninput = function () { sCfg.kappa = Number(this.value) / 10000; scaleRender(); };
+    $("s-n").oninput = function () { sCfg.n = Number(this.value); scaleRender(); };
+    var h = "";
+    for (var i = 0; i < SPRESETS.length; i++)
+      h += '<button class="sc" data-p="' + i + '"><span class="sn">' + (i + 1) + '</span><span><span class="st">' +
+        SPRESETS[i].t + '</span><span class="sd">' + SPRESETS[i].d + "</span></span></button>";
+    $("scalePresets").innerHTML = h;
+    var n = $("scalePresets").querySelectorAll(".sc");
+    for (var j = 0; j < n.length; j++) n[j].onclick = function () {
+      var p = SPRESETS[+this.getAttribute("data-p")];
+      sCfg.serial = p.s; sCfg.kappa = p.k;
+      $("s-serial").value = p.s * 1000; $("s-kappa").value = p.k * 10000;
+      scaleRender();
+    };
+  })();
+
+  /* ------------------------ TAB 3: measurement ------------------------- */
+  var FRAMES = [
+    { n: "parseRequest()", cpu: 0.15, io: 0, lock: 0, poll: true },
+    { n: "loadCustomer()", cpu: 0, io: 1, lock: 0, poll: true },
+    { n: "computePricing()", cpu: 0.60, io: 0, lock: 0, poll: false },
+    { n: "applyLimits()", cpu: 0.10, io: 0, lock: 1, poll: true },
+    { n: "writeResponse()", cpu: 0.15, io: 0, lock: 0, poll: true }
+  ];
+  var SP_DISPLACE = 0.92;   /* share of samples inside the un-polled loop that land on the next frame */
+
+  function histDraw(walls, mean, p50, p99) {
+    var cv = $("histCanvas"), ctx = cv.getContext("2d");
+    var css = getComputedStyle(document.documentElement);
+    var col = function (v) { return css.getPropertyValue(v).trim() || "#888"; };
+    var W = cv.width, H = cv.height, L = 44, R = 14, T = 14, B = 40;
+    ctx.clearRect(0, 0, W, H);
+    if (!walls.length) { ctx.fillStyle = col("--tx3"); ctx.font = "13px sans-serif"; ctx.fillText("Run the simulation on tab 1 first.", L, H / 2); return; }
+    var hi = Math.max.apply(null, walls), NB = 44, bins = [];
+    for (var i = 0; i < NB; i++) bins.push(0);
+    for (i = 0; i < walls.length; i++) bins[Math.min(NB - 1, Math.floor(walls[i] / hi * NB))]++;
+    var mx = Math.max.apply(null, bins) || 1;
+    function X(v) { return L + (v / hi) * (W - L - R); }
+    ctx.fillStyle = col("--sky");
+    for (i = 0; i < NB; i++) {
+      var bw = (W - L - R) / NB, hgt = (bins[i] / mx) * (H - T - B);
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(L + i * bw + 0.5, H - B - hgt, bw - 1, hgt);
+    }
+    ctx.globalAlpha = 1;
+    function mark(v, c, label) {
+      if (v > hi) return;
+      ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(X(v), T); ctx.lineTo(X(v), H - B); ctx.stroke();
+      ctx.fillStyle = c; ctx.font = "600 11px 'IBM Plex Mono', monospace"; ctx.textAlign = "left";
+      ctx.fillText(label, X(v) + 5, T + 12);
+    }
+    mark(mean, col("--teal"), "mean " + ms(mean) + "ms");
+    mark(p50, col("--violet"), "p50 " + ms(p50) + "ms");
+    mark(p99, col("--crimson"), "p99 " + ms(p99) + "ms");
+    ctx.strokeStyle = col("--line"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L, H - B); ctx.lineTo(W - R, H - B); ctx.stroke();
+    ctx.fillStyle = col("--tx3"); ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.textAlign = "center";
+    for (var t = 0; t <= 5; t++) ctx.fillText(Math.round(hi * t / 5) + "ms", X(hi * t / 5), H - B + 16);
+    ctx.fillText("response time", (L + W - R) / 2, H - 8);
+    ctx.save(); ctx.translate(13, (T + H - B) / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText("requests", 0, 0); ctx.restore();
+  }
+
+  function renderMeasure(r) {
+    var walls = [], i;
+    for (i = 0; i < st.done.length; i++) walls.push(st.done[i].wall);
+    histDraw(walls, r.mean, r.p50, r.p99);
+
+    var over = walls.length ? walls.filter(function (x) { return x > r.mean; }).length : 0;
+    function s(k, n, u, cl) { return '<div class="stat ' + (cl || "") + '"><div class="k">' + k + '</div><div class="n">' + n + '<span class="u">' + (u || "") + "</span></div></div>"; }
+    $("measStats").innerHTML =
+      s("mean", ms(r.mean), " ms") + s("median", ms(r.p50), " ms") + s("p95", ms(r.p95), " ms") +
+      s("p99", ms(r.p99), " ms", r.p99 > r.mean * 3 ? "hot" : "") + s("worst", ms(r.max), " ms") +
+      s("p99 ÷ mean", (r.p99 / Math.max(1, r.mean)).toFixed(1), "x", r.p99 > r.mean * 3 ? "hot" : "");
+    $("measNote1").innerHTML = walls.length
+      ? "On this run the mean is <b>" + ms(r.mean) + " ms</b> and the p99 is <b>" + ms(r.p99) + " ms</b> — " +
+        (r.p99 / Math.max(1, r.mean)).toFixed(1) + " times higher. " + Math.round(100 * over / walls.length) +
+        "% of requests were slower than the mean, so the mean is not even the typical request. An alert threshold " +
+        "set on the mean would have to be crossed by a very large number of very slow requests before it fired, " +
+        "and by then the service is long gone. <b>Alert on a percentile; the mean is only useful for capacity " +
+        "arithmetic, where it is exactly right.</b>"
+      : "Run the simulation on tab 1 first.";
+
+    var gap = r.p99 - r.svcP99;
+    $("coTable").innerHTML =
+      "<tr><th>what the timer measured</th><th class='n'>median</th><th class='n'>p95</th><th class='n'>p99</th><th>what it misses</th></tr>" +
+      "<tr><td>Started when the handler picked the request up<br><span class='sd' style='color:var(--tx3);font-size:11.5px'>a timer at the top of your method, or an interceptor inside the pool</span></td>" +
+      "<td class='n'>" + ms(r.svcP50) + " ms</td><td class='n'>—</td><td class='n'>" + ms(r.svcP99) + " ms</td>" +
+      "<td>everything that happened before a thread was free</td></tr>" +
+      "<tr class='hl'><td>Started when the request arrived<br><span class='sd' style='color:var(--tx3);font-size:11.5px'>what a person outside actually waited</span></td>" +
+      "<td class='n'>" + ms(r.p50) + " ms</td><td class='n'>" + ms(r.p95) + " ms</td><td class='n'>" + ms(r.p99) + " ms</td>" +
+      "<td>nothing</td></tr>";
+    $("measNote2").innerHTML = "The gap on this run is <b>" + ms(gap) + " ms at p99</b> (" +
+      (r.p99 / Math.max(1, r.svcP99)).toFixed(1) + "x), and all of it is the <b>" + ms(r.buckets.queue) +
+      " ms</b> the average request spent queued for a thread. Increase the arrival rate on tab 1 and watch the gap " +
+      "widen; drop it below capacity and the two timers agree. <br><br>This is the same mistake as a load generator " +
+      "with a fixed pool of client threads: while the server is stalled the generator is blocked too, so it never " +
+      "sends the requests that would have been slow, and the stall vanishes from the results. The fix in both cases " +
+      "is to time from the moment the work was <em>supposed</em> to start, not from the moment it did.";
+
+    /* ---- three profilers on the same request ---- */
+    var cpuPool = r.buckets.cpu + r.buckets.jit, ioPool = r.buckets.io,
+      lockPool = r.buckets.lock, qPool = r.buckets.queue, gcPool = r.buckets.gc, thrPool = r.buckets.thr;
+    var total = r.total || 1;
+    var pathRows = "<tr><th>frame</th><th class='n'>on a CPU</th><th class='n'>asleep</th><th class='n'>waiting for the lock</th><th>checks for a stop request?</th></tr>";
+    for (i = 0; i < FRAMES.length; i++) {
+      var fr = FRAMES[i];
+      pathRows += "<tr" + (fr.poll ? "" : " class='hl'") + "><td class='mono'>" + fr.n + "</td>" +
+        "<td class='n'>" + ms(fr.cpu * cpuPool) + " ms</td><td class='n'>" + ms(fr.io * ioPool) + " ms</td>" +
+        "<td class='n'>" + ms(fr.lock * lockPool) + " ms</td><td>" +
+        (fr.poll ? "yes" : "<b>no — a tight loop counting over an array</b>") + "</td></tr>";
+    }
+    $("profPath").innerHTML = pathRows;
+
+    var cpuProf = [], wallProf = [], spProf = [];
+    for (i = 0; i < FRAMES.length; i++) {
+      cpuProf.push({ n: FRAMES[i].n, v: FRAMES[i].cpu * cpuPool });
+      wallProf.push({ n: FRAMES[i].n, v: FRAMES[i].cpu * cpuPool + FRAMES[i].io * ioPool + FRAMES[i].lock * lockPool });
+      spProf.push({ n: FRAMES[i].n, v: FRAMES[i].cpu * cpuPool });
+    }
+    wallProf.push({ n: "[waiting for a handler thread]", v: qPool });
+    wallProf.push({ n: "[frozen by the collector]", v: gcPool });
+    wallProf.push({ n: "[ready to run, no core free]", v: thrPool });
+    /* the un-polled frame's samples are displaced onto the next frame that does poll */
+    var moved = spProf[2].v * SP_DISPLACE;
+    spProf[2].v -= moved; spProf[3].v += moved;
+
+    function tbl(list, denom) {
+      var out = "", tot = 0, j;
+      for (j = 0; j < list.length; j++) tot += list[j].v;
+      tot = denom || tot || 1;
+      var sorted = list.slice().sort(function (a, b) { return b.v - a.v; });
+      for (j = 0; j < sorted.length; j++) {
+        var p = 100 * sorted[j].v / tot;
+        if (p < 0.4) continue;
+        out += "<tr" + (j === 0 ? " class='hl'" : "") + "><td class='mono'>" + sorted[j].n + "</td>" +
+          "<td class='n'>" + p.toFixed(1) + "%</td><td style='width:34%'><span class='bar' style='width:" +
+          Math.max(2, p) + "%'></span></td></tr>";
+      }
+      return out;
+    }
+    function topOf(list) { var b = list[0]; for (var j = 1; j < list.length; j++) if (list[j].v > b.v) b = list[j]; return b; }
+
+    $("profTable").innerHTML =
+      "<tr><th colspan='3' style='font-size:11px;letter-spacing:.06em'>A — sampling profiler that only looks at threads while they are on a CPU (async-profiler, JFR)</th></tr>" +
+      tbl(cpuProf) +
+      "<tr><th colspan='3' style='font-size:11px;letter-spacing:.06em;padding-top:16px'>B — sampling profiler that can only take a sample when a thread has stopped at a safe point (jstack-style)</th></tr>" +
+      tbl(spProf) +
+      "<tr><th colspan='3' style='font-size:11px;letter-spacing:.06em;padding-top:16px'>C — wall-clock profiler, which counts a thread whatever it is doing</th></tr>" +
+      tbl(wallProf, total);
+
+    $("measNote3").innerHTML =
+      "Same run, same requests. <b>Profiler A</b> says spend your week on <code>" + topOf(cpuProf).n +
+      "</code>. <b>Profiler B</b> says spend it on <code>" + topOf(spProf).n + "</code> — a method that does " +
+      "almost no computing; it looks hot only because the profiler cannot take a sample inside the tight loop next " +
+      "door and charges those samples to the first place it can stop. <b>Profiler C</b> says <code>" +
+      topOf(wallProf).n + "</code> dominates, and no amount of rewriting Java will touch it. " +
+      "<br><br>None of the three is broken. A is answering \"where is CPU burned\", B is answering the same question " +
+      "with a blind spot it never mentions, and C is answering \"where does the elapsed time go\". <b>Decide which " +
+      "question you are asking before you pick the tool</b>, and when the two disagree, believe the wall clock about " +
+      "latency and the CPU profile about CPU.";
+  }
+
+  /* ------------------------- TAB 4: model rules ------------------------ */
+  (function rules() {
+    var C1 = E.COLLECTORS, rows =
+      "<tr><th>rule</th><th>value used</th></tr>" +
+      "<tr><td>Requests arrive independently of each other, at the rate you set (a Poisson process)</td><td class='mono'>gaps drawn from an exponential distribution</td></tr>" +
+      "<tr><td>A share of requests need much more CPU than the rest, with the average held constant</td><td class='mono'>3% of them cost " + E.SPIKE_LO + "x to " + E.SPIKE_HI + "x</td></tr>" +
+      "<tr><td>A request runs some code, waits on the database, takes a lock, then runs more code</td><td class='mono'>55% CPU · wait · lock · 45% CPU</td></tr>" +
+      "<tr><td>Un-compiled code costs a multiple of compiled code</td><td class='mono'>" +
+        E.TIER[0].mult + "x interpreted → " + E.TIER[1].mult + "x after " + E.TIER[1].at + " calls → " +
+        E.TIER[2].mult + "x after " + E.TIER[2].at + " calls</td></tr>" +
+      "<tr><td>Usable CPU is the smaller of the core count and the container limit</td><td class='mono'>min(cores, quota), shared equally between threads that want it</td></tr>" +
+      "<tr><td>Threads that are actually running interfere with each other</td><td class='mono'>work x (1 + k x (running-1))</td></tr>" +
+      "<tr><td>More threads than cores costs scheduling overhead on top</td><td class='mono'>work x (1 + " + E.CSW + " x oversubscription)</td></tr>" +
+      "<tr><td>The allocation area is a fixed share of the heap; filling it starts a collection</td><td class='mono'>" +
+        Math.round(E.EDEN_SHARE * 100) + "% of the heap</td></tr>" +
+      "<tr><td>Every " + E.OLD_EVERY + "th collection also collects the long-lived data</td><td class='mono'>1 in " + E.OLD_EVERY + "</td></tr>";
+    for (var k in C1)
+      rows += "<tr><td>" + C1[k].name + " pause cost</td><td class='mono'>young: " + C1[k].yBase + " + " + C1[k].yPerMB +
+        " x survivors(MB) · old: " + C1[k].oBase + " + " + C1[k].oPerMB + " x retained(MB) · concurrent CPU tax: " +
+        (C1[k].taxCoef ? (C1[k].taxCoef * 100).toFixed(0) + "% at " + E.TAX_REF_MBPS + " MB/s of allocation, capped at 40%" : "none") + "</td></tr>";
+    rows += "<tr><td>Every pause also costs the time the slowest thread takes to stop</td><td class='mono'>+ the safe-point slider</td></tr>" +
+      "<tr><td>Threads waiting on the database are not frozen by a collection</td><td class='mono'>native waits continue</td></tr>" +
+      "<tr><td>A safe-point-limited profiler cannot sample inside a loop that never checks</td><td class='mono'>" +
+        Math.round(SP_DISPLACE * 100) + "% of those samples land on the next frame</td></tr>";
+    $("rulesTable").innerHTML = rows;
+  })();
+
+  /* ------------------------------- tabs -------------------------------- */
+  (function tabs() {
+    var ids = ["svc", "scale", "meas", "about"];
+    for (var i = 0; i < ids.length; i++) {
+      (function (id) {
+        $("tb-" + id).onclick = function () {
+          for (var j = 0; j < ids.length; j++) {
+            var on = ids[j] === id;
+            $("tb-" + ids[j]).setAttribute("aria-selected", on ? "true" : "false");
+            $("tp-" + ids[j]).classList.toggle("hidden", !on);
+          }
+          if (id === "scale") scaleRender();
+          if (id === "meas") render();
+        };
+      })(ids[i]);
+    }
+  })();
+
+  /* ------------------------------- boot -------------------------------- */
+  syncLabels();
+  renderScenarios();
+  rebuild(WARM_MS);
+  scaleRender();
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", function () { scaleRender(); render(); });
+  }
+  window.__BM = { E: E, get st() { return st; }, get cfg() { return cfg; }, render: render, rebuild: rebuild, SCEN: SCEN, FRAMES: FRAMES, SP_DISPLACE: SP_DISPLACE };
+})();
+</script>

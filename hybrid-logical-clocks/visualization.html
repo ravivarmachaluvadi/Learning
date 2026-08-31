@@ -1,0 +1,438 @@
+<title>Dated Pages, Numbered Lines</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f3f4f2; --panel:#fcfcfa; --panel2:#eceee9; --line:#d6d9d2; --line2:#c0c4bb;
+  --ink:#22251f; --ink2:#5a6054; --ink3:#878d80;
+  --ltime:#2456a6; --ltime-soft:#e3eaf7; --logic:#7b3fa0; --logic-soft:#f0e6f6;
+  --torn:#b3382e; --torn-soft:#f7e6e4; --good:#1e7a4c; --good-soft:#e2f0e8;
+  --laneA:#8a4b23; --laneB:#23648a; --laneC:#4c7a2a;
+  --shadow:0 1px 3px rgba(34,37,31,.08),0 4px 14px rgba(34,37,31,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#161814; --panel:#1e211c; --panel2:#262a24; --line:#343931; --line2:#454b41;
+    --ink:#e2e5dd; --ink2:#a6ac9e; --ink3:#767c6f;
+    --ltime:#7ba1e8; --ltime-soft:#1c2740; --logic:#c08ae0; --logic-soft:#301c3d;
+    --torn:#e2726a; --torn-soft:#3a1f1c; --good:#5cc490; --good-soft:#17342a;
+    --laneA:#d99a63; --laneB:#63b3d9; --laneC:#93c95e;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#161814; --panel:#1e211c; --panel2:#262a24; --line:#343931; --line2:#454b41;
+  --ink:#e2e5dd; --ink2:#a6ac9e; --ink3:#767c6f;
+  --ltime:#7ba1e8; --ltime-soft:#1c2740; --logic:#c08ae0; --logic-soft:#301c3d;
+  --torn:#e2726a; --torn-soft:#3a1f1c; --good:#5cc490; --good-soft:#17342a;
+  --laneA:#d99a63; --laneB:#63b3d9; --laneC:#93c95e;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 "Public Sans",system-ui,sans-serif;padding:22px 18px 60px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:clamp(27px,4vw,40px);text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:"Playfair Display",Georgia,serif;font-weight:600;font-size:19px;margin:26px 0 10px}
+.sub{color:var(--ink2);max-width:70ch;margin:8px 0 4px}
+.sub b{color:var(--ink)}
+.mono{font-family:"IBM Plex Mono",monospace}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:14px 0 4px;font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:13px;height:13px;border-radius:50%;display:inline-block;border:1px solid var(--line2)}
+.sq{width:13px;height:13px;border-radius:3px;display:inline-block}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 8px}
+.tab{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:20px;padding:6px 14px;font:600 13px "Public Sans",sans-serif;cursor:pointer}
+.tab.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.tab:focus-visible,.btn:focus-visible,.opt:focus-visible,input:focus-visible{outline:2px solid var(--ltime);outline-offset:2px}
+.designnote{font-size:13px;color:var(--ink2);border-left:3px solid var(--line2);padding:2px 0 2px 12px;margin:0 0 12px;max-width:80ch}
+.cfg{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;color:var(--ink2);font-size:13px;margin:0 0 12px}
+.cfg label{display:flex;gap:7px;align-items:center}
+.cfg input[type=range]{accent-color:var(--ltime);width:110px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
+#diagram{width:100%;overflow-x:auto}
+#diagram svg{display:block;min-width:900px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px;align-items:center}
+.btn{border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:9px;padding:8px 14px;font:600 13.5px "Public Sans",sans-serif;cursor:pointer;box-shadow:var(--shadow)}
+.btn.pri{background:var(--ltime);border-color:var(--ltime);color:#fff}
+:root[data-theme="dark"] .btn.pri{color:#10131c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.pri{color:#10131c}}
+.btn:disabled{opacity:.42;cursor:default;box-shadow:none}
+.cutrow{display:flex;gap:12px;align-items:center;margin:10px 0;font-size:13.5px;color:var(--ink2);flex-wrap:wrap}
+.cutrow input[type=range]{accent-color:var(--torn);flex:1;min-width:200px}
+.verdict{margin:10px 0;border-radius:12px;padding:12px 15px;font-size:14.5px;border:1px solid var(--line);background:var(--panel)}
+.verdict.good{background:var(--good-soft);border-color:var(--good)}
+.verdict.bad{background:var(--torn-soft);border-color:var(--torn)}
+.meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:10px 0}
+.meter h3{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:600;margin-bottom:4px}
+.meter .big{font:500 17px "IBM Plex Mono",monospace}
+.meter .d{font-size:12.5px;color:var(--ink2);margin-top:3px}
+.inspector{font-size:13.5px;min-height:44px;color:var(--ink2)}
+.inspector b{color:var(--ink)}
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+.scard .tagline{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.scard .q{font-weight:600;margin:2px 0 10px;text-wrap:balance}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:8px;padding:7px 11px;font:13.5px "Public Sans",sans-serif;cursor:pointer}
+.opt:hover{border-color:var(--ink3)}
+.scard .res{font-size:13px;margin-top:8px;display:none;border-radius:8px;padding:8px 11px}
+.scard .res.good{display:block;background:var(--good-soft);color:var(--ink)}
+.scard .res.bad{display:block;background:var(--torn-soft);color:var(--ink)}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-height:280px;overflow-y:auto;padding:6px 0;margin-top:10px}
+.log .e{padding:6px 16px;border-top:1px solid var(--line);font-size:13.5px}
+.log .e:first-child{border-top:none}
+.log .e .t{color:var(--ink3);font:11.5px "IBM Plex Mono",monospace;margin-right:8px}
+.foot{color:var(--ink3);font-size:12.5px;margin-top:26px;max-width:82ch}
+.stampl{color:var(--ltime);font-weight:600}
+.stampc{color:var(--logic);font-weight:600}
+</style>
+<div class="wrap">
+<h1>Dated Pages, Numbered Lines</h1>
+<p class="sub">A news agency, three bureaus, three wall clocks that disagree. <b>Asha</b>'s runs fast,
+<b>Ben</b>'s slow, <b>Chloe</b>'s is honest — you set each one. Every action gets a timestamp from the
+clock design you pick, and the page grades it against the truth: does cause always stamp
+before effect, and can the editor cut a whole edition <i>"as of time T"</i>? Drag the cut. Watch what tears.</p>
+<div class="legend">
+  <span><span class="sw" style="background:var(--laneA)"></span> Asha</span>
+  <span><span class="sw" style="background:var(--laneB)"></span> Ben</span>
+  <span><span class="sw" style="background:var(--laneC)"></span> Chloe</span>
+  <span><span class="sq" style="background:var(--ltime-soft);border:1px solid var(--ltime)"></span> <span class="stampl">l</span> — the wall part of a stamp</span>
+  <span><span class="sq" style="background:var(--logic-soft);border:1px solid var(--logic)"></span> <span class="stampc">.c</span> — the logical part</span>
+  <span><span class="sq" style="background:var(--torn-soft);border:1px solid var(--torn)"></span> torn — a receive inside the cut, its send outside</span>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<p class="designnote" id="designnote"></p>
+<div class="cfg">
+  <label>Asha's clock <input type="range" id="offA" min="-10" max="10" value="5"><span class="mono" id="offAv">+5</span></label>
+  <label>Ben's clock <input type="range" id="offB" min="-10" max="10" value="-5"><span class="mono" id="offBv">-5</span></label>
+  <label>Chloe's clock <input type="range" id="offC" min="-10" max="10" value="0"><span class="mono" id="offCv">0</span></label>
+  <label><input type="checkbox" id="burst"> busy afternoon (a 6-edit burst for Asha)</label>
+</div>
+
+<div class="card"><div id="diagram"></div></div>
+
+<div class="controls">
+  <button class="btn pri" id="b-step">Next event</button>
+  <button class="btn" id="b-back">⟲ Back</button>
+  <button class="btn" id="b-all">Reveal all</button>
+  <button class="btn" id="b-reset">Reset</button>
+  <span style="font-size:13px;color:var(--ink2)">event <span class="mono" id="stepno">0</span>/<span class="mono" id="steptot">0</span> · true time tick <span class="mono" id="ticknow">–</span></span>
+</div>
+<div class="inspector card" id="inspector">Click any event dot to inspect it: its stamp, its node's wall reading at that moment, and (for a receive) the send it must follow.</div>
+
+<div class="cutrow">
+  <b style="color:var(--ink)">Edition as of</b>
+  <input type="range" id="cut" min="0" max="100" value="60">
+  <span class="mono" id="cutv"></span>
+  <label style="font-size:12.5px"><input type="checkbox" id="cuton" checked> show cut</label>
+</div>
+<div class="verdict" id="verdict"></div>
+
+<div class="meters" id="meters"></div>
+
+<h2>Predict, then watch</h2>
+<div class="scen" id="scen"></div>
+
+<h2>Event log <span style="font-weight:400;font-size:13px;color:var(--ink3)">(newest first)</span></h2>
+<div class="log" id="log"><div class="e">Pick a clock design and press “Next event”.</div></div>
+
+<p class="foot">Same rules as the Java lab (<span class="mono">src/Clocks.java</span>): wall, Lamport,
+the naive one-number hybrid, and the real HLC (Kulkarni/Demirbas Algorithm 2). Stamps recompute live
+when you move any slider — the whole page is one pure function of the schedule, the design, and the
+offsets, which is also why “Back” is free. The engine is verified headlessly against the Java rule
+cases — see <span class="mono">validate-visualization.sh</span>.</p>
+</div>
+
+<script id="engine-js">
+// ===================== pure engine (UI-free; verified headlessly) =====================
+const DESIGNS = {
+  WALL:{label:"Wall clock", note:"Stamp = the node's own wall reading. Human-meaningful — and under skew a receipt can be stamped before its own send. Even at zero skew, two events in one tick tie."},
+  LAMPORT:{label:"Lamport counter", note:"Stamp = max(own counter, heard counter) + 1. Cause always stamps before effect — and the number has no relationship to wall time, so “as of 5 p.m.” has no answer."},
+  NAIVE:{label:"Naive hybrid", note:"One merged value: max(l+1, wall, incoming+1). Ordered AND wall-flavoured… but every event pushes it further ahead of real time, and max() means it never comes back."},
+  HLC:{label:"HLC", note:"The stamp is (l, c): l may only be a wall reading someone actually took — the freshest on your causal path — and c counts the events l cannot tell apart. Order exact, drift bounded by the clock spread."}
+};
+const NODES = ["Asha","Ben","Chloe"];
+
+// The afternoon's schedule: {t, n, kind:'local'|'send', to, d(elay)}. Crafted, not random,
+// so every moment is explainable; the burst option appends Asha's busy spell.
+function schedule(burst){
+  const S=[
+    {t:2,n:0,kind:"local"},{t:2,n:0,kind:"local"},{t:3,n:1,kind:"local"},
+    {t:4,n:0,kind:"send",to:1,d:3},{t:5,n:2,kind:"local"},{t:6,n:1,kind:"send",to:2,d:2},
+    {t:8,n:0,kind:"local"},{t:9,n:1,kind:"local"},{t:10,n:0,kind:"send",to:1,d:2},
+    {t:11,n:2,kind:"send",to:0,d:3},{t:13,n:1,kind:"local"},{t:15,n:1,kind:"send",to:0,d:2},
+    {t:16,n:2,kind:"local"},{t:18,n:0,kind:"local"},{t:18,n:0,kind:"local"}
+  ];
+  if(burst) for(let i=0;i<6;i++) S.push({t:19,n:0,kind:"local"});
+  S.push({t:20,n:1,kind:"send",to:2,d:4},{t:21,n:0,kind:"send",to:2,d:2},{t:22,n:1,kind:"local"},
+         {t:25,n:2,kind:"local"},{t:26,n:2,kind:"send",to:1,d:2},{t:27,n:0,kind:"local"},{t:29,n:1,kind:"local"});
+  return S;
+}
+
+// One pure pass: schedule + design + offsets -> stamped event list (with vector-clock truth).
+function compute(design, off, burst){
+  const S = schedule(burst);
+  // expand sends into (send, recv) pairs, then order every action by (tick, seq)
+  const acts=[]; let seq=0;
+  for(const a of S){
+    const id=seq++;
+    acts.push({t:a.t, n:a.n, kind:a.kind==="send"?("send→"+NODES[a.to]):"work", id, order:acts.length});
+    if(a.kind==="send") acts.push({t:a.t+a.d, n:a.to, kind:"recv←"+NODES[a.n], id:seq++, sendId:id, order:acts.length});
+  }
+  acts.sort((x,y)=> x.t-y.t || x.order-y.order);
+  const n=NODES.length;
+  const l=new Array(n).fill(0), c=new Array(n).fill(0), lam=new Array(n).fill(0);
+  const vc=Array.from({length:n},()=>new Array(n).fill(0));
+  const byId={};
+  const ev=[];
+  for(const a of acts){
+    const pt=a.t+off[a.n];
+    let stamp;
+    if(a.sendId==null){
+      vc[a.n][a.n]++;
+      stamp=stepLocal(design,a.n,pt,l,c,lam);
+    }else{
+      const m=byId[a.sendId];
+      for(let k=0;k<n;k++) vc[a.n][k]=Math.max(vc[a.n][k],m.vc[k]);
+      vc[a.n][a.n]++;
+      stamp=stepRecv(design,a.n,pt,m.stamp,l,c,lam);
+    }
+    const e={id:a.id,node:a.n,kind:a.kind,tick:a.t,pt,stamp,vc:vc[a.n].slice(),sendId:a.sendId==null?-1:a.sendId};
+    byId[a.id]=e; ev.push(e);
+  }
+  return ev;
+}
+function stepLocal(design,i,pt,l,c,lam){
+  switch(design){
+    case "WALL": return {l:pt,c:0};
+    case "LAMPORT": lam[i]++; return {l:lam[i],c:0};
+    case "NAIVE": l[i]=Math.max(l[i]+1,pt); return {l:l[i],c:0};
+    default: { const lo=l[i]; l[i]=Math.max(lo,pt); c[i]=(l[i]===lo)?c[i]+1:0; return {l:l[i],c:c[i]}; }
+  }
+}
+function stepRecv(design,i,pt,m,l,c,lam){
+  switch(design){
+    case "WALL": return {l:pt,c:0};
+    case "LAMPORT": lam[i]=Math.max(lam[i],m.l)+1; return {l:lam[i],c:0};
+    case "NAIVE": l[i]=Math.max(Math.max(l[i]+1,m.l+1),pt); return {l:l[i],c:0};
+    default: {
+      const lo=l[i]; const ln=Math.max(Math.max(lo,m.l),pt);
+      if(ln===lo && ln===m.l) c[i]=Math.max(c[i],m.c)+1;
+      else if(ln===lo) c[i]=c[i]+1;
+      else if(ln===m.l) c[i]=m.c+1;
+      else c[i]=0;
+      l[i]=ln; return {l:l[i],c:c[i]};
+    }
+  }
+}
+const cmp=(a,b)=> a.l!==b.l ? (a.l<b.l?-1:1) : (a.c!==b.c ? (a.c<b.c?-1:1) : 0);
+const fmt=s=> s.c===0? String(s.l) : s.l+"."+s.c;
+function hb(e,f){ let strict=false;
+  for(let i=0;i<e.vc.length;i++){ if(e.vc[i]>f.vc[i]) return false; if(e.vc[i]<f.vc[i]) strict=true; }
+  return strict; }
+// grade a run: inversions/ties among hb pairs; per-node max drift
+function grade(ev){
+  let inv=0,ties=0,pairs=0; const drift=[0,0,0].map(()=>({max:-1e9}));
+  for(let i=0;i<ev.length;i++){
+    const d=ev[i].stamp.l-ev[i].pt; if(d>drift[ev[i].node].max) drift[ev[i].node].max=d;
+    for(let j=0;j<ev.length;j++){ if(i===j) continue;
+      if(hb(ev[i],ev[j])){ pairs++; const k=cmp(ev[i].stamp,ev[j].stamp); if(k>0) inv++; else if(k===0) ties++; } } }
+  return {inv,ties,pairs,drift:drift.map(d=>d.max)};
+}
+// cut "as of (T, infinity)": torn arrows = receive inside, send outside
+function cutInfo(ev,T){
+  const inCut=e=> e.stamp.l<T || (e.stamp.l===T);
+  const byId={}; ev.forEach(e=>byId[e.id]=e);
+  const torn=[];
+  for(const e of ev) if(e.sendId>=0 && inCut(e) && !inCut(byId[e.sendId])) torn.push(e);
+  return {inside:ev.filter(inCut).length, torn};
+}
+// the token demo: write on node 0 (fast), read on node 1 (slow), one tick later
+function tokenDemo(design,off,useToken){
+  const n=NODES.length;
+  const l=new Array(n).fill(0), c=new Array(n).fill(0), lam=new Array(n).fill(0);
+  const w=stepLocal(design,0,12+off[0],l,c,lam);
+  if(useToken) stepRecv(design,1,13+off[1],w,l,c,lam);
+  const r=stepLocal(design,1,13+off[1],l,c,lam);
+  return {write:w,read:r,stale:cmp(r,w)<0};
+}
+if(typeof module!=="undefined") module.exports={compute,grade,cutInfo,tokenDemo,stepLocal,stepRecv,cmp,fmt,hb,schedule,DESIGNS,NODES};
+</script>
+
+<script>
+// ===================== UI =====================
+let design="WALL", off=[5,-5,0], burst=false, shown=0, selected=-1;
+const $=id=>document.getElementById(id);
+let EV=[], GRADE=null, logLines=[];
+
+function recompute(keepShown){
+  EV=compute(design,off,burst);
+  GRADE=grade(EV);
+  if(!keepShown) shown=Math.min(shown,EV.length);
+  const ls=EV.map(e=>e.stamp.l);
+  const cutEl=$("cut");
+  cutEl.min=Math.min(...ls)-1; cutEl.max=Math.max(...ls)+1;
+  render();
+}
+function log(msg){ logLines.unshift(msg); if(logLines.length>50)logLines.pop(); }
+
+const LANEC=["var(--laneA)","var(--laneB)","var(--laneC)"];
+function render(){
+  const W=940,H=290,left=70,right=30,top=30,laneGap=80;
+  const tmax=Math.max(...EV.map(e=>e.tick))+1;
+  const X=t=> left+(W-left-right)*(t-1)/(tmax-1);
+  const Y=n=> top+30+n*laneGap;
+  const vis=EV.slice(0,shown);
+  const byId={}; EV.forEach(e=>byId[e.id]=e);
+  const T=+$("cut").value, cutOn=$("cuton").checked;
+  const ci=cutInfo(vis,T);
+  const tornIds=new Set(ci.torn.map(e=>e.id));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="space-time diagram">`;
+  // lanes
+  for(let n=0;n<3;n++){
+    s+=`<line x1="${left-8}" y1="${Y(n)}" x2="${W-right}" y2="${Y(n)}" stroke="var(--line2)" stroke-width="1.2"/>`;
+    s+=`<text x="10" y="${Y(n)-8}" font-size="13" font-weight="600" fill="${LANEC[n]}">${NODES[n]}</text>`;
+    s+=`<text x="10" y="${Y(n)+9}" font-size="10.5" fill="var(--ink3)">clock ${off[n]>=0?"+":""}${off[n]}</text>`;
+  }
+  s+=`<text x="${W-right}" y="${top-10}" text-anchor="end" font-size="11" fill="var(--ink3)">true time →</text>`;
+  // arrows first (under dots)
+  for(const e of vis){
+    if(e.sendId>=0){
+      const m=byId[e.sendId];
+      if(m && vis.includes(m)){
+        const torn=cutOn&&tornIds.has(e.id);
+        s+=`<line x1="${X(m.tick)}" y1="${Y(m.node)}" x2="${X(e.tick)}" y2="${Y(e.node)}"
+             stroke="${torn?"var(--torn)":"var(--ink3)"}" stroke-width="${torn?2.4:1.3}" ${torn?"":'stroke-dasharray="none"'} marker-end="url(#arr)"/>`;
+      }
+    }
+  }
+  s+=`<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink3)"/></marker></defs>`;
+  // events
+  for(const e of vis){
+    const inCut=e.stamp.l<=T;
+    const dim=cutOn&&!inCut;
+    const isNew=(e===vis[vis.length-1]);
+    s+=`<g style="cursor:pointer" onclick="inspect(${e.id})">`;
+    s+=`<circle cx="${X(e.tick)}" cy="${Y(e.node)}" r="${isNew?8:6}" fill="${dim?"var(--panel2)":LANEC[e.node]}"
+         stroke="${selected===e.id?"var(--ink)":(cutOn&&tornIds.has(e.id)?"var(--torn)":"var(--panel)")}" stroke-width="${selected===e.id?3:2}" opacity="${dim?.45:1}"/>`;
+    const lbl=fmt(e.stamp);
+    s+=`<text x="${X(e.tick)}" y="${Y(e.node)+(e.node===2?24:-13)}" text-anchor="middle" font-size="11.5"
+         font-family="IBM Plex Mono,monospace" opacity="${dim?.45:1}">`;
+    if(e.stamp.c>0){ const parts=lbl.split(".");
+      s+=`<tspan fill="var(--ltime)" font-weight="600">${parts[0]}</tspan><tspan fill="var(--logic)" font-weight="600">.${parts[1]}</tspan>`;
+    } else s+=`<tspan fill="var(--ltime)" font-weight="600">${lbl}</tspan>`;
+    s+=`</text></g>`;
+  }
+  s+=`</svg>`;
+  $("diagram").innerHTML=s;
+  // controls / meters / verdict
+  $("stepno").textContent=shown; $("steptot").textContent=EV.length;
+  $("ticknow").textContent=shown? vis[vis.length-1].tick : "–";
+  $("b-step").disabled=shown>=EV.length; $("b-back").disabled=shown<=0;
+  $("cutv").textContent="T = "+T;
+  const g=grade(vis);
+  const spread=Math.max(...off)-Math.min(...off);
+  let mh="";
+  for(let n=0;n<3;n++){
+    const last=[...vis].reverse().find(e=>e.node===n);
+    mh+=`<div class="card meter"><h3 style="color:${LANEC[n]}">${NODES[n]}</h3>
+      <div class="big">${last?("stamp "+fmt(last.stamp)):"—"}</div>
+      <div class="d">wall reads ${last? last.pt : (off[n]>=0?"+":"")+off[n]} · max drift l−pt: <b>${g.drift[n]<-1e8?"—":g.drift[n]}</b>${design==="HLC"?` (bound: spread ${spread})`:""}</div></div>`;
+  }
+  mh+=`<div class="card meter"><h3>order, graded against the vector-clock truth</h3>
+      <div class="big">${g.inv} inversions · ${g.ties} ties</div>
+      <div class="d">among ${g.pairs} happens-before pairs so far</div></div>`;
+  $("meters").innerHTML=mh;
+  const v=$("verdict");
+  if(!cutOn||!shown){ v.className="verdict"; v.innerHTML= shown? `Cut hidden. Order so far: <b>${g.inv} inversions, ${g.ties} ties</b> among ${g.pairs} cause-and-effect pairs.` : "Press “Next event” — each action gets stamped by the selected clock the moment it happens."; }
+  else if(ci.torn.length){ v.className="verdict bad";
+    v.innerHTML=`<b>The edition “as of ${T}” is TORN:</b> it contains ${ci.torn.length} received ${ci.torn.length===1?"story":"stories"} whose sending it excludes (the red arrow${ci.torn.length>1?"s":""} cross into the cut from outside). A reader of this snapshot sees an effect with no cause.`; }
+  else { v.className="verdict good";
+    v.innerHTML=`<b>The edition “as of ${T}” is whole:</b> ${ci.inside} of ${vis.length} events inside, and every receive inside has its send inside. ${design==="HLC"?"Drag T anywhere — no position tears, at any skew. That is the consistent-cut property.":design==="LAMPORT"?"Consistent — but T="+T+" is a counter value: nobody can say what o'clock it was.":""}`; }
+  $("log").innerHTML=logLines.map(x=>`<div class="e">${x}</div>`).join("")||`<div class="e">Pick a clock design and press “Next event”.</div>`;
+  $("designnote").textContent=DESIGNS[design].note;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.d===design));
+}
+window.inspect=function(id){
+  selected=id;
+  const e=EV.find(x=>x.id===id);
+  const byId={}; EV.forEach(x=>byId[x.id]=x);
+  let h=`<b>${NODES[e.node]}</b> · ${e.kind} · true tick ${e.tick} · her wall read <b>${e.pt}</b> → stamped <b class="mono">${fmt(e.stamp)}</b>`;
+  if(e.sendId>=0){ const m=byId[e.sendId];
+    h+=`<br>This is a receive: the message was sent stamped <b class="mono">${fmt(m.stamp)}</b> — the receive ${cmp(e.stamp,m.stamp)>0?`is stamped after it ✓`:`is stamped <b style="color:var(--torn)">at or BEFORE it — causality inverted</b>`}.`; }
+  if(e.stamp.c>0) h+=`<br><span class="stampc">.${e.stamp.c}</span> means: the wall part could not advance, so the logical counter is ordering what the clock cannot see.`;
+  $("inspector").innerHTML=h;
+  render();
+};
+
+// events
+const tabbar=$("tabs");
+for(const [k,vv] of Object.entries(DESIGNS)){
+  const b=document.createElement("button"); b.className="tab"; b.dataset.d=k; b.textContent=vv.label;
+  b.onclick=()=>{design=k; log(`Clock design switched to <b>${vv.label}</b> — every stamp recomputed.`); recompute(true);};
+  tabbar.appendChild(b);
+}
+function slider(id,vid,idx){ $(id).oninput=e=>{ off[idx]=+e.target.value; $(vid).textContent=(off[idx]>=0?"+":"")+off[idx]; recompute(true); }; }
+slider("offA","offAv",0); slider("offB","offBv",1); slider("offC","offCv",2);
+$("burst").onchange=e=>{ burst=e.target.checked; log(burst?"Asha's busy afternoon added: 6 edits inside one tick.":"Burst removed."); recompute(true); };
+$("b-step").onclick=()=>{ if(shown<EV.length){ shown++; const e=EV[shown-1];
+  log(`<span class="t">t${e.tick}</span><b>${NODES[e.node]}</b> ${e.kind}: wall read ${e.pt}, stamped <b class="mono">${fmt(e.stamp)}</b>`+
+      (e.stamp.c>0?` — the wall part was stuck, so <span class="stampc">c</span> ticked instead`:"")); render(); } };
+$("b-back").onclick=()=>{ if(shown>0){ shown--; logLines.shift(); render(); } };
+$("b-all").onclick=()=>{ shown=EV.length; log("All "+EV.length+" events revealed."); render(); };
+$("b-reset").onclick=()=>{ shown=0; selected=-1; logLines=[]; render(); };
+$("cut").oninput=render; $("cuton").onchange=render;
+
+// ---------- predict-then-run ----------
+const SCEN=[
+ {tag:"Wall clock, skewed", q:"Asha (+5) wires Ben (−5) a story. Sort the archive by timestamp — where does Ben's receipt land?",
+  opts:["After the send — receipts follow sends","Before the send — effect precedes cause"], right:1,
+  setup(){ design="WALL"; setOff(5,-5,0); },
+  verdict(g){ return g.inv>0; },
+  why:"Ben's slow clock stamps the receipt below the send: real inversions appear in the grade panel. Sort this archive and it narrates effects before their causes."},
+ {tag:"Wall clock, zero skew", q:"Set every clock perfectly right (skew 0). Is the wall clock safe now?",
+  opts:["Yes — no skew, no problem","No — it stops inverting and starts TYING"], right:1,
+  setup(){ design="WALL"; setOff(0,0,0); },
+  verdict(g){ return g.inv===0 && g.ties>0; },
+  why:"Zero inversions — and the grade shows ties: events inside one tick share a reading a clock of finite resolution cannot split. Perfect sync is still too coarse to be an order."},
+ {tag:"Naive hybrid, busy day", q:"One merged value, max(l+1, wall, incoming+1), with Asha's burst on. Where does her drift meter end up?",
+  opts:["Near zero — it tracks the wall","Several ticks ahead, and it never comes back"], right:1,
+  setup(){ design="NAIVE"; setOff(5,-5,0); $("burst").checked=true; burst=true; },
+  verdict(g){ return Math.max(...g.drift)>=5; },
+  why:"Every event adds +1 to a number pretending to be a time, and max() forbids it from ever falling. In the Java lab this grows 118→898 with run length while HLC sits at 15."},
+ {tag:"HLC, the tie case", q:"A node at (50, 2) receives a message stamped (50, 7) — the l's tie. What must the new c be?",
+  opts:["3 — my counter + 1","8 — max of both counters + 1","0 — l did not advance… wait"], right:1,
+  setup(){ design="HLC"; setOff(5,-5,0); },
+  custom(){ const l=[50,0,0],c=[2,0,0],lam=[0,0,0];
+    const r=stepRecv("HLC",0,45,{l:50,c:7},l,c,lam);
+    return {ok:r.l===50&&r.c===8, text:`The engine answers (${r.l}, ${r.c}).`}; },
+  why:"c must beat BOTH counters: max(2,7)+1 = 8. Anything smaller stamps the receive below its own send — the planted bug recvIgnoresMsgC in the Java lab, worth 8 real inversions."},
+ {tag:"The token", q:"A client writes via Asha (+5), then instantly reads via Ben (−5), carrying nothing. Under HLC, is the read stale?",
+  opts:["No — HLC fixed the clocks","Yes — no causal path, no promise"], right:1,
+  setup(){ design="HLC"; setOff(5,-5,0); },
+  custom(){ const a=tokenDemo("HLC",[5,-5,0],false), b=tokenDemo("HLC",[5,-5,0],true);
+    return {ok:a.stale&&!b.stale, text:`Without a token: write stamped ${fmt(a.write)}, read at ${fmt(a.read)} — stale. Carrying the stamp: read at ${fmt(b.read)} — fresh.`}; },
+  why:"HLC only orders what is causally connected. Two doors with no arrow between them need the client to CARRY the arrow: the causality token, absorbed via the ordinary receive rule (MongoDB's afterClusterTime). Java lab: 86/86 stale → 0/86."}
+];
+function setOff(a,b,c){ off=[a,b,c];
+  $("offA").value=a; $("offB").value=b; $("offC").value=c;
+  $("offAv").textContent=(a>=0?"+":"")+a; $("offBv").textContent=(b>=0?"+":"")+b; $("offCv").textContent=(c>=0?"+":"")+c; }
+const scenBox=$("scen");
+SCEN.forEach((sc,i)=>{
+  const d=document.createElement("div"); d.className="scard";
+  d.innerHTML=`<div class="tagline">${sc.tag}</div><div class="q">${sc.q}</div>`+
+    sc.opts.map((o,j)=>`<button class="opt" data-j="${j}">${o}</button>`).join("")+
+    `<div class="res" id="res${i}"></div>`;
+  d.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const chose=+b.dataset.j, res=$("res"+i);
+    sc.setup(); recompute(true); shown=EV.length; render();
+    let held, extra="";
+    if(sc.custom){ const r=sc.custom(); held=r.ok; extra=" "+r.text; }
+    else held=sc.verdict(grade(EV));
+    const win=chose===sc.right;
+    res.className="res "+(win?"good":"bad");
+    res.innerHTML=(win?"✔ Your prediction held. ":"✘ Not what you predicted. ")+sc.why+extra+(held?"":" (unexpected engine state — press Reset)");
+  });
+  scenBox.appendChild(d);
+});
+recompute(false); shown=0; render();
+</script>

@@ -1,0 +1,1118 @@
+<title>The Weakest Promise</title>
+<style>
+  :root {
+    --ground: #edf0f2;
+    --card: #ffffff;
+    --card-2: #f6f8f9;
+    --ink: #22303c;
+    --ink-soft: #5d6d7a;
+    --ink-faint: #8b98a3;
+    --line: #d7dde2;
+    --line-strong: #b9c3cb;
+    --accent: #0f6b6b;
+    --accent-soft: #e0efee;
+    --good: #1e7d4f;
+    --good-soft: #e2f1e8;
+    --bad: #b0392e;
+    --bad-soft: #f6e5e2;
+    --wait: #75808a;
+    --wait-soft: #e9ecee;
+    --amber: #a96a1c;
+    --amber-soft: #f5ecdd;
+    --plaque-bg: #fbfaf6;
+    --shadow: 0 1px 3px rgba(34, 48, 60, 0.10);
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141a1f;
+      --card: #1d252c;
+      --card-2: #232d35;
+      --ink: #e6ebee;
+      --ink-soft: #a2afb9;
+      --ink-faint: #74828d;
+      --line: #313d47;
+      --line-strong: #43525e;
+      --accent: #3fa9a0;
+      --accent-soft: #1d3634;
+      --good: #4cbc85;
+      --good-soft: #1c3529;
+      --bad: #e0705f;
+      --bad-soft: #3d211d;
+      --wait: #8b98a3;
+      --wait-soft: #29323a;
+      --amber: #d99a4e;
+      --amber-soft: #38290f;
+      --plaque-bg: #212a31;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #141a1f;
+    --card: #1d252c;
+    --card-2: #232d35;
+    --ink: #e6ebee;
+    --ink-soft: #a2afb9;
+    --ink-faint: #74828d;
+    --line: #313d47;
+    --line-strong: #43525e;
+    --accent: #3fa9a0;
+    --accent-soft: #1d3634;
+    --good: #4cbc85;
+    --good-soft: #1c3529;
+    --bad: #e0705f;
+    --bad-soft: #3d211d;
+    --wait: #8b98a3;
+    --wait-soft: #29323a;
+    --amber: #d99a4e;
+    --amber-soft: #38290f;
+    --plaque-bg: #212a31;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 16px 64px;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  h1, h2, h3 { text-wrap: balance; }
+  h1 {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 34px; font-weight: 700; margin: 28px 0 4px;
+  }
+  .tagline { color: var(--ink-soft); max-width: 68ch; margin: 0 0 18px; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  button {
+    font: inherit; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line-strong); border-radius: 6px;
+    padding: 5px 11px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  select, input[type="range"] { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line-strong); border-radius: 6px; padding: 4px 6px; }
+  input[type="range"] { padding: 0; border: none; background: transparent; }
+
+  /* ---------- plaque (the promise itself) ---------- */
+  .plaque {
+    background: var(--plaque-bg);
+    border: 1px solid var(--line-strong);
+    outline: 3px double var(--line-strong);
+    outline-offset: 4px;
+    margin: 10px 4px 26px;
+    padding: 18px 26px;
+    font-family: Georgia, "Iowan Old Style", serif;
+    max-width: 74ch;
+  }
+  .plaque .eyebrow {
+    font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px;
+  }
+  .plaque p { margin: 0; font-size: 16.5px; font-style: italic; }
+  .plaque .fineprint { font-family: system-ui, sans-serif; font-style: normal; font-size: 12.5px; color: var(--ink-soft); margin-top: 10px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 22px; font-size: 12.5px; color: var(--ink-soft); margin: 0 0 18px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+
+  /* ---------- verdict banner ---------- */
+  #verdict {
+    border-radius: 10px; padding: 13px 18px; margin-bottom: 16px;
+    background: var(--wait-soft); border: 1px solid var(--line-strong);
+    font-size: 15px; box-shadow: var(--shadow);
+  }
+  #verdict.good { background: var(--good-soft); border-color: var(--good); }
+  #verdict.bad { background: var(--bad-soft); border-color: var(--bad); }
+  #verdict .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+  /* ---------- main grid ---------- */
+  .maingrid { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 940px) { .maingrid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .panel h3 {
+    margin: 0 0 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-soft); font-weight: 600;
+  }
+
+  /* ---------- clients ---------- */
+  .clientrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .client { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .client .cname { font-weight: 700; }
+  .client .crow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
+  .client .lastread { font-size: 12.5px; color: var(--ink-soft); margin-top: 8px; min-height: 1.2em; }
+
+  /* ---------- flight strip ---------- */
+  #flight { min-height: 34px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pkt {
+    font-size: 12px; padding: 3px 9px; border-radius: 999px;
+    border: 1px dashed var(--accent); color: var(--accent); background: var(--accent-soft);
+  }
+  .flight-empty { color: var(--ink-faint); font-size: 12.5px; }
+
+  /* ---------- replicas ---------- */
+  .replicarow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 700px) { .replicarow { grid-template-columns: 1fr; } }
+  .replica { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); overflow: hidden; }
+  .replica.cut { border-color: var(--bad); border-style: dashed; }
+  .replica .rhead {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 12px; background: var(--card-2); border-bottom: 1px solid var(--line);
+  }
+  .replica .rhead b { font-size: 14px; }
+  .replica .rhead .skewtag { font-size: 11.5px; color: var(--amber); }
+  .replica .serving { padding: 10px 12px 4px; }
+  .replica .serving .slabel { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .replica .sval { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; min-height: 26px; }
+  .replica .rset { padding: 8px 12px 4px; border-top: 1px dashed var(--line); margin-top: 8px; }
+  .replica .rset .slabel { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .replica .setchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; min-height: 22px; }
+  .replica .stale { padding: 8px 12px 10px; font-size: 12px; color: var(--ink-soft); }
+  .stalebar { height: 5px; border-radius: 3px; background: var(--wait-soft); margin-top: 4px; overflow: hidden; }
+  .stalebar i { display: block; height: 100%; background: var(--amber); border-radius: 3px; transition: width 0.25s; }
+  .replica .stale.fresh .stalebar i { background: var(--good); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #fff; padding: 2px 9px; border-radius: 999px;
+    border: none; cursor: pointer; line-height: 1.5;
+  }
+  .chip .ts { font-size: 10px; opacity: 0.85; }
+  .chip.big { font-size: 13.5px; padding: 3px 11px; }
+  .chip.flash { animation: flash 1s ease-out; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 4px var(--amber); } 100% { box-shadow: 0 0 0 0 transparent; } }
+  @media (prefers-reduced-motion: reduce) { .chip.flash { animation: none; } }
+
+  /* ---------- controls ---------- */
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 26px; }
+  .cgroup { display: flex; flex-direction: column; gap: 7px; }
+  .cgroup .glabel { font-size: 10.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-faint); }
+  .cgroup .grow { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 13px; }
+  .skewrow { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .skewrow input { width: 90px; }
+  .skewrow .sv { min-width: 42px; text-align: right; }
+
+  /* ---------- judges ---------- */
+  .judge { border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; margin-bottom: 9px; background: var(--card-2); }
+  .judge:last-child { margin-bottom: 0; }
+  .judge .jtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .judge .jname { font-weight: 700; font-size: 13px; }
+  .judge .jq { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
+  .pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.wait { background: var(--wait-soft); color: var(--wait); }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); }
+  .judge .jdetail { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+  .judge.ec { border-color: var(--line-strong); background: var(--card); }
+
+  /* ---------- histogram ---------- */
+  .histo { display: flex; align-items: flex-end; gap: 8px; height: 74px; margin-top: 8px; }
+  .hb { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; height: 100%; }
+  .hb .bar { width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; opacity: 0.85; }
+  .hb .hl { font-size: 10px; color: var(--ink-faint); }
+  .hb .hc { font-size: 10.5px; color: var(--ink-soft); }
+
+  /* ---------- inspector ---------- */
+  #inspector { font-size: 12.5px; color: var(--ink-soft); }
+  #inspector table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+  #inspector td { padding: 2px 6px 2px 0; vertical-align: top; }
+  #inspector td:first-child { color: var(--ink-faint); white-space: nowrap; }
+
+  /* ---------- scenarios ---------- */
+  .scen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+  .scen { border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 13px 15px; box-shadow: var(--shadow); }
+  .scen .stitle { font-weight: 700; margin-bottom: 2px; }
+  .scen .ssetup { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; }
+  .scen .squestion { font-size: 13px; margin-bottom: 8px; }
+  .scen .sopts { display: flex; flex-direction: column; gap: 6px; }
+  .scen .sopts button { text-align: left; font-size: 12.5px; }
+  .scen .sopts button.picked { border-color: var(--accent); background: var(--accent-soft); }
+  .scen .sresult { margin-top: 9px; font-size: 12.5px; border-radius: 7px; padding: 8px 10px; display: none; }
+  .scen .sresult.show { display: block; }
+  .scen .sresult.good { background: var(--good-soft); }
+  .scen .sresult.bad { background: var(--bad-soft); }
+  .scen .running { font-size: 12px; color: var(--accent); margin-top: 8px; display: none; }
+  .scen .running.show { display: block; }
+
+  /* ---------- log ---------- */
+  #log { max-height: 340px; overflow-y: auto; font-size: 13px; }
+  .ev { padding: 6px 4px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+  .ev:last-child { border-bottom: none; }
+  .ev .t { color: var(--ink-faint); font-size: 11.5px; min-width: 52px; padding-top: 2px; }
+  .ev .body .main { }
+  .ev .body .why { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+  .ev.story .body .main { color: var(--accent); font-weight: 600; }
+  .ev.warn .body .main { color: var(--bad); }
+  .ev.goodev .body .main { color: var(--good); }
+
+  .hint { font-size: 12.5px; color: var(--ink-soft); background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .footnote { color: var(--ink-faint); font-size: 12px; margin-top: 26px; max-width: 78ch; }
+</style>
+
+<div class="wrap">
+  <h1>The Weakest Promise</h1>
+  <p class="tagline">
+    The village of Deodar keeps its news on three noticeboards. Anyone may post or read at any
+    board, instantly. Couriers carry copies between the squares. The parish council printed
+    exactly one promise about the boards &mdash; and a panel of four judges below watches every
+    read and rules on whether <em>any</em> promise, made or merely assumed, has been broken.
+  </p>
+
+  <div class="plaque">
+    <div class="eyebrow">The council promises</div>
+    <p>&ldquo;If everyone stops posting, the boards will eventually all show the same notices.&rdquo;</p>
+    <div class="fineprint">
+      We do not say when a notice arrives, what you will see in the meantime, which of two
+      quarrelling notices survives, or what happens if you walk from one square to another.
+      &mdash; This is <b>eventual consistency</b>, in full.
+    </div>
+  </div>
+
+  <div class="hint">
+    <b>New here?</b> Press <b>Run for me</b> on Scenario&nbsp;1 below &mdash; it plays a story with
+    narration and you only watch. The one rule for reading this page: the <b>Eventual-Consistency
+    judge has no red light while writes flow</b>. Notice how rarely it objects, and how often the
+    other judges do.
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:#2563eb"></span> each colour = one posted notice (an update)</span>
+    <span><span class="swatch" style="background:var(--accent-soft);border:1px dashed var(--accent)"></span> a copy travelling between boards</span>
+    <span><span class="swatch" style="background:var(--amber)"></span> staleness (how far behind a board is)</span>
+    <span><span class="swatch" style="background:var(--good)"></span> promise kept</span>
+    <span><span class="swatch" style="background:var(--bad)"></span> promise broken</span>
+    <span><span class="swatch" style="background:var(--wait-soft);border:1px solid var(--line-strong)"></span> &ldquo;cannot be judged yet&rdquo;</span>
+  </div>
+
+  <div id="verdict"><div class="main">Ready.</div><div class="sub"></div></div>
+
+  <div class="maingrid">
+    <div>
+      <div class="panel">
+        <h3>Villagers (clients)</h3>
+        <div class="clientrow" id="clients"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Copies on the road (messages in flight)</h3>
+        <div id="flight"></div>
+      </div>
+
+      <div class="panel">
+        <h3>The three noticeboards (replicas)</h3>
+        <div class="replicarow" id="replicas"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Controls</h3>
+        <div class="controls">
+          <div class="cgroup">
+            <span class="glabel">Time</span>
+            <div class="grow">
+              <button id="btnBack" title="Undo the last event">&#9664; Back</button>
+              <button id="btnStep" class="primary" title="Advance one second">Step &#9654;</button>
+              <button id="btnPlay">Play</button>
+              <button id="btnReset">Reset</button>
+            </div>
+            <div class="grow">
+              <button id="btnSettle" title="Freeze all posting and let the couriers run until nothing changes — then judge the promise">Stop &amp; settle &#9878;</button>
+            </div>
+          </div>
+          <div class="cgroup">
+            <span class="glabel">The couriers (delivery)</span>
+            <div class="grow">
+              <label><input type="checkbox" id="cfgForward" checked> carry each new notice once (v1 forwarding)</label>
+            </div>
+            <div class="grow">
+              full compare-and-copy round
+              <select id="cfgCadence">
+                <option value="0">never (off)</option>
+                <option value="3">every 3 s</option>
+                <option value="6" selected>every 6 s</option>
+                <option value="12">every 12 s</option>
+              </select>
+              <button id="btnSync" title="Run one full compare-and-copy round now">Sync now</button>
+            </div>
+            <div class="grow">
+              flooded road:
+              <select id="cfgFlood" title="Which board is cut off from the other two">
+                <option value="none">none</option>
+                <option value="R1">North (R1) cut off</option>
+                <option value="R2">Middle (R2) cut off</option>
+                <option value="R3">South (R3) cut off</option>
+              </select>
+            </div>
+          </div>
+          <div class="cgroup">
+            <span class="glabel">The decision rule (resolver)</span>
+            <div class="grow">
+              <select id="cfgResolver" title="How a board decides what to display from the notices it holds">
+                <option value="lww" selected>newest timestamp wins (LWW)</option>
+                <option value="arrival">newest arrival wins (broken)</option>
+                <option value="siblings">keep all rivals side by side (siblings)</option>
+              </select>
+            </div>
+          </div>
+          <div class="cgroup">
+            <span class="glabel">Board clocks (skew, seconds)</span>
+            <div class="skewrow">R1 <input type="range" id="skewR1" min="-60" max="60" step="15" value="0"><span class="sv mono" id="skewR1v">+0</span></div>
+            <div class="skewrow">R2 <input type="range" id="skewR2" min="-60" max="60" step="15" value="0"><span class="sv mono" id="skewR2v">+0</span></div>
+            <div class="skewrow">R3 <input type="range" id="skewR3" min="-60" max="60" step="15" value="0"><span class="sv mono" id="skewR3v">+0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3>The judges &mdash; four different promises, one run</h3>
+        <div id="judges"></div>
+      </div>
+      <div class="panel">
+        <h3>Measured staleness of reads</h3>
+        <div style="font-size:12px;color:var(--ink-soft)">The contract refuses a number; the histogram is the number. Each read is bucketed by how many seconds behind the freshest acknowledged notice it was.</div>
+        <div class="histo" id="histo"></div>
+      </div>
+      <div class="panel">
+        <h3>Inspector</h3>
+        <div id="inspector">Click any notice chip to see who posted it, where, when, and what its board had seen at that moment.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Predict, then run &mdash; six situations from the lab</h3>
+    <div class="scen-grid" id="scenarios"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Event log &mdash; newest first</h3>
+    <div id="log"></div>
+  </div>
+
+  <p class="footnote">
+    Companion page to the <b>eventual-consistency</b> lab (README.md in the same folder).
+    Everything here is one self-contained file with no network access; the simulation is a pure
+    state-and-reducer engine, which is why <b>Back</b> can rewind any event, including a settle.
+    Terms used on chips: <span class="mono">ts</span> = the timestamp the accepting board stamped
+    (its own clock, skew included) &mdash; under &ldquo;newest timestamp wins&rdquo; that stamp,
+    not reality, decides who survives.
+  </p>
+</div>
+
+<script>
+// ===ENGINE-START===
+// Pure simulation engine: state in, {state, events} out. No DOM below this line
+// until ENGINE-END. 1 tick = 1 second of village time.
+
+const REPLICA_IDS = ["R1", "R2", "R3"];
+const REPLICA_NAMES = { R1: "North board (R1)", R2: "Middle board (R2)", R3: "South board (R3)" };
+const CLIENT_DEFS = { A: { name: "Asha", home: "R1" }, B: { name: "Ben", home: "R3" } };
+const VALUE_COLORS = ["#2563eb", "#c2410c", "#7c3aed", "#0d9488", "#b91c1c", "#4d7c0f", "#0369a1", "#9d174d"];
+const TRAVEL = 2;          // seconds for a forwarded copy to cross the village
+const AUTO_VALUES = ["fair on Friday", "choir at noon", "well is closed", "bridge reopens", "bells at six", "road repaved"];
+
+function mulberry32(a) {
+  a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function nextRand(state) { state.seed = (state.seed + 1) | 0; return mulberry32(state.seed); }
+
+function initState(seed) {
+  const state = {
+    tick: 0, seed: seed || 12345, seq: 1,
+    resolver: "lww", cadence: 6, forward: true, flood: "none",
+    replicas: {}, updates: {}, messages: [],
+    clients: {
+      A: { routing: "sticky", seen: [], lastWrite: null },
+      B: { routing: "sticky", seen: [], lastWrite: null },
+    },
+    judges: {
+      ec: { status: "open", detail: "", rounds: 0 },
+      ryw: { A: { count: 0, last: null }, B: { count: 0, last: null } },
+      mono: { A: { count: 0, last: null }, B: { count: 0, last: null } },
+      lost: { status: "pending", lostIds: [] },
+    },
+    readLog: [], log: [], autoIdx: 0,
+  };
+  const u0 = { id: "u0", value: "market on Saturday", author: "the old notice", clientId: null,
+               acceptTick: 0, acceptedAt: "all boards", ts: 0, context: [], color: "#75808a" };
+  state.updates.u0 = u0;
+  for (const rid of REPLICA_IDS) state.replicas[rid] = { id: rid, skew: 0, set: ["u0"] };
+  return state;
+}
+
+function partitioned(state, a, b) {
+  if (state.flood === "none") return false;
+  return (a === state.flood) !== (b === state.flood);
+}
+
+// What a board displays: a pure function of... well, that depends on the resolver.
+function resolveIds(state, rid) {
+  const set = state.replicas[rid].set;
+  if (state.resolver === "arrival") return [set[set.length - 1]];
+  if (state.resolver === "lww") {
+    let best = set[0];
+    for (const id of set) {
+      const u = state.updates[id], b = state.updates[best];
+      if (u.ts > b.ts || (u.ts === b.ts && u.id > b.id)) best = id;
+    }
+    return [best];
+  }
+  // siblings: keep every update not contained in some other held update's context
+  const alive = set.filter(id => !set.some(o => o !== id && state.updates[o].context.includes(id)));
+  return alive.sort();
+}
+function resolveText(state, rid) {
+  return resolveIds(state, rid).map(id => `“${state.updates[id].value}”`).join("  +  ");
+}
+
+// staleness of a board right now: versions & seconds behind the freshest acknowledged update
+function stalenessOf(state, rid) {
+  const set = state.replicas[rid].set;
+  const missing = Object.values(state.updates).filter(u => !set.includes(u.id));
+  if (missing.length === 0) return { versions: 0, secs: 0 };
+  const oldest = Math.min(...missing.map(u => u.acceptTick));
+  return { versions: missing.length, secs: state.tick - oldest };
+}
+
+function ev(state, text, why, kind) {
+  state.log.unshift({ tick: state.tick, text, why: why || "", kind: kind || "info" });
+  if (state.log.length > 400) state.log.pop();
+}
+
+function pickReplica(state, clientId) {
+  const c = state.clients[clientId];
+  if (c.routing === "sticky") return CLIENT_DEFS[clientId].home;
+  return REPLICA_IDS[Math.floor(nextRand(state) * 3)];
+}
+
+function addToSet(state, rid, updateId) {
+  const r = state.replicas[rid];
+  if (r.set.includes(updateId)) return false;
+  r.set.push(updateId);
+  return true;
+}
+
+// ---------- actions ----------
+
+function actWrite(state, a) {
+  const clientId = a.client, c = state.clients[clientId];
+  const rid = a.replica || pickReplica(state, clientId);
+  const r = state.replicas[rid];
+  const value = a.value || AUTO_VALUES[state.autoIdx++ % AUTO_VALUES.length];
+  const u = {
+    id: "u" + state.seq, value, author: CLIENT_DEFS[clientId].name, clientId,
+    acceptTick: state.tick, acceptedAt: rid, ts: state.tick + r.skew,
+    context: r.set.slice(), color: VALUE_COLORS[(state.seq - 1) % VALUE_COLORS.length],
+  };
+  state.seq++;
+  state.updates[u.id] = u;
+  addToSet(state, rid, u.id);
+  c.lastWrite = u.id;
+  if (state.judges.ec.status !== "open") {
+    state.judges.ec = { status: "open", detail: "", rounds: 0 };
+    state.judges.lost = { status: "pending", lostIds: [] };
+  }
+  const skewNote = r.skew !== 0 ? ` — stamped ts=${u.ts}, because this board's clock runs ${r.skew > 0 ? "+" : ""}${r.skew}s` : ` (stamped ts=${u.ts})`;
+  ev(state, `${u.author} posted “${value}” on the ${REPLICA_NAMES[rid]} and was told OK at once.`,
+     `The ack means “one board accepted it”, nothing more${skewNote}.`);
+  if (state.forward) {
+    for (const other of REPLICA_IDS) {
+      if (other === rid) continue;
+      if (partitioned(state, rid, other)) {
+        ev(state, `The copy of “${value}” bound for ${other} was LOST — the road is flooded, and v1 forwarding never retries.`,
+           `Without a compare-everything sync round underneath, this notice would never reach ${other}. This is the delivery clause failing silently.`, "warn");
+      } else {
+        state.messages.push({ updateId: u.id, from: rid, to: other, arriveAt: state.tick + TRAVEL });
+      }
+    }
+  }
+  return u.id;
+}
+
+function actRead(state, a) {
+  const clientId = a.client, c = state.clients[clientId];
+  const rid = a.replica || pickReplica(state, clientId);
+  const r = state.replicas[rid];
+  const ids = resolveIds(state, rid);
+  const text = resolveText(state, rid);
+  const st = stalenessOf(state, rid);
+  const name = CLIENT_DEFS[clientId].name;
+
+  // Read-your-writes: is this client's own last write on the board they are reading?
+  if (c.lastWrite && !r.set.includes(c.lastWrite)) {
+    state.judges.ryw[clientId].count++;
+    state.judges.ryw[clientId].last =
+      `t=${state.tick}: ${name} read ${rid}, which has never heard of ${name}'s own write “${state.updates[c.lastWrite].value}”.`;
+  }
+  // Monotonic reads: does this board hold everything this client has already seen?
+  const missing = c.seen.filter(id => !r.set.includes(id));
+  if (missing.length > 0) {
+    state.judges.mono[clientId].count++;
+    state.judges.mono[clientId].last =
+      `t=${state.tick}: time ran backwards for ${name} — they had already seen “${state.updates[missing[0]].value}”, but ${rid} hasn't.`;
+  }
+  for (const id of r.set) if (!c.seen.includes(id)) c.seen.push(id);
+
+  state.readLog.push({ client: clientId, replica: rid, tick: state.tick, text, versions: st.versions, secs: st.secs });
+  const staleNote = st.versions === 0 ? "This board is fully caught up."
+    : `This board is ${st.versions} version${st.versions > 1 ? "s" : ""} / ${st.secs}s behind the freshest acknowledged notice — and nothing in the printed promise objects.`;
+  ev(state, `${name} read the ${REPLICA_NAMES[rid]}: it shows ${text}.`, staleNote,
+     st.versions === 0 ? "goodev" : "info");
+  return { rid, ids, text };
+}
+
+function syncRound(state, opts) {
+  // Every reachable pair compares everything and copies the difference, both ways.
+  let transferred = 0;
+  const pairs = [["R1", "R2"], ["R1", "R3"], ["R2", "R3"]];
+  const blocked = [];
+  for (const [a, b] of pairs) {
+    if (partitioned(state, a, b)) { blocked.push(`${a}↔${b}`); continue; }
+    const A = state.replicas[a], B = state.replicas[b];
+    const toB = A.set.filter(id => !B.set.includes(id)).sort();
+    const toA = B.set.filter(id => !A.set.includes(id)).sort();
+    for (const id of toB) { addToSet(state, b, id); transferred++; }
+    for (const id of toA) { addToSet(state, a, id); transferred++; }
+  }
+  if (!opts || !opts.quiet) {
+    if (transferred > 0) {
+      ev(state, `Sync round: the couriers compared every board pair and copied ${transferred} missing notice${transferred > 1 ? "s" : ""}.`,
+         `A sync round re-offers EVERYTHING it holds, so a copy lost on the road earlier is simply carried again — this is why anti-entropy, not forwarding, is the delivery guarantee.` +
+         (blocked.length ? ` Blocked by flood: ${blocked.join(", ")}.` : ""), "goodev");
+    } else {
+      ev(state, `Sync round: every reachable pair of boards already holds the same notices — nothing to copy.`,
+         blocked.length ? `Blocked by flood: ${blocked.join(", ")}.` : "", "info");
+    }
+  }
+  return transferred;
+}
+
+function actTick(state) {
+  state.tick++;
+  // deliver forwarded copies that are due
+  const due = state.messages.filter(m => m.arriveAt <= state.tick);
+  state.messages = state.messages.filter(m => m.arriveAt > state.tick);
+  for (const m of due) {
+    const u = state.updates[m.updateId];
+    if (partitioned(state, m.from, m.to)) {
+      ev(state, `The courier carrying “${u.value}” to ${m.to} met the flood and the copy was LOST.`,
+         `v1 forwarding tries once. Only a compare-everything sync round can repair this later.`, "warn");
+      continue;
+    }
+    if (addToSet(state, m.to, m.updateId)) {
+      ev(state, `The copy of “${u.value}” arrived at the ${REPLICA_NAMES[m.to]}.`,
+         `It joined that board's set; what the board now DISPLAYS is up to the decision rule.`);
+    } else {
+      ev(state, `${m.to} received a copy of “${u.value}” it already had — and ignored it.`,
+         `Receiving a duplicate must change nothing (idempotence), or retries would corrupt the boards.`);
+    }
+  }
+  if (state.cadence > 0 && state.tick % state.cadence === 0) syncRound(state);
+}
+
+function actSettle(state) {
+  // Quiescence: no more writes; run sync rounds to a fixpoint, then judge the limit.
+  if (state.flood !== "none") {
+    state.judges.ec.status = "blocked";
+    state.judges.ec.detail = `The road to ${state.flood} is still flooded, so delivery cannot finish. The promise says “eventually” — it is still allowed to be waiting. Heal the flood and settle again.`;
+    ev(state, `Stop & settle: posting frozen — but the flood blocks the couriers. The promise remains unjudgeable.`,
+       `“Eventually” with a permanent partition is a bet that the partition heals. Nothing can be concluded yet.`, "warn");
+    return;
+  }
+  let rounds = 0, moved = 1;
+  while (moved > 0 && rounds < 25) { moved = syncRound(state, { quiet: true }); rounds++; }
+  state.judges.ec.rounds = rounds;
+  const outs = REPLICA_IDS.map(rid => resolveIds(state, rid).join(","));
+  const setsEqual = REPLICA_IDS.every(rid =>
+    state.replicas[rid].set.slice().sort().join(",") === state.replicas.R1.set.slice().sort().join(","));
+  if (outs.every(o => o === outs[0])) {
+    state.judges.ec.status = "converged";
+    state.judges.ec.detail = `Posting stopped; after ${rounds} sync round${rounds > 1 ? "s" : ""} all boards display ${resolveText(state, "R1")}. The promise, exactly as printed, is kept.`;
+    ev(state, `SETTLED: all three boards agree on ${resolveText(state, "R1")} after ${rounds} round${rounds > 1 ? "s" : ""}.`,
+       `Convergence at quiescence is the whole contract. Whether the agreed value is the RIGHT one is a different question — see the Lost-updates judge.`, "goodev");
+  } else {
+    state.judges.ec.status = "violated";
+    state.judges.ec.detail = setsEqual
+      ? `FINITE WITNESS: every board now holds the SAME set of notices, yet they display different things (${outs.map((o, i) => REPLICA_IDS[i] + "→" + resolveText(state, REPLICA_IDS[i])).join("; ")}). The display depends on arrival history, not on the set — the decision clause is broken and no amount of syncing can ever fix it.`
+      : `Boards disagree and sync rounds stopped making progress.`;
+    ev(state, `SETTLED: the boards will NEVER agree. Eventual consistency is violated — provably.`,
+       `This is the only red light the EC judge has: same set, different display. “Newest arrival wins” is not a function of the set.`, "warn");
+  }
+  // Lost updates: a write is lost if it is not displayed anywhere at the limit
+  // and no later write causally supersedes it (had it in its context).
+  const finalIds = new Set(REPLICA_IDS.flatMap(rid => resolveIds(state, rid)));
+  const lost = [];
+  for (const u of Object.values(state.updates)) {
+    if (u.id === "u0" || finalIds.has(u.id)) continue;
+    const superseded = Object.values(state.updates).some(w => w.context.includes(u.id));
+    if (!superseded) lost.push(u.id);
+  }
+  state.judges.lost = { status: lost.length ? "lost" : "ok", lostIds: lost };
+  if (lost.length) {
+    ev(state, `The settled boards silently dropped: ${lost.map(id => `“${state.updates[id].value}” (${state.updates[id].author})`).join(", ")}.`,
+       `Nobody ever read these and no later notice knowingly replaced them — the decision rule chose a loser. The EC contract has no clause against this.`, "warn");
+  }
+}
+
+function dispatch(state, a) {
+  switch (a.type) {
+    case "write": actWrite(state, a); break;
+    case "read": actRead(state, a); break;
+    case "tick": actTick(state); break;
+    case "sync": syncRound(state); break;
+    case "settle": actSettle(state); break;
+    case "resolver":
+      state.resolver = a.value;
+      ev(state, `The council changed the decision rule to “${a.value === "lww" ? "newest timestamp wins" : a.value === "arrival" ? "newest arrival wins" : "keep all rivals side by side"}”.`,
+         `The rule is applied fresh every time a board is looked at.`, "story");
+      break;
+    case "cadence":
+      state.cadence = a.value;
+      ev(state, a.value === 0 ? `The compare-and-copy rounds have been turned OFF.` : `Compare-and-copy rounds now run every ${a.value}s.`,
+         a.value === 0 ? `Nothing turns red. Reads still answer, writes still ack — and the promise quietly stops being made true. This is the failure that needs a machinery alarm, because the contract offers nothing to alarm on.` : ``,
+         a.value === 0 ? "warn" : "info");
+      break;
+    case "forward": state.forward = a.value; ev(state, a.value ? `v1 forwarding ON: each new notice is carried once to the other boards.` : `v1 forwarding OFF: notices spread only via sync rounds.`, ""); break;
+    case "flood":
+      state.flood = a.value;
+      ev(state, a.value === "none" ? `The flood has drained. All roads are open.` : `FLOOD: the ${REPLICA_NAMES[a.value]} is cut off from the other two.`,
+         a.value === "none" ? `Note what happens on the NEXT sync round: everything missed is re-offered.` : `Its board still accepts posts and answers reads locally — availability is the point of this design.`,
+         a.value === "none" ? "goodev" : "warn");
+      break;
+    case "skew": {
+      state.replicas[a.replica].skew = a.value;
+      ev(state, `${a.replica}'s clock now runs ${a.value >= 0 ? "+" : ""}${a.value}s ${a.value === 0 ? "(true)" : a.value > 0 ? "fast" : "slow"}.`,
+         `Under “newest timestamp wins”, this clock is part of the decision rule.`, a.value === 0 ? "info" : "warn");
+      break;
+    }
+    case "routing": {
+      state.clients[a.client].routing = a.value;
+      ev(state, `${CLIENT_DEFS[a.client].name} now ${a.value === "sticky" ? "always uses their home board (sticky)" : "uses a RANDOM board each time"}.`,
+         a.value === "sticky" ? `Stickiness quietly buys read-your-writes and monotonic reads — a routing fix, not a storage fix.` : `Watch the Read-your-writes and Monotonic judges.`, "story");
+      break;
+    }
+    case "story": ev(state, a.text, a.why || "", "story"); break;
+  }
+  return state;
+}
+// ===ENGINE-END===
+
+// ---------- UI ----------
+(function () {
+  if (typeof document === "undefined") return;
+
+  let state = initState(12345);
+  let history = [];
+  let playTimer = null;
+  let scenarioTimer = null;
+
+  const $ = id => document.getElementById(id);
+
+  function snapshot() {
+    history.push(JSON.stringify(state));
+    if (history.length > 250) history.shift();
+  }
+  function act(a) { snapshot(); dispatch(state, a); render(); }
+
+  function stopTimers() {
+    if (playTimer) { clearInterval(playTimer); playTimer = null; $("btnPlay").textContent = "Play"; }
+    if (scenarioTimer) { clearTimeout(scenarioTimer); scenarioTimer = null; }
+  }
+
+  // ----- rendering -----
+  function chipHtml(u, opts) {
+    const cls = "chip" + ((opts && opts.big) ? " big" : "") + ((opts && opts.flash) ? " flash" : "");
+    return `<button class="${cls}" style="background:${u.color}" data-uid="${u.id}" title="Click to inspect">` +
+           `${escapeHtml(u.value)} <span class="ts mono">ts ${u.ts}</span></button>`;
+  }
+  function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function render() {
+    // clients
+    $("clients").innerHTML = ["A", "B"].map(cid => {
+      const c = state.clients[cid], def = CLIENT_DEFS[cid];
+      const lastRead = state.readLog.filter(r => r.client === cid).slice(-1)[0];
+      return `<div class="client">
+        <div class="cname">${def.name} <span style="color:var(--ink-faint);font-weight:400">— home square: ${def.home}</span></div>
+        <div class="crow">
+          <button class="primary" data-act="write" data-client="${cid}">Post a notice</button>
+          <button data-act="read" data-client="${cid}">Read</button>
+          <select data-routing="${cid}" title="Which board this villager visits">
+            <option value="sticky" ${c.routing === "sticky" ? "selected" : ""}>always home board</option>
+            <option value="random" ${c.routing === "random" ? "selected" : ""}>random board each time</option>
+          </select>
+        </div>
+        <div class="lastread">${lastRead ? `last read (t=${lastRead.tick}, ${lastRead.replica}): ${escapeHtml(lastRead.text)}` : "has not read yet"}</div>
+      </div>`;
+    }).join("");
+
+    // flight
+    const pkts = state.messages.map(m => {
+      const u = state.updates[m.updateId];
+      return `<span class="pkt">“${escapeHtml(u.value)}” → ${m.to} <span class="mono">(lands t=${m.arriveAt})</span></span>`;
+    });
+    $("flight").innerHTML = pkts.length ? pkts.join("") : `<span class="flight-empty">The roads are empty. t = ${state.tick}s.</span>`;
+
+    // replicas
+    $("replicas").innerHTML = REPLICA_IDS.map(rid => {
+      const r = state.replicas[rid];
+      const cut = state.flood === rid;
+      const st = stalenessOf(state, rid);
+      const servingIds = resolveIds(state, rid);
+      const pct = Math.min(100, st.secs * 8);
+      return `<div class="replica ${cut ? "cut" : ""}">
+        <div class="rhead"><b>${REPLICA_NAMES[rid]}</b>
+          <span>${cut ? `<span class="pill bad">cut off</span>` : ""}
+          ${r.skew !== 0 ? `<span class="skewtag mono">clock ${r.skew > 0 ? "+" : ""}${r.skew}s</span>` : ""}</span></div>
+        <div class="serving"><div class="slabel">Displays (${state.resolver === "siblings" ? "all undominated rivals" : state.resolver === "lww" ? "biggest timestamp" : "newest arrival"})</div>
+          <div class="sval">${servingIds.map(id => chipHtml(state.updates[id], { big: true })).join("")}</div></div>
+        <div class="rset"><div class="slabel">Holds (its set, in arrival order)</div>
+          <div class="setchips">${r.set.map(id => chipHtml(state.updates[id])).join("")}</div></div>
+        <div class="stale ${st.versions === 0 ? "fresh" : ""}">
+          ${st.versions === 0 ? "fully caught up" : `${st.versions} version${st.versions > 1 ? "s" : ""} / ${st.secs}s behind`}
+          <div class="stalebar"><i style="width:${st.versions === 0 ? 100 : pct}%"></i></div>
+        </div>
+      </div>`;
+    }).join("");
+
+    renderJudges();
+    renderVerdict();
+    renderHisto();
+    renderLog();
+    syncControls();
+  }
+
+  function pill(cls, text) { return `<span class="pill ${cls}">${text}</span>`; }
+
+  function renderJudges() {
+    const j = state.judges;
+    // EC judge
+    let ecPill, ecDetail;
+    if (j.ec.status === "open") {
+      ecPill = pill("wait", "cannot be violated… yet");
+      ecDetail = "This judge rules only on the limit. While posting continues, every complaint gets the same answer: “wait longer.” Press <b>Stop &amp; settle</b> to force a ruling.";
+    } else if (j.ec.status === "converged") { ecPill = pill("good", "KEPT — converged"); ecDetail = escapeHtml(j.ec.detail); }
+    else if (j.ec.status === "violated") { ecPill = pill("bad", "VIOLATED — finite witness"); ecDetail = escapeHtml(j.ec.detail); }
+    else { ecPill = pill("amber", "blocked — still waiting"); ecDetail = escapeHtml(j.ec.detail); }
+
+    const perClient = (obj) => ["A", "B"].map(cid => {
+      const e = obj[cid];
+      return `<div class="jdetail">${CLIENT_DEFS[cid].name}: ${e.count === 0 ? `<span style="color:var(--good)">no violation</span>` : `<span style="color:var(--bad)">${e.count} violation${e.count > 1 ? "s" : ""}</span> — ${escapeHtml(e.last)}`}</div>`;
+    }).join("");
+    const anyR = j.ryw.A.count + j.ryw.B.count, anyM = j.mono.A.count + j.mono.B.count;
+
+    let lostPill, lostDetail;
+    if (j.lost.status === "pending") { lostPill = pill("wait", "assessed at settle"); lostDetail = "Whether a write silently died can only be judged once the boards have settled."; }
+    else if (j.lost.status === "ok") { lostPill = pill("good", "none lost"); lostDetail = "Every posted notice either survived or was knowingly replaced by a later one."; }
+    else { lostPill = pill("bad", `${j.lost.lostIds.length} write${j.lost.lostIds.length > 1 ? "s" : ""} died`); lostDetail = j.lost.lostIds.map(id => `“${escapeHtml(state.updates[id].value)}” (${state.updates[id].author}) was dropped by the decision rule — converged, and wrong.`).join("<br>"); }
+
+    $("judges").innerHTML = `
+      <div class="judge ec"><div class="jtop"><div><div class="jname">Eventual Consistency</div>
+        <div class="jq">“If posting stops, do the boards end up equal?” — the ONLY promise made</div></div>${ecPill}</div>
+        <div class="jdetail">${ecDetail}</div></div>
+      <div class="judge"><div class="jtop"><div><div class="jname">Read-your-writes</div>
+        <div class="jq">“Do I always see my own post?” — assumed, never promised</div></div>${anyR ? pill("bad", anyR + " violated") : pill("good", "holding")}</div>${perClient(j.ryw)}</div>
+      <div class="judge"><div class="jtop"><div><div class="jname">Monotonic reads</div>
+        <div class="jq">“Does time never run backwards for me?” — assumed, never promised</div></div>${anyM ? pill("bad", anyM + " violated") : pill("good", "holding")}</div>${perClient(j.mono)}</div>
+      <div class="judge"><div class="jtop"><div><div class="jname">No lost updates</div>
+        <div class="jq">“Does every accepted post survive somewhere?” — the resolver's choice</div></div>${lostPill}</div>
+        <div class="jdetail">${lostDetail}</div></div>`;
+  }
+
+  function renderVerdict() {
+    const v = $("verdict");
+    const j = state.judges;
+    let cls = "", main = "", sub = "";
+    if (j.ec.status === "violated") {
+      cls = "bad"; main = "The boards can never agree again — eventual consistency itself is broken.";
+      sub = "Same notices, different displays: the decision rule depends on arrival order. This is the one failure the contract can be convicted of.";
+    } else if (j.ec.status === "converged") {
+      cls = "good"; main = `Settled: all boards display ${resolveText(state, "R1")}.`;
+      sub = j.lost.status === "lost" ? "The promise was kept — and " + j.lost.lostIds.length + " write(s) still died. Converged and wrong are compatible." : "The promise was kept, and no write was lost.";
+    } else {
+      const worst = REPLICA_IDS.map(rid => ({ rid, st: stalenessOf(state, rid) })).sort((a, b) => b.st.versions - a.st.versions)[0];
+      const viols = j.ryw.A.count + j.ryw.B.count + j.mono.A.count + j.mono.B.count;
+      if (worst.st.versions === 0) { main = `t = ${state.tick}s — all boards are momentarily identical.`; sub = "Nothing guarantees they stay that way; the promise only speaks about the limit."; }
+      else {
+        main = `t = ${state.tick}s — ${worst.rid} is serving a value ${worst.st.versions} version${worst.st.versions > 1 ? "s" : ""} behind.`;
+        sub = "Nothing in the eventual-consistency contract objects to this." + (viols ? ` Meanwhile ${viols} violation(s) of promises people merely ASSUMED — see the judges.` : "");
+      }
+      if (j.ec.status === "blocked") { cls = ""; sub += " Settle is blocked by the flood."; }
+    }
+    v.className = cls;
+    v.innerHTML = `<div class="main">${main}</div><div class="sub">${sub}</div>`;
+  }
+
+  function renderHisto() {
+    const buckets = [[0, 0, "0s"], [1, 2, "1–2s"], [3, 5, "3–5s"], [6, 10, "6–10s"], [11, Infinity, "11s+"]];
+    const counts = buckets.map(() => 0);
+    for (const r of state.readLog) {
+      const i = buckets.findIndex(([lo, hi]) => r.secs >= lo && r.secs <= hi);
+      if (i >= 0) counts[i]++;
+    }
+    const max = Math.max(1, ...counts);
+    $("histo").innerHTML = buckets.map(([lo, hi, label], i) =>
+      `<div class="hb"><span class="hc">${counts[i] || ""}</span><div class="bar" style="height:${(counts[i] / max) * 48}px"></div><span class="hl">${label}</span></div>`).join("");
+  }
+
+  function renderLog() {
+    $("log").innerHTML = state.log.slice(0, 80).map(e =>
+      `<div class="ev ${e.kind === "story" ? "story" : e.kind === "warn" ? "warn" : e.kind === "goodev" ? "goodev" : ""}">
+        <span class="t mono">t=${e.tick}s</span>
+        <div class="body"><div class="main">${escapeHtml(e.text)}</div>${e.why ? `<div class="why">${escapeHtml(e.why)}</div>` : ""}</div>
+      </div>`).join("") || `<div class="flight-empty">No events yet.</div>`;
+  }
+
+  function syncControls() {
+    $("cfgResolver").value = state.resolver;
+    $("cfgCadence").value = String(state.cadence);
+    $("cfgForward").checked = state.forward;
+    $("cfgFlood").value = state.flood;
+    for (const rid of REPLICA_IDS) {
+      $("skew" + rid).value = state.replicas[rid].skew;
+      $("skew" + rid + "v").textContent = (state.replicas[rid].skew >= 0 ? "+" : "") + state.replicas[rid].skew;
+    }
+    document.querySelectorAll("[data-routing]").forEach(el => { el.value = state.clients[el.dataset.routing].routing; });
+  }
+
+  function inspect(uid) {
+    const u = state.updates[uid];
+    if (!u) return;
+    const where = REPLICA_IDS.filter(rid => state.replicas[rid].set.includes(uid));
+    $("inspector").innerHTML = `<b style="color:var(--ink)">“${escapeHtml(u.value)}”</b>
+      <table>
+        <tr><td>posted by</td><td>${u.author}</td></tr>
+        <tr><td>accepted at</td><td>${u.acceptedAt}, t=${u.acceptTick}s</td></tr>
+        <tr><td>stamped ts</td><td class="mono">${u.ts}${u.ts !== u.acceptTick ? " (clock skew included — under LWW this stamp competes, not reality)" : ""}</td></tr>
+        <tr><td>its board had seen</td><td>${u.context.length ? u.context.map(id => `“${escapeHtml(state.updates[id].value)}”`).join(", ") : "nothing (fresh board)"}</td></tr>
+        <tr><td>present on</td><td>${where.join(", ")} ${where.length === 3 ? "(everywhere)" : ""}</td></tr>
+      </table>
+      <div style="margin-top:6px">Any later write whose “had seen” list includes this one <i>knowingly replaced</i> it; a write dropped without appearing in any such list died silently.</div>`;
+  }
+
+  // ----- wire controls -----
+  $("btnStep").addEventListener("click", () => { stopTimers(); act({ type: "tick" }); });
+  $("btnBack").addEventListener("click", () => {
+    stopTimers();
+    if (history.length) { state = JSON.parse(history.pop()); render(); }
+  });
+  $("btnPlay").addEventListener("click", () => {
+    if (playTimer) { stopTimers(); return; }
+    $("btnPlay").textContent = "Pause";
+    playTimer = setInterval(() => act({ type: "tick" }), 800);
+  });
+  $("btnReset").addEventListener("click", () => { stopTimers(); history = []; state = initState(12345); render(); });
+  $("btnSettle").addEventListener("click", () => { stopTimers(); act({ type: "settle" }); });
+  $("btnSync").addEventListener("click", () => { stopTimers(); act({ type: "sync" }); });
+  $("cfgResolver").addEventListener("change", e => act({ type: "resolver", value: e.target.value }));
+  $("cfgCadence").addEventListener("change", e => act({ type: "cadence", value: Number(e.target.value) }));
+  $("cfgForward").addEventListener("change", e => act({ type: "forward", value: e.target.checked }));
+  $("cfgFlood").addEventListener("change", e => act({ type: "flood", value: e.target.value }));
+  for (const rid of REPLICA_IDS) {
+    $("skew" + rid).addEventListener("change", e => act({ type: "skew", replica: rid, value: Number(e.target.value) }));
+  }
+  document.addEventListener("click", e => {
+    const chip = e.target.closest("[data-uid]");
+    if (chip) { inspect(chip.dataset.uid); return; }
+    const btn = e.target.closest("[data-act]");
+    if (btn) { stopTimers(); act({ type: btn.dataset.act, client: btn.dataset.client }); }
+  });
+  document.addEventListener("change", e => {
+    const sel = e.target.closest("[data-routing]");
+    if (sel) act({ type: "routing", client: sel.dataset.routing, value: sel.value });
+  });
+
+  // ----- scenarios -----
+  const SCENARIOS = [
+    {
+      title: "1 · The five-minute lie",
+      setup: "Asha posts news on the North board. Ben immediately reads the South board, before any courier has moved.",
+      question: "What does Ben's read return?",
+      options: ["The old notice — and no promise is broken",
+                "The new notice — the ack meant it was everywhere",
+                "An error — the South board knows it is behind"],
+      correct: 0,
+      explain: "The ack meant only “one board accepted it”. Ben got yesterday's news, every judge stayed green or gray, and the staleness histogram — not the contract — is where the truth lives. Two ticks later the copy lands and Ben's next read is fresh.",
+      script: () => [
+        step({ type: "story", text: "Scenario 1: watch the ack and the read, then the judges.", why: "" }),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        step({ type: "read", client: "B", replica: "R3" }),
+        step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "read", client: "B", replica: "R3" }),
+        step({ type: "story", text: "Ben's second read is fresh. The window was 2 seconds — measured on the histogram, promised nowhere.", why: "" }),
+      ],
+    },
+    {
+      title: "2 · Time runs backwards",
+      setup: "The road to the South board floods. Asha posts on North. Ben reads North (fresh), then reads South (cut off, still old).",
+      question: "Ben sees the new notice, then the old one. Has the store broken its promise?",
+      options: ["Yes — eventual consistency forbids this",
+                "No promise made was broken — but the Monotonic-reads judge will object to the assumed one",
+                "The South board will refuse to answer while cut off"],
+      correct: 1,
+      explain: "Reads are local and always answered — that availability is the design's entire point. Nothing links Ben's two reads in the contract; monotonic reads is a SEPARATE promise, bought with routing (sticky sessions or a session token), not with storage. The EC judge never flinched.",
+      script: () => [
+        step({ type: "flood", value: "R3" }),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "read", client: "B", replica: "R1" }),
+        step({ type: "read", client: "B", replica: "R3" }),
+        step({ type: "story", text: "The Monotonic-reads judge is red; the EC judge is unmoved. Different promises, different judges.", why: "Fix it with routing: set Ben to “always home board” and this cannot happen to him again." }),
+        step({ type: "flood", value: "none" }),
+      ],
+    },
+    {
+      title: "3 · Converged onto a lie",
+      setup: "The Middle board's clock runs +60s fast. Ben posts “market cancelled” there. Fifteen seconds LATER, Asha posts “market moved to Sunday” on North. Resolver: newest timestamp wins. Then everything settles.",
+      question: "After settling, every board shows…",
+      options: ["“moved to Sunday” — it was written last in the real world",
+                "“cancelled” — its stamp is bigger, so the genuinely-newer write dies",
+                "Both notices, side by side"],
+      correct: 1,
+      explain: "LWW manufactures its order from clocks, and the +60s board stamps its write into the future: ts 70 beats ts 25 even though Asha wrote 15 real seconds later. Every clause of the contract is satisfied — delivery worked, the boards converged fast — and Asha's write is gone. The EC judge says KEPT; only the Lost-updates judge tells the truth. Under LWW, clock monitoring is a data-integrity control.",
+      script: () => [
+        step({ type: "skew", replica: "R2", value: 60 }),
+        step({ type: "write", client: "B", replica: "R2", value: "market cancelled" }),
+        ...Array.from({ length: 3 }, () => step({ type: "tick" })),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "settle" }),
+      ],
+    },
+    {
+      title: "4 · Same set, different answer",
+      setup: "Resolver switched to “newest ARRIVAL wins”. Asha and Ben post rival notices at the same instant on opposite boards; the copies cross on the road. Then: settle, with unlimited sync rounds.",
+      question: "The boards sync forever. Do they end up agreeing?",
+      options: ["Yes — syncing always converges eventually",
+                "No — they diverge forever, and this is the ONE provable breach of eventual consistency",
+                "They alternate values on every round"],
+      correct: 1,
+      explain: "Each board holds the identical set of notices, but displays whichever arrived last AT THAT BOARD — a function of delivery history, not of the set. Sync rounds re-offer notices everyone already has, so nothing ever changes: permanent divergence with a finite witness. This is the audit question for any hand-rolled sync: is what a replica serves a pure function of the set it received? If not, it is not eventually consistent — whatever the README says.",
+      script: () => [
+        step({ type: "resolver", value: "arrival" }),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        step({ type: "write", client: "B", replica: "R3", value: "market cancelled" }),
+        step({ type: "tick" }), step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "settle" }),
+      ],
+    },
+    {
+      title: "5 · Eventually never comes",
+      setup: "Forwarding OFF, sync rounds OFF — the delivery machinery is dead. Asha posts. Twelve seconds pass. Ben reads the South board.",
+      question: "The South board still shows old news and no sync will ever run. Is the promise broken?",
+      options: ["Yes — twelve seconds of divergence is a violation",
+                "Not provably — at every finite moment the answer is “wait longer”, and that is exactly the trap",
+                "Yes, but only after 30 seconds"],
+      correct: 1,
+      explain: "A liveness promise has no deadline, so its machinery can die WITHOUT ANY OBSERVABLE EVENT: reads answer, writes ack, nothing turns red. That is why real systems alarm on the machinery's heartbeat (replication-lag age, time since last repair) — the contract itself offers nothing to alarm on. Watch: the moment sync is re-enabled, one round repairs everything.",
+      script: () => [
+        step({ type: "forward", value: false }),
+        step({ type: "cadence", value: 0 }),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        ...Array.from({ length: 6 }, () => step({ type: "tick" })),
+        step({ type: "read", client: "B", replica: "R3" }),
+        step({ type: "story", text: "Nothing is red. Nothing will ever BE red. The promise is not broken — it has just quietly stopped being made true.", why: "" }),
+        step({ type: "cadence", value: 3 }),
+        step({ type: "tick" }), step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "read", client: "B", replica: "R3" }),
+      ],
+    },
+    {
+      title: "6 · The flood and the re-offer",
+      setup: "The road to the South board floods. Asha posts on North — the courier's copy for South dies in the water. Then the flood drains.",
+      question: "Will the South board ever learn of Asha's notice?",
+      options: ["No — its copy was lost, and lost is lost",
+                "Only if Asha posts it again",
+                "Yes — the next sync round re-offers EVERYTHING, so one lost copy only delays"],
+      correct: 2,
+      explain: "Forward-once (v1) tries once and gives up — on its own, the loss would be permanent (that was Scenario 5's world). A compare-and-copy round starts from what each board HOLDS, not from what was recently sent, so anything ever lost is simply carried again. That property — re-offer everything, forever — IS the delivery clause, and it is why anti-entropy underneath is mandatory, not an optimization.",
+      script: () => [
+        step({ type: "flood", value: "R3" }),
+        step({ type: "write", client: "A", replica: "R1", value: "market moved to Sunday" }),
+        step({ type: "tick" }), step({ type: "tick" }),
+        step({ type: "flood", value: "none" }),
+        ...Array.from({ length: 6 }, () => step({ type: "tick" })),
+        step({ type: "settle" }),
+      ],
+    },
+  ];
+  function step(action, narr) { return { action, narr }; }
+
+  function renderScenarios() {
+    $("scenarios").innerHTML = SCENARIOS.map((s, i) => `
+      <div class="scen" data-si="${i}">
+        <div class="stitle">${s.title}</div>
+        <div class="ssetup">${s.setup}</div>
+        <div class="squestion"><b>Predict:</b> ${s.question}</div>
+        <div class="sopts">${s.options.map((o, oi) => `<button data-si="${i}" data-oi="${oi}">${o}</button>`).join("")}</div>
+        <div class="grow" style="margin-top:8px"><button data-runfor="${i}">Run for me (no prediction)</button></div>
+        <div class="running" id="scenRun${i}">Running… watch the boards and the log.</div>
+        <div class="sresult" id="scenRes${i}"></div>
+      </div>`).join("");
+  }
+  renderScenarios();
+
+  function runScenario(i, pickedIdx) {
+    stopTimers();
+    history = [];
+    state = initState(12345);
+    render();
+    const s = SCENARIOS[i];
+    document.querySelectorAll(`.scen[data-si="${i}"] .sopts button`).forEach((b, oi) => {
+      b.classList.toggle("picked", oi === pickedIdx);
+    });
+    $("scenRes" + i).className = "sresult";
+    $("scenRun" + i).classList.add("show");
+    const steps = s.script();
+    let k = 0;
+    const tickOne = () => {
+      if (k < steps.length) {
+        act(steps[k].action);
+        k++;
+        scenarioTimer = setTimeout(tickOne, 850);
+      } else {
+        $("scenRun" + i).classList.remove("show");
+        const res = $("scenRes" + i);
+        if (pickedIdx == null) {
+          res.className = "sresult show good";
+          res.innerHTML = `<b>What happened:</b> ${s.explain}`;
+        } else {
+          const right = pickedIdx === s.correct;
+          res.className = "sresult show " + (right ? "good" : "bad");
+          res.innerHTML = `<b>Your prediction ${right ? "held" : "did not hold"}.</b> ` +
+            (right ? "" : `The answer was: “${s.options[s.correct]}”. `) + s.explain;
+        }
+      }
+    };
+    tickOne();
+  }
+
+  document.addEventListener("click", e => {
+    const opt = e.target.closest(".sopts button");
+    if (opt) { runScenario(Number(opt.dataset.si), Number(opt.dataset.oi)); return; }
+    const run = e.target.closest("[data-runfor]");
+    if (run) { runScenario(Number(run.dataset.runfor), null); }
+  });
+
+  render();
+
+  // Headless-validation hook: inert in normal browsing, used by the lab's
+  // JavaScriptCore smoke test to drive the real UI path without a browser.
+  if (typeof window !== "undefined" && window.__EC_TEST__) {
+    window.__EC_HOOK__ = { act, getState: () => state, runScenario, SCENARIOS };
+  }
+})();
+</script>

@@ -1,0 +1,748 @@
+<title>The Falsifier</title>
+<style>
+:root{
+  --bg:#eceff1; --card:#fbfcfd; --card2:#f2f5f7; --ink:#182126; --muted:#5b6b73; --line:#ccd6da;
+  --accent:#1f5f7a; --accent-soft:#e0edf2;
+  --ok:#22704e; --ok-soft:#dbeee4;
+  --bad:#a32731; --bad-soft:#f8e1e2;
+  --warn:#9a6b12; --warn-soft:#f7ecd2;
+  --info:#5a5f8c; --info-soft:#e6e7f2;
+  --p1:#1f5f7a; --p2:#7a3a63; --p3:#4a6b2c; --p4:#8a5a1c; --p5:#3b4f7a;
+  --grid:#dde4e7; --chip:#e6ecee; --ghost:#9aa8ad;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1618; --card:#182226; --card2:#1e2a2f; --ink:#dde6e9; --muted:#8ea0a7; --line:#28353a;
+    --accent:#5da9c9; --accent-soft:#122c37;
+    --ok:#5cbb8c; --ok-soft:#102c20;
+    --bad:#e5717a; --bad-soft:#391a1d;
+    --warn:#d7ab4b; --warn-soft:#33280f;
+    --info:#9ba1d6; --info-soft:#1e2036;
+    --p1:#5da9c9; --p2:#cf8bb8; --p3:#93bb6c; --p4:#d0a259; --p5:#8296d6;
+    --grid:#233035; --chip:#222f34; --ghost:#5f6f76;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1618; --card:#182226; --card2:#1e2a2f; --ink:#dde6e9; --muted:#8ea0a7; --line:#28353a;
+  --accent:#5da9c9; --accent-soft:#122c37;
+  --ok:#5cbb8c; --ok-soft:#102c20;
+  --bad:#e5717a; --bad-soft:#391a1d;
+  --warn:#d7ab4b; --warn-soft:#33280f;
+  --info:#9ba1d6; --info-soft:#1e2036;
+  --p1:#5da9c9; --p2:#cf8bb8; --p3:#93bb6c; --p4:#d0a259; --p5:#8296d6;
+  --grid:#233035; --chip:#222f34; --ghost:#5f6f76;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+     -webkit-font-smoothing:antialiased;padding:0 0 60px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{padding:34px 0 20px}
+h1{font-size:30px;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:15px;max-width:70ch;margin:0}
+.tabs{display:flex;gap:8px;margin:22px 0 0;border-bottom:1px solid var(--line)}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;
+     font:600 14px var(--sans);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+.card h2{font-size:15px;margin:0 0 4px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 13px;
+      font:500 13px var(--sans);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.story{font-size:15px;margin:0 0 2px}
+.story b{color:var(--accent)}
+.hint{color:var(--muted);font-size:13.5px;margin:6px 0 0}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.scrollx{overflow-x:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:22px;height:11px;border-radius:3px;display:inline-block}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:6px}
+.v{border:1px solid var(--line);border-radius:9px;padding:13px 15px;background:var(--card2)}
+.v .vh{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+.v .vv{font:700 15px var(--sans);display:flex;align-items:center;gap:8px}
+.v.pass{background:var(--ok-soft);border-color:var(--ok)} .v.pass .vv{color:var(--ok)}
+.v.fail{background:var(--bad-soft);border-color:var(--bad)} .v.fail .vv{color:var(--bad)}
+.v .vn{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.v.hero{box-shadow:0 0 0 2px var(--accent)}
+.tag{font:600 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;
+     border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-left:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+td.n{font-family:var(--mono);text-align:right}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px 17px;
+     font:600 13.5px var(--sans);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.callout{border-left:3px solid var(--warn);background:var(--warn-soft);padding:11px 15px;
+         border-radius:0 7px 7px 0;font-size:14px;margin-top:14px}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.callout.ok{border-left-color:var(--ok);background:var(--ok-soft)}
+.callout b{display:block;margin-bottom:3px}
+.orderline{font-family:var(--mono);font-size:13px;background:var(--card2);border:1px solid var(--line);
+           border-radius:7px;padding:11px 14px;margin-top:10px;overflow-x:auto;white-space:nowrap}
+.txns{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+.txn{border:1px solid var(--line);border-radius:9px;background:var(--card2);padding:12px 14px}
+.txn h3{margin:0 0 7px;font-size:14px;font-family:var(--mono)}
+.txn ul{margin:0;padding-left:16px;font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+.txn.aborted{border-color:var(--bad);background:var(--bad-soft)}
+.txn .st{font:600 10px var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--bad)}
+.edgelist{margin-top:12px;font-size:13.5px}
+.edgelist li{margin-bottom:7px}
+.edgelist .ek{font-family:var(--mono);font-weight:700}
+.edgelist li.dead{color:var(--ghost);text-decoration:line-through 1px}
+.edgelist li.dead em{text-decoration:none;display:block;font-style:normal;color:var(--warn);font-size:12.5px}
+.pred{border:1px dashed var(--accent);border-radius:9px;padding:13px 16px;background:var(--accent-soft);margin-top:14px}
+.pred p{margin:0 0 9px;font-size:14px}
+.pred .res{margin-top:10px;font-size:13.5px;font-weight:600}
+input[type=range]{width:220px;accent-color:var(--accent)}
+label.sw2{display:flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer}
+.small{font-size:12.5px;color:var(--muted)}
+.hidden{display:none!important}
+footer{margin-top:34px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>The Falsifier</h1>
+  <p class="sub">Jepsen does not check whether a database gave the right answer. It records everything
+  that happened, then searches for <em>any</em> story that could explain it. When no story exists, the
+  database's claim is false. This page lets you run that search — and shows you the one thing that
+  quietly breaks most home-made versions of it.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-k" role="tab" aria-selected="true" onclick="showTab('k')">1 · One register &nbsp;<span class="small">(Knossos)</span></button>
+    <button class="tab" id="tab-e" role="tab" aria-selected="false" onclick="showTab('e')">2 · Transactions &nbsp;<span class="small">(Elle)</span></button>
+  </div>
+</header>
+
+<!-- ============================ KNOSSOS TAB ============================ -->
+<section id="pane-k">
+
+  <div class="card">
+    <h2>Recorded runs against FerrousDB</h2>
+    <p class="hint">Each is a real transcript from a test: four client processes reading and writing one
+    counter, <code>x</code>, which starts at <b>0</b>. Pick one. FerrousDB is fictional; every behaviour
+    here is modelled on a published finding in a real system.</p>
+    <div class="chips" id="kscen"></div>
+  </div>
+
+  <div class="card">
+    <p class="story" id="kstory"></p>
+    <p class="hint" id="khint"></p>
+    <div class="scrollx"><svg id="ktl" viewBox="0 0 900 240" role="img" aria-label="History timeline"></svg></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ok)"></i> <code>:ok</code> — definitely happened</span>
+      <span><i class="sw" style="background:var(--bad)"></i> <code>:fail</code> — definitely did not</span>
+      <span><i class="sw" style="background:var(--warn);opacity:.55"></i> <code>:info</code> — indeterminate; may or may not have, <b>now or later</b></span>
+      <span>Bar = the interval between invocation and completion.</span>
+    </div>
+
+    <div class="pred" id="kpred">
+      <p><b>🔮 Predict first.</b> <span id="kpredq"></span></p>
+      <div class="row">
+        <button class="btn ghost" onclick="kPredict(true)">Yes — a valid explanation exists</button>
+        <button class="btn ghost" onclick="kPredict(false)">No — this history is impossible</button>
+        <button class="btn" onclick="kPredict(null)">Just show me</button>
+      </div>
+      <div class="res" id="kpredres"></div>
+    </div>
+  </div>
+
+  <div class="card" id="kresult" style="display:none">
+    <h2>Three judges, one transcript</h2>
+    <p class="hint">All three run the identical search on the identical history. They differ only in how
+    they read an <code>:info</code>. Where they disagree, that disagreement is the lesson.</p>
+    <div class="verdicts" id="kverdicts"></div>
+    <div id="kexplain"></div>
+  </div>
+
+  <div class="card" id="ks8" style="display:none">
+    <h2>Why the judge runs out of time</h2>
+    <p class="hint">Here the history is <b>k writes that all overlap each other</b>, followed by a read
+    that no ordering can satisfy — so the search must try everything before giving up. Drag k and watch
+    the cost. The pruning rule is the heart of the WGL algorithm Knossos uses: <em>if you have already
+    explored a state with the same set of remaining operations and the same register value, there is
+    nothing new down this path.</em></p>
+    <div class="row">
+      <label class="sw2">concurrent writes k = <b id="kslabel">6</b>
+        <input type="range" id="kslider" min="2" max="8" value="6" oninput="renderS8()"></label>
+    </div>
+    <table>
+      <thead><tr><th>Strategy</th><th style="text-align:right">States explored</th><th>Growth</th></tr></thead>
+      <tbody id="ks8body"></tbody>
+    </table>
+    <p class="small" style="margin-top:10px">These are this page's own numbers, measured in your browser by
+    a ~60-line checker. Knossos is far more sophisticated. The shape of the curve is the lesson; the
+    absolute numbers are not.</p>
+  </div>
+
+</section>
+
+<!-- ============================== ELLE TAB ============================== -->
+<section id="pane-e" class="hidden">
+
+  <div class="card">
+    <h2>Recorded transactional runs</h2>
+    <p class="hint">Now the claim is <b>serializability</b>, and operations are grouped into transactions.
+    Knossos cannot help: it searches for an <em>order</em>, and transaction orderings do not decompose by
+    key. Elle looks for a <em>cycle</em> instead.</p>
+    <div class="chips" id="escen"></div>
+  </div>
+
+  <div class="card">
+    <p class="story" id="estory"></p>
+    <div class="row">
+      <span class="small"><b>Datatype under test:</b></span>
+      <div class="chips" style="margin:0">
+        <button class="chip" id="dt-append" aria-pressed="true" onclick="setDatatype('append')">list-append &nbsp;<span class="small">writes append a unique value</span></button>
+        <button class="chip" id="dt-reg" aria-pressed="false" onclick="setDatatype('register')">register &nbsp;<span class="small">writes overwrite</span></button>
+      </div>
+    </div>
+    <p class="hint" id="edthint"></p>
+
+    <div class="txns" id="etxns"></div>
+
+    <h2 style="margin-top:22px">The graph Elle infers</h2>
+    <p class="hint">Nodes are transactions. An arrow <b>T→U</b> means "T must have come before U".
+    Elle does not invent these — each one is forced by something a client actually read.</p>
+    <div class="scrollx"><svg id="egraph" viewBox="0 0 900 300" role="img" aria-label="Dependency graph"></svg></div>
+    <ol class="edgelist" id="eedges"></ol>
+    <div id="everdict"></div>
+  </div>
+
+</section>
+
+<footer class="wrap" style="max-width:1080px">
+  Companion to <b>README.md</b> in the <code>jepsen/</code> lab. This page implements the <em>ideas</em> of
+  Knossos (search with pruning) and Elle (cycle detection over inferred dependencies) at teaching scale.
+  It is not those tools and does not reproduce their results.
+</footer>
+</div>
+
+<script>
+//--LOGIC-START--
+/* ============================ REGISTER HISTORIES ============================ */
+/* op: {p, f:'w'|'r', v, inv, comp, info}   register starts at 0 */
+const SCEN = [
+{ id:'S1', name:'S1 · Clean run',
+  story:'No faults. Four processes, neatly separated operations. This is what a healthy transcript looks like — read it once so the display is familiar.',
+  hint:'Each bar starts at the invocation and ends when the client got its reply. Nothing here overlaps.',
+  q:'Every operation succeeded and the values look sensible. Can a single-copy register explain all four?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:3,info:false},
+       {p:2,f:'r',v:1,inv:4,comp:6,info:false},
+       {p:3,f:'w',v:2,inv:7,comp:9,info:false},
+       {p:4,f:'r',v:2,inv:10,comp:12,info:false}],
+  note:'Nothing to see, which is the point: most of a Jepsen run is this. Violations are rare events inside a long boring transcript, which is exactly why "check the final value" misses them.' },
+
+{ id:'S2', name:'S2 · The stale read',
+  story:'A network partition was healing. p2 asked for x and was told <b>1</b>. Two ticks after p2 got its answer, p3 asked and was told <b>0</b>.',
+  hint:'Look at p2 and p3. Their bars do not overlap — p2 was already finished before p3 even asked.',
+  q:'p1’s write covers both reads in time. Does that give the database enough freedom to explain 1 then 0?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:9,info:false},
+       {p:2,f:'r',v:1,inv:1,comp:3,info:false},
+       {p:3,f:'r',v:0,inv:5,comp:7,info:false}],
+  note:'This is the canonical violation and it takes exactly three operations to prove. For p2 to read 1, the write must take effect before t=3. For p3 to read 0, it must take effect after t=5. No instant satisfies both. Time ran backwards.' },
+
+{ id:'S3', name:'S3 · The timeout that was not a bug',
+  story:'p1 sent a write and got nothing back — a socket timeout during a partition. p2 then read <b>1</b>.',
+  hint:'p1’s bar is hollow and open-ended. That is an <code>:info</code>: the write may have landed, may have been dropped, may still be in flight. Note the arrow — an indeterminate operation’s interval runs to the <b>end of the history</b>, because it could take effect at any later moment.',
+  q:'A value appeared that no <em>confirmed</em> write produced. Is that a bug?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:8,info:true},
+       {p:2,f:'r',v:1,inv:2,comp:4,info:false}],
+  note:'The naive reading — "no reply means it did not happen" — convicts an innocent database. This single mistake is why most home-grown consistency tests cry wolf every run and then get deleted.' },
+
+{ id:'S4', name:'S4 · The timeout that WAS a bug',
+  story:'Same timed-out write. But this time three separate, non-overlapping reads saw <b>1</b>, then <b>0</b>, then <b>1</b> again.',
+  hint:'Only two values can ever exist here: the initial 0, and the single write of 1. Count how many times the value would have to change.',
+  q:'Does the uncertainty about p1’s write rescue this history?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:20,info:true},
+       {p:2,f:'r',v:1,inv:2,comp:4,info:false},
+       {p:3,f:'r',v:0,inv:6,comp:8,info:false},
+       {p:4,f:'r',v:1,inv:10,comp:12,info:false}],
+  note:'No. <code>:info</code> buys the <em>write</em> freedom about when and whether it took effect. It buys the <em>reads</em> nothing — an <code>:ok</code> read is a hard fact. Three hard facts convict on their own.' },
+
+{ id:'S5', name:'S5 · The acknowledged write that vanished',
+  story:'p1 wrote 1 and FerrousDB <b>confirmed it</b>. A leader failover happened. p2 then read <b>0</b>.',
+  hint:'p1’s bar is solid: this write is a confirmed fact, not a guess.',
+  q:'The claim under test is "acknowledged writes are never lost". Is it still standing?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:3,info:false},
+       {p:2,f:'r',v:0,inv:5,comp:7,info:false}],
+  note:'This is the failure your split-brain and redis labs measured: the losing side of a failover had the write, the winning side did not, and the client had already been told "committed". Two operations are enough.' },
+
+{ id:'S6', name:'S6 · The bug the client hid',
+  story:'Exactly the same failure as S5 — FerrousDB acknowledged the write and then lost it. But the client library wrapped everything in one catch-all and recorded the acknowledged write as <b>indeterminate</b>.',
+  hint:'Compare this transcript with S5. One character changed: <code>:ok</code> became <code>:info</code>.',
+  q:'The database did the same wrong thing as in S5. Will the checker still catch it?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:4,info:true},
+       {p:2,f:'r',v:0,inv:8,comp:10,info:false}],
+  note:'It will not. Being vague when you actually knew is called <b>under-claiming</b>, and it does not make the test safer — it deletes the evidence. A checker with fewer facts finds fewer bugs. Note which judge goes red here: the <code>:info → :ok</code> one. That is not a defence of over-claiming — it is showing you the verdict you <em>would</em> have got if the client had told the truth.' },
+
+{ id:'S7', name:'S7 · Overlap is not a violation',
+  story:'Two writes were in flight at once, 1 and 2. A read landed in the middle and saw <b>1</b>; a later read saw <b>2</b>.',
+  hint:'p1’s and p2’s bars overlap heavily, and p3’s read sits inside both.',
+  q:'The value went 1 while a write of 2 was already in flight. Suspicious, or fine?',
+  ops:[{p:1,f:'w',v:1,inv:0,comp:10,info:false},
+       {p:2,f:'w',v:2,inv:2,comp:12,info:false},
+       {p:3,f:'r',v:1,inv:4,comp:6,info:false},
+       {p:4,f:'r',v:2,inv:14,comp:16,info:false}],
+  note:'Perfectly fine. <b>Concurrent operations are unordered</b>, so the checker may arrange them however it likes. Constraints come only from operations that do <em>not</em> overlap. This has a hard practical consequence: a test that runs everything at maximum concurrency produces a transcript that is nearly impossible to falsify. Jepsen deliberately keeps concurrency low.' },
+
+{ id:'S8', name:'S8 · Why the judge runs out of time', kind:'perf',
+  story:'Not a bug hunt. This is the cost of the search itself — the reason real Jepsen runs are short.',
+  hint:'',
+  q:'',
+  ops:[], note:'' }
+];
+
+/* ============================== THE CHECKER ============================== */
+/* Returns {valid, order, calls}. infoMode: 'fail' | 'ok' | 'jepsen' */
+function checkLin(ops, initial, infoMode, prune){
+  if(prune === undefined) prune = true;
+  const definite = ops.filter(o => !o.info);
+  const infos    = ops.filter(o =>  o.info);
+  let branches = [];
+  if(infoMode === 'fail'){
+    branches = [definite.map(cloneOp)];
+  } else if(infoMode === 'ok'){
+    branches = [ops.map(cloneOp)];
+  } else { // jepsen: an :info op may or may not have taken effect, now or LATER
+    const n = infos.length;
+    for(let mask = 0; mask < (1 << n); mask++){
+      const b = definite.map(cloneOp);
+      for(let i = 0; i < n; i++) if(mask & (1 << i)){
+        const c = cloneOp(infos[i]); c.comp = Infinity; b.push(c);
+      }
+      branches.push(b);
+    }
+  }
+  let calls = 0, best = null;
+  for(const b of branches){
+    const r = solve(b, initial, prune);
+    calls += r.calls;
+    if(r.order){ best = {order:r.order, branch:b}; break; }
+  }
+  return {valid: !!best, order: best ? best.order : null, branch: best ? best.branch : null, calls};
+}
+function cloneOp(o){ return {p:o.p, f:o.f, v:o.v, inv:o.inv, comp:o.comp, info:o.info}; }
+
+function solve(list, initial, prune){
+  const n = list.length, seen = new Set();
+  let calls = 0;
+  function rec(mask, val){
+    calls++;
+    if(mask === (1 << n) - 1) return [];
+    if(prune){
+      const key = mask + '|' + val;
+      if(seen.has(key)) return null;
+      seen.add(key);
+    }
+    for(let i = 0; i < n; i++){
+      if(mask & (1 << i)) continue;
+      const o = list[i];
+      // real-time: no other remaining op may have completed before o was invoked
+      let blocked = false;
+      for(let j = 0; j < n; j++){
+        if(j === i || (mask & (1 << j))) continue;
+        if(list[j].comp < o.inv){ blocked = true; break; }
+      }
+      if(blocked) continue;
+      if(o.f === 'r'){
+        if(o.v !== val) continue;
+        const r = rec(mask | (1 << i), val);
+        if(r) return [i].concat(r);
+      } else {
+        const r = rec(mask | (1 << i), o.v);
+        if(r) return [i].concat(r);
+      }
+    }
+    return null;
+  }
+  const order = rec(0, initial);
+  return {order, calls};
+}
+
+/* S8 history: k mutually-overlapping writes, then an unsatisfiable read */
+function perfHistory(k){
+  const ops = [];
+  for(let i = 1; i <= k; i++) ops.push({p:i, f:'w', v:i, inv:0, comp:100, info:false});
+  ops.push({p:k+1, f:'r', v:0, inv:110, comp:120, info:false});
+  return ops;
+}
+
+/* ============================ ELLE SCENARIOS ============================ */
+/* edge.kind: 'ww' | 'wr' | 'rw'  ; edge.appendOnly: inferable only from list-append */
+const ESCEN = [
+{ id:'E1', name:'E1 · Clean',
+  story:'Three transactions, no anomaly. Establishes how to read the graph.',
+  txns:[
+    {id:'T1', ops:['append(x, 1)']},
+    {id:'T2', ops:['r(x) = [1]','append(y, 1)']},
+    {id:'T3', ops:['r(y) = [1]','r(x) = [1]']}],
+  edges:[
+    {from:'T1',to:'T2',kind:'wr',key:'x',why:'T2 read x containing 1, and 1 was appended by T1 — so T1 committed first.'},
+    {from:'T2',to:'T3',kind:'wr',key:'y',why:'T3 read y containing 1, appended by T2.'},
+    {from:'T1',to:'T3',kind:'wr',key:'x',why:'T3 read x containing 1, appended by T1.'}],
+  clean:'No cycle. A serial order exists: T1, T2, T3. Elle reports nothing — which, remember, is weak evidence, not a certificate.' },
+
+{ id:'E2', name:'E2 · G0 — write cycle',
+  story:'Two transactions each wrote both keys. A third read them back. Notice that nobody read a value <em>during</em> the conflict — the evidence is entirely in the order the appended values ended up in.',
+  txns:[
+    {id:'T1', ops:['append(x, 1)','append(y, 2)']},
+    {id:'T2', ops:['append(x, 2)','append(y, 1)']},
+    {id:'T3', ops:['r(x) = [1, 2]','r(y) = [1, 2]']}],
+  edges:[
+    {from:'T1',to:'T2',kind:'ww',key:'x',appendOnly:true,
+     why:'T3 read x = [1, 2]. The list preserves append order, so 1 (T1) was appended before 2 (T2).'},
+    {from:'T2',to:'T1',kind:'ww',key:'y',appendOnly:true,
+     why:'T3 read y = [1, 2]. So 1 (T2) was appended before 2 (T1).'},
+    {from:'T1',to:'T3',kind:'wr',key:'x',why:'T3 read a value T1 appended.'},
+    {from:'T2',to:'T3',kind:'wr',key:'x',why:'T3 read a value T2 appended.'}],
+  regNote:'With plain registers, a read of x returns only the <b>latest</b> value — it says nothing about what came before it. Both <code>ww</code> edges vanish, the cycle disappears, and Elle reports a clean run. <b>The database is just as broken; the evidence is gone.</b>' },
+
+{ id:'E3', name:'E3 · G1c — cyclic information flow',
+  story:'Each transaction saw the other’s write. Both cannot have gone first.',
+  txns:[
+    {id:'T1', ops:['append(x, 1)','r(y) = [1]']},
+    {id:'T2', ops:['append(y, 1)','r(x) = [1]']}],
+  edges:[
+    {from:'T1',to:'T2',kind:'wr',key:'x',why:'T2 read x containing 1, which T1 appended — so T1 came first.'},
+    {from:'T2',to:'T1',kind:'wr',key:'y',why:'T1 read y containing 1, which T2 appended — so T2 came first.'}],
+  regNote:'Both edges survive here: the values are unique, so even a register read identifies its author. Register mode has <em>weaker</em> inference, not none.' },
+
+{ id:'E4', name:'E4 · G-single — read skew',
+  story:'T1 wrote both keys as one transaction. T2 saw one half of it and missed the other half.',
+  txns:[
+    {id:'T1', ops:['append(x, 1)','append(y, 1)']},
+    {id:'T2', ops:['r(x) = [1]','r(y) = []']}],
+  edges:[
+    {from:'T1',to:'T2',kind:'wr',key:'x',why:'T2 read x containing 1, appended by T1 — so T1 came first.'},
+    {from:'T2',to:'T1',kind:'rw',key:'y',why:'T2 read y = [], the state <em>before</em> T1 appended to it — so T2 must come before T1. This is an <b>anti-dependency</b>: an ordering forced by what a transaction did <em>not</em> see.'}],
+  regNote:'Both edges survive: reading the empty/initial version of y is just as visible with a register.' },
+
+{ id:'E5', name:'E5 · G2-item — write skew',
+  story:'Two transactions each checked the other’s key, found it untouched, and then wrote their own. Neither saw the other. This is the on-call anomaly: both doctors go off duty.',
+  txns:[
+    {id:'T1', ops:['r(y) = []','append(x, 1)']},
+    {id:'T2', ops:['r(x) = []','append(y, 1)']}],
+  edges:[
+    {from:'T1',to:'T2',kind:'rw',key:'y',why:'T1 read y before T2 appended to it — so T1 precedes T2.'},
+    {from:'T2',to:'T1',kind:'rw',key:'x',why:'T2 read x before T1 appended to it — so T2 precedes T1.'}],
+  regNote:'Both edges survive. This anomaly is visible with registers too — which is why write skew was catchable long before Elle existed.' },
+
+{ id:'E6', name:'E6 · G1a — aborted read', direct:'G1a',
+  story:'T1 tried to append 1 to x, and FerrousDB <b>told it the transaction had aborted</b>. T2 then read that value anyway.',
+  txns:[
+    {id:'T1', ops:['append(x, 1)'], aborted:true},
+    {id:'T2', ops:['r(x) = [1]']}],
+  edges:[],
+  directNote:'No cycle is needed and no graph search happens. This is a direct contradiction: a <code>:fail</code> means the operation had <b>no logical effect</b>, so a value it wrote cannot be readable. Elle checks this before it builds any graph. It is worth knowing that several of Elle’s findings — aborted reads, intermediate reads, duplicate writes, garbage reads — are caught this way rather than by cycle detection.' }
+];
+
+/* Cycle finding over active edges */
+function findCycle(nodes, edges){
+  const adj = {};
+  nodes.forEach(n => adj[n] = []);
+  edges.forEach((e,i) => { if(adj[e.from]) adj[e.from].push({to:e.to, i}); });
+  const state = {}, stack = [], estack = [];
+  nodes.forEach(n => state[n] = 0);
+  let found = null;
+  function dfs(u){
+    state[u] = 1; stack.push(u);
+    for(const {to, i} of adj[u]){
+      if(found) return;
+      if(state[to] === 1){
+        const at = stack.indexOf(to);
+        found = {nodes: stack.slice(at).concat([to]), edges: estack.slice(at).concat([i])};
+        return;
+      }
+      if(state[to] === 0){ estack.push(i); dfs(to); estack.pop(); if(found) return; }
+    }
+    state[u] = 2; stack.pop();
+  }
+  for(const n of nodes){ if(state[n] === 0 && !found){ dfs(n); } }
+  return found;
+}
+function classifyCycle(cycEdges, edges){
+  const kinds = cycEdges.map(i => edges[i].kind);
+  const rw = kinds.filter(k => k === 'rw').length;
+  if(rw >= 2) return {name:'G2-item', desc:'an anti-dependency cycle — two or more edges forced by what a transaction did <em>not</em> see. The write-skew family. Forbidden by serializability; <b>permitted by snapshot isolation</b>, which is why so many "serializable" systems land here.'};
+  if(rw === 1) return {name:'G-single', desc:'read skew — exactly one anti-dependency edge in the cycle. A transaction saw some but not all of another’s effects.'};
+  if(kinds.every(k => k === 'ww')) return {name:'G0', desc:'a write cycle — two transactions wrote two keys in opposite orders. The weakest anomaly; forbidden even by read-uncommitted.'};
+  return {name:'G1c', desc:'cyclic information flow — transactions read each other’s writes in a loop, so neither could have gone first.'};
+}
+//--LOGIC-END--
+
+/* ================================= UI ================================= */
+let kCur = 0, ePred = null, eCur = 0, datatype = 'append';
+
+function showTab(t){
+  document.getElementById('tab-k').setAttribute('aria-selected', t === 'k');
+  document.getElementById('tab-e').setAttribute('aria-selected', t === 'e');
+  document.getElementById('pane-k').classList.toggle('hidden', t !== 'k');
+  document.getElementById('pane-e').classList.toggle('hidden', t !== 'e');
+}
+
+/* ---------- Knossos tab ---------- */
+function buildScenChips(){
+  const c = document.getElementById('kscen');
+  c.innerHTML = SCEN.map((s,i) =>
+    `<button class="chip" aria-pressed="${i===kCur}" onclick="pickScen(${i})">${s.name}</button>`).join('');
+}
+function pickScen(i){
+  kCur = i; ePred = null;
+  buildScenChips();
+  const s = SCEN[i];
+  document.getElementById('kstory').innerHTML = s.story;
+  document.getElementById('khint').innerHTML = s.hint;
+  document.getElementById('kresult').style.display = 'none';
+  document.getElementById('kpredres').innerHTML = '';
+  const perf = s.kind === 'perf';
+  document.getElementById('ks8').style.display = perf ? '' : 'none';
+  document.getElementById('kpred').style.display = perf ? 'none' : '';
+  document.getElementById('ktl').style.display = perf ? 'none' : '';
+  document.querySelector('.legend').style.display = perf ? 'none' : '';
+  if(perf){ renderS8(); return; }
+  document.getElementById('kpredq').innerHTML = s.q;
+  drawTimeline(s.ops);
+}
+
+const PC = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)','var(--p5)'];
+function drawTimeline(ops){
+  const W = 900, padL = 62, padR = 40, padT = 26;
+  const rowH = 40, H = padT + ops.length * rowH + 44;
+  const maxT = Math.max(...ops.map(o => o.comp)) * 1.12 + 2;
+  const X = t => padL + (t / maxT) * (W - padL - padR);
+  let s = '';
+  // time grid
+  const step = maxT > 30 ? 5 : 2;
+  for(let t = 0; t <= maxT; t += step){
+    s += `<line x1="${X(t)}" y1="${padT-8}" x2="${X(t)}" y2="${padT + ops.length*rowH + 4}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${X(t)}" y="${padT + ops.length*rowH + 22}" fill="var(--muted)" font-size="11" text-anchor="middle" font-family="var(--mono)">${t}</text>`;
+  }
+  s += `<text x="${W-padR}" y="${padT + ops.length*rowH + 38}" fill="var(--muted)" font-size="11" text-anchor="end">time → (control node clock)</text>`;
+  ops.forEach((o,i) => {
+    const y = padT + i * rowH + 10, col = PC[(o.p-1) % PC.length];
+    const openEnded = o.info;
+    const x1 = X(o.inv), x2 = openEnded ? (W - padR + 14) : X(o.comp);
+    s += `<text x="${padL-12}" y="${y+15}" fill="${col}" font-size="12.5" text-anchor="end" font-weight="600" font-family="var(--mono)">p${o.p}</text>`;
+    if(openEnded){
+      s += `<rect x="${x1}" y="${y}" width="${X(o.comp)-x1}" height="21" rx="5" fill="var(--warn)" opacity="0.30"/>`;
+      s += `<rect x="${x1}" y="${y}" width="${X(o.comp)-x1}" height="21" rx="5" fill="none" stroke="var(--warn)" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+      s += `<line x1="${X(o.comp)}" y1="${y+10.5}" x2="${x2-8}" y2="${y+10.5}" stroke="var(--warn)" stroke-width="1.6" stroke-dasharray="3 4"/>`;
+      s += `<path d="M ${x2-9} ${y+6} L ${x2-1} ${y+10.5} L ${x2-9} ${y+15} Z" fill="var(--warn)"/>`;
+    } else {
+      s += `<rect x="${x1}" y="${y}" width="${Math.max(x2-x1,6)}" height="21" rx="5" fill="${col}" opacity="0.20"/>`;
+      s += `<rect x="${x1}" y="${y}" width="${Math.max(x2-x1,6)}" height="21" rx="5" fill="none" stroke="${col}" stroke-width="1.8"/>`;
+      s += `<line x1="${x1}" y1="${y-3}" x2="${x1}" y2="${y+24}" stroke="${col}" stroke-width="2"/>`;
+      s += `<line x1="${x2}" y1="${y-3}" x2="${x2}" y2="${y+24}" stroke="${col}" stroke-width="2"/>`;
+    }
+    const label = o.f === 'w' ? `write(${o.v})` : `read → ${o.v}`;
+    const tag = o.info ? '  :info' : '  :ok';
+    s += `<text x="${x1+9}" y="${y+15}" fill="var(--ink)" font-size="12" font-family="var(--mono)">${label}</text>`;
+    s += `<text x="${(o.info ? X(o.comp) : x2) + 9}" y="${y+15}" fill="${o.info?'var(--warn)':'var(--muted)'}" font-size="11" font-family="var(--mono)">${tag.trim()}</text>`;
+  });
+  const el = document.getElementById('ktl');
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  el.innerHTML = s;
+}
+
+const MODES = [
+  {k:'fail',   h:':info → it failed',        n:'"No reply means it did not happen." The most common home-grown assumption.'},
+  {k:'jepsen', h:':info → may or may not',    n:'Jepsen’s reading. Tries both branches, and lets the operation take effect at <em>any</em> later time. The only sound one.', hero:true},
+  {k:'ok',     h:':info → it succeeded',      n:'"It probably went through." Forces the operation into the order at its recorded interval.'}
+];
+
+function kPredict(guess){
+  const s = SCEN[kCur];
+  const res = MODES.map(m => Object.assign({}, m, checkLin(s.ops, 0, m.k)));
+  const truth = res.find(r => r.k === 'jepsen').valid;
+  const pr = document.getElementById('kpredres');
+  if(guess === null){ pr.innerHTML = ''; }
+  else if(guess === truth){ pr.innerHTML = `<span style="color:var(--ok)">✓ Correct.</span> ${truth ? 'A valid explanation exists.' : 'No explanation exists — this history convicts.'}`; }
+  else { pr.innerHTML = `<span style="color:var(--bad)">✗ Not quite.</span> ${truth ? 'A valid explanation does exist — read the note below for the one the checker found.' : 'No explanation exists. The note below shows what makes it impossible.'}`; }
+
+  const vd = document.getElementById('kverdicts');
+  vd.innerHTML = res.map(r => `
+    <div class="v ${r.valid ? 'pass' : 'fail'} ${r.hero ? 'hero' : ''}">
+      <div class="vh">${r.h}${r.hero ? '<span class="tag">Jepsen</span>' : ''}</div>
+      <div class="vv">${r.valid ? '✓ no violation found' : '✗ VIOLATION'}</div>
+      <div class="vn">${r.n}</div>
+    </div>`).join('');
+
+  const jep = res.find(r => r.k === 'jepsen');
+  let ex = '';
+  const disagree = new Set(res.map(r => r.valid)).size > 1;
+  if(disagree){
+    ex += `<div class="callout"><b>The judges disagree — and only one of them is right.</b>
+      The transcript is identical in all three. What changed is a <em>modelling choice about uncertainty</em>,
+      and it flipped the verdict. This is why Jepsen treats <code>:info</code> as a first-class outcome
+      rather than an error to be swallowed.</div>`;
+  }
+  if(jep.valid && jep.order){
+    const b = jep.branch;
+    const seq = jep.order.map(i => b[i]).map(o =>
+      (o.f === 'w' ? `write(${o.v})` : `read→${o.v}`) + `@p${o.p}`).join('  →  ');
+    const dropped = s.ops.filter(o => o.info).length - b.filter(o => o.info).length;
+    ex += `<div class="orderline"><b>An explanation exists.</b> Linearize in this order:<br>${seq}</div>`;
+    if(dropped > 0) ex += `<p class="small">The search reached this by assuming ${dropped} indeterminate operation(s) never took effect. It was allowed to assume that; that is what <code>:info</code> means.</p>`;
+  } else {
+    ex += `<div class="callout bad"><b>No explanation exists.</b> Every possible ordering was tried
+      — including every combination of "the indeterminate operation did / did not happen, at any
+      later time" — and each one contradicts something a client was actually told.</div>`;
+  }
+  ex += `<div class="callout ${jep.valid ? 'ok' : ''}"><b>What this scenario is teaching</b>${s.note}</div>`;
+  ex += `<p class="small">Search cost: ${res.find(r=>r.k==='jepsen').calls} states explored.</p>`;
+  document.getElementById('kexplain').innerHTML = ex;
+  document.getElementById('kresult').style.display = '';
+}
+
+function renderS8(){
+  const k = +document.getElementById('kslider').value;
+  document.getElementById('kslabel').textContent = k;
+  const ops = perfHistory(k);
+  const withP = checkLin(ops, 0, 'ok', true);
+  const noP   = checkLin(ops, 0, 'ok', false);
+  const fact = (n) => { let r = 1; for(let i = 2; i <= n; i++) r *= i; return r; };
+  document.getElementById('ks8body').innerHTML = `
+    <tr><td><b>No pruning</b> — try every ordering (Wing &amp; Gong)</td>
+        <td class="n">${noP.calls.toLocaleString()}</td>
+        <td class="small">≈ k! &nbsp;(k! = ${fact(k).toLocaleString()})</td></tr>
+    <tr><td><b>With pruning</b> — skip states already seen (Lowe / WGL)</td>
+        <td class="n">${withP.calls.toLocaleString()}</td>
+        <td class="small">≈ k·2<sup>k</sup></td></tr>
+    <tr><td class="small" colspan="3">Both reach the same verdict: <b style="color:var(--bad)">not linearizable</b>.
+        Pruning changes only how long it takes to be sure — and at k=8 that is already a
+        <b>${(noP.calls/withP.calls).toFixed(1)}×</b> difference, and the ratio roughly doubles with every
+        extra concurrent operation. Now imagine 50 in flight.
+        ${k<4?'<br><b>At k below 4 pruning saves nothing</b> — there are not yet two different paths that arrive at the same state. Pruning only pays once the search starts revisiting itself.':''}
+        </td></tr>`;
+}
+
+/* ---------- Elle tab ---------- */
+function buildEChips(){
+  document.getElementById('escen').innerHTML = ESCEN.map((s,i) =>
+    `<button class="chip" aria-pressed="${i===eCur}" onclick="pickE(${i})">${s.name}</button>`).join('');
+}
+function setDatatype(d){
+  datatype = d;
+  document.getElementById('dt-append').setAttribute('aria-pressed', d === 'append');
+  document.getElementById('dt-reg').setAttribute('aria-pressed', d === 'register');
+  renderE();
+}
+function pickE(i){ eCur = i; buildEChips(); renderE(); }
+
+function renderE(){
+  const s = ESCEN[eCur];
+  document.getElementById('estory').innerHTML = s.story;
+  document.getElementById('edthint').innerHTML = datatype === 'append'
+    ? 'With <b>list-append</b>, every write appends a unique value and every read returns the whole list. One read therefore reveals the complete write order for that key — which is exactly the evidence a checker needs.'
+    : 'With a <b>register</b>, a write overwrites and a read returns only the current value. Everything that happened before the latest write is unrecoverable. Watch which edges below go grey.';
+
+  document.getElementById('etxns').innerHTML = s.txns.map(t => {
+    const ops = t.ops.map(o => datatype === 'register' ? regify(o) : o);
+    return `<div class="txn ${t.aborted ? 'aborted' : ''}">
+      <h3>${t.id}${t.aborted ? ' <span class="st">aborted</span>' : ''}</h3>
+      <ul>${ops.map(o => `<li>${o}</li>`).join('')}</ul></div>`;
+  }).join('');
+
+  const active = s.edges.filter(e => !(e.appendOnly && datatype === 'register'));
+  const lost   = s.edges.filter(e =>   e.appendOnly && datatype === 'register');
+  const nodes  = s.txns.map(t => t.id);
+  const cyc = active.length ? findCycle(nodes, active) : null;
+  const cycSet = new Set(cyc ? cyc.edges : []);
+  drawGraph(nodes, active, cycSet);
+
+  document.getElementById('eedges').innerHTML =
+    active.map((e,i) => `<li><span class="ek" style="color:${cycSet.has(i)?'var(--bad)':'var(--accent)'}">${e.from} → ${e.to}</span>
+        &nbsp;<code>${e.kind}</code> on <code>${e.key}</code> — ${e.why}</li>`).join('')
+  + lost.map(e => `<li class="dead"><span class="ek">${e.from} → ${e.to}</span> <code>${e.kind}</code> on <code>${e.key}</code> — ${e.why}
+        <em>⚠ Not inferable from a register read. This edge is gone.</em></li>`).join('');
+
+  let v = '';
+  if(s.direct){
+    v = `<div class="callout bad"><b>${s.direct} — aborted read</b>${s.directNote}</div>`;
+  } else if(cyc){
+    const c = classifyCycle(cyc.edges, active);
+    v = `<div class="callout bad"><b>✗ ${c.name}</b>
+      Elle found a cycle: <code>${cyc.nodes.join(' → ')}</code>. Every edge in it is an ordering that
+      <em>must</em> hold, and together they say each transaction came before itself. <b>No serial order
+      exists</b>, so this history is not serializable. The anomaly is ${c.desc}</div>`;
+    v += `<p class="small">Elle names the anomaly by counting <code>rw</code> (anti-dependency) edges in the cycle:
+      none and all-<code>ww</code> → G0 &nbsp;·&nbsp; none with a <code>wr</code> → G1c &nbsp;·&nbsp;
+      exactly one → G-single &nbsp;·&nbsp; two or more → G2-item. That rule is running live on this graph.</p>`;
+  } else {
+    v = `<div class="callout ok"><b>✓ No cycle found</b>${s.clean || 'A serial order exists that explains every read.'}</div>`;
+  }
+  if(lost.length && datatype === 'register'){
+    v += `<div class="callout"><b>What the datatype toggle just did</b>${s.regNote}</div>`;
+  } else if(s.regNote && datatype === 'register'){
+    v += `<div class="callout"><b>On registers here</b>${s.regNote}</div>`;
+  }
+  document.getElementById('everdict').innerHTML = v;
+}
+function regify(op){
+  // show what the same read would look like against a register
+  return op.replace(/r\((\w+)\) = \[(.*?)\]/g, (m, k, list) => {
+    const items = list.split(',').map(x => x.trim()).filter(Boolean);
+    return `r(${k}) = ` + (items.length ? items[items.length-1] : 'nil');
+  });
+}
+
+function drawGraph(nodes, edges, cycSet){
+  const W = 900, H = nodes.length > 2 ? 300 : 220;
+  const cx = W/2, cy = H/2 - 6, R = nodes.length > 2 ? 105 : 0;
+  const pos = {};
+  if(nodes.length === 2){
+    pos[nodes[0]] = {x: cx - 165, y: cy};
+    pos[nodes[1]] = {x: cx + 165, y: cy};
+  } else {
+    nodes.forEach((n,i) => {
+      const a = -Math.PI/2 + i * 2*Math.PI/nodes.length;
+      pos[n] = {x: cx + R*Math.cos(a) * 1.7, y: cy + R*Math.sin(a)};
+    });
+  }
+  const KC = {ww:'var(--p3)', wr:'var(--accent)', rw:'var(--p2)'};
+  let s = `<defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker></defs>`;
+  const seen = {};
+  edges.forEach((e,i) => {
+    const a = pos[e.from], b = pos[e.to];
+    if(!a || !b) return;
+    const key = [e.from, e.to].sort().join('-');
+    seen[key] = (seen[key] || 0) + 1;
+    const flip = e.from > e.to ? -1 : 1;
+    const bend = (26 + (seen[key]-1) * 34) * flip;
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx/L, uy = dy/L, r = 40;
+    const ax = a.x + ux*r, ay = a.y + uy*r, bx = b.x - ux*r, by = b.y - uy*r;
+    const mx = (ax+bx)/2 - uy*bend, my = (ay+by)/2 + ux*bend;
+    const hot = cycSet.has(i);
+    const col = hot ? 'var(--bad)' : KC[e.kind];
+    s += `<path d="M ${ax} ${ay} Q ${mx} ${my} ${bx} ${by}" fill="none" stroke="${col}"
+           stroke-width="${hot ? 3 : 1.8}" marker-end="url(#ah)" ${hot ? '' : 'opacity="0.8"'}/>`;
+    const lx = (ax + 2*mx + bx)/4, ly = (ay + 2*my + by)/4;
+    s += `<rect x="${lx-27}" y="${ly-11}" width="54" height="20" rx="5" fill="var(--card)" stroke="${col}" stroke-width="1"/>`;
+    s += `<text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="11.5" font-family="var(--mono)"
+           fill="${col}" font-weight="700">${e.kind} ${e.key}</text>`;
+  });
+  nodes.forEach(n => {
+    const p = pos[n];
+    s += `<circle cx="${p.x}" cy="${p.y}" r="34" fill="var(--card2)" stroke="var(--ink)" stroke-width="1.6"/>`;
+    s += `<text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="16" font-weight="700"
+           font-family="var(--mono)" fill="var(--ink)">${n}</text>`;
+  });
+  if(!edges.length) s += `<text x="${cx}" y="${cy}" text-anchor="middle" fill="var(--muted)" font-size="13">no dependency edges — nothing to order</text>`;
+  const el = document.getElementById('egraph');
+  el.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  el.innerHTML = s;
+}
+
+buildScenChips(); pickScen(0); buildEChips(); renderE();
+</script>

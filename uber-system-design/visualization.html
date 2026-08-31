@@ -1,0 +1,798 @@
+<title>Dispatch Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#e9edec; --surface:#ffffff; --surface-2:#f3f6f5; --line:#c8d2cf; --line-soft:#dfe6e4;
+  --ink:#12201d; --ink-2:#42544f; --ink-3:#6d7f7a;
+  --available:#12857a; --offered:#c67d16; --ontrip:#4b5aa6; --ghost:#8c8794; --rider:#b3374f;
+  --ok:#12857a; --bad:#b3374f; --warn:#c67d16;
+  --shadow:0 1px 2px rgba(18,32,29,.06),0 8px 24px rgba(18,32,29,.07);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1412; --surface:#141d1b; --surface-2:#1a2523; --line:#2b3936; --line-soft:#21302c;
+  --line-soft:#213230;
+  --ink:#e4edea; --ink-2:#a7b8b3; --ink-3:#7d8f8a;
+  --available:#3fbfae; --offered:#e8a33d; --ontrip:#8b9ae0; --ghost:#9c95a6; --rider:#e8748c;
+  --ok:#3fbfae; --bad:#e8748c; --warn:#e8a33d;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#0c1412; --surface:#141d1b; --surface-2:#1a2523; --line:#2b3936; --line-soft:#213230;
+  --ink:#e4edea; --ink-2:#a7b8b3; --ink-3:#7d8f8a;
+  --available:#3fbfae; --offered:#e8a33d; --ontrip:#8b9ae0; --ghost:#9c95a6; --rider:#e8748c;
+  --ok:#3fbfae; --bad:#e8748c; --warn:#e8a33d;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Source Sans 3",ui-sans-serif,system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 72px}
+h1,h2,h3{font-family:Archivo,ui-sans-serif,system-ui,sans-serif;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-.02em;line-height:1.05}
+h2{font-size:15px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-3)}
+h3{font-size:18px;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header.top{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:24px}
+header.top .lede{max-width:64ch;color:var(--ink-2);margin-top:12px;font-size:17px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr);gap:20px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);padding:18px}
+.card + .card{margin-top:16px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+
+/* ---------- map ---------- */
+.mapwrap{position:relative}
+svg.map{width:100%;height:auto;display:block;border-radius:8px;background:var(--surface-2);
+  border:1px solid var(--line-soft);touch-action:manipulation}
+.cell{fill:none;stroke:var(--line-soft);stroke-width:1}
+.cell.searched{fill:var(--offered);fill-opacity:.10;stroke:var(--offered);stroke-opacity:.5}
+.cell.homecell{stroke:var(--rider);stroke-opacity:.65;stroke-width:1.6}
+.drv{cursor:pointer}
+.drv circle.body{stroke:var(--surface);stroke-width:2.5;transition:r .18s ease}
+.drv text{font-family:"IBM Plex Mono",monospace;font-size:15px;fill:var(--ink-2)}
+.drv.sel circle.halo{stroke:var(--ink);stroke-width:2;fill:none}
+.pulse{animation:pulse 1.1s ease-out 2}
+@keyframes pulse{0%{r:14;opacity:.55}100%{r:44;opacity:0}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none;opacity:0}}
+.link{stroke:var(--offered);stroke-width:2.5;stroke-dasharray:6 5}
+.link.trip{stroke:var(--ontrip);stroke-dasharray:none}
+.riderpin{fill:var(--rider)}
+.maphint{position:absolute;left:12px;bottom:10px;font-size:12.5px;color:var(--ink-3);
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:6px;padding:3px 8px}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;font-size:13.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+
+/* ---------- verdict ---------- */
+.verdict{border-left:4px solid var(--ink-3);padding:14px 16px;border-radius:0 8px 8px 0;
+  background:var(--surface-2);margin-top:16px}
+.verdict.good{border-left-color:var(--ok)}
+.verdict.bad{border-left-color:var(--bad)}
+.verdict.warn{border-left-color:var(--warn)}
+.verdict .h{font-family:Archivo,sans-serif;font-weight:600;font-size:17px;margin-bottom:4px}
+.verdict .d{color:var(--ink-2);font-size:15px}
+
+/* ---------- controls ---------- */
+.rules{display:flex;flex-direction:column;gap:16px}
+.rule .q{font-size:14px;font-weight:600;margin-bottom:2px}
+.rule .why{font-size:13px;color:var(--ink-3);margin-bottom:7px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+button{font-family:inherit;font-size:14px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;
+  transition:background .12s ease,border-color .12s ease}
+button:hover{background:var(--surface-2);border-color:var(--ink-3)}
+button:focus-visible{outline:2px solid var(--ontrip);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+button.primary{background:var(--ontrip);color:#fff;border-color:var(--ontrip);font-weight:600}
+button.primary:hover{filter:brightness(1.08);background:var(--ontrip)}
+button:disabled{opacity:.42;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* ---------- log ---------- */
+.log{max-height:340px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:0}
+.ev{padding:10px 0;border-bottom:1px dashed var(--line-soft)}
+.ev:first-child{border-bottom:none}
+.ev .t{font-size:14.5px}
+.ev .tech{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.ev.now{background:linear-gradient(90deg,color-mix(in srgb,var(--offered) 14%,transparent),transparent);
+  border-radius:6px;padding-left:8px}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  padding:1px 6px;border-radius:4px;border:1px solid currentColor;margin-right:7px;vertical-align:1px}
+.tag.bad{color:var(--bad)} .tag.good{color:var(--ok)} .tag.warn{color:var(--warn)} .tag.info{color:var(--ink-3)}
+
+/* ---------- inspector ---------- */
+table.insp{width:100%;border-collapse:collapse;font-size:14px}
+table.insp td{padding:5px 0;border-bottom:1px solid var(--line-soft)}
+table.insp td:first-child{color:var(--ink-3);width:44%}
+table.insp td:last-child{font-family:"IBM Plex Mono",monospace;text-align:right}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:12px;padding:2px 8px;border-radius:20px;
+  color:#fff;display:inline-block}
+
+/* ---------- scenarios / predict ---------- */
+.scn{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--surface-2)}
+.scn + .scn{margin-top:12px}
+.scn .name{font-family:Archivo,sans-serif;font-weight:600;font-size:16px}
+.scn .ask{color:var(--ink-2);font-size:14.5px;margin:6px 0 10px}
+.answer{margin-top:11px;padding:11px 13px;border-radius:7px;background:var(--surface);
+  border:1px solid var(--line);font-size:14.5px}
+.answer .hd{font-weight:600;margin-bottom:4px}
+.hidden{display:none}
+footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-3);font-size:14px}
+code{font-family:"IBM Plex Mono",monospace;font-size:.92em;background:var(--surface-2);
+  padding:1px 5px;border-radius:4px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Ride dispatch, one decision at a time</div>
+  <h1>Dispatch Console</h1>
+  <p class="lede">Somebody standing on a street corner taps a button. Twelve cars are moving
+  around this five-kilometre square. In the next few hundred milliseconds the system has to pick
+  <em>one</em> of them, and make sure nobody else is promised the same car. Everything below is that
+  decision, slowed down so you can watch it — and every rule it follows is a switch you can flip.</p>
+</header>
+
+<div class="layout">
+  <!-- ============ LEFT: map ============ -->
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h2>The city</h2>
+        <span class="mono" id="clock" style="font-size:13px;color:var(--ink-3)">t = 0s</span>
+      </div>
+      <div class="mapwrap">
+        <svg class="map" id="map" viewBox="0 0 1000 1000" role="img"
+             aria-label="A five kilometre square city divided into 500 metre cells, with cars and a waiting rider"></svg>
+        <div class="maphint">Click anywhere to move the rider · click a car to inspect it</div>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--available)"></i>Available — can be claimed</span>
+        <span><i class="dot" style="background:var(--offered)"></i>Reserved for one rider</span>
+        <span><i class="dot" style="background:var(--ontrip)"></i>On a trip</span>
+        <span><i class="dot" style="background:var(--ghost)"></i>Gone quiet — position may be a lie</span>
+        <span><i class="dot" style="background:var(--rider)"></i>Rider waiting</span>
+        <span style="color:var(--ink-3)">shaded squares = where the system looked</span>
+      </div>
+      <div class="verdict" id="verdict">
+        <div class="h">Nobody has asked for a ride yet.</div>
+        <div class="d">Press <strong>Request a ride</strong>, or run one of the situations on the right.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>What just happened</h2>
+        <div class="row">
+          <button id="back" title="Undo one event">← Step back</button>
+          <button id="reset">Reset city</button>
+        </div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: rules, actions, inspector ============ -->
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>Do something</h2></div>
+      <div class="row">
+        <button class="primary" id="request">Request a ride</button>
+        <button id="accept">Driver accepts</button>
+        <button id="decline">Driver declines</button>
+        <button id="wait">Nobody answers (20s pass)</button>
+        <button id="ghost">Selected car loses signal</button>
+        <button id="finish">Finish the trip</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>The matcher's rules</h2></div>
+      <div class="rules">
+        <div class="rule">
+          <div class="q">How far does it look for cars?</div>
+          <div class="why">Shaded squares on the map show the answer.</div>
+          <div class="seg" id="searchMode">
+            <button data-v="own" aria-pressed="false">Rider's square only</button>
+            <button data-v="cover" aria-pressed="false">Everything within 1.5 km</button>
+            <button data-v="ring" aria-pressed="true">Widen until 3 cars found</button>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="q">How does it choose between them?</div>
+          <div class="why">Some cars are close but on the wrong side of the flyover.</div>
+          <div class="seg" id="rankBy">
+            <button data-v="dist" aria-pressed="false">Shortest straight line</button>
+            <button data-v="eta" aria-pressed="true">Soonest arrival</button>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="q">How does it reserve the car it picked?</div>
+          <div class="why">Only matters when two people tap at the same instant.</div>
+          <div class="seg" id="claimMode">
+            <button data-v="unsafe" aria-pressed="false">Check it's free, then take it</button>
+            <button data-v="atomic" aria-pressed="true">Take it in one indivisible step</button>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="q">Does it trust an old position?</div>
+          <div class="why">A car that stopped reporting 2 minutes ago may be anywhere.</div>
+          <div class="seg" id="freshness">
+            <button data-v="off" aria-pressed="false">Yes — a pin is a pin</button>
+            <button data-v="on" aria-pressed="true">No — ignore pins older than 30s</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Inspect</h2></div>
+      <div id="inspector"><p style="color:var(--ink-3);font-size:14.5px">Click a car on the map to see
+        exactly what the system knows about it.</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Situations</h2></div>
+      <p style="font-size:14px;color:var(--ink-3);margin-bottom:12px">Guess first — the guess is what
+      makes the answer stick.</p>
+      <div id="scenarios"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Distances are straight-line metres on a flat 5&nbsp;km square; "roads&nbsp;×" is how much longer each
+  car's drive is than that straight line. Real systems compute arrival times from a live road graph,
+  and use S2 or H3 cells rather than a flat grid — the shape of the decision is the same.
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   MODEL — pure state + reducer, so "step back" is just popping a snapshot.
+   Distances in metres. The city is 5000 x 5000, cells are 500 m.
+   ========================================================================= */
+const CELL = 500, CITY = 5000, SPEED = 8.33 /* m/s ~ 30 km/h */, OFFER_TTL = 15, PING_TTL = 30;
+
+const DRIVERS_SEED = [
+  {id:"K1", x:1400, y:3300, rf:1.2}, {id:"K2", x:2350, y:2750, rf:3.4},
+  {id:"K3", x:2900, y:3150, rf:1.1}, {id:"K4", x:1900, y:1500, rf:1.3},
+  {id:"K5", x:3900, y:4100, rf:1.2}, {id:"K6", x:600,  y:1000, rf:1.1},
+  {id:"K7", x:4300, y:1200, rf:1.4}, {id:"K8", x:3300, y:800,  rf:1.2},
+  {id:"K9", x:2050, y:3550, rf:1.9}, {id:"K10",x:4600, y:3000, rf:1.1},
+  {id:"K11",x:900,  y:4400, rf:1.2}, {id:"K12",x:2600, y:4600, rf:1.3},
+];
+
+function initial(){
+  return {
+    t:0,
+    cfg:{search:"ring", rank:"eta", claim:"atomic", fresh:"on"},
+    drivers: DRIVERS_SEED.map(d=>({...d, state:"AVAILABLE", lastPing:0, offer:null})),
+    trips:[],
+    rider:{x:2500,y:3000},
+    searched:{cells:[], ids:[]},
+    selected:null,
+    highlight:[],
+    log:[{tag:"info", text:"12 cars are online and reporting their position every few seconds.",
+          tech:"index: 12 drivers across "+new Set(DRIVERS_SEED.map(d=>cellKey(d.x,d.y))).size+" occupied cells"}],
+    verdict:{kind:"", h:"Nobody has asked for a ride yet.",
+             d:"Press <strong>Request a ride</strong>, or run one of the situations on the right."}
+  };
+}
+const clone = s => JSON.parse(JSON.stringify(s));
+const dist = (ax,ay,bx,by) => Math.hypot(ax-bx, ay-by);
+function cellKey(x,y){ return Math.floor(x/CELL)+","+Math.floor(y/CELL); }
+function etaOf(d, x, y){ return dist(d.x,d.y,x,y)*d.rf/SPEED; }
+function fresh(s,d){ return s.t - d.lastPing <= PING_TTL; }
+
+/* --- the search: which cells do we look in, and who is in them? --------- */
+function search(s, x, y){
+  const cx = Math.floor(x/CELL), cy = Math.floor(y/CELL), cells = [], ids = [];
+  const take = (k)=>{
+    for (const d of s.drivers){
+      if (cellKey(d.x,d.y) === k && !ids.includes(d.id)) ids.push(d.id);
+    }
+  };
+  if (s.cfg.search === "own"){
+    cells.push(cx+","+cy); take(cx+","+cy);
+  } else if (s.cfg.search === "cover"){
+    const r = 3;                                    // 3 cells = 1.5 km
+    for (let dx=-r; dx<=r; dx++) for (let dy=-r; dy<=r; dy++){
+      const k=(cx+dx)+","+(cy+dy); cells.push(k); take(k);
+    }
+  } else {                                          // ring: widen until we have 3
+    for (let r=0; r<=6; r++){
+      for (let dx=-r; dx<=r; dx++) for (let dy=-r; dy<=r; dy++){
+        if (Math.max(Math.abs(dx),Math.abs(dy)) !== r) continue;
+        const k=(cx+dx)+","+(cy+dy); cells.push(k); take(k);
+      }
+      if (ids.length >= 3) break;
+    }
+  }
+  return {cells, ids};
+}
+
+/* --- ranking + eligibility ---------------------------------------------- */
+function candidates(s, x, y, found, exclude=[]){
+  const out = [];
+  for (const id of found){
+    const d = s.drivers.find(v=>v.id===id);
+    if (!d || exclude.includes(id)) continue;
+    const stale = !fresh(s,d);
+    const eligible = d.state==="AVAILABLE" && (s.cfg.fresh==="off" || !stale);
+    out.push({d, dist:dist(d.x,d.y,x,y), eta:etaOf(d,x,y), stale, eligible});
+  }
+  out.sort((a,b)=> s.cfg.rank==="eta" ? a.eta-b.eta : a.dist-b.dist);
+  return out;
+}
+
+function say(s, tag, text, tech){ s.log.push({tag, text, tech}); }
+function verdict(s, kind, h, d){ s.verdict = {kind, h, d}; }
+
+/* ============================================================================
+   ACTIONS
+   ========================================================================= */
+function act(prev, action){
+  const s = clone(prev);
+  s.highlight = [];
+  switch(action.type){
+
+  case "cfg": {
+    s.cfg[action.key] = action.value;
+    const words = {
+      search:{own:"now searches only the rider's own 500 m square",
+              cover:"now searches every square within 1.5 km",
+              ring:"now widens one ring of squares at a time, stopping once 3 cars are in hand"},
+      rank:{dist:"now ranks cars by the shortest straight line",
+            eta:"now ranks cars by the soonest arrival, roads included"},
+      claim:{unsafe:"now checks a car is free and then takes it — two separate steps",
+             atomic:"now takes a car in one indivisible step"},
+      fresh:{off:"now trusts every pin, however old",
+             on:"now ignores any pin older than 30 seconds"}
+    };
+    say(s,"info","Rule changed: the system "+words[action.key][action.value]+".",
+        "cfg."+action.key+" = "+action.value);
+    return s;
+  }
+
+  case "moveRider":
+    s.rider = {x:action.x, y:action.y};
+    s.searched = {cells:[], ids:[]};
+    say(s,"info","The rider is now standing at "+Math.round(action.x)+" m east, "+
+        Math.round(action.y)+" m north.","pickup = ("+Math.round(action.x)+","+Math.round(action.y)+")");
+    return s;
+
+  case "request": {
+    const {x,y} = s.rider;
+    const found = search(s, x, y);
+    s.searched = found;
+    const trip = {id:"T"+(s.trips.length+1), x, y, state:"REQUESTED", driver:null, tried:[]};
+    s.trips.push(trip);
+    const cands = candidates(s, x, y, found.ids);
+    const cellWord = found.cells.length===1 ? "1 square" : found.cells.length+" squares";
+    say(s,"info","A rider requested a ride. The system looked in "+cellWord+" and saw "+
+        found.ids.length+" car"+(found.ids.length===1?"":"s")+".",
+        "search("+s.cfg.search+") → cells="+found.cells.length+" ids=["+found.ids.join(",")+"]");
+
+    if (!cands.length){
+      trip.state = "NO_DRIVERS";
+      verdict(s,"bad","Nobody was found.","The search area held no cars at all. Widen the search rule on the right and request again.");
+      say(s,"bad","No car was found, so the rider is left waiting.","trip "+trip.id+" → NO_DRIVERS");
+      return s;
+    }
+    const skipped = cands.filter(c=>!c.eligible);
+    for (const c of skipped){
+      say(s, c.stale ? "warn":"info",
+        c.stale ? "Skipped "+c.d.id+", which is the closest thing on the map but has not reported its position for "+
+                  Math.round(s.t-c.d.lastPing)+" seconds."
+                : "Skipped "+c.d.id+" because it is already "+(c.d.state==="OFFERED"?"reserved for someone else":"carrying a passenger")+".",
+        c.d.id+": state="+c.d.state+" pingAge="+Math.round(s.t-c.d.lastPing)+"s");
+    }
+    const pick = cands.find(c=>c.eligible);
+    if (!pick){
+      trip.state = "NO_DRIVERS";
+      verdict(s,"bad","Every car nearby was ruled out.",
+        "The cars in range are either busy or their position is too old to trust. This is the moment surge pricing exists for.");
+      return s;
+    }
+    claim(s, trip, pick, cands);
+    return s;
+  }
+
+  case "requestTwo": {
+    // Two riders tap at the same instant, 60 m apart.
+    const a = {x:s.rider.x, y:s.rider.y}, b = {x:s.rider.x+60, y:s.rider.y-40};
+    const fa = search(s,a.x,a.y); s.searched = fa;
+    const t1 = {id:"T"+(s.trips.length+1), x:a.x, y:a.y, state:"REQUESTED", driver:null, tried:[]};
+    const t2 = {id:"T"+(s.trips.length+2), x:b.x, y:b.y, state:"REQUESTED", driver:null, tried:[]};
+    s.trips.push(t1, t2);
+    say(s,"info","Two riders on the same corner tapped at the same instant.",
+        "concurrent requests "+t1.id+", "+t2.id+"  claim="+s.cfg.claim);
+
+    if (s.cfg.claim === "unsafe"){
+      // BOTH read the same snapshot -> both see the same free car -> both write.
+      const c1 = candidates(s,a.x,a.y,fa.ids).find(c=>c.eligible);
+      const c2 = candidates(s,b.x,b.y,search(s,b.x,b.y).ids).find(c=>c.eligible);
+      if (c1 && c2 && c1.d.id === c2.d.id){
+        const d = s.drivers.find(v=>v.id===c1.d.id);
+        d.state="OFFERED"; d.offer={trip:t2.id, expires:s.t+OFFER_TTL};
+        t1.driver=d.id; t2.driver=d.id; t1.tried.push(d.id); t2.tried.push(d.id);
+        s.highlight=[d.id];
+        say(s,"bad","Both riders were told "+d.id+" is on the way. Each request checked that "+d.id+
+            " was free, and both checks passed before either one wrote anything down.",
+            "read(AVAILABLE) ‖ read(AVAILABLE) → write(OFFERED) ‖ write(OFFERED)");
+        verdict(s,"bad","Two riders, one car.",
+          "Nothing here threw an error. The check and the write were two separate steps, and the other request slipped between them. Switch the reserving rule to the indivisible step and run this again.");
+        return s;
+      }
+    }
+    // Atomic: the two requests are serialised; exactly one wins each car.
+    const p1 = candidates(s,a.x,a.y,fa.ids).find(c=>c.eligible);
+    if (p1) claim(s, t1, p1, []);
+    const fb = search(s,b.x,b.y);
+    const p2 = candidates(s,b.x,b.y,fb.ids).find(c=>c.eligible);
+    if (p2) claim(s, t2, p2, []);
+    if (p1 && p2){
+      verdict(s,"good","Two riders, two different cars.",
+        "The second request found "+p1.d.id+" already taken — not because it waited its turn politely, but because taking a car is a single indivisible step that only one request can win.");
+      say(s,"good","The second request lost the race for "+p1.d.id+" and moved straight on to "+p2.d.id+".",
+          "compareAndSet(AVAILABLE→OFFERED) succeeded once; the loser re-ranked");
+    }
+    return s;
+  }
+
+  case "accept": {
+    const d = s.drivers.find(v=>v.state==="OFFERED");
+    if (!d){ say(s,"info","No car is waiting to accept anything right now.","no driver in OFFERED"); return s; }
+    const trip = s.trips.find(t=>t.id===d.offer.trip);
+    d.state="ON_TRIP"; trip.state="MATCHED"; trip.driver=d.id; s.highlight=[d.id];
+    say(s,"good",d.id+" accepted. The rider now sees a car and a name, and that car is out of the pool.",
+        d.id+": OFFERED → ON_TRIP, trip "+trip.id+" → MATCHED");
+    verdict(s,"good",d.id+" is on the way.",
+      "Arrival in about "+Math.round(etaOf(d,trip.x,trip.y))+" seconds. The car has left the available pool, so no other rider can be shown it.");
+    return s;
+  }
+
+  case "decline": {
+    const d = s.drivers.find(v=>v.state==="OFFERED");
+    if (!d){ say(s,"info","No car has an offer to decline.","no driver in OFFERED"); return s; }
+    const trip = s.trips.find(t=>t.id===d.offer.trip);
+    d.state="AVAILABLE"; d.offer=null; s.highlight=[d.id];
+    say(s,"info",d.id+" declined. Declining is the normal path, not an error — the car goes straight back into the pool.",
+        d.id+": OFFERED → AVAILABLE (released)");
+    if (trip) rematch(s, trip);
+    return s;
+  }
+
+  case "wait": {
+    s.t += 20;
+    const expired = s.drivers.filter(d=>d.state==="OFFERED" && d.offer && s.t > d.offer.expires);
+    for (const d of expired){
+      const trip = s.trips.find(t=>t.id===d.offer.trip);
+      d.state="AVAILABLE"; d.offer=null; s.highlight.push(d.id);
+      say(s,"warn","Nobody tapped accept within 15 seconds, so the reservation on "+d.id+" expired by itself and the car is free again.",
+          d.id+": offer expired → AVAILABLE");
+      if (trip) rematch(s, trip);
+    }
+    // everyone still online keeps reporting, except cars that went quiet
+    for (const d of s.drivers) if (!d.quiet) d.lastPing = s.t;   // quiet cars stop reporting
+    if (!expired.length) say(s,"info","20 seconds passed and nothing timed out.","t = "+s.t+"s");
+    return s;
+  }
+
+  case "ghost": {
+    const d = s.drivers.find(v=>v.id===action.id);
+    if (!d) return s;
+    d.quiet = true; s.highlight=[d.id];
+    s.t += 45;
+    for (const o of s.drivers) if (!o.quiet) o.lastPing = s.t;
+    say(s,"warn",d.id+" lost signal 45 seconds ago. Its pin has not moved, but the car has.",
+        d.id+": lastPing age = "+Math.round(s.t-d.lastPing)+"s (limit "+PING_TTL+"s)");
+    verdict(s,"warn",d.id+"'s position is now a guess, not a fact.",
+      "Request a ride next to it. With the freshness rule on, the system refuses to send it; with the rule off, it happily dispatches a car that is not there.");
+    return s;
+  }
+
+  case "finish": {
+    const d = s.drivers.find(v=>v.state==="ON_TRIP");
+    if (!d){ say(s,"info","No trip is running.","no driver in ON_TRIP"); return s; }
+    const trip = s.trips.find(t=>t.driver===d.id && t.state==="MATCHED");
+    if (trip){ trip.state="COMPLETED"; d.x=trip.x; d.y=trip.y; }
+    d.state="AVAILABLE"; d.offer=null; d.lastPing=s.t; s.highlight=[d.id];
+    say(s,"good","The trip finished. "+d.id+" is back in the pool, in a new square.",
+        d.id+": ON_TRIP → AVAILABLE, re-indexed at cell "+cellKey(d.x,d.y));
+    verdict(s,"good","Trip complete.","Supply returns to the pool where the trip ended — which is how cars drift towards demand over a day.");
+    return s;
+  }
+
+  case "surge": {
+    const found = search(s, s.rider.x, s.rider.y); s.searched = found;
+    let avail = 0;
+    for (const id of found.ids){
+      const d = s.drivers.find(v=>v.id===id);
+      if (d.state==="AVAILABLE" && (s.cfg.fresh==="off" || fresh(s,d))) avail++;
+    }
+    const demand = 8;
+    const mult = Math.min(3, Math.max(1, Math.round(10*demand/Math.max(1,avail))/10));
+    say(s,"warn","A concert let out: 8 people requested a ride in this area at once, and "+avail+
+        " car"+(avail===1?" is":"s are")+" claimable here.",
+        "demand=8 supply="+avail+" → multiplier x"+mult.toFixed(1));
+    verdict(s,"warn","Price rises to x"+mult.toFixed(1)+" here.",
+      "The multiplier is not a fee bolted on the fare — it is the only lever the system has to change those two numbers. Some riders decide to wait; some drivers head this way.");
+    return s;
+  }
+
+  case "select": s.selected = action.id; return s;
+  }
+  return s;
+}
+
+/* the shared "reserve a car" step, used by request / decline / expiry ------ */
+function claim(s, trip, pick, allCands){
+  const d = s.drivers.find(v=>v.id===pick.d.id);
+  d.state="OFFERED"; d.offer={trip:trip.id, expires:s.t+OFFER_TTL};
+  trip.driver=d.id; trip.tried.push(d.id); s.highlight=[d.id];
+
+  const nearest = [...allCands].sort((a,b)=>a.dist-b.dist)[0];
+  const beatOnEta = nearest && nearest.d.id !== d.id && s.cfg.rank==="eta";
+  say(s,"good","Reserved "+d.id+" for the rider: "+Math.round(pick.dist)+" m away, arriving in about "+
+      Math.round(pick.eta)+" seconds."+
+      (beatOnEta ? " "+nearest.d.id+" is physically closer ("+Math.round(nearest.dist)+
+        " m) but its roads are "+nearest.d.rf+"x longer, so it would take "+Math.round(nearest.eta)+" seconds." : ""),
+      "compareAndSet("+d.id+": AVAILABLE→OFFERED) = true, offer expires t+"+OFFER_TTL+"s");
+  verdict(s,"good",d.id+" is reserved — for this rider only.",
+    beatOnEta
+      ? "Ranked by arrival time, not by distance: "+nearest.d.id+" is nearer in a straight line and slower on the road."
+      : "The reservation lasts 15 seconds. If the driver ignores it, it expires on its own and the trip re-matches.");
+}
+function rematch(s, trip){
+  const found = search(s, trip.x, trip.y); s.searched = found;
+  const cands = candidates(s, trip.x, trip.y, found.ids, trip.tried);
+  const pick = cands.find(c=>c.eligible);
+  if (pick) claim(s, trip, pick, cands);
+  else {
+    trip.state="NO_DRIVERS";
+    say(s,"bad","No other car is available for this rider.","trip "+trip.id+" → NO_DRIVERS");
+    verdict(s,"bad","The rider is waiting with no car.","Every candidate has been tried, is busy, or is too stale to trust.");
+  }
+}
+
+/* ============================================================================
+   HISTORY + RENDER
+   ========================================================================= */
+let history = [initial()];
+let cursor = 0;
+const S = () => history[cursor];
+
+function dispatch(action){
+  const next = act(S(), action);
+  history = history.slice(0, cursor+1);
+  history.push(next); cursor = history.length-1;
+  render();
+}
+function stepBack(){ if (cursor>0){ cursor--; render(); } }
+
+const $ = id => document.getElementById(id);
+const COLORS = {AVAILABLE:"var(--available)", OFFERED:"var(--offered)", ON_TRIP:"var(--ontrip)"};
+const svgNS = "http://www.w3.org/2000/svg";
+const el = (n,attrs={}) => { const e=document.createElementNS(svgNS,n);
+  for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const px = v => v/CITY*1000;                 // metres -> svg units (x)
+const py = v => 1000 - v/CITY*1000;          // metres -> svg units (y, flipped)
+
+function driverColor(s,d){
+  if (d.state==="AVAILABLE" && s.cfg.fresh==="on" && !fresh(s,d)) return "var(--ghost)";
+  if (d.state==="AVAILABLE" && !fresh(s,d)) return "var(--ghost)";
+  return COLORS[d.state] || "var(--ghost)";
+}
+
+function drawMap(){
+  const s = S(), map = $("map");
+  map.textContent = "";
+  for (let i=0;i<CITY/CELL;i++) for (let j=0;j<CITY/CELL;j++){
+    const k = i+","+j;
+    const cls = "cell" + (s.searched.cells.includes(k) ? " searched":"")
+      + (cellKey(s.rider.x,s.rider.y)===k ? " homecell":"");
+    map.appendChild(el("rect",{x:px(i*CELL), y:py((j+1)*CELL), width:px(CELL), height:px(CELL), class:cls}));
+  }
+  // offer / trip links
+  for (const d of s.drivers){
+    if (d.state!=="OFFERED" && d.state!=="ON_TRIP") continue;
+    const trip = s.trips.find(t=>t.id===(d.offer&&d.offer.trip) || (t.driver===d.id && t.state==="MATCHED"));
+    if (!trip) continue;
+    map.appendChild(el("line",{x1:px(d.x),y1:py(d.y),x2:px(trip.x),y2:py(trip.y),
+      class:"link"+(d.state==="ON_TRIP"?" trip":"")}));
+  }
+  // rider
+  const r = s.rider;
+  map.appendChild(el("circle",{cx:px(r.x), cy:py(r.y), r:13, class:"riderpin", "fill-opacity":.22}));
+  map.appendChild(el("circle",{cx:px(r.x), cy:py(r.y), r:6.5, class:"riderpin"}));
+  // drivers
+  for (const d of s.drivers){
+    const g = el("g",{class:"drv"+(s.selected===d.id?" sel":""), tabindex:"0",
+      role:"button", "aria-label":"Car "+d.id+", "+d.state});
+    if (s.highlight.includes(d.id))
+      g.appendChild(el("circle",{cx:px(d.x),cy:py(d.y),r:14, class:"pulse",
+        fill:"none", stroke:driverColor(s,d), "stroke-width":3}));
+    if (s.selected===d.id)
+      g.appendChild(el("circle",{cx:px(d.x),cy:py(d.y),r:16, class:"halo"}));
+    const body = el("circle",{cx:px(d.x),cy:py(d.y),r:10.5, class:"body", fill:driverColor(s,d)});
+    if (d.quiet) { body.setAttribute("stroke-dasharray","3 3"); body.setAttribute("stroke","var(--ghost)"); }
+    g.appendChild(body);
+    const label = el("text",{x:px(d.x)+15, y:py(d.y)+5});
+    label.textContent = d.id;
+    g.appendChild(label);
+    g.addEventListener("click", (e)=>{ e.stopPropagation(); dispatch({type:"select", id:d.id}); });
+    g.addEventListener("keydown", (e)=>{ if(e.key==="Enter") dispatch({type:"select", id:d.id}); });
+    map.appendChild(g);
+  }
+}
+
+function drawLog(){
+  const s = S(), box = $("log");
+  box.textContent = "";
+  s.log.forEach((e,i)=>{
+    const div = document.createElement("div");
+    div.className = "ev" + (i===s.log.length-1 ? " now" : "");
+    const t = document.createElement("div"); t.className="t";
+    const tag = document.createElement("span");
+    tag.className = "tag "+(e.tag||"info"); tag.textContent = e.tag||"info";
+    t.appendChild(tag); t.appendChild(document.createTextNode(e.text));
+    const tech = document.createElement("div"); tech.className="tech"; tech.textContent = e.tech||"";
+    div.appendChild(t); div.appendChild(tech); box.appendChild(div);
+  });
+}
+
+function drawInspector(){
+  const s = S(), box = $("inspector");
+  const d = s.drivers.find(v=>v.id===s.selected);
+  if (!d){ box.innerHTML = '<p style="color:var(--ink-3);font-size:14.5px">Click a car on the map to see exactly what the system knows about it.</p>'; return; }
+  const age = Math.round(s.t - d.lastPing);
+  const stale = age > PING_TTL;
+  const rows = [
+    ["state", '<span class="pill" style="background:'+driverColor(s,d)+'">'+d.state+'</span>'],
+    ["square (cell)", cellKey(d.x,d.y)],
+    ["position", Math.round(d.x)+" m E, "+Math.round(d.y)+" m N"],
+    ["last reported", age+" s ago"+(stale?" — too old":"")],
+    ["roads vs straight line", d.rf+"x"],
+    ["distance to rider", Math.round(dist(d.x,d.y,s.rider.x,s.rider.y))+" m"],
+    ["arrival if sent now", Math.round(etaOf(d,s.rider.x,s.rider.y))+" s"],
+    ["reserved for", d.offer ? d.offer.trip+" (expires t+"+d.offer.expires+"s)" : "—"],
+  ];
+  box.innerHTML = "<h3 style='margin-bottom:10px'>Car "+d.id+"</h3><table class='insp'>"+
+    rows.map(r=>"<tr><td>"+r[0]+"</td><td>"+r[1]+"</td></tr>").join("")+"</table>";
+}
+
+function drawControls(){
+  const s = S();
+  const setSeg = (id,key)=>{
+    for (const b of $(id).querySelectorAll("button"))
+      b.setAttribute("aria-pressed", String(b.dataset.v === s.cfg[key]));
+  };
+  setSeg("searchMode","search"); setSeg("rankBy","rank");
+  setSeg("claimMode","claim");   setSeg("freshness","fresh");
+  $("back").disabled = cursor===0;
+  $("ghost").disabled = !s.selected;
+  $("ghost").textContent = s.selected ? s.selected+" loses signal" : "Selected car loses signal";
+  $("accept").disabled  = !s.drivers.some(d=>d.state==="OFFERED");
+  $("decline").disabled = !s.drivers.some(d=>d.state==="OFFERED");
+  $("finish").disabled  = !s.drivers.some(d=>d.state==="ON_TRIP");
+  $("clock").textContent = "t = "+s.t+"s";
+  const v = S().verdict, box = $("verdict");
+  box.className = "verdict "+(v.kind||"");
+  box.innerHTML = '<div class="h">'+v.h+'</div><div class="d">'+v.d+'</div>';
+}
+function render(){ drawMap(); drawLog(); drawInspector(); drawControls(); }
+
+/* ============================================================================
+   SITUATIONS — predict, then run
+   ========================================================================= */
+const SCENARIOS = [
+  {
+    name:"1 · Closest, or soonest?",
+    ask:"K2 is parked 200 m from the rider, but its roads are 3.4x longer than the straight line. K3 is 600 m away on clear roads. Which car should the rider get?",
+    options:["K2 — it is much closer","K3 — it arrives sooner","Either, it hardly matters"],
+    correct:1,
+    why:"Distance is not time. K2's 200 m is nearly 700 m of driving; K3's 600 m is 600 m. Ranking by distance sends the rider the car that arrives last — and the rider judges the app on the arrival time, not on the map.",
+    run(){ dispatch({type:"cfg",key:"rank",value:"dist"});
+           dispatch({type:"moveRider",x:2500,y:3000}); dispatch({type:"request"});
+           dispatch({type:"decline"});
+           dispatch({type:"cfg",key:"rank",value:"eta"}); dispatch({type:"request"}); }
+  },
+  {
+    name:"2 · Only look in the rider's own square",
+    ask:"The rider stands 40 m past a cell boundary. The nearest car, K3, is 150 m away — just on the other side of that line. If the system searches only the rider's own square, what happens?",
+    options:["It finds the car anyway","It finds a car much further away, or none at all","It errors out"],
+    correct:1,
+    why:"The search returns something, so nothing looks broken — it just quietly returns the wrong car forever. Every cell edge has this bug, and half of any cell is nearer to a neighbour's contents than its own. This is why real cell searches always walk the surrounding ring.",
+    run(){ dispatch({type:"cfg",key:"search",value:"own"});
+           dispatch({type:"moveRider",x:3040,y:3100}); dispatch({type:"request"}); }
+  },
+  {
+    name:"3 · Two people tap at the same instant",
+    ask:"Two riders on the same corner request a ride in the same millisecond. The system checks a car is free, then marks it taken. What do the two riders see?",
+    options:["Two different cars","The same car promised to both","One rider gets an error"],
+    correct:1,
+    why:"Both requests read 'free' before either wrote 'taken'. No error is raised — the code did exactly what it says. The fix is not more checking, it is making check-and-take a single indivisible step that only one request can win.",
+    run(){ dispatch({type:"cfg",key:"claim",value:"unsafe"});
+           dispatch({type:"moveRider",x:2500,y:3000}); dispatch({type:"requestTwo"}); }
+  },
+  {
+    name:"4 · The car that went quiet",
+    ask:"The closest car stopped reporting its position 45 seconds ago. Its pin is still on the map, 100 m from the rider. Should the system send it?",
+    options:["Yes — it is the closest","No — the pin may be stale","Only if no other car is near"],
+    correct:1,
+    why:"A location is a fact with an expiry date. Dispatch a stale pin and the rider watches a car that never moves, waits out the timeout, and re-requests — the damage shows up as wait time and cancellations, never as an error rate. Supply is a lease that must be renewed, not a row that stays true.",
+    run(){ dispatch({type:"moveRider",x:2400,y:2800}); dispatch({type:"select",id:"K2"});
+           dispatch({type:"ghost",id:"K2"}); dispatch({type:"cfg",key:"fresh",value:"off"});
+           dispatch({type:"request"}); }
+  },
+  {
+    name:"5 · The concert lets out",
+    ask:"Eight people request a ride from the same block at once and one car is claimable. What can the system actually do about it?",
+    options:["Queue everyone and wait","Raise the price here","Widen the search to the whole city"],
+    correct:1,
+    why:"A queue does not create cars, and widening the search just sends far-away cars on long empty drives, which removes them from somewhere else. The price is the only lever that changes the two numbers themselves: some riders postpone, some drivers head over. It is a control signal that happens to arrive as a fee.",
+    run(){ dispatch({type:"moveRider",x:2500,y:3000}); dispatch({type:"surge"}); }
+  }
+];
+
+function buildScenarios(){
+  const box = $("scenarios");
+  SCENARIOS.forEach((sc, i)=>{
+    const card = document.createElement("div"); card.className="scn";
+    const h = document.createElement("div"); h.className="name"; h.textContent = sc.name;
+    const q = document.createElement("div"); q.className="ask"; q.textContent = sc.ask;
+    const opts = document.createElement("div"); opts.className="seg";
+    const ans = document.createElement("div"); ans.className="answer hidden";
+    sc.options.forEach((o, oi)=>{
+      const b = document.createElement("button"); b.textContent = o;
+      b.addEventListener("click", ()=>{
+        for (const x of opts.querySelectorAll("button")) x.setAttribute("aria-pressed","false");
+        b.setAttribute("aria-pressed","true");
+        ans.className = "answer";
+        ans.innerHTML = "<div class='hd'>"+(oi===sc.correct ? "That is what happens." :
+          "Not quite — watch the map and the log.")+"</div>"+sc.why;
+        history = [initial()]; cursor = 0;
+        sc.run();
+        card.scrollIntoView({behavior:"smooth", block:"nearest"});
+      });
+      opts.appendChild(b);
+    });
+    card.append(h,q,opts,ans); box.appendChild(card);
+  });
+}
+
+/* ============================================================================
+   WIRING
+   ========================================================================= */
+$("map").addEventListener("click", (e)=>{
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX-r.left)/r.width*CITY;
+  const y = CITY - (e.clientY-r.top)/r.height*CITY;
+  dispatch({type:"moveRider", x:Math.max(0,Math.min(CITY,x)), y:Math.max(0,Math.min(CITY,y))});
+});
+$("request").addEventListener("click", ()=>dispatch({type:"request"}));
+$("accept").addEventListener("click",  ()=>dispatch({type:"accept"}));
+$("decline").addEventListener("click", ()=>dispatch({type:"decline"}));
+$("wait").addEventListener("click",    ()=>dispatch({type:"wait"}));
+$("finish").addEventListener("click",  ()=>dispatch({type:"finish"}));
+$("ghost").addEventListener("click",   ()=>{ if (S().selected) dispatch({type:"ghost", id:S().selected}); });
+$("back").addEventListener("click", stepBack);
+$("reset").addEventListener("click", ()=>{ history=[initial()]; cursor=0; render(); });
+for (const [id,key] of [["searchMode","search"],["rankBy","rank"],["claimMode","claim"],["freshness","fresh"]]){
+  $(id).addEventListener("click",(e)=>{
+    const b = e.target.closest("button"); if (!b) return;
+    dispatch({type:"cfg", key, value:b.dataset.v});
+  });
+}
+buildScenarios();
+render();
+</script>

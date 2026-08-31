@@ -1,0 +1,1030 @@
+<title>The Pattern Atlas</title>
+<style>
+  :root {
+    --bg: #F5F7F8;
+    --surface: #FFFFFF;
+    --surface2: #EDF1F3;
+    --ink: #1C2B33;
+    --muted: #5A6B75;
+    --accent: #0F6E84;
+    --accent-ink: #FFFFFF;
+    --line: #D8E0E4;
+    --good: #1E7A46;
+    --bad: #B33A3A;
+    --f-structure: #2F6FBF;
+    --f-distribution: #7A4FBF;
+    --f-communication: #0F7E74;
+    --f-data: #2E7D3A;
+    --f-resilience: #B0691A;
+    --f-deployment: #8A4A6E;
+    --f-anti: #B33A3A;
+    --chipbg: #FFFFFF;
+    --shadow: 0 1px 3px rgba(28,43,51,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10181D;
+      --surface: #182229;
+      --surface2: #1F2C34;
+      --ink: #E4ECF0;
+      --muted: #8CA0AB;
+      --accent: #4FB3C9;
+      --accent-ink: #0C1418;
+      --line: #263540;
+      --good: #5BBF85;
+      --bad: #E08080;
+      --f-structure: #6FA5E8;
+      --f-distribution: #B08FE8;
+      --f-communication: #55BDB2;
+      --f-data: #72C07E;
+      --f-resilience: #E0A45C;
+      --f-deployment: #D68FB5;
+      --f-anti: #E08080;
+      --chipbg: #1F2C34;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10181D;
+    --surface: #182229;
+    --surface2: #1F2C34;
+    --ink: #E4ECF0;
+    --muted: #8CA0AB;
+    --accent: #4FB3C9;
+    --accent-ink: #0C1418;
+    --line: #263540;
+    --good: #5BBF85;
+    --bad: #E08080;
+    --f-structure: #6FA5E8;
+    --f-distribution: #B08FE8;
+    --f-communication: #55BDB2;
+    --f-data: #72C07E;
+    --f-resilience: #E0A45C;
+    --f-deployment: #D68FB5;
+    --f-anti: #E08080;
+    --chipbg: #1F2C34;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+    margin: 0;
+    padding: 0 16px 80px;
+  }
+  .serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  header.top { padding: 40px 0 8px; }
+  header.top h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+    margin: 0 0 10px;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+  header.top .lede { max-width: 68ch; color: var(--muted); font-size: 1.02rem; margin: 0; }
+  header.top .lede strong { color: var(--ink); font-weight: 600; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 6px; }
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 14px;
+  }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
+  .filters .flabel { width: 100%; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+  .fbtn { border-radius: 999px; font-size: 0.92rem; padding: 6px 14px; }
+  .fbtn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0 4px; font-size: 0.85rem; color: var(--muted); }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+  .tour {
+    display: none; margin: 16px 0; padding: 16px 18px;
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .tour.on { display: block; }
+  .tour p { margin: 0 0 12px; max-width: 75ch; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.05rem; }
+  .tour .tstep { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 6px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 24px; align-items: start; margin-top: 18px; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+  .family { margin: 0 0 26px; border-radius: 10px; padding: 2px 2px 6px; }
+  .family.hilite { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .family h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.18rem; margin: 0 0 2px; display: flex; align-items: center; gap: 8px;
+  }
+  .family .fdesc { color: var(--muted); font-size: 0.92rem; margin: 0 0 10px; max-width: 70ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86rem; background: var(--chipbg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); font-weight: 600; }
+  .chip.dim { opacity: 0.32; }
+  .detail {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px 22px; box-shadow: var(--shadow);
+    position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
+  }
+  @media (max-width: 980px) { .detail { position: static; max-height: none; } }
+  .detail .dfam { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; display: inline-flex; align-items: center; gap: 6px; }
+  .detail h3 { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 1.25rem; margin: 6px 0 4px; }
+  .detail .tag { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-style: italic; color: var(--muted); margin: 0 0 14px; }
+  .detail h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin: 14px 0 3px; }
+  .detail p { margin: 0; font-size: 0.95rem; }
+  .detail .use h4 { color: var(--good); }
+  .detail .avoid h4 { color: var(--bad); }
+  .detail .empty { color: var(--muted); font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1rem; }
+  .quiz { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 28px; }
+  .quiz h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.5rem; margin: 0 0 4px; }
+  .quiz .qintro { color: var(--muted); max-width: 70ch; margin: 0 0 18px; }
+  .qcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; box-shadow: var(--shadow); max-width: 860px; }
+  .qcard .qnum { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+  .qcard .scenario { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.08rem; margin: 8px 0 16px; max-width: 72ch; }
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .opt { text-align: left; padding: 11px 14px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--line); }
+  .opt:hover:not(:disabled) { border-color: var(--accent); }
+  .opt:disabled { cursor: default; }
+  .opt.right { border-color: var(--good); box-shadow: 0 0 0 1px var(--good); }
+  .opt.wrong { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+  .verdict { margin-top: 16px; padding: 14px 16px; border-radius: 8px; background: var(--surface2); border-left: 4px solid var(--muted); display: none; }
+  .verdict.on { display: block; }
+  .verdict.good { border-left-color: var(--good); }
+  .verdict.bad { border-left-color: var(--bad); }
+  .verdict .vhead { font-weight: 700; margin: 0 0 6px; }
+  .verdict p { margin: 0 0 8px; max-width: 72ch; font-size: 0.95rem; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .qnav { display: flex; gap: 10px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+  .score { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 0.88rem; max-width: 72ch; }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>The Pattern Atlas</h1>
+    <p class="lede">Every software architecture pattern is a <strong>named way of drawing boundaries</strong> in a system, invented because some team was hurt without it — and every one sends a bill. This atlas maps the whole territory: filter by <strong>the problem you actually have</strong>, click any pattern for when to use it, when <em>not</em> to, and what it costs. New to all of this? Take the tour first, then test yourself in the decision quiz at the bottom.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="primary" id="tourBtn">Take the 2-minute tour</button>
+    <button id="quizJump">Jump to the decision quiz</button>
+  </div>
+
+  <div class="tour" id="tourBox" aria-live="polite">
+    <div class="tstep" id="tourStep"></div>
+    <p id="tourText"></p>
+    <button class="primary" id="tourNext">Next</button>
+    <button id="tourEnd">End tour</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <span class="flabel">What hurts right now? (pick one — patterns that help stay lit, the rest fade)</span>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="layout">
+    <main id="atlas"></main>
+    <aside class="detail" id="detail" aria-live="polite">
+      <p class="empty">Click any pattern on the map to read its card: the problem it solves, when to reach for it, when to walk away, and the bill it sends.</p>
+    </aside>
+  </div>
+
+  <section class="quiz" id="quiz">
+    <h2>The decision quiz — commit before you look</h2>
+    <p class="qintro">Six real situations. Pick the answer you would defend in a design review, <em>then</em> see the verdict. Being wrong here is the point — each verdict explains the trap.</p>
+    <div class="qcard">
+      <div class="qnum" id="qnum"></div>
+      <p class="scenario" id="qscenario"></p>
+      <div class="opts" id="qopts"></div>
+      <div class="verdict" id="qverdict">
+        <p class="vhead" id="vhead"></p>
+        <p id="vwhy"></p>
+        <p id="vbill"></p>
+      </div>
+      <div class="qnav">
+        <button id="qprev">Previous</button>
+        <button id="qnext">Next scenario</button>
+        <span class="score" id="qscore"></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    This page is the companion to the <span class="mono">software-architecture-patterns</span> lab —
+    the story lives in <span class="mono">README.md</span>, the full reference in <span class="mono">CATALOG.md</span>.
+    Colors mark pattern families (see legend); nothing else here is decoration.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+var FAMILIES = [
+  { id: "structure", name: "Structuring one codebase", color: "var(--f-structure)",
+    desc: "How to arrange code inside one deployable so change stays local. Where every system should start." },
+  { id: "distribution", name: "Distribution styles", color: "var(--f-distribution)",
+    desc: "Shapes for splitting a system across machines — adopted only when team count, scale shape, or blast radius force it." },
+  { id: "communication", name: "Communication & integration", color: "var(--f-communication)",
+    desc: "How separated pieces talk, and how new worlds connect to old ones." },
+  { id: "data", name: "Data patterns", color: "var(--f-data)",
+    desc: "Who owns which data, how it moves, and how it scales. The family your saga / outbox / CQRS / event-sourcing labs live in." },
+  { id: "resilience", name: "Resilience patterns", color: "var(--f-resilience)",
+    desc: "Surviving the failure of the things you call. In distributed systems, slow is more dangerous than down." },
+  { id: "deployment", name: "Deployment & operations", color: "var(--f-deployment)",
+    desc: "Shipping changes without fear, and running what you shipped." },
+  { id: "anti", name: "Anti-patterns", color: "var(--f-anti)",
+    desc: "Named traps. Each one is a pattern applied without its problem, or a boundary drawn wrong. Recognize them faster than you fall into them." }
+];
+
+var FILTERS = [
+  { id: "all", label: "Show everything" },
+  { id: "start", label: "Starting something new" },
+  { id: "change", label: "Changes break distant things" },
+  { id: "team", label: "Teams blocked on each other" },
+  { id: "fail", label: "One failure takes everything down" },
+  { id: "slow", label: "Waiting on slow call chains" },
+  { id: "load", label: "Read/write load on the database" },
+  { id: "data", label: "Data across services" },
+  { id: "legacy", label: "Replacing a legacy system" },
+  { id: "deploy", label: "Deploys feel risky" },
+  { id: "avoid", label: "Show me the traps" }
+];
+
+var PATTERNS = [
+  // ── Structure ──
+  { id: "layered", f: "structure", name: "layered", full: "Layered architecture", tags: ["start", "change"],
+    tag: "Horizontal floors by technical kind; calls point downward.",
+    problem: "Unstructured code mixes HTTP, business rules and SQL in one function; nothing can be changed or tested alone.",
+    use: "CRUD-dominant apps, internal tools, small teams, early products. The correct default starting structure for most applications.",
+    avoid: "Deep, long-lived domains — rules leak out of the middle layer and the database's table shapes start driving the design. Features smear across every layer, so no team owns anything end-to-end.",
+    bill: "Low cohesion per feature; gravitational pull toward database-centric design.",
+    real: "Most business software ever written; classic Spring MVC (@Controller → @Service → @Repository)." },
+  { id: "hexagonal", f: "structure", name: "hexagonal", full: "Hexagonal (ports & adapters)", tags: ["change", "start"],
+    tag: "Domain at the center owns interfaces; all technology plugs in from outside.",
+    problem: "Business rules entangled with frameworks and vendors — the domain can't be tested without a database or changed without touching Stripe.",
+    use: "When domain logic is the valuable part and will outlive any framework; many or changeable integrations; you want millisecond domain tests on fakes.",
+    avoid: "Thin CRUD veneers over a database — the ports/adapters/mapping tax buys nothing when there is no domain to protect.",
+    bill: "More interfaces and mapping code; discipline to keep framework types from leaking inward.",
+    real: "Standard in DDD-practicing teams; clean/onion architecture are the same idea under other names." },
+  { id: "clean", f: "structure", name: "clean / onion", full: "Clean & onion architecture", tags: ["change"],
+    tag: "Hexagonal's idea with prescribed rings: dependencies point only inward.",
+    problem: "Same as hexagonal — technology-independent domains. Three brandings of one idea.",
+    use: "Whichever name your team already speaks. The content is the dependency rule, not the ring diagram.",
+    avoid: "Reading the rings as mandatory folders — four pass-through layers on a simple feature is the pattern misread as ceremony.",
+    bill: "Same as hexagonal, plus vocabulary debates if you let them happen.",
+    real: "Robert Martin's Clean Architecture; Palermo's Onion; countless service templates." },
+  { id: "slices", f: "structure", name: "vertical-slices", full: "Vertical slice architecture", tags: ["change", "team"],
+    tag: "Organize by feature, not by technical layer — one folder per capability slice.",
+    problem: "Layer-first structure gives one feature no home: every change fans across controller/service/repository folders.",
+    use: "Request/response apps with many independent features; teams wanting per-feature ownership; letting each slice choose its own internal complexity.",
+    avoid: "One deep, heavily-shared rule set (pricing engines, risk models) — every slice would need the whole domain; hexagonal fits better.",
+    bill: "Duplication pressure; shared domain rules need a deliberate, small home.",
+    real: "Popularized in .NET (Bogard); common in modern Node/Go templates." },
+  { id: "modmono", f: "structure", name: "modular-monolith", full: "Modular monolith", tags: ["team", "start", "change"],
+    tag: "One deployable; inside, business-capability modules with enforced boundaries and private data.",
+    problem: "A growing team stepping on each other in one codebase — but microservices' bill isn't justified yet.",
+    use: "Teams past ~8–10 engineers; ownership and local reasoning without distribution; the honest rehearsal for future microservices (wrong boundary = one refactor, not one quarter). The modern default for serious systems.",
+    avoid: "When you need independent deployment or wildly different scaling *today* — the monolith ships and scales as one lump.",
+    bill: "Tooling and discipline to stop seam erosion (ArchUnit-style rules); one runtime shares crash blast radius.",
+    real: "Shopify at world scale; GitHub's Rails app; many banks' ledgers." },
+  { id: "microkernel", f: "structure", name: "microkernel", full: "Microkernel / plugin", tags: ["change"],
+    tag: "A minimal core plus plugins; extension is the product.",
+    problem: "Many optional, per-customer, or third-party behaviors around a small stable core.",
+    use: "IDEs, browsers, CI systems, payment/tax engines with per-country rules, marketplaces.",
+    avoid: "\"We might want plugins someday\" — extension contracts are among the hardest interfaces to design, and wrong ones fossilize. YAGNI applies hard.",
+    bill: "Contract versioning; plugin isolation; registry machinery.",
+    real: "Eclipse, VS Code, Jenkins, Kafka Connect, Chrome extensions." },
+  { id: "pipes", f: "structure", name: "pipes-filters", full: "Pipes and filters", tags: ["change"],
+    tag: "Independent transformation stages connected by data flow.",
+    problem: "A transformation-shaped job: data passes through successive independent steps.",
+    use: "Compilers, ETL/data pipelines, media processing, stream processing. Filters are testable, reorderable, per-stage parallelizable.",
+    avoid: "Interactive or stateful logic, or steps needing rich shared context — you end up threading a god-context through every filter.",
+    bill: "End-to-end error handling and per-stage backpressure need design.",
+    real: "Unix pipelines, Kafka Streams, Apache Beam/Flink, sklearn pipelines." },
+
+  // ── Distribution ──
+  { id: "monolith", f: "distribution", name: "monolith", full: "The deliberate monolith", tags: ["start"],
+    tag: "One deployable, chosen on purpose. Not an anti-pattern.",
+    problem: "Most systems' actual requirements: real ACID across the domain, stack-trace debugging, one thing to deploy, the cheapest ops bill on this map.",
+    use: "Until a *named* pressure (team count, differential scale, fault isolation, deploy cadence) outgrows it. The failure mode is the unstructured monolith, not the monolith.",
+    avoid: "Past genuine multi-team scale with divergent deploy/scale/fault needs — then its shared fate and shared release train become the bottleneck.",
+    bill: "One runtime: shared blast radius, one-size scaling, one stack.",
+    real: "Stack Overflow (top-100 site, handful of servers); Shopify (modular flavor)." },
+  { id: "microservices", f: "distribution", name: "microservices", full: "Microservices", tags: ["team", "fail"],
+    tag: "Independently deployable, team-owned services with private data, talking over a network.",
+    problem: "Many autonomous teams sharing one deployable: release trains, lockstep rollbacks, whole-process blast radius, one-size scaling.",
+    use: "Multiple genuinely autonomous teams; components with wildly different scale/availability/compliance needs; a platform (CI/CD, observability, on-call) that can carry them. The trigger is organizational before technical.",
+    avoid: "Small teams (< ~3 teams: the fixed bill exceeds the benefit); domains not yet understood (early boundaries are wrong boundaries → distributed monolith); orgs that can't operate them yet.",
+    bill: "Network failure modes on every call; sagas and eventual consistency instead of transactions; resilience + observability stacks as mandatory equipment; boundaries that fossilize.",
+    real: "Amazon (2002 mandate), Netflix (~1000 services), Uber — and Prime Video / Segment publicly walking parts back." },
+  { id: "soa", f: "distribution", name: "soa-esb", full: "SOA with an ESB", tags: ["avoid"],
+    tag: "2000s services around a smart central bus. Historical — and still instructive.",
+    problem: "It tried to solve integration sprawl; the smart bus then accreted business logic until it was the new monolith, owned by a queue-behind-them integration team.",
+    use: "Know it to recognize it: its failure is why microservices say \"smart endpoints, dumb pipes.\"",
+    avoid: "Any modern reinvention: the API gateway that transforms payloads by business rules, the config-heavy iPaaS that knows the business. The smell: the pipe knows the business.",
+    bill: "Central bottleneck, undeployable independently, logic nobody owns.",
+    real: "Enterprise IT of the 2000s; Amazon's 2002 API mandate is the era's success story." },
+  { id: "eda", f: "distribution", name: "event-driven", full: "Event-driven architecture", tags: ["slow", "fail", "team"],
+    tag: "Producers publish facts to a durable broker; consumers react at their own pace.",
+    problem: "Synchronous chains multiply unavailability (0.999⁵ ≈ 99.5%) and couple every producer to every consumer's existence, health and speed.",
+    use: "Naturally reactive domains (one order → kitchen, riders, fraud, loyalty, analytics); fan-out; load leveling; adding consumers without touching producers.",
+    avoid: "Queries — the caller needs the answer *now*; workflows needing visible, transactional steps; teams without the idempotency/duplicates muscle (outbox-lab disciplines are prerequisites).",
+    bill: "Consistency windows on every consumer; at-least-once ⇒ idempotent consumers everywhere; workflow invisibility (budget for tracing + schema registry from day one); the broker becomes tier-0.",
+    real: "LinkedIn (Kafka's birthplace), Uber, nearly every large retail/fintech backbone." },
+  { id: "serverless", f: "distribution", name: "serverless", full: "Serverless / FaaS", tags: ["start", "load"],
+    tag: "Functions run per-event on rented infrastructure; scale to zero and to thousands.",
+    problem: "Paying for and operating always-on servers for spiky, glue-shaped, or low-volume workloads.",
+    use: "Event handlers, scheduled jobs, webhooks, file processing, unpredictable bursts, tiny-ops teams.",
+    avoid: "Latency-critical paths (cold starts), long-running/stateful work (execution limits), sustained high volume (per-invocation pricing crosses over), hard lock-in constraints.",
+    bill: "Cold starts; local-testing friction; tracing across function confetti; per-vendor programming model.",
+    real: "AWS Lambda ecosystems; most startups' glue layer; parts of Netflix's pipeline." },
+  { id: "spacebased", f: "distribution", name: "space-based", full: "Space-based architecture", tags: ["load"],
+    tag: "In-memory data grids absorb extreme bursts; the database leaves the hot path.",
+    problem: "Concurrent write bursts (ticket on-sales, flash sales, trading opens) that would melt any central database.",
+    use: "Genuinely extreme, bursty, grid-friendly workloads where eventual grid→DB consistency is acceptable.",
+    avoid: "When a queue in front of a normal database solves the burst more cheaply, when data can't fit memory economically, or when strong consistency is required.",
+    bill: "High complexity and cost; eventual consistency; operational rarity.",
+    real: "Ticketing platforms, trading systems; Hazelcast / Ignite / GigaSpaces." },
+  { id: "cell", f: "distribution", name: "cell-based", full: "Cell-based architecture", tags: ["fail"],
+    tag: "Partition the whole stack into independent cells, each serving a slice of customers.",
+    problem: "At company scale, even a well-built shared stack is one blast radius — a bad deploy or poison workload hits every customer.",
+    use: "Very large scale where a cell failure stranding only its slice is worth running N copies of everything. An advanced follow-on to microservices.",
+    avoid: "Anywhere below that scale — it multiplies every ops cost by cell count.",
+    bill: "Cell routing, per-cell capacity management, cross-cell data questions.",
+    real: "AWS internally, Slack, DoorDash." },
+
+  // ── Communication ──
+  { id: "syncasync", f: "communication", name: "sync-vs-async", full: "Sync vs async (the dial)", tags: ["slow", "start"],
+    tag: "The fundamental communication decision, made per interaction — not once.",
+    problem: "Sync is simple and immediate but temporally couples caller to callee's health and latency; async decouples time but pays in duplicates, ordering, and consistency windows.",
+    use: "Sync for user-facing queries and genuine request/reply. Async for side effects, fan-out, and anything that can be \"soon\" instead of \"now.\"",
+    avoid: "Sync chains deeper than ~2–3 hops on a user path without a stated reason — the availability multiplication is arithmetic, not opinion.",
+    bill: "Whichever you pick, you pay its side of the ledger; the skill is mixing on purpose.",
+    real: "Every real architecture is a deliberate (or accidental) mix." },
+  { id: "gateway", f: "communication", name: "api-gateway", full: "API gateway", tags: ["team", "start"],
+    tag: "One front door: routing, auth, rate limiting, TLS — in one place instead of N.",
+    problem: "N clients × M services each reimplementing edge concerns; clients coupled to internal topology.",
+    use: "Any multi-service system with external clients.",
+    avoid: "Fronting one small service (a hop and an ops item for nothing) — and never put business logic in it: that's the ESB reborn.",
+    bill: "An extra hop; a tier-0 component (run it redundantly); config sprawl.",
+    real: "Kong, AWS API Gateway, Envoy edge, Zuul." },
+  { id: "bff", f: "communication", name: "bff", full: "Backend-for-frontend", tags: ["team"],
+    tag: "One thin gateway per client type, owned by that client's team.",
+    problem: "One general API serves mobile, web, TV and partners badly; the shared gateway team becomes everyone's bottleneck.",
+    use: "Genuinely divergent client needs; teams that should own their own aggregation and shaping.",
+    avoid: "One client type, or barely-different clients — BFFs then just multiply deployables and duplicate logic.",
+    bill: "More services; shared logic across BFFs needs a home.",
+    real: "Netflix, SoundCloud (who named it), Spotify." },
+  { id: "mesh", f: "communication", name: "service-mesh", full: "Service mesh / sidecar", tags: ["fail"],
+    tag: "A proxy beside every service handles retries, mTLS, and metrics uniformly.",
+    problem: "N services in M languages reimplementing networking policy N times, inconsistently.",
+    use: "Fleets well past 10–15 services, where uniform policy beats per-service code.",
+    avoid: "Small fleets — the mesh's own operational weight (upgrades, debugging through proxies) exceeds what it saves; a shared client library does the job.",
+    bill: "Real ops complexity; per-hop latency; another tier-0 system in every incident.",
+    real: "Envoy + Istio / Linkerd." },
+  { id: "acl", f: "communication", name: "anti-corruption", full: "Anti-corruption layer", tags: ["legacy", "change"],
+    tag: "A translator at the border so a foreign model never leaks into yours.",
+    problem: "Integrating a legacy/third-party system whose concepts (CUST_MST_TBL, 40-field SOAP orders) would corrupt your domain model.",
+    use: "Legacy migration (with strangler fig), ERP/mainframe integration, acquisitions — anywhere the external model must not shape yours.",
+    avoid: "When the external model is fine and stable — a pass-through ACL is pure indirection tax.",
+    bill: "Translation code and its upkeep; real impedance mismatches to resolve.",
+    real: "A core DDD-era pattern; standard in every serious enterprise integration." },
+  { id: "strangler", f: "communication", name: "strangler-fig", full: "Strangler fig", tags: ["legacy", "team"],
+    tag: "Route through a facade; move capabilities out one at a time; the old system dies empty.",
+    problem: "Replacing a live legacy system. Big-bang rewrites freeze features for years and have a dismal track record — the old system keeps changing while you rewrite it.",
+    use: "The standard monolith→services migration; any live replacement where you can intercept the entry points. Every step small, shippable, reversible.",
+    avoid: "Systems small enough to replace in one honest step; systems with no interceptable front (no facade point, no strangler).",
+    bill: "A long two-worlds period (double ops, data sync — often via CDC); discipline to *finish*, or you live in the half-strangled state forever.",
+    real: "Named by Fowler; documented at Shopify, countless bank core replacements." },
+  { id: "queues", f: "communication", name: "queue-vs-pubsub", full: "Queues & pub-sub", tags: ["slow", "load"],
+    tag: "One consumer takes each message (work sharing) vs every subscriber gets each event (fan-out).",
+    problem: "Distributing work vs broadcasting facts are different problems that share the word \"messaging.\"",
+    use: "Point-to-point queues + competing consumers for throughput and load leveling; pub-sub for fan-out. Kafka consumer groups give both from one log.",
+    avoid: "Request-reply gymnastics over messaging when a simple sync call is what you actually need.",
+    bill: "Competing consumers force the idempotency and ordering questions from your outbox lab.",
+    real: "SQS/RabbitMQ queues; SNS/Kafka topics." },
+  { id: "dlq", f: "communication", name: "dead-letter-queue", full: "Dead letter queue", tags: ["fail", "data"],
+    tag: "Where messages go after N failed attempts, so one poison message can't block the line.",
+    problem: "A single unprocessable message stalling a queue, or endless redelivery loops burning the consumer.",
+    use: "Every production queue/topic consumer, from day one.",
+    avoid: "Treating it as a destination — an unmonitored DLQ is a data grave. It needs alerts and a replay story.",
+    bill: "Monitoring, triage ownership, and replay tooling.",
+    real: "Built into SQS, RabbitMQ, Kafka (via retry-topic conventions)." },
+  { id: "registry", f: "communication", name: "schema-registry", full: "Schema registry", tags: ["data", "team"],
+    tag: "Versioned, compatibility-checked event schemas, enforced at publish time.",
+    problem: "Event-driven systems where a producer's field rename silently breaks consumers nobody knew existed — the vaccine for event spaghetti.",
+    use: "Any event backbone past a handful of topics; backward/forward compatibility rules per topic.",
+    avoid: "Skipping it \"for speed\" on a growing event system — the cost arrives later, with interest, as F4.",
+    bill: "Governance friction; migrations for breaking changes.",
+    real: "Confluent Schema Registry, AWS Glue Schema Registry." },
+
+  // ── Data ──
+  { id: "dbperservice", f: "data", name: "db-per-service", full: "Database per service", tags: ["data", "team"],
+    tag: "Each service's data is private; others go through its API or events. The rule that makes services real.",
+    problem: "Shared schemas are hidden, interface-less, maximal contracts — one team's migration is another team's outage.",
+    use: "Always, once you have services. It IS the boundary.",
+    avoid: "Only exception: a temporary, owned, end-dated bridge during migration.",
+    bill: "Cross-service queries and transactions are gone — hello sagas, read models, and eventual consistency.",
+    real: "Core microservices doctrine everywhere." },
+  { id: "saga", f: "data", name: "saga", full: "Saga (your lab)", tags: ["data"],
+    tag: "A multi-service transaction as local steps, each with a compensating undo.",
+    problem: "No ACID across services; 2PC blocks on coordinator death. Run steps forward; on failure, run business-level undo backward.",
+    use: "Genuine multi-service business transactions. Orchestration for core flows (visible state), choreography for simple ones.",
+    avoid: "Where a modular monolith's single transaction would do — the saga is the price of distribution, not a goal.",
+    bill: "Intermediate states are visible; compensations are business logic; isolation is gone.",
+    real: "Every serious order/payment/booking flow across services. Depth: your saga lab." },
+  { id: "outbox", f: "data", name: "outbox", full: "Transactional outbox (your lab)", tags: ["data"],
+    tag: "Save the state change and the outgoing event in ONE local transaction; a relay delivers.",
+    problem: "The dual write: DB write and broker publish are two acts, and the world can crash between them — losing or inventing facts.",
+    use: "Near-universal equipment the moment a service both stores state and announces it.",
+    avoid: "Systems with no events to publish; or when CDC on an existing DB is the cheaper retrofit.",
+    bill: "Relay/poller machinery; at-least-once ⇒ idempotent consumers.",
+    real: "Standard in event-driven backends; Debezium-based CDC is its cousin. Depth: your outbox lab." },
+  { id: "cqrs", f: "data", name: "cqrs", full: "CQRS (your lab)", tags: ["data", "load"],
+    tag: "One guarded write model; disposable, query-shaped read models projected from its events.",
+    problem: "Read shape and write shape diverge, or read scale dwarfs write scale, and one model serves both badly.",
+    use: "Genuinely divergent read/write needs. Try a materialized view first — it's CQRS's small cousin.",
+    avoid: "Most CRUD apps. The consistency window (queries answer slightly behind truth) is a real, permanent price.",
+    bill: "Projection lag monitoring, read-your-own-writes engineering, idempotent projectors.",
+    real: "Search/reporting read models everywhere. Depth: your cqrs lab." },
+  { id: "eventsourcing", f: "data", name: "event-sourcing", full: "Event sourcing (your lab)", tags: ["data"],
+    tag: "Events are the source of truth; state is a fold over the stream.",
+    problem: "When history is a first-class requirement (ledgers, audit), current-state storage throws away the asset.",
+    use: "The aggregates that genuinely need history/audit/replay — a per-service storage decision, not a system-wide religion.",
+    avoid: "\"While we're at it\" adoption — it is the most expensive data pattern to live with (upcasting, snapshots, replay discipline).",
+    bill: "Schema evolution forever (upcasting); harder ad-hoc queries (pair with CQRS).",
+    real: "Financial ledgers, accounting systems. Depth: your event-sourcing lab." },
+  { id: "cdc", f: "data", name: "cdc", full: "Change data capture", tags: ["data", "legacy"],
+    tag: "Tail the database's own log; publish every committed change as an event.",
+    problem: "Getting reliable events out of a system you can't change, or syncing caches/search/warehouses without dual writes.",
+    use: "Legacy integration into an event backbone; strangler-fig data bridging; keeping Elasticsearch and warehouses in sync.",
+    avoid: "When you control the app and the event should carry *intent* — the log says \"row updated,\" not \"customer moved house\"; prefer an application outbox.",
+    bill: "Connector fleet ops; consumers coupled to table shapes unless you translate.",
+    real: "Debezium → Kafka is the canonical stack." },
+  { id: "caching", f: "data", name: "caching", full: "Caching (aside / through / behind)", tags: ["load", "slow"],
+    tag: "Keep hot answers close. Cache-aside fills on miss; write-through writes both; write-behind flushes later.",
+    problem: "A hot read path hammering the database with the same questions.",
+    use: "Repeated reads with tolerable staleness. Cache-aside + TTL backstop + event-driven invalidation is the workhorse combination.",
+    avoid: "As the reflex answer to slowness before profiling (the missing index is often the real fix); for correctness-critical checks (stock reservation from a cached count = oversell); write-behind where losing acknowledged writes is unacceptable.",
+    bill: "The two diseases: staleness (a cache is a replica — CAP at key granularity) and stampede (a hot key expires; 5,000 rebuilds flatten the DB).",
+    real: "Redis/Memcached everywhere; CDNs are this family at HTTP scale." },
+  { id: "replication", f: "data", name: "read-replicas", full: "Replication & read replicas", tags: ["load"],
+    tag: "One writer, N read-serving copies fed by its log.",
+    problem: "Read-heavy load on a single node; the need for failover and geographic read locality.",
+    use: "Read scaling before sharding; standby for failover; local reads per region.",
+    avoid: "Write scaling — every write still lands on the one primary. That's sharding's job.",
+    bill: "Replica lag ⇒ read-your-own-writes anomalies (your cqrs consistency window, at the storage layer); route freshness-critical reads to the primary; monitor lag as an SLO.",
+    real: "Postgres/MySQL replicas under nearly every large site." },
+  { id: "sharding", f: "data", name: "sharding", full: "Sharding", tags: ["load"],
+    tag: "Split rows across independent nodes by a shard key. The last resort on the scaling ladder.",
+    problem: "One primary can no longer absorb the writes or hold the data.",
+    use: "After indexes, caching, and replicas are exhausted. Choose the key like it's permanent — it nearly is.",
+    avoid: "While a bigger box or better queries still work — the complexity is permanent: cross-shard joins/transactions are gone, hot shards lurk, resharding is surgery.",
+    bill: "Scatter-gather queries; celebrity-customer hot shards; live resharding.",
+    real: "Instagram (sharded Postgres), Slack/YouTube (Vitess), DynamoDB/Cassandra as managed sharding." },
+  { id: "matview", f: "data", name: "materialized-view", full: "Materialized view", tags: ["load", "data"],
+    tag: "A precomputed, stored query result, refreshed on schedule or by events.",
+    problem: "An expensive query asked constantly; the database-native cousin of a CQRS read model.",
+    use: "Reporting and read-shaping needs — reach for this *before* full CQRS; same idea, smaller machinery.",
+    avoid: "When refresh staleness breaks the use case and you can't afford event-driven refresh.",
+    bill: "Staleness between refreshes; refresh cost.",
+    real: "Native in Postgres/Oracle; dbt models are this pattern at warehouse scale." },
+
+  // ── Resilience ──
+  { id: "timeout", f: "resilience", name: "timeout", full: "Timeout", tags: ["fail", "slow"],
+    tag: "Every remote call gets a deadline. The zeroth resilience pattern — nothing else works without it.",
+    problem: "Unbounded waiting is the enabling condition of every cascade: a slow dependency holds your threads hostage until you fall over too. Slow is more dangerous than down.",
+    use: "Every remote call, sized from the caller's latency budget, not the callee's average.",
+    avoid: "Timeouts longer than your own callers' timeouts (your work is discarded while you compute it); retrying a timeout on a non-idempotent call — it may have *succeeded* slowly.",
+    bill: "Budgeting work; converting slow into an error you must now handle.",
+    real: "Every HTTP/gRPC client config; the first line of every resilience postmortem." },
+  { id: "retry", f: "resilience", name: "retry", full: "Retry (backoff + jitter)", tags: ["fail"],
+    tag: "Re-attempt transient failures — spaced exponentially, randomized, budgeted.",
+    problem: "Networks blip. But naive immediate retries triple the load on a struggling service, in synchronized waves.",
+    use: "Transient errors, idempotent operations (or idempotency keys), exponential backoff with jitter, a retry budget, ONE designated layer that retries.",
+    avoid: "Permanent errors (a 400 fails all 5 times); non-idempotent calls without keys (double-charge); layered retries (3×3×3 = 27 attempts per click — the retry storm).",
+    bill: "Extra load exactly when the system is sickest — must be budgeted.",
+    real: "AWS SDK defaults; resilience4j/Polly; every incident where retries kept the victim down (metastable failure)." },
+  { id: "breaker", f: "resilience", name: "circuit-breaker", full: "Circuit breaker", tags: ["fail", "slow"],
+    tag: "CLOSED → OPEN (fail instantly, zero load on the victim) → HALF_OPEN probes → recovery.",
+    problem: "Even well-behaved retries keep sending traffic into a service known to be drowning, holding threads for timeout-lengths.",
+    use: "Around any dependency whose failure should be survived; callers fail in microseconds; victim gets air to recover. Every OPEN transition must alert.",
+    avoid: "In-process calls; as a substitute for fixing a chronically failing dependency; unmonitored (an open breaker silently killing a feature for a week).",
+    bill: "Threshold tuning; a fallback to serve while open; dashboards.",
+    real: "Netflix Hystrix (the famous one) → resilience4j; Envoy outlier detection." },
+  { id: "bulkhead", f: "resilience", name: "bulkhead", full: "Bulkhead", tags: ["fail"],
+    tag: "Partitioned resource pools per dependency — one drowning dependency exhausts only its own compartment.",
+    problem: "One slow downstream filling your ONE thread pool takes you down for everyone, including requests that never touch it.",
+    use: "Separate bounded pools per downstream (size ≈ rate × latency + headroom); or separate instances per traffic class.",
+    avoid: "Single-dependency services; over-partitioning (twenty starved 10-thread pools waste what one well-shed pool would use).",
+    bill: "Sizing work; some capacity intentionally idle.",
+    real: "Named for ship hull compartments; resilience4j bulkheads, Envoy connection pools." },
+  { id: "ratelimit", f: "resilience", name: "rate-limiting", full: "Rate limiting", tags: ["fail", "load"],
+    tag: "Cap requests per client at the edge; 429 + Retry-After.",
+    problem: "One client (buggy, greedy, or hostile) consuming everyone's capacity.",
+    use: "Standard equipment on any public or shared API; token bucket / sliding window.",
+    avoid: "As your only overload defense — it protects from *others*; load shedding protects from *everyone*.",
+    bill: "Limit governance; legitimate-burst handling.",
+    real: "Every API platform (Stripe's published limits are the classic example)." },
+  { id: "shedding", f: "resilience", name: "load-shedding", full: "Load shedding & backpressure", tags: ["fail", "load"],
+    tag: "When saturated: reject cheap and early, by priority — and let pressure slow the source.",
+    problem: "Accepting all work when overloaded degrades everyone; unbounded buffers convert overload into OOM crashes with data loss.",
+    use: "Admission control ahead of expensive work (shed analytics before checkout); bounded queues with consumers pulling at their own pace (backpressure) so slowdown propagates backward.",
+    avoid: "\"The queue will catch up\" — an unbounded in-memory queue is a crash with a delay on it.",
+    bill: "Deciding priorities in advance; rejected work is real.",
+    real: "Google SRE practice; Reactive Streams; Kafka's pull model; TCP flow control." },
+  { id: "fallback", f: "resilience", name: "fallback", full: "Fallback / graceful degradation", tags: ["fail"],
+    tag: "Pre-decide the reduced experience per dependency — in daylight, not in an incident channel.",
+    problem: "A dependency dies and the product's behavior is whatever the exception handler happens to do.",
+    use: "Recommendations down → bestsellers; ETA down → \"being assigned\"; each fallback agreed with product owners in advance. Availability of the product, not of every service.",
+    avoid: "Fallbacks that silently violate business rules (queueing a charge the business didn't agree to defer).",
+    bill: "Fallback paths are code: tested, monitored (fallback-serve rate is an alert), owned.",
+    real: "Netflix's whole degraded-mode philosophy." },
+  { id: "health", f: "resilience", name: "health-checks", full: "Health checks", tags: ["fail", "deploy"],
+    tag: "Liveness (\"restart me\") vs readiness (\"don't route to me yet\") — two different questions.",
+    problem: "Routers and orchestrators need to know instance state; conflating the two questions causes restart storms during dependency outages.",
+    use: "Both endpoints on every service; readiness reflects dependencies, liveness reflects only the process itself.",
+    avoid: "A liveness check that pings the database: DB blip ⇒ the orchestrator restarts your whole healthy fleet.",
+    bill: "Thinking through what each check truly means.",
+    real: "Kubernetes probes; every load balancer." },
+  { id: "hedging", f: "resilience", name: "hedged-requests", full: "Hedged requests", tags: ["slow"],
+    tag: "After the p95 mark, send a duplicate to another replica; take the first answer.",
+    problem: "Tail latency: the occasional 10× slow response that drags your p99 while the median is fine.",
+    use: "Idempotent reads against replicated backends where smooth tails are worth extra load.",
+    avoid: "Writes; systems already near saturation (hedging adds load).",
+    bill: "Deliberate duplicate work.",
+    real: "Google's \"Tail at Scale\"; gRPC hedging config." },
+  { id: "chaos", f: "resilience", name: "chaos-engineering", full: "Chaos engineering", tags: ["fail", "deploy"],
+    tag: "Inject real failures in production, continuously, on purpose.",
+    problem: "Resilience patterns you haven't tested against real failure are hypotheses, not equipment.",
+    use: "Once the basics exist: kill instances, add latency, partition networks — scoped, measured, with a hypothesis per experiment.",
+    avoid: "Before timeouts/breakers/fallbacks exist (you'll just cause outages); without blast-radius scoping.",
+    bill: "Cultural buy-in; experiment tooling and guardrails.",
+    real: "Netflix Chaos Monkey → Gremlin, AWS Fault Injection Simulator." },
+
+  // ── Deployment ──
+  { id: "bluegreen", f: "deployment", name: "blue-green", full: "Blue-green deployment", tags: ["deploy"],
+    tag: "Two identical environments; deploy to the idle one; flip traffic atomically.",
+    problem: "Deploys that can't be quickly undone. Flip back = instant rollback.",
+    use: "Services where atomic cutover and instant rollback justify 2× infrastructure during the window.",
+    avoid: "Forgetting the database has no color — both environments share it during the flip, so every schema change must be backward-compatible (expand/contract). That discipline, not the router flip, is the hard part.",
+    bill: "2× infra during windows; schema discipline across releases.",
+    real: "Classic in pre-Kubernetes fleets; still common for stateful edges." },
+  { id: "canary", f: "deployment", name: "canary", full: "Canary release", tags: ["deploy"],
+    tag: "1% → 5% → 25% → 100% of real traffic, gated on metrics. Blast-radius control for deploys.",
+    problem: "Staging never catches everything; the first real traffic is the real test — so give it to 1% of users, not 100%.",
+    use: "Customer-visible services with metrics good enough to judge a canary; automate the promotion/rollback gates.",
+    avoid: "Without judgment-quality metrics (a blind canary is a slow full deploy); per-request routing when user state matters (route by cohort).",
+    bill: "N and N+1 must interoperate; metric and pipeline investment.",
+    real: "Argo Rollouts, Flagger, Spinnaker; standard at every large SaaS." },
+  { id: "flags", f: "deployment", name: "feature-flags", full: "Feature flags", tags: ["deploy", "team"],
+    tag: "Ship dark; release by flipping a switch; roll back in seconds. Deploy ≠ release.",
+    problem: "Coupling code shipping to feature exposure makes both riskier; the fastest rollback in the industry is a flag flip.",
+    use: "Trunk-based development, gradual rollouts, A/B tests, kill switches on risky paths.",
+    avoid: "Flag debt: dead flags multiply into 2^N untestable combinations. Every flag gets an owner and an expiry; removing it is part of the feature's definition of done.",
+    bill: "A flag service to run; testing the combinations that matter.",
+    real: "LaunchDarkly and homegrown systems everywhere; how big tech ships." },
+  { id: "rolling", f: "deployment", name: "rolling-deploy", full: "Rolling deployment", tags: ["deploy"],
+    tag: "Replace instances gradually; the Kubernetes default.",
+    problem: "Zero-downtime deploys without doubling the fleet.",
+    use: "The default for stateless services on orchestrators.",
+    avoid: "Forgetting that N and N+1 always coexist briefly — interoperability (API and schema) is mandatory, same expand/contract discipline.",
+    bill: "Slower rollback than blue-green or flags; version-mix window.",
+    real: "Kubernetes Deployments." },
+  { id: "stateless", f: "deployment", name: "stateless-services", full: "Stateless services (12-factor)", tags: ["deploy", "load", "start"],
+    tag: "No per-user state in the process; sessions live in Redis or tokens.",
+    problem: "In-process state makes horizontal scaling, rolling deploys, and instance death all traumatic instead of boring.",
+    use: "The default for every service tier; the heart of the 12-factor checklist (config in env, logs as streams, disposable processes).",
+    avoid: "Pretending the *system* is stateless — the state moved to Redis/DB; those tiers now carry the weight (that's Family 4's problem).",
+    bill: "A session store to run; token design.",
+    real: "Every cloud-native service; Heroku's 12-factor manifesto." },
+  { id: "autoscale", f: "deployment", name: "autoscaling", full: "Autoscaling", tags: ["load", "deploy"],
+    tag: "Add and remove instances on load signals.",
+    problem: "Provisioning for peak wastes money; provisioning for average falls over at peak.",
+    use: "Stateless tiers with a good load signal — queue depth and request concurrency beat CPU for most request-shaped work. Pre-scale ahead of *predictable* peaks (lunch rush!).",
+    avoid: "The stateful parts (the database doesn't autoscale — that's sharding/replicas territory); scaling on CPU when the bottleneck is elsewhere.",
+    bill: "Signal choice and tuning; cold capacity lag.",
+    real: "Kubernetes HPA, AWS ASG." },
+
+  // ── Anti-patterns ──
+  { id: "distmono", f: "anti", name: "distributed-monolith", full: "Distributed monolith", tags: ["avoid"],
+    tag: "Services with monolith coupling: all of the bill, none of the benefit. The #1 trap.",
+    problem: "Splitting along the wrong lines (entity nouns, or too early) promotes coupling from cheap function calls to expensive network calls + API contracts. Every change still touches 4 services; deploys need coordination.",
+    use: "—",
+    avoid: "Detect it: 'independent' services on a release train; PRs spanning repos; lockstep versions. Repair: re-merge (Prime Video, Segment — no shame) or re-draw by business capability and team ownership.",
+    bill: "You pay for microservices and receive a worse monolith.",
+    real: "The most common microservices outcome; the reason 'start with a modular monolith' became consensus." },
+  { id: "shareddb", f: "anti", name: "shared-database", full: "Shared database", tags: ["avoid", "data"],
+    tag: "Two services writing one schema: a hidden, maximal, interface-less contract.",
+    problem: "\"Temporary\" shared tables during a migration become permanent; every schema change now needs a cross-team meeting; nobody can tell who writes what.",
+    use: "—",
+    avoid: "One owner per table set; everyone else through its API/events; CDC as the bridge during transitions — with an end date. A boundary you can bypass IS bypassed.",
+    bill: "Invisible coupling that appears in no architecture diagram.",
+    real: "Behind half of all 'our microservices don't feel independent' complaints." },
+  { id: "mud", f: "anti", name: "big-ball-of-mud", full: "Big ball of mud", tags: ["avoid", "change"],
+    tag: "The null architecture: no boundaries. Not chosen — accreted.",
+    problem: "The default outcome of never deciding: everything touches everything; every change has unbounded blast radius; care stops scaling.",
+    use: "—",
+    avoid: "It reforms continuously — boundaries erode without enforcement (fitness functions, module rules). Every pattern in this atlas is at root a defense against mud.",
+    bill: "The 'we have to rewrite it' endgame.",
+    real: "Foote & Yoder's famous paper: still the most common architecture in the wild." },
+  { id: "godservice", f: "anti", name: "god-service", full: "God service", tags: ["avoid", "team"],
+    tag: "The service half the system's logic migrated into. Usually named 'core', 'common', or 'platform'.",
+    problem: "Boundaries drawn by convenience: everything unclear got tossed into one service, which is now a monolith hiding inside a microservices diagram — and everyone's bottleneck.",
+    use: "—",
+    avoid: "Unclear responsibilities are a boundary-design smell to resolve, not a bucket to fill. Watch anything named 'common'.",
+    bill: "One team blocks all teams; the god service can never be safely changed.",
+    real: "Every large org has one; most have three." },
+  { id: "nano", f: "anti", name: "nanoservices", full: "Nanoservices", tags: ["avoid"],
+    tag: "Services so small the interaction cost dwarfs their content.",
+    problem: "Overcorrection from monolith fear: hundreds of deployables for a dozen capabilities; every business action is a distributed transaction across five 'services' that are really functions.",
+    use: "—",
+    avoid: "Size services by team ownership and capability ('fits in one team's head'), never by smallness as a virtue.",
+    bill: "Maximum distributed tax per unit of business logic.",
+    real: "The 85-services / 9-engineers inheritance (see exercise 8.2)." },
+  { id: "hammer", f: "anti", name: "golden-hammer", full: "Golden hammer / resume-driven design", tags: ["avoid"],
+    tag: "Choosing patterns by familiarity or fashion instead of fit.",
+    problem: "\"We use Kafka for everything\"; \"microservices because Netflix.\" The tool gets named before the -ilities are.",
+    use: "—",
+    avoid: "The discipline: state the top 3 quality attributes first, from the business situation; only then may a pattern be proposed — with its bill attached.",
+    bill: "Someone else's tradeoffs, imported without their problems.",
+    real: "The root cause behind most premature-microservices stories." },
+  { id: "dualwrite", f: "anti", name: "dual-write", full: "Dual write", tags: ["avoid", "data"],
+    tag: "Writing two systems without a transaction spanning them.",
+    problem: "DB write then broker publish (or DB then cache): a crash between them loses or invents facts — silently, rarely, and unreproducibly.",
+    use: "—",
+    avoid: "The outbox pattern exists precisely for this; CDC is the retrofit version. Your transactional-outbox lab is the full treatment.",
+    bill: "Ghost events and missing events, discovered by customers.",
+    real: "The bug class your outbox lab was born from." },
+  { id: "spaghetti", f: "anti", name: "event-spaghetti", full: "Event spaghetti", tags: ["avoid", "data"],
+    tag: "Years of pure choreography: hundreds of event types, flow visible to no one.",
+    problem: "\"What happens when an order is placed?\" takes archaeology across five services' logs; a consumer change breaks a producer nobody knew existed.",
+    use: "—",
+    avoid: "Orchestrators for core workflows, a schema registry with compatibility rules, distributed tracing as the flashlight. Decoupling is not free observability.",
+    bill: "System-level reasoning traded away, one locally-reasonable decision at a time.",
+    real: "The mature-EDA company's most common complaint." },
+  { id: "retrystorm", f: "anti", name: "retry-storm", full: "Retry storm / metastable failure", tags: ["avoid", "fail"],
+    tag: "Layered, unbudgeted retries: one click becomes 27 calls, aimed at the sickest moment.",
+    problem: "Client ×3, gateway ×3, service ×3 — each layer locally reasonable, the multiplication emergent. After the root cause is fixed, synchronized retry load keeps the system down (metastable).",
+    use: "—",
+    avoid: "Retry budgets; ONE layer owns retries; jitter everywhere; circuit breakers as the relief valve.",
+    bill: "Self-inflicted second outages during recovery.",
+    real: "A named class in recent systems research; a regular in big-tech postmortems." },
+  { id: "premature", f: "anti", name: "premature-microservices", full: "Premature microservices", tags: ["avoid", "start"],
+    tag: "12 services, 6 engineers, 0 need.",
+    problem: "The style's benefits scale with team count; its costs are near-fixed. Below ~2–3 teams the bill exceeds the benefit by construction — and early boundaries are drawn before the domain is understood, guaranteeing the distributed monolith.",
+    use: "—",
+    avoid: "Modular monolith with honest seams: a future extraction is an option held, not a price paid. Conway's law sets the service count, not ambition.",
+    bill: "Infra work dwarfing feature work at exactly the stage speed matters most.",
+    real: "Segment's and Prime Video's public write-ups; a thousand quiet startups." }
+];
+
+var QUIZ = [
+  { s: "A 6-person startup is building a B2B invoicing product. The domain is still shifting weekly as they learn from customers. The CTO asks: what architecture do we start with?",
+    opts: [
+      "Microservices from day one — refactoring to them later will be expensive, so start how you mean to continue.",
+      "A modular-ish monolith: one deployable, boring relational database, clear internal module seams.",
+      "Serverless functions for everything — smallest ops burden for a small team."
+    ],
+    correct: 1,
+    why: "At 6 people the fixed bill of microservices (network failures, sagas, observability stack, deploy pipelines per service) dwarfs any benefit — and worse, the domain is still moving, so service boundaries drawn now are guaranteed wrong, and wrong boundaries across services cost a quarter to move instead of an afternoon. The monolith keeps one transaction scope and stack-trace debugging while the module seams rehearse tomorrow's boundaries. Serverless-for-everything trades unknown domain boundaries for vendor-shaped ones and bites on latency and local testing for a core product.",
+    bill: "The bill you accept: a shared release cadence and shared blast radius — cheap at this size. Revisit when team count passes ~3 teams (write that trigger down in an ADR)." },
+  { s: "TiffinBox's checkout page keeps going down. Investigation: the recommendations service ('customers also ordered…') gets slow, checkout's threads pile up waiting on it, and the whole page dies. What is the FIRST change to make?",
+    opts: [
+      "Add retries around the recommendations call so transient slowness is ridden out.",
+      "Cache recommendations so most requests never call the service.",
+      "Put a short timeout on the call, with a fallback (curated list or nothing)."
+    ],
+    correct: 2,
+    why: "The mechanism killing checkout is unbounded waiting — threads held hostage until the pool exhausts. Only a timeout attacks that mechanism; it converts 'slow' (deadly — holds resources) into 'down' (survivable — with a fallback the page renders instantly, minus one optional widget). Retries make it actively worse: more calls into a drowning service, threads held even longer. A cache helps load but doesn't bound the wait on misses — the cascade returns on every cold key. Timeout first; breaker and bulkhead next; cache maybe never.",
+    bill: "The bill: you must decide what the page shows when the timeout fires — a product decision, made in daylight with product owners." },
+  { s: "The orders service must save the order AND publish OrderPlaced to Kafka so kitchen/riders/notifications react. A teammate writes: save to Postgres, then publish to Kafka, in that order. Ship it?",
+    opts: [
+      "No — wrap Postgres and Kafka in a two-phase commit so both happen atomically.",
+      "No — write the order and the event in one Postgres transaction (outbox table); a relay publishes to Kafka.",
+      "Yes — publish failures are rare, and consumers should be defensive anyway."
+    ],
+    correct: 1,
+    why: "This is the dual write: the process can die between the save and the publish, producing an order the kitchen never hears about — silently, rarely, unreproducibly. 'Failures are rare' means the bug ships and is discovered by a hungry customer. 2PC across Postgres and Kafka isn't realistically available (and as your 2PC lab showed, it blocks on coordinator death — the cure the industry moved away from). The outbox makes save+announce atomic using the one transaction you actually have — the local one — and the relay delivers with at-least-once semantics.",
+    bill: "The bill: relay machinery, and at-least-once delivery means every consumer must be idempotent. Your outbox lab is the full story." },
+  { s: "Placing an order is a synchronous chain: orders → payments → kitchen → riders → notifications, each service 99.9% available. Customers complain about failed orders. What most improves availability of order placement?",
+    opts: [
+      "Push every service to 99.99% — attack availability at the source.",
+      "Keep only payments synchronous; publish an event for kitchen/riders/notifications to consume from a durable broker.",
+      "Add retries at each hop so transient failures are absorbed."
+    ],
+    correct: 1,
+    why: "A sync chain multiplies: 0.999⁵ ≈ 99.5% — every link must be up at the same moment (temporal coupling). Cutting the chain to 2 sync hops makes it 0.999² ≈ 99.8%, and the fan-out steps complete later regardless of who's down — you removed simultaneity, which no amount of per-service polishing does (99.99% everywhere is enormously expensive and still multiplies). Retries at each hop help blips but compound into retry storms under real failure — and don't change the AND-math.",
+    bill: "The bill: kitchen finds out 'soon' instead of 'now' (eventual consistency), the broker becomes tier-0 infrastructure, and consumers must be idempotent." },
+  { s: "A bank must replace a 20-year-old COBOL billing system that 40 other systems integrate with. The board approves a 3-year budget. The lead architect proposes: freeze the old system, build the replacement fully, cut over in one weekend. Better idea?",
+    opts: [
+      "The plan is sound — a clean cutover avoids running two systems and syncing data between them.",
+      "Strangler fig: route through a facade, migrate one capability at a time to the new system, shrink the old one until it's empty.",
+      "Keep the COBOL core forever and wrap it in an anti-corruption layer with modern APIs."
+    ],
+    correct: 1,
+    why: "Big-bang rewrites of live systems have a dismal track record for structural reasons: the old system can't actually freeze for 3 years (the business keeps moving, so you're chasing a target), nothing ships until everything ships (3 years of cost, zero feedback), and the one-weekend cutover is an all-or-nothing bet with 40 integrating systems. The strangler fig makes every step small, shippable, and reversible — per-capability rollback via the facade — and yes, that means running two worlds with data syncing (often CDC) for a long time: that cost is real and still cheaper than the bet. Wrap-forever (option 3) is a real pattern (ACL) but dodges the mandate: the COBOL system's operational risk is why the budget exists.",
+    bill: "The bill: the two-worlds period needs an owner, a sync direction per table set, a disagreement-detection job — and the discipline to FINISH, or you become the half-strangled forever-system." },
+  { s: "Flash sale: 500 units, 200k people clicking 'buy' in the first minute. The design: check remaining stock from a Redis cache (30s TTL), and if positive, charge the customer and decrement stock in the database. What's the verdict?",
+    opts: [
+      "Fine — Redis easily handles that read load, and 30 seconds of staleness is acceptable for a counter.",
+      "Broken — the authoritative check must be an atomic conditional reserve at the source of truth; a queue or pre-allocated tokens absorb the burst.",
+      "Broken — the fix is a shorter TTL (1 second) so the count is nearly fresh."
+    ],
+    correct: 1,
+    why: "A cache is a replica; using a replica for a correctness decision is the trap. With 30s (or even 1s) of staleness at 200k clicks/minute, thousands of customers pass the 'stock > 0' check for the same last unit and get charged — oversell, then mass refunds. Freshness tuning can't fix a race; only atomicity can: the reserve must be one atomic conditional operation at the source of truth (a conditional decrement, or 500 pre-allocated tokens handed out by a queue that admits exactly 500 buyers). Caching is for performance reads — never the authoritative check in a reserve-then-charge flow.",
+    bill: "The bill: the atomic path must be engineered for the burst (queue/admission control in front — load leveling), and everyone else gets a fast honest 'sold out'." }
+];
+
+// ── state ──
+var state = {
+  filter: "all",
+  selected: null,
+  tourStep: -1,
+  quizIndex: 0,
+  answers: {}   // quizIndex -> chosen option index
+};
+
+var TOUR = [
+  { fam: null, text: "Every pattern on this map exists because a change in one place broke a distant place, and some team decided that must never happen again. Architecture is drawing boundaries on purpose — each family below draws them at a different scale. Use Next to walk the seven families." },
+  { fam: "structure", text: "Family 1 — inside ONE codebase. Layers separate kinds of work; hexagonal makes the business rules independent of any database or vendor; the modular monolith gives a growing team ownership without a network. This is where every system should start — and where many should happily stay." },
+  { fam: "distribution", text: "Family 2 — splitting across machines. Adopted only under real pressure: teams blocking each other, parts needing different scale, failures needing containment. Microservices trade one big thing for many small networked things; event-driven trades 'now' for 'soon' to stop failures and slowness from spreading." },
+  { fam: "communication", text: "Family 3 — how pieces talk. Gateways give one front door; the strangler fig migrates legacy systems a slice at a time; the anti-corruption layer keeps someone else's messy model out of yours. Underneath everything: the sync-vs-async dial, chosen per interaction." },
+  { fam: "data", text: "Family 4 — who owns which data. The rule: each service's data is private. Everything else follows: sagas for multi-service transactions, the outbox for save-and-announce, CQRS for query-shaped copies, caching and sharding for scale. Four of these have full labs in your learning workspace." },
+  { fam: "resilience", text: "Family 5 — surviving the failure of what you call. The key insight: slow is more dangerous than down, because slow holds your resources hostage. Timeouts convert slow into down; breakers stop calling the drowning; bulkheads contain the flood; fallbacks decide in advance what users see." },
+  { fam: "deployment", text: "Family 6 — shipping without fear. Canary releases test on 1% of real traffic; feature flags separate deploying code from releasing features; blue-green keeps an instant undo. Deploy risk is architecture too — a system you're afraid to ship doesn't stay well-shaped for long." },
+  { fam: "anti", text: "Family 7 — the traps, in red. Every one is a pattern applied without its problem (premature microservices), a boundary drawn wrong (distributed monolith), or a boundary bypassed (shared database). Study these hardest: recognizing them in a design review is the most valuable skill on this page. Tour done — now try the decision quiz below." }
+];
+
+function el(id) { return document.getElementById(id); }
+function famById(fid) {
+  for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i].id === fid) return FAMILIES[i];
+  return null;
+}
+
+// ── filters ──
+function renderFilters() {
+  var box = el("filters");
+  FILTERS.forEach(function (f) {
+    var b = document.createElement("button");
+    b.className = "fbtn";
+    b.textContent = f.label;
+    b.setAttribute("aria-pressed", state.filter === f.id ? "true" : "false");
+    b.addEventListener("click", function () {
+      state.filter = f.id;
+      var btns = box.querySelectorAll(".fbtn");
+      for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-pressed", "true");
+      applyFilter();
+    });
+    box.appendChild(b);
+  });
+}
+
+function matches(p) {
+  if (state.filter === "all") return true;
+  return p.tags.indexOf(state.filter) !== -1;
+}
+
+function applyFilter() {
+  var chips = document.querySelectorAll(".chip");
+  for (var i = 0; i < chips.length; i++) {
+    var pid = chips[i].getAttribute("data-pid");
+    var p = null;
+    for (var j = 0; j < PATTERNS.length; j++) if (PATTERNS[j].id === pid) { p = PATTERNS[j]; break; }
+    if (p && matches(p)) chips[i].classList.remove("dim");
+    else chips[i].classList.add("dim");
+  }
+}
+
+// ── legend ──
+function renderLegend() {
+  var box = el("legend");
+  FAMILIES.forEach(function (f) {
+    var k = document.createElement("span");
+    k.className = "key";
+    var d = document.createElement("span");
+    d.className = "dot";
+    d.style.background = f.color;
+    k.appendChild(d);
+    k.appendChild(document.createTextNode(f.name));
+    box.appendChild(k);
+  });
+}
+
+// ── atlas ──
+function renderAtlas() {
+  var main = el("atlas");
+  FAMILIES.forEach(function (f) {
+    var sec = document.createElement("section");
+    sec.className = "family";
+    sec.id = "fam-" + f.id;
+    var h = document.createElement("h2");
+    var d = document.createElement("span");
+    d.className = "dot";
+    d.style.background = f.color;
+    h.appendChild(d);
+    h.appendChild(document.createTextNode(f.name));
+    sec.appendChild(h);
+    var pd = document.createElement("p");
+    pd.className = "fdesc";
+    pd.textContent = f.desc;
+    sec.appendChild(pd);
+    var chips = document.createElement("div");
+    chips.className = "chips";
+    PATTERNS.forEach(function (p) {
+      if (p.f !== f.id) return;
+      var b = document.createElement("button");
+      b.className = "chip";
+      b.setAttribute("data-pid", p.id);
+      var dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = f.color;
+      b.appendChild(dot);
+      b.appendChild(document.createTextNode(p.name));
+      b.addEventListener("click", function () { selectPattern(p.id); });
+      chips.appendChild(b);
+    });
+    sec.appendChild(chips);
+    main.appendChild(sec);
+  });
+}
+
+function selectPattern(pid) {
+  state.selected = pid;
+  var chips = document.querySelectorAll(".chip");
+  for (var i = 0; i < chips.length; i++) {
+    chips[i].classList.toggle("sel", chips[i].getAttribute("data-pid") === pid);
+  }
+  renderDetail();
+  if (window.innerWidth <= 980) {
+    el("detail").scrollIntoView({ block: "nearest" });
+  }
+}
+
+function section(title, text, cls) {
+  if (!text || text === "—") return "";
+  var div = document.createElement("div");
+  if (cls) div.className = cls;
+  var h = document.createElement("h4");
+  h.textContent = title;
+  var p = document.createElement("p");
+  p.textContent = text;
+  div.appendChild(h);
+  div.appendChild(p);
+  return div;
+}
+
+function renderDetail() {
+  var box = el("detail");
+  box.textContent = "";
+  var p = null;
+  for (var i = 0; i < PATTERNS.length; i++) if (PATTERNS[i].id === state.selected) { p = PATTERNS[i]; break; }
+  if (!p) {
+    var e = document.createElement("p");
+    e.className = "empty";
+    e.textContent = "Click any pattern on the map to read its card.";
+    box.appendChild(e);
+    return;
+  }
+  var f = famById(p.f);
+  var fam = document.createElement("span");
+  fam.className = "dfam";
+  fam.style.color = f.color;
+  var dot = document.createElement("span");
+  dot.className = "dot";
+  dot.style.background = f.color;
+  fam.appendChild(dot);
+  fam.appendChild(document.createTextNode(f.name));
+  box.appendChild(fam);
+  var h = document.createElement("h3");
+  h.textContent = p.full;
+  box.appendChild(h);
+  var t = document.createElement("p");
+  t.className = "tag";
+  t.textContent = p.tag;
+  box.appendChild(t);
+  var isAnti = p.f === "anti";
+  var s1 = section(isAnti ? "The trap" : "The problem it solves", p.problem);
+  if (s1) box.appendChild(s1);
+  var s2 = section(isAnti ? "" : "Reach for it when", p.use, "use");
+  if (s2) box.appendChild(s2);
+  var s3 = section(isAnti ? "The way out" : "Walk away when", p.avoid, isAnti ? "use" : "avoid");
+  if (s3) box.appendChild(s3);
+  var s4 = section("The bill", p.bill);
+  if (s4) box.appendChild(s4);
+  var s5 = section("In the wild", p.real);
+  if (s5) box.appendChild(s5);
+}
+
+// ── tour ──
+function setTour(stepIndex) {
+  state.tourStep = stepIndex;
+  var box = el("tourBox");
+  var fams = document.querySelectorAll(".family");
+  for (var i = 0; i < fams.length; i++) fams[i].classList.remove("hilite");
+  if (stepIndex < 0 || stepIndex >= TOUR.length) {
+    box.classList.remove("on");
+    return;
+  }
+  box.classList.add("on");
+  var step = TOUR[stepIndex];
+  el("tourStep").textContent = "Tour · step " + (stepIndex + 1) + " of " + TOUR.length;
+  el("tourText").textContent = step.text;
+  el("tourNext").textContent = stepIndex === TOUR.length - 1 ? "Finish" : "Next";
+  if (step.fam) {
+    var sec = el("fam-" + step.fam);
+    if (sec) {
+      sec.classList.add("hilite");
+      sec.scrollIntoView({ block: "nearest" });
+      box.scrollIntoView({ block: "nearest" });
+    }
+  }
+}
+
+// ── quiz ──
+function renderQuiz() {
+  var q = QUIZ[state.quizIndex];
+  el("qnum").textContent = "Scenario " + (state.quizIndex + 1) + " of " + QUIZ.length;
+  el("qscenario").textContent = q.s;
+  var opts = el("qopts");
+  opts.textContent = "";
+  var answered = state.answers.hasOwnProperty(state.quizIndex);
+  var chosen = answered ? state.answers[state.quizIndex] : -1;
+  q.opts.forEach(function (label, idx) {
+    var b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = label;
+    if (answered) {
+      b.disabled = true;
+      if (idx === q.correct) b.classList.add("right");
+      else if (idx === chosen) b.classList.add("wrong");
+    } else {
+      b.addEventListener("click", function () {
+        state.answers[state.quizIndex] = idx;
+        renderQuiz();
+      });
+    }
+    opts.appendChild(b);
+  });
+  var v = el("qverdict");
+  if (answered) {
+    var good = chosen === q.correct;
+    v.className = "verdict on " + (good ? "good" : "bad");
+    el("vhead").textContent = good
+      ? "Your prediction held."
+      : "Your prediction broke — here is why, and it's the instructive part.";
+    el("vwhy").textContent = q.why;
+    el("vbill").textContent = q.bill;
+  } else {
+    v.className = "verdict";
+  }
+  var answeredCount = 0, correctCount = 0;
+  for (var k in state.answers) {
+    if (state.answers.hasOwnProperty(k)) {
+      answeredCount++;
+      if (state.answers[k] === QUIZ[k].correct) correctCount++;
+    }
+  }
+  el("qscore").textContent = answeredCount === 0
+    ? "No scenarios answered yet"
+    : correctCount + " / " + answeredCount + " predictions held";
+  el("qprev").disabled = state.quizIndex === 0;
+  el("qnext").disabled = state.quizIndex === QUIZ.length - 1;
+}
+
+// ── wire up ──
+renderFilters();
+renderLegend();
+renderAtlas();
+renderDetail();
+renderQuiz();
+
+el("tourBtn").addEventListener("click", function () { setTour(0); });
+el("tourNext").addEventListener("click", function () {
+  if (state.tourStep >= TOUR.length - 1) setTour(-1);
+  else setTour(state.tourStep + 1);
+});
+el("tourEnd").addEventListener("click", function () { setTour(-1); });
+el("quizJump").addEventListener("click", function () {
+  el("quiz").scrollIntoView({ block: "start" });
+});
+el("qprev").addEventListener("click", function () {
+  if (state.quizIndex > 0) { state.quizIndex--; renderQuiz(); }
+});
+el("qnext").addEventListener("click", function () {
+  if (state.quizIndex < QUIZ.length - 1) { state.quizIndex++; renderQuiz(); }
+});
+</script>

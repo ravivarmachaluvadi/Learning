@@ -1,0 +1,990 @@
+<title>Chat Delivery Lab</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+
+<style>
+:root{
+  --ground:#f2f4f1; --surface:#ffffff; --surface-2:#e9ece7; --line:#d3d8d1;
+  --ink:#171c1a; --ink-2:#4d5854; --muted:#78837e;
+  --accent:#15705c; --accent-soft:#d8e8e2; --accent-ink:#0d4437; --on-accent:#ffffff;
+  --wire:#a86c17; --wire-soft:#f6e6cd;
+  --danger:#a8382c; --danger-soft:#f4dcd8;
+  --read:#2a6fc4; --read-soft:#d9e6f7;
+  --tick0:#a3aca8; --tick1:#7b8a85; --tick2:#33514a;
+  --shadow:0 1px 2px rgba(16,26,22,.06), 0 8px 24px rgba(16,26,22,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1412; --surface:#171d1a; --surface-2:#1f2723; --line:#2d3833;
+    --ink:#e4eae6; --ink-2:#b0bcb6; --muted:#7f8c86;
+    --accent:#46bd9c; --accent-soft:#153029; --accent-ink:#8fdcc6; --on-accent:#08201a;
+    --wire:#e0a24c; --wire-soft:#33260f;
+    --danger:#ef7264; --danger-soft:#3a1c18;
+    --read:#5da3f5; --read-soft:#132537;
+    --tick0:#5d6a65; --tick1:#8b9a94; --tick2:#c3d2cb;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1412; --surface:#171d1a; --surface-2:#1f2723; --line:#2d3833;
+  --ink:#e4eae6; --ink-2:#b0bcb6; --muted:#7f8c86;
+  --accent:#46bd9c; --accent-soft:#153029; --accent-ink:#8fdcc6; --on-accent:#08201a;
+  --wire:#e0a24c; --wire-soft:#33260f;
+  --danger:#ef7264; --danger-soft:#3a1c18;
+  --read:#5da3f5; --read-soft:#132537;
+  --tick0:#5d6a65; --tick1:#8b9a94; --tick2:#c3d2cb;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:32px 20px 80px; display:flex; flex-direction:column; gap:22px}
+
+/* ---------- header ---------- */
+header h1{
+  font-family:"Newsreader",Georgia,serif; font-weight:500; font-size:clamp(28px,4.2vw,44px);
+  line-height:1.1; margin:0 0 10px; text-wrap:balance; letter-spacing:-.01em;
+}
+header .lede{
+  font-family:"Newsreader",Georgia,serif; font-size:18px; color:var(--ink-2);
+  max-width:64ch; margin:0;
+}
+.eyebrow{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+  color:var(--accent); margin:0 0 10px;
+}
+
+/* ---------- shared surfaces ---------- */
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow)}
+.panel-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:11px 14px; border-bottom:1px solid var(--line);
+}
+.panel-head h2{
+  margin:0; font-size:11px; letter-spacing:.13em; text-transform:uppercase;
+  font-weight:600; color:var(--muted);
+}
+
+/* ---------- verdict ---------- */
+.verdict{
+  border-left:4px solid var(--accent); background:var(--surface); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:10px; padding:16px 18px; box-shadow:var(--shadow);
+}
+.verdict .state{
+  font-family:"Newsreader",Georgia,serif; font-size:21px; line-height:1.35; margin:0 0 6px; text-wrap:balance;
+}
+.verdict .why{margin:0; color:var(--ink-2); font-size:14px; max-width:78ch}
+.verdict.alarm{border-left-color:var(--danger)}
+.verdict.done{border-left-color:var(--read)}
+
+/* ---------- toolbar ---------- */
+.bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.group{
+  display:flex; gap:6px; align-items:center; background:var(--surface); border:1px solid var(--line);
+  border-radius:9px; padding:7px 9px; box-shadow:var(--shadow);
+}
+.group > .glabel{
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+  font-weight:600; margin-right:2px;
+}
+button{
+  font:inherit; font-size:13px; font-weight:500; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:7px; padding:6px 11px; cursor:pointer;
+  transition:background .12s ease, border-color .12s ease, transform .06s ease;
+}
+button:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button.primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+button.primary:hover:not(:disabled){color:var(--on-accent); filter:brightness(1.08)}
+button.danger{color:var(--danger); border-color:var(--danger-soft); background:var(--danger-soft)}
+button.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+select,input[type=range]{font:inherit; font-size:13px; accent-color:var(--accent)}
+select{background:var(--surface-2); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:5px 8px}
+label.sw{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-2); cursor:pointer}
+.clock{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums}
+
+/* ---------- stage ---------- */
+.stage{display:grid; grid-template-columns:1fr 34px 1.35fr 34px 1fr; gap:0; align-items:start}
+.col{display:flex; flex-direction:column; gap:10px}
+.col > .coltitle{
+  font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:600;
+  text-align:center; padding-bottom:2px;
+}
+.lane{position:relative; align-self:stretch; min-height:180px}
+.lane::before{
+  content:""; position:absolute; left:50%; top:26px; bottom:10px; width:2px; margin-left:-1px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 5px,transparent 5px 10px);
+}
+.lane.cut::before{background:var(--danger); opacity:.55}
+.lane .cutmark{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:11px;
+  background:var(--danger-soft); color:var(--danger); border-radius:5px; padding:2px 4px; font-weight:600;
+}
+.flight{
+  position:absolute; left:50%; transform:translateX(-50%); font-family:"IBM Plex Mono",monospace;
+  font-size:9px; font-weight:600; letter-spacing:.02em; padding:2px 4px; border-radius:4px;
+  background:var(--wire-soft); color:var(--wire); border:1px solid var(--wire); white-space:nowrap;
+  animation:pop .18s ease;
+}
+@keyframes pop{from{opacity:0; transform:translateX(-50%) scale(.85)}to{opacity:1; transform:translateX(-50%) scale(1)}}
+
+/* ---------- node cards ---------- */
+.node{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+  cursor:pointer; box-shadow:var(--shadow); transition:border-color .15s ease, box-shadow .15s ease;
+}
+.node:hover{border-color:var(--accent)}
+.node.sel{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+.node.flash{animation:flash 1.1s ease}
+@keyframes flash{0%{background:var(--accent-soft)}100%{background:var(--surface)}}
+.node.dead{opacity:.5; border-style:dashed; border-color:var(--danger)}
+.node .nname{
+  display:flex; align-items:center; gap:7px; font-weight:600; font-size:14px; margin-bottom:5px;
+}
+.node .nmeta{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); line-height:1.5}
+.dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto}
+.dot.up{background:var(--accent)} .dot.down{background:var(--tick0)} .dot.dead{background:var(--danger)}
+.pill{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; padding:1px 5px; border-radius:4px;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2);
+}
+.pill.q{background:var(--wire-soft); color:var(--wire); border-color:var(--wire)}
+.chatline{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; padding:2px 0;
+  border-top:1px dotted var(--line); color:var(--ink-2);
+}
+.tick{font-weight:600; font-family:"IBM Plex Sans",sans-serif}
+.t0{color:var(--tick0)} .t1{color:var(--tick1)} .t2{color:var(--tick2)} .t3{color:var(--read)}
+
+/* ---------- service box ---------- */
+.service{border:1px dashed var(--line); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:10px; background:color-mix(in srgb,var(--surface) 45%,transparent)}
+.service .sname{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.srow{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+table.kv{width:100%; border-collapse:collapse; font-family:"IBM Plex Mono",monospace; font-size:11px}
+table.kv th{
+  text-align:left; font-weight:600; color:var(--muted); font-size:10px; letter-spacing:.08em;
+  text-transform:uppercase; padding:3px 6px; border-bottom:1px solid var(--line);
+}
+table.kv td{padding:3px 6px; border-bottom:1px dotted var(--line); color:var(--ink-2)}
+table.kv tr.stale td{color:var(--danger); background:var(--danger-soft)}
+table.kv tr.hot td{background:var(--accent-soft)}
+
+/* ---------- bottom split ---------- */
+.split{display:grid; grid-template-columns:1.5fr 1fr; gap:18px; align-items:start}
+.logbox{max-height:330px; overflow-y:auto; padding:6px 0}
+.ev{padding:7px 14px; border-bottom:1px solid var(--line); font-size:13.5px}
+.ev:last-child{border-bottom:none}
+.ev .t{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted); font-variant-numeric:tabular-nums; margin-right:7px}
+.ev .said{font-family:"Newsreader",Georgia,serif; font-size:15px; color:var(--ink)}
+.ev .tech{display:block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); margin-top:2px}
+.ev.bad .said{color:var(--danger)}
+.ev.good .said{color:var(--accent-ink)}
+.ev.now{background:var(--accent-soft)}
+.inspect{padding:12px 14px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2); line-height:1.7}
+.inspect h3{font-family:"IBM Plex Sans",sans-serif; font-size:13px; margin:0 0 8px; color:var(--ink)}
+.inspect .k{color:var(--muted)}
+
+/* ---------- scenarios ---------- */
+.scen{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px}
+.card h3{margin:0; font-size:15px; font-weight:600}
+.card p{margin:0; font-size:13.5px; color:var(--ink-2)}
+.card .q{font-family:"Newsreader",Georgia,serif; font-size:15px; color:var(--ink)}
+.choices{display:flex; flex-direction:column; gap:5px}
+.choices button{text-align:left; font-size:12.5px; padding:6px 9px}
+.result{font-size:13px; padding:9px 10px; border-radius:7px; display:none}
+.result.show{display:block}
+.result.right{background:var(--accent-soft); color:var(--accent-ink)}
+.result.wrong{background:var(--wire-soft); color:var(--wire)}
+
+/* ---------- legend ---------- */
+.legend{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:12.5px; color:var(--ink-2); padding:12px 14px}
+.legend span{display:flex; align-items:center; gap:6px}
+.sw-key{width:14px; height:10px; border-radius:3px; border:1px solid var(--line)}
+
+.note{font-size:12.5px; color:var(--muted); max-width:74ch}
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr; gap:14px}
+  .lane{min-height:44px}
+  .lane::before{left:10px; right:10px; top:50%; bottom:auto; height:2px; width:auto; margin:0;
+    background:repeating-linear-gradient(to right,var(--line) 0 5px,transparent 5px 10px)}
+  .flight{position:static; transform:none; display:inline-block; margin:2px}
+  .split{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Interactive lab · message delivery</p>
+  <h1>What has to happen for a message to get two grey ticks</h1>
+  <p class="lede">Asha types “on my way”. Bilal is somewhere in a tunnel. Between the two of them sit
+  a few servers that must never lose the message, never show it twice, and never keep it longer
+  than they have to. Press <strong>Send</strong> and watch every packet that makes that true — then
+  start breaking things.</p>
+</header>
+
+<div class="verdict" id="verdict">
+  <p class="state" id="vstate">Nothing has happened yet.</p>
+  <p class="why" id="vwhy">Press “Send a message” to put one message into the system, then “Step” to walk it forward one packet at a time.</p>
+</div>
+
+<div class="bar">
+  <div class="group">
+    <span class="glabel">Run</span>
+    <button class="primary" id="bSend">Send a message</button>
+    <button id="bStep">Step ▸</button>
+    <button id="bBack">◂ Back</button>
+    <button id="bPlay">Play</button>
+    <button id="bReset">Reset</button>
+    <span class="clock" id="clock">t = 0 ms</span>
+  </div>
+  <div class="group">
+    <span class="glabel">Break it</span>
+    <button id="bOffline">Bilal’s phone: online</button>
+    <select id="killSel" aria-label="Crash a connection server">
+      <option value="">Crash a server…</option>
+    </select>
+    <button id="bPartition">Cut the network</button>
+  </div>
+  <div class="group">
+    <span class="glabel">Network</span>
+    <label class="sw">drop <input type="range" id="drop" min="0" max="60" step="5" value="0"><span class="clock" id="dropv">0%</span></label>
+    <label class="sw">duplicate <input type="range" id="dup" min="0" max="100" step="10" value="0"><span class="clock" id="dupv">0%</span></label>
+  </div>
+  <div class="group">
+    <span class="glabel">Design switches</span>
+    <button id="bSweeper" class="on">Mailbox sweeper: on</button>
+    <button id="bOrder" class="on">One ordered connection: on</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="col" id="colSender"><div class="coltitle">Sender</div></div>
+  <div class="lane" id="laneL"></div>
+  <div class="col" id="colService"><div class="coltitle">The service</div></div>
+  <div class="lane" id="laneR"></div>
+  <div class="col" id="colRecipient"><div class="coltitle">Recipients</div></div>
+</div>
+
+<div class="panel legend" aria-label="Legend">
+  <span><i class="sw-key" style="background:var(--wire)"></i> a packet in flight (label = what it is)</span>
+  <span><i class="dot up"></i> device online / server alive</span>
+  <span><i class="dot down"></i> device offline</span>
+  <span><i class="dot dead"></i> server crashed</span>
+  <span><i class="sw-key" style="background:var(--accent-soft);border-color:var(--accent)"></i> changed on this step</span>
+  <span><i class="sw-key" style="background:var(--danger-soft);border-color:var(--danger)"></i> a routing row that is now a lie</span>
+  <span><span class="tick t1">✓</span><span class="tick t2">✓✓</span><span class="tick t3">✓✓</span> stored / on the device / read</span>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>What just happened, and why it matters</h2><span class="clock" id="evcount">0 events</span></div>
+    <div class="logbox" id="log"><div class="ev"><span class="said">The log is empty. Send a message to start.</span></div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Inspector</h2><span class="clock" id="inspname">click any box</span></div>
+    <div class="inspect" id="inspect">Click a phone, a server, the routing table or the mailbox store to see exactly what it holds right now.</div>
+  </div>
+</div>
+
+<div>
+  <p class="eyebrow" style="margin-bottom:12px">Predict first, then run</p>
+  <div class="scen" id="scen"></div>
+</div>
+
+<p class="note" id="foot">This simulation is deterministic: the same seed, switches and button presses always produce
+the same story, which is why “Back” can rewind it exactly. Every rule it enforces — store before you acknowledge,
+delete only on the device’s acknowledgement, deduplicate by the sender’s id — is the same rule the Java lab in
+<code>src/</code> enforces and tests.</p>
+
+</div>
+
+<script>
+"use strict";
+
+/* ======================================================================
+   1. THE SIMULATION: pure state + a reducer.
+   Every step produces a brand-new state object, so "Back" is just
+   popping a stack of snapshots. No hidden mutable objects anywhere.
+   ====================================================================== */
+
+const SERVERS = ["cs1", "cs2", "cs3"];
+const DEVICES = [
+  { id: "asha:phone",  user: "asha",  label: "Asha’s phone",  side: "sender" },
+  { id: "bilal:phone", user: "bilal", label: "Bilal’s phone", side: "recipient" },
+  { id: "bilal:laptop",user: "bilal", label: "Bilal’s laptop",side: "recipient" }
+];
+const DEVICES_OF = { asha: ["asha:phone"], bilal: ["bilal:phone", "bilal:laptop"] };
+const HOME = { "asha:phone": "cs1", "bilal:phone": "cs2", "bilal:laptop": "cs3" };
+
+const LATENCY = 40, JITTER = 25, PUSH_RETRY = 500, CLIENT_RETRY = 800, SWEEP = 1200;
+
+function initial() {
+  const devices = {};
+  for (const d of DEVICES) devices[d.id] = {
+    id: d.id, user: d.user, online: true, server: HOME[d.id],
+    seen: [], window: [], outbox: [], dupSuppressed: 0, outOfOrder: 0, lastSeq: 0, retries: 0
+  };
+  const servers = {};
+  for (const s of SERVERS) servers[s] = { id: s, alive: true, sockets: [], inFlight: [] };
+  const sessions = {};
+  for (const d of DEVICES) sessions[d.id] = HOME[d.id];
+  return {
+    t: 0, rng: 987654321, seq: 0, nextMsg: 1,
+    queue: [], devices, servers, sessions, boxes: {},
+    ticks: {}, msgs: {}, log: [], flash: [], lastEvent: null,
+    partition: false, sweeper: true, ordered: true, dropPct: 0, dupPct: 0,
+    lastArrival: {},
+    counters: { sent: 0, dropped: 0, cut: 0, dups: 0, appends: 0, deletes: 0, sweeps: 0 }
+  };
+}
+
+function rand(st) { st.rng = (st.rng * 1103515245 + 12345) & 0x7fffffff; return st.rng / 0x7fffffff; }
+function box(st, dev) { if (!st.boxes[dev]) st.boxes[dev] = []; return st.boxes[dev]; }
+function cut(st, a, b) {
+  if (!st.partition) return false;
+  const side = n => (n === "cs1" || n === "asha:phone") ? "A" : "B";
+  return side(a) !== side(b);
+}
+
+/* Put a packet on the wire. This is the ONLY place packets are lost,
+   duplicated or blocked — every fault in the lab funnels through here. */
+function wire(st, from, to, ev, sentences) {
+  st.counters.sent++;
+  if (cut(st, from, to)) {
+    st.counters.cut++;
+    say(st, "bad", `The network is cut between ${from} and ${to}, so this ${label(ev)} never arrives.`,
+        `PARTITIONED ${from} -x-> ${to}`);
+    return;
+  }
+  if (rand(st) * 100 < st.dropPct) {
+    st.counters.dropped++;
+    say(st, "bad", `The ${label(ev)} from ${from} to ${to} was lost by the network. Nobody is told.`,
+        `DROPPED ${from} -x-> ${to}`);
+    return;
+  }
+  let at = st.t + LATENCY + Math.floor(rand(st) * JITTER);
+  if (st.ordered) {                       // one socket = a byte stream: no overtaking
+    const link = from + ">" + to;
+    at = Math.max(at, (st.lastArrival[link] || 0) + 1);
+    st.lastArrival[link] = at;
+  }
+  push(st, at, { ...ev, from, to, wire: true });
+  if (rand(st) * 100 < st.dupPct) {
+    st.counters.dups++;
+    push(st, at + 4, { ...ev, from, to, wire: true, isDup: true });
+  }
+}
+function timer(st, delay, ev) { push(st, st.t + delay, { ...ev, from: ev.at_node, to: ev.at_node }); }
+function push(st, at, ev) { st.queue.push({ ...ev, at, ord: st.seq++ }); st.queue.sort((a, b) => a.at - b.at || a.ord - b.ord); }
+
+function label(ev) {
+  return ({ SEND: "message", SERVER_ACK: "storage receipt", ROUTE: "server-to-server hand-off",
+            DELIVER: "delivery", DEVICE_ACK: "device receipt", RECEIPT: "tick update",
+            READ: "read receipt" })[ev.type] || ev.type;
+}
+function say(st, tone, said, tech) { st.log.push({ t: st.t, tone, said, tech }); }
+function flash(st, id) { if (!st.flash.includes(id)) st.flash.push(id); }
+
+/* ---- user actions -------------------------------------------------- */
+
+function actSend(st) {
+  const n = st.nextMsg++;
+  const m = { id: "m" + n, from: "asha", to: "bilal", conv: "asha↔bilal", seq: n, text: "message " + n };
+  st.msgs[m.id] = m;
+  st.ticks[m.id] = 0;
+  const d = st.devices["asha:phone"];
+  d.outbox.push(m.id);
+  if (!d.online) {
+    say(st, "", `Asha’s phone has no connection, so ${m.id} sits in her outbox showing a clock icon. Nothing has left the phone.`,
+        `outbox += ${m.id}`);
+    flash(st, "asha:phone");
+    return st;
+  }
+  say(st, "", `Asha sends ${m.id}. The id was minted by her phone, not by a server — that is what will make a retry recognisable as the same message.`,
+      `SEND ${m.id} asha:phone -> ${d.server}`);
+  wire(st, "asha:phone", d.server, { type: "SEND", msgId: m.id });
+  timer(st, CLIENT_RETRY, { type: "CLIENT_RETRY", at_node: "asha:phone", msgId: m.id, attempt: 1 });
+  flash(st, "asha:phone");
+  return st;
+}
+
+/* ---- the reducer: apply exactly one event -------------------------- */
+
+function step(st) {
+  if (!st.queue.length) return st;
+  st.flash = [];
+  const ev = st.queue.shift();
+  st.t = Math.max(st.t, ev.at);
+  st.lastEvent = ev;
+  const H = {
+    SEND: onSend, SERVER_ACK: onServerAck, ROUTE: onRoute, DELIVER: onDeliver,
+    DEVICE_ACK: onDeviceAck, RECEIPT: onReceipt, READ: onRead,
+    PUSH_RETRY: onPushRetry, CLIENT_RETRY: onClientRetry, SWEEP: onSweep
+  };
+  if (st.servers[ev.to] && !st.servers[ev.to].alive && ev.wire) {
+    say(st, "bad", `This packet arrived at ${ev.to}, which is dead. It disappears — and the sender is never told.`,
+        `LOST (node down) -> ${ev.to}`);
+    return st;
+  }
+  (H[ev.type] || (() => {}))(st, ev);
+  return st;
+}
+
+function onSend(st, ev) {
+  const srv = st.servers[ev.to], m = st.msgs[ev.msgId];
+  if (!srv || !srv.alive) return;
+  // Fan out into every recipient device's mailbox, plus the sender's other
+  // devices. Durable FIRST; the sender is acknowledged only after.
+  const targets = DEVICES_OF[m.to].slice();
+  for (const other of DEVICES_OF[m.from]) if (other !== "asha:phone") targets.push(other);
+  for (const dev of targets) {
+    if (!box(st, dev).some(e => e.id === ev.msgId)) { box(st, dev).push({ id: ev.msgId }); st.counters.appends++; }
+    flash(st, "mailboxes");
+  }
+  say(st, "good", `${ev.to} writes ${ev.msgId} into ${targets.length} mailbox${targets.length > 1 ? "es" : ""} — one durable copy per recipient device — and only then tells Asha it is stored.`,
+      `store ${ev.msgId} -> [${targets.join(", ")}]; then SERVER_ACK`);
+  flash(st, ev.to);
+  wire(st, ev.to, "asha:phone", { type: "SERVER_ACK", msgId: ev.msgId });
+  for (const dev of targets) tryPush(st, ev.to, dev, ev.msgId);
+}
+
+/* Where does this device's socket live? The routing table is the only
+   thing that knows, and it can be out of date. */
+function tryPush(st, fromServer, dev, msgId) {
+  const home = st.sessions[dev];
+  if (!home) {
+    say(st, "", `${dev} is not connected, so nothing is pushed. The message simply waits in its mailbox — that is the whole plan for an offline phone.`,
+        `session lookup ${dev} -> none`);
+    return;
+  }
+  if (home === fromServer) return deliverToSocket(st, home, dev, msgId);
+  say(st, "", `The routing table says ${dev}’s connection lives on ${home}, so ${fromServer} hands the message across to it.`,
+      `ROUTE ${fromServer} -> ${home} for ${dev}`);
+  wire(st, fromServer, home, { type: "ROUTE", dev, msgId });
+}
+function onRoute(st, ev) { deliverToSocket(st, ev.to, ev.dev, ev.msgId); }
+
+function deliverToSocket(st, serverId, dev, msgId) {
+  const srv = st.servers[serverId];
+  if (!srv || !srv.alive) return;
+  if (!srv.sockets.includes(dev)) {
+    say(st, "bad", `${serverId} was told to deliver to ${dev}, but it holds no such connection. The routing table was out of date, so this message goes nowhere.`,
+        `stale session row: ${dev} -> ${serverId}`);
+    flash(st, "sessions");
+    return;
+  }
+  const key = dev + "|" + msgId;
+  if (!srv.inFlight.includes(key)) srv.inFlight.push(key);
+  wire(st, serverId, dev, { type: "DELIVER", msgId, dev });
+  push(st, st.t + PUSH_RETRY, { type: "PUSH_RETRY", from: serverId, to: serverId, server: serverId, dev, msgId, ord: st.seq++ });
+}
+
+function onPushRetry(st, ev) {
+  const srv = st.servers[ev.server];
+  if (!srv || !srv.alive) return;
+  const key = ev.dev + "|" + ev.msgId;
+  if (!srv.inFlight.includes(key) || !srv.sockets.includes(ev.dev)) return;
+  say(st, "", `${ev.server} never heard back that ${ev.dev} had ${ev.msgId}, so it sends it again. This is why delivery is “at least once”, and why the phone has to dedupe.`,
+      `retry push ${ev.msgId} -> ${ev.dev}`);
+  deliverToSocket(st, ev.server, ev.dev, ev.msgId);
+}
+
+function onDeliver(st, ev) {
+  const d = st.devices[ev.to];
+  if (!d || !d.online) return;
+  flash(st, ev.to);
+  if (d.seen.includes(ev.msgId)) {
+    d.dupSuppressed++;
+    say(st, "", `${ev.to} has seen ${ev.msgId} before, so it is thrown away instead of being shown twice. The human never learns this happened.`,
+        `dedup on id: ${ev.msgId} (suppressed ${d.dupSuppressed})`);
+    wire(st, ev.to, d.server, { type: "DEVICE_ACK", msgId: ev.msgId, dev: ev.to });
+    return;
+  }
+  d.seen.push(ev.msgId);
+  const m = st.msgs[ev.msgId];
+  if (m.seq < d.lastSeq) { d.outOfOrder++; say(st, "bad", `${ev.to} received ${ev.msgId} after a later message. Order is broken on this screen.`, `seq ${m.seq} < ${d.lastSeq}`); }
+  d.lastSeq = Math.max(d.lastSeq, m.seq);
+  d.window.push(ev.msgId);
+  say(st, "good", `${ev.to} shows ${ev.msgId} to the user and immediately tells its server “I have it on disk”.`,
+      `render ${ev.msgId}; DEVICE_ACK -> ${d.server}`);
+  wire(st, ev.to, d.server, { type: "DEVICE_ACK", msgId: ev.msgId, dev: ev.to });
+}
+
+function onDeviceAck(st, ev) {
+  const srv = st.servers[ev.to];
+  if (!srv || !srv.alive) return;
+  srv.inFlight = srv.inFlight.filter(k => k !== ev.dev + "|" + ev.msgId);
+  const b = box(st, ev.dev);
+  const before = b.length;
+  st.boxes[ev.dev] = b.filter(e => e.id !== ev.msgId);
+  flash(st, "mailboxes"); flash(st, ev.to);
+  if (before === st.boxes[ev.dev].length) {
+    say(st, "", `${ev.to} already deleted its copy of ${ev.msgId}; this second acknowledgement changes nothing.`,
+        `duplicate DEVICE_ACK ${ev.msgId}`);
+    return;
+  }
+  st.counters.deletes++;
+  say(st, "good", `Now — and only now — ${ev.to} deletes its stored copy of ${ev.msgId}. Storing until the device confirms is what survives a phone dying mid-delivery.`,
+      `delete mailbox[${ev.dev}] ${ev.msgId}; DELIVERED receipt -> asha`);
+  const remaining = DEVICES_OF["bilal"].some(dv => box(st, dv).some(e => e.id === ev.msgId));
+  if (!remaining) wire(st, ev.to, "asha:phone", { type: "RECEIPT", msgId: ev.msgId, level: 2 });
+}
+
+function onServerAck(st, ev) {
+  const d = st.devices["asha:phone"];
+  d.outbox = d.outbox.filter(x => x !== ev.msgId);
+  st.ticks[ev.msgId] = Math.max(st.ticks[ev.msgId] || 0, 1);
+  flash(st, "asha:phone");
+  say(st, "", `Asha’s phone learns the service has stored ${ev.msgId}: one grey tick. This says nothing at all about Bilal.`,
+      `tick(${ev.msgId}) = 1`);
+}
+
+function onReceipt(st, ev) {
+  st.ticks[ev.msgId] = Math.max(st.ticks[ev.msgId] || 0, ev.level);
+  flash(st, "asha:phone");
+  say(st, "good", ev.level === 2
+      ? `Asha’s screen turns ${ev.msgId} into two grey ticks: a device belonging to Bilal now physically holds it.`
+      : `Asha’s screen turns ${ev.msgId} blue: Bilal actually opened the chat.`,
+      `tick(${ev.msgId}) = ${ev.level}`);
+}
+
+function onRead(st, ev) {
+  wire(st, ev.to, "asha:phone", { type: "RECEIPT", msgId: ev.msgId, level: 3 });
+}
+
+function onClientRetry(st, ev) {
+  const d = st.devices["asha:phone"];
+  if (!d.outbox.includes(ev.msgId)) return;         // already stored: nothing to do
+  if (ev.attempt > 6) { say(st, "bad", `Asha’s phone gives up on ${ev.msgId} and shows a red exclamation mark.`, `abandon ${ev.msgId}`); return; }
+  if (d.online) {
+    d.retries++;
+    say(st, "", `Asha’s phone was never told ${ev.msgId} was stored, so it sends it again with the SAME id — a repeat cannot become a second message.`,
+        `client retry #${ev.attempt} ${ev.msgId}`);
+    wire(st, "asha:phone", d.server, { type: "SEND", msgId: ev.msgId });
+  }
+  timer(st, Math.min(CLIENT_RETRY * Math.pow(2, ev.attempt), 5000),
+        { type: "CLIENT_RETRY", at_node: "asha:phone", msgId: ev.msgId, attempt: ev.attempt + 1 });
+}
+
+function onSweep(st, ev) {
+  const srv = st.servers[ev.server];
+  if (st.sweeper && srv && srv.alive) {
+    for (const dev of srv.sockets) {
+      for (const e of box(st, dev)) {
+        if (!srv.inFlight.includes(dev + "|" + e.id)) {
+          st.counters.sweeps++;
+          say(st, "good", `A background sweep on ${ev.server} notices ${e.id} is still sitting in ${dev}’s mailbox and pushes it again. The queue, not the push, is what actually guarantees delivery.`,
+              `sweep ${ev.server}: re-push ${e.id} -> ${dev}`);
+          deliverToSocket(st, ev.server, dev, e.id);
+        }
+      }
+    }
+  }
+  push(st, st.t + SWEEP, { type: "SWEEP", from: ev.server, to: ev.server, server: ev.server, ord: st.seq++ });
+}
+
+/* ---- structural actions -------------------------------------------- */
+
+function setOnline(st, devId, on) {
+  const d = st.devices[devId];
+  d.online = on;
+  const srv = st.servers[d.server];
+  if (!on) {
+    if (srv) { srv.sockets = srv.sockets.filter(x => x !== devId); srv.inFlight = srv.inFlight.filter(k => !k.startsWith(devId + "|")); }
+    delete st.sessions[devId];
+    say(st, "bad", `${devId} loses its connection. Its row is removed from the routing table, so the service now knows it is offline.`,
+        `unbind ${devId}`);
+  } else {
+    d.server = HOME[devId];
+    st.servers[d.server].sockets.push(devId);
+    st.sessions[devId] = d.server;
+    say(st, "good", `${devId} reconnects to ${d.server} and the routing table is updated. The server immediately replays everything queued for it.`,
+        `bind ${devId} -> ${d.server}; drain mailbox`);
+    for (const e of box(st, devId).slice()) deliverToSocket(st, d.server, devId, e.id);
+    if (devId === "asha:phone")             // anything typed while offline goes out now, same ids
+      for (const mid of st.devices["asha:phone"].outbox.slice())
+        wire(st, devId, d.server, { type: "SEND", msgId: mid });
+  }
+  flash(st, devId); flash(st, "sessions");
+  return st;
+}
+
+function crash(st, sid) {
+  const srv = st.servers[sid];
+  if (!srv.alive) return st;
+  srv.alive = false;
+  const lost = srv.sockets.slice();
+  srv.sockets = []; srv.inFlight = [];
+  for (const d of lost) st.devices[d].online = false;
+  say(st, "bad", `${sid} crashes. Every connection it held is gone — and its rows in the routing table are still there, now pointing at a dead machine.`,
+      `crash ${sid}; ${lost.length} socket(s) lost; ${lost.length} stale session row(s)`);
+  flash(st, sid); flash(st, "sessions");
+  return st;
+}
+function recover(st, sid) {
+  st.servers[sid].alive = true;
+  for (const d of Object.keys(st.sessions)) if (st.sessions[d] === sid && !st.servers[sid].sockets.includes(d)) delete st.sessions[d];
+  say(st, "good", `${sid} is back, and the stale routing rows have expired. Its former devices must reconnect before anything can reach them.`,
+      `revive ${sid}; purge stale sessions`);
+  flash(st, sid); flash(st, "sessions");
+  return st;
+}
+
+/* ======================================================================
+   2. THE APP: history stack, rendering, controls.
+   ====================================================================== */
+
+let history = [];
+let st = initial();
+for (const s of SERVERS) st.servers[s].sockets = DEVICES.filter(d => HOME[d.id] === s).map(d => d.id);
+for (const s of SERVERS) push(st, SWEEP, { type: "SWEEP", from: s, to: s, server: s, ord: st.seq++ });
+let playing = null, selected = null;
+
+function snapshot() { history.push(JSON.parse(JSON.stringify(st))); if (history.length > 400) history.shift(); }
+function commit(fn) { snapshot(); st = fn(st) || st; render(); }
+function back() { if (!history.length) return; st = history.pop(); render(); }
+
+const $ = id => document.getElementById(id);
+const TICKS = ["<span class='tick t0'>◷</span> waiting", "<span class='tick t1'>✓</span> stored",
+               "<span class='tick t2'>✓✓</span> on the device", "<span class='tick t3'>✓✓</span> read"];
+
+function render() {
+  $("clock").textContent = "t = " + st.t + " ms";
+  $("evcount").textContent = st.log.length + " events";
+  renderStage(); renderLanes(); renderLog(); renderVerdict(); renderInspector();
+  $("bBack").disabled = !history.length;
+  $("bStep").disabled = !st.queue.length;
+  $("bOffline").textContent = "Bilal’s phone: " + (st.devices["bilal:phone"].online ? "online" : "offline");
+  $("bOffline").className = st.devices["bilal:phone"].online ? "" : "danger";
+  $("bPartition").textContent = st.partition ? "Heal the network" : "Cut the network";
+  $("bPartition").className = st.partition ? "danger" : "";
+  $("bSweeper").textContent = "Mailbox sweeper: " + (st.sweeper ? "on" : "off");
+  $("bSweeper").className = st.sweeper ? "on" : "";
+  $("bOrder").textContent = "One ordered connection: " + (st.ordered ? "on" : "off");
+  $("bOrder").className = st.ordered ? "on" : "";
+}
+
+function deviceCard(d) {
+  const dev = st.devices[d.id];
+  const outbox = dev.outbox.length ? `<span class="pill q">outbox ${dev.outbox.length}</span>` : "";
+  const lines = dev.window.slice(-4).map(id => `<div class="chatline">${id} — “${st.msgs[id].text}”</div>`).join("");
+  const senderTicks = d.id === "asha:phone"
+    ? Object.keys(st.ticks).slice(-4).map(id => `<div class="chatline">${id} ${TICKS[st.ticks[id]]}</div>`).join("")
+    : "";
+  return `<div class="node ${st.flash.includes(d.id) ? "flash" : ""} ${selected === d.id ? "sel" : ""}" data-node="${d.id}" tabindex="0">
+    <div class="nname"><i class="dot ${dev.online ? "up" : "down"}"></i>${d.label} ${outbox}</div>
+    <div class="nmeta">${dev.online ? "connected to " + dev.server : "no connection"}
+      · shown ${dev.window.length} · deduped ${dev.dupSuppressed}</div>
+    ${lines}${senderTicks}</div>`;
+}
+
+function renderStage() {
+  $("colSender").innerHTML = `<div class="coltitle">Sender</div>` + deviceCard(DEVICES[0]);
+  $("colRecipient").innerHTML = `<div class="coltitle">Recipients</div>` +
+    DEVICES.filter(d => d.side === "recipient").map(deviceCard).join("");
+
+  const srv = SERVERS.map(s => {
+    const o = st.servers[s];
+    return `<div class="node ${st.flash.includes(s) ? "flash" : ""} ${o.alive ? "" : "dead"} ${selected === s ? "sel" : ""}" data-node="${s}" tabindex="0">
+      <div class="nname"><i class="dot ${o.alive ? "up" : "dead"}"></i>${s}</div>
+      <div class="nmeta">${o.alive ? o.sockets.length + " connection(s)" : "crashed"}<br>${o.sockets.join("<br>") || "—"}</div></div>`;
+  }).join("");
+
+  const sessRows = DEVICES.map(d => {
+    const home = st.sessions[d.id];
+    const stale = home && !st.servers[home].sockets.includes(d.id);
+    return `<tr class="${stale ? "stale" : ""}"><td>${d.id}</td><td>${home || "— offline —"}${stale ? " ⚠ lie" : ""}</td></tr>`;
+  }).join("");
+
+  const boxRows = DEVICES.map(d => {
+    const b = box(st, d.id);
+    return `<tr class="${b.length ? "hot" : ""}"><td>${d.id}</td><td>${b.length ? b.map(e => e.id).join(" ") : "empty"}</td></tr>`;
+  }).join("");
+
+  $("colService").innerHTML = `<div class="coltitle">The service</div>
+    <div class="service">
+      <div class="sname">Connection servers — hold sockets, store nothing</div>
+      <div class="srow">${srv}</div>
+      <div class="node ${st.flash.includes("sessions") ? "flash" : ""} ${selected === "sessions" ? "sel" : ""}" data-node="sessions" tabindex="0">
+        <div class="nname">Routing table <span class="pill">${Object.keys(st.sessions).length} online</span></div>
+        <table class="kv"><tr><th>device</th><th>its connection lives on</th></tr>${sessRows}</table></div>
+      <div class="node ${st.flash.includes("mailboxes") ? "flash" : ""} ${selected === "mailboxes" ? "sel" : ""}" data-node="mailboxes" tabindex="0">
+        <div class="nname">Mailboxes <span class="pill q">${Object.values(st.boxes).reduce((a, b) => a + b.length, 0)} undelivered</span></div>
+        <table class="kv"><tr><th>device</th><th>waiting for it</th></tr>${boxRows}</table></div>
+    </div>`;
+}
+
+function renderLanes() {
+  const isLeft = ev => (ev.from === "asha:phone" || ev.to === "asha:phone");
+  for (const [laneId, pick] of [["laneL", isLeft], ["laneR", ev => !isLeft(ev)]]) {
+    const lane = $(laneId);
+    const pkts = st.queue.filter(e => e.wire && e.from !== e.to).filter(pick).slice(0, 6);
+    lane.className = "lane" + (st.partition && laneId === "laneR" ? " cut" : "");
+    lane.innerHTML = (st.partition && laneId === "laneR" ? `<span class="cutmark">✂ cut</span>` : "") +
+      pkts.map((e, i) => {
+        const serverToServer = SERVERS.includes(e.from) && SERVERS.includes(e.to);
+        const rightward = e.from === "asha:phone" ||
+          (SERVERS.includes(e.from) && !SERVERS.includes(e.to) && e.to !== "asha:phone");
+        const arrow = serverToServer ? "⇄" : rightward ? "▶" : "◀";
+        return `<span class="flight" style="top:${34 + i * 26}px" title="${e.from} → ${e.to}">${arrow} ${label(e)}</span>`;
+      }).join("");
+  }
+}
+
+function renderLog() {
+  const el = $("log");
+  if (!st.log.length) { el.innerHTML = `<div class="ev"><span class="said">The log is empty. Send a message to start.</span></div>`; return; }
+  el.innerHTML = st.log.slice(-60).map((e, i, a) =>
+    `<div class="ev ${e.tone} ${i === a.length - 1 ? "now" : ""}">
+      <span class="t">${String(e.t).padStart(5)}ms</span><span class="said">${e.said}</span>
+      <span class="tech">${e.tech}</span></div>`).join("");
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderVerdict() {
+  const ids = Object.keys(st.ticks);
+  const v = $("verdict"), s = $("vstate"), w = $("vwhy");
+  v.className = "verdict";
+  if (!ids.length) { s.textContent = "Nothing has happened yet."; w.textContent = "Press “Send a message”, then “Step” to walk it forward one packet at a time."; return; }
+  const last = ids[ids.length - 1], tick = st.ticks[last];
+  const queued = Object.values(st.boxes).reduce((a, b) => a + b.length, 0);
+  const inflight = st.queue.filter(e => e.wire).length;
+  const t = ["a clock icon", "one grey tick", "two grey ticks", "two blue ticks"][tick];
+  const meaning = [
+    "Asha’s phone has not even been told the service has it.",
+    "The service has stored it. Bilal’s phone may not exist for all Asha knows — this tick is about the servers, not about Bilal.",
+    "A device belonging to Bilal physically holds it, and the service has thrown its own copy away.",
+    "Bilal opened the chat and actually looked at it."
+  ][tick];
+  s.innerHTML = `Asha’s last message shows <strong>${t}</strong>.`;
+  w.textContent = `${meaning} Right now ${queued} message copy(ies) are waiting in mailboxes and ${inflight} packet(s) are in flight.`;
+  if (tick === 3) v.className = "verdict done";
+  if (queued > 0 && inflight === 0 && !st.sweeper) {
+    v.className = "verdict alarm";
+    w.textContent = `${meaning} ${queued} copy(ies) are stuck in mailboxes with nothing in flight and the sweeper switched off — on a healthy network they will never move again.`;
+  }
+}
+
+function renderInspector() {
+  const el = $("inspect"), name = $("inspname");
+  if (!selected) { name.textContent = "click any box"; el.textContent = "Click a phone, a server, the routing table or the mailbox store to see exactly what it holds right now."; return; }
+  name.textContent = selected;
+  if (st.devices[selected]) {
+    const d = st.devices[selected];
+    el.innerHTML = `<h3>${selected}</h3>
+      <div><span class="k">online</span> ${d.online}</div>
+      <div><span class="k">connected to</span> ${d.online ? d.server : "—"}</div>
+      <div><span class="k">ids it has ever accepted (the dedup set)</span> [${d.seen.join(", ") || "—"}]</div>
+      <div><span class="k">on screen</span> [${d.window.join(", ") || "—"}]</div>
+      <div><span class="k">unsent outbox</span> [${d.outbox.join(", ") || "—"}]</div>
+      <div><span class="k">duplicates suppressed</span> ${d.dupSuppressed}</div>
+      <div><span class="k">out-of-order arrivals</span> ${d.outOfOrder}</div>
+      <div><span class="k">retries it has made</span> ${d.retries}</div>`;
+  } else if (st.servers[selected]) {
+    const s = st.servers[selected];
+    el.innerHTML = `<h3>${selected}</h3>
+      <div><span class="k">alive</span> ${s.alive}</div>
+      <div><span class="k">sockets held</span> [${s.sockets.join(", ") || "—"}]</div>
+      <div><span class="k">pushed, awaiting device receipt</span> [${s.inFlight.join(", ") || "—"}]</div>
+      <div><span class="k">durable state of its own</span> none — that is the point</div>`;
+  } else if (selected === "sessions") {
+    el.innerHTML = `<h3>Routing table</h3><div class="k">One tiny row per ONLINE device. Rewritten on every connect and disconnect, which at real scale is the busiest thing in the system.</div>` +
+      DEVICES.map(d => `<div>${d.id} → ${st.sessions[d.id] || "offline"}</div>`).join("");
+  } else if (selected === "mailboxes") {
+    el.innerHTML = `<h3>Mailboxes</h3><div class="k">One durable FIFO queue per DEVICE. Written before the sender is acknowledged, deleted only when that device confirms.</div>` +
+      DEVICES.map(d => `<div>${d.id} → [${box(st, d.id).map(e => e.id).join(", ") || "empty"}]</div>`).join("") +
+      `<div style="margin-top:8px"><span class="k">appends</span> ${st.counters.appends} · <span class="k">deletes</span> ${st.counters.deletes} · <span class="k">sweeps</span> ${st.counters.sweeps}</div>
+       <div><span class="k">packets</span> sent ${st.counters.sent} · dropped ${st.counters.dropped} · cut ${st.counters.cut} · duplicated ${st.counters.dups}</div>`;
+  }
+}
+
+/* ---- controls ------------------------------------------------------- */
+
+$("bSend").onclick = () => commit(actSend);
+$("bStep").onclick = () => commit(step);
+$("bBack").onclick = back;
+$("bReset").onclick = () => {
+  stopPlay(); history = []; selected = null;
+  st = initial();
+  for (const s of SERVERS) st.servers[s].sockets = DEVICES.filter(d => HOME[d.id] === s).map(d => d.id);
+  for (const s of SERVERS) push(st, SWEEP, { type: "SWEEP", from: s, to: s, server: s, ord: st.seq++ });
+  st.dropPct = +$("drop").value; st.dupPct = +$("dup").value;
+  render();
+};
+$("bPlay").onclick = () => playing ? stopPlay() : startPlay();
+function startPlay() { $("bPlay").textContent = "Pause"; playing = setInterval(() => { if (!st.queue.length) return stopPlay(); commit(step); }, 420); }
+function stopPlay() { clearInterval(playing); playing = null; $("bPlay").textContent = "Play"; }
+
+$("bOffline").onclick = () => commit(s => setOnline(s, "bilal:phone", !s.devices["bilal:phone"].online));
+$("bPartition").onclick = () => commit(s => {
+  s.partition = !s.partition;
+  say(s, s.partition ? "bad" : "good", s.partition
+    ? "The network is cut in two: Asha and cs1 on one side, everything else on the other. Packets that cross the line vanish."
+    : "The network heals. Anything still sitting in a mailbox can now be delivered.",
+    s.partition ? "partition {cs1, asha} | {cs2, cs3, bilal}" : "heal");
+  return s;
+});
+$("killSel").onchange = e => {
+  const v = e.target.value; e.target.value = "";
+  if (!v) return;
+  commit(s => st.servers[v].alive ? crash(s, v) : recover(s, v));
+};
+$("bSweeper").onclick = () => commit(s => {
+  s.sweeper = !s.sweeper;
+  say(s, s.sweeper ? "good" : "bad", s.sweeper
+    ? "Mailbox sweeping is on: every connected device’s queue is re-checked periodically, so a lost push is eventually retried by someone."
+    : "Mailbox sweeping is off. Delivery now depends entirely on pushes succeeding — and a push that is lost between two servers leaves nothing behind that remembers to try again.",
+    "sweeper = " + s.sweeper);
+  return s;
+});
+$("bOrder").onclick = () => commit(s => {
+  s.ordered = !s.ordered;
+  say(s, s.ordered ? "good" : "bad", s.ordered
+    ? "Each connection behaves like a real socket again: what is written first arrives first, so messages cannot overtake each other."
+    : "Packets on the same connection may now overtake each other. Watch what that does to the order of a burst of messages."
+    , "orderedLinks = " + s.ordered);
+  return s;
+});
+$("drop").oninput = e => { st.dropPct = +e.target.value; $("dropv").textContent = e.target.value + "%"; };
+$("dup").oninput = e => { st.dupPct = +e.target.value; $("dupv").textContent = e.target.value + "%"; };
+
+for (const s of SERVERS) { const o = document.createElement("option"); o.value = s; o.textContent = "Crash / revive " + s; $("killSel").appendChild(o); }
+
+$("stage").addEventListener("click", e => {
+  const n = e.target.closest("[data-node]");
+  if (!n) return;
+  selected = selected === n.dataset.node ? null : n.dataset.node;
+  render();
+});
+$("stage").addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const n = e.target.closest("[data-node]");
+  if (!n) return;
+  e.preventDefault(); selected = selected === n.dataset.node ? null : n.dataset.node; render();
+});
+
+/* ---- predict-then-run scenarios ------------------------------------- */
+
+const SCENARIOS = [
+  {
+    title: "Bilal is in a tunnel",
+    setup: "Asha sends three messages while Bilal’s phone has no signal, then he comes back.",
+    q: "While Bilal is offline, what does Asha’s screen show, and where do the messages live?",
+    options: [
+      ["One grey tick each; the messages wait in a queue on the server", true],
+      ["Two grey ticks each; the server delivers optimistically", false],
+      ["Nothing sends at all; Asha’s phone blocks until Bilal is back", false]
+    ],
+    why: "One grey tick is exactly honest: the service has the message, the device does not. The copies sit in Bilal’s mailbox until his phone reconnects and acknowledges each one — which is when the ticks turn to two.",
+    run: async () => {
+      await act(s => setOnline(s, "bilal:phone", false));
+      for (let i = 0; i < 3; i++) await act(actSend);
+      await drain(40);
+      await act(s => setOnline(s, "bilal:phone", true));
+      await drain(60);
+    }
+  },
+  {
+    title: "The server holding the socket dies",
+    setup: "cs2 crashes while it is holding Bilal’s phone connection, then Asha sends.",
+    q: "The routing table still says Bilal is on cs2. What happens to the next message?",
+    options: [
+      ["It is stored, routed at a dead server, and waits safely in the mailbox", true],
+      ["It is lost — the crash took it with the socket", false],
+      ["Asha gets an error and the send fails", false]
+    ],
+    why: "The routing row is now a lie, so the push goes nowhere. But the message was written to the mailbox before Asha was ever acknowledged, so nothing is lost — Asha simply stays at one grey tick until Bilal reconnects somewhere else.",
+    run: async () => {
+      await act(s => crash(s, "cs2"));
+      await act(actSend);
+      await drain(30);
+      await act(s => recover(s, "cs2"));
+      await act(s => setOnline(s, "bilal:phone", true));
+      await drain(50);
+    }
+  },
+  {
+    title: "Every packet arrives twice",
+    setup: "The duplicate rate is forced to 100% and Asha sends two messages.",
+    q: "How many copies appear on Bilal’s screen?",
+    options: [
+      ["Two — the phone throws away ids it has already seen", true],
+      ["Four — the servers deliver what they are given", false],
+      ["Two, because the server deduplicates before pushing", false]
+    ],
+    why: "The servers genuinely deliver each message more than once and that is by design: “at least once” is the only thing a network can promise. Exactly-once is manufactured at the last possible moment, by the receiving device checking the sender-minted id against a set of ids it has already accepted.",
+    run: async () => {
+      st.dupPct = 100; $("dup").value = 100; $("dupv").textContent = "100%";
+      for (let i = 0; i < 2; i++) await act(actSend);
+      await drain(60);
+    }
+  },
+  {
+    title: "Turn the sweeper off, then lose packets",
+    setup: "Mailbox sweeping is disabled, 40% of packets are dropped, and Asha sends four messages.",
+    q: "The network becomes perfect again afterwards. Does everything eventually arrive?",
+    options: [
+      ["No — some messages strand in the mailbox for ever", true],
+      ["Yes — the push retry timer keeps trying until it works", false],
+      ["Yes — TCP retransmits anything that was lost", false]
+    ],
+    why: "The push retry lives on the server that holds the socket. If the hand-off packet between the two servers is the one that dies, the receiving server never learned a push was owed, so no timer exists anywhere. The message sits in a mailbox on a perfectly healthy network. That is why the design needs a periodic sweep of the queue — the push is a latency optimisation, the queue is the guarantee.",
+    run: async () => {
+      st.sweeper = false;
+      st.dropPct = 40; $("drop").value = 40; $("dropv").textContent = "40%";
+      for (let i = 0; i < 4; i++) await act(actSend);
+      await drain(50);
+      st.dropPct = 0; $("drop").value = 0; $("dropv").textContent = "0%";
+      await drain(60);
+    }
+  }
+];
+
+function act(fn) { return new Promise(r => { commit(fn); setTimeout(r, 260); }); }
+function drain(n) {
+  return new Promise(r => {
+    let i = 0;
+    const iv = setInterval(() => { if (i++ >= n || !st.queue.length) { clearInterval(iv); r(); } else commit(step); }, 130);
+  });
+}
+
+$("scen").innerHTML = SCENARIOS.map((s, i) => `
+  <div class="card">
+    <h3>${s.title}</h3>
+    <p>${s.setup}</p>
+    <p class="q">${s.q}</p>
+    <div class="choices">${s.options.map((o, j) => `<button data-s="${i}" data-o="${j}">${o[0]}</button>`).join("")}</div>
+    <div class="result" id="res${i}"></div>
+    <button data-run="${i}">Run it for me ▸</button>
+  </div>`).join("");
+
+$("scen").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.s !== undefined) {
+    const s = SCENARIOS[+b.dataset.s], right = s.options[+b.dataset.o][1];
+    const r = $("res" + b.dataset.s);
+    r.className = "result show " + (right ? "right" : "wrong");
+    r.innerHTML = `<strong>${right ? "That is what happens." : "Not quite."}</strong> ${s.why}`;
+    return;
+  }
+  if (b.dataset.run !== undefined) {
+    stopPlay();
+    b.disabled = true; b.textContent = "running…";
+    $("bReset").click();
+    await SCENARIOS[+b.dataset.run].run();
+    b.disabled = false; b.textContent = "Run it again ▸";
+  }
+});
+
+render();
+</script>
