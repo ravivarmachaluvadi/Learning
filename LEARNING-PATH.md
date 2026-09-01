@@ -79,9 +79,11 @@ A business action now touches several systems that can each fail alone. These ar
 4. [`transactional-outbox`](transactional-outbox/README.md) ↳22 — Saving data and announcing it are two physical acts, and the world can crash between them.
 5. [`idempotency`](idempotency/README.md) ↳13 — Silence carries no information, so retries are mandatory, so duplicates are certain. Only a key distinguishes them.
 6. [`event-sourcing`](event-sourcing/README.md) ↳16 — Store the passbook, compute the balance. State is a fold over an immutable stream.
-7. [`cqrs`](cqrs/README.md) ↳12 — Split the model along the read/write line. The price is the consistency window.
+7. [`cqrs`](cqrs/README.md) ↳12 — Split the model along the read/write line. The read model is allowed to be stale only because it makes no decisions — and the window it costs you has a measurable width, a formula, and a cliff.
 8. [`change-data-capture`](change-data-capture/README.md) ↳0 — A query captures data; CDC captures change. A poller over updated_at fails five ways, four silently.
 9. [`kafka`](kafka/README.md) ↳0 — Stop deleting the messages, and every other property follows: replay, many audiences, and order only per key.
+10. [`idempotent-consumer`](idempotent-consumer/README.md) ↳0 — The receiving end of every lab above. "Make it idempotent" is three obligations, and the one that fails in production is memory. **← read after `kafka`; it assumes offsets, groups and rebalances.**
+11. [`kafka-exactly-once`](kafka-exactly-once/README.md) ↳0 — The one hop the lab above declines. Kafka has no rollback: records are written before any decision exists, and the abort is a marker appended after them. **← read last in this stage; it assumes `kafka`, `two-phase-commit`, `idempotency` and `idempotent-consumer`.**
 
 ## Stage 6 — Running It In Production
 
@@ -154,10 +156,11 @@ in `KNOWLEDGE-MAP.md`, recounted 2026-08-31.
 ---
 
 Generated 2026-08-30 from KNOWLEDGE-MAP.md. `kafka`, `jepsen`,
-`mvcc-and-vacuum`, `clock-synchronization`, `load-shedding` and `load-balancing`
-were added by hand afterwards; their `↳N` prerequisite counts and the stage
-ordering have **not** been recomputed, and `LEARNING-PATH.html` is now **six labs
-behind**. Regenerate both from KNOWLEDGE-MAP.md's `Builds on` links after adding
+`mvcc-and-vacuum`, `clock-synchronization`, `load-shedding`, `load-balancing`,
+`idempotent-consumer` and `kafka-exactly-once` were added by hand afterwards;
+their `↳N` prerequisite counts and the stage ordering have **not** been
+recomputed, and `LEARNING-PATH.html` is now **eight labs behind**. Regenerate both from
+KNOWLEDGE-MAP.md's `Builds on` links after adding
 labs.
 
 `load-shedding` and `load-balancing` are placed at Stage 6 items 3 and 4 on their
@@ -167,6 +170,14 @@ that lab's service — four workers, 80 ms, 50 requests a second — as *one of 
 eight backends*). Take them in that order: the cliff, then what to do when you
 are past it, then how to avoid reaching it on one machine while seven others sit
 idle.
+
+`kafka-exactly-once` is placed at Stage 5 item 11 on its `Builds on` links,
+which are unambiguous: every one of them — `kafka`, `two-phase-commit`,
+`idempotency`, `idempotent-consumer`, `transactional-outbox`, `saga` — is already
+in Stage 5 above it, and it is the only lab in the map that consumes all six.
+Read it after `idempotent-consumer` rather than instead of it: that lab covers
+every redelivery source except the one a Kafka transaction removes, and this one
+covers the single hop it declines.
 
 `clock-synchronization` is placed at Stage 3 item 7 on a curriculum judgement,
 not on its `Builds on` links: it is the physical-time half of the pair whose

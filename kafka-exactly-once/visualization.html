@@ -1,0 +1,1089 @@
+<meta charset="utf-8">
+<title>The Settlement Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#e9edf0; --card:#fbfcfd; --card2:#f2f5f7; --sunk:#e2e7eb;
+  --ink:#131a1f; --ink2:#3f4d58; --muted:#66737e; --rule:#d2d9df; --rule2:#c0c9d1;
+  --good:#00874f; --goodFill:rgba(0,135,79,.13);
+  --bad:#8e4585;  --badFill:rgba(142,69,133,.13);
+  --warn:#a2650b; --warnFill:rgba(162,101,11,.14);
+  --cool:#1f6f9c; --coolFill:rgba(31,111,156,.13);
+  --idle:#9aa6b1;
+  --accent:#00874f; --onAccent:#ffffff;
+  --shadow:0 1px 2px rgba(19,26,31,.06),0 6px 20px rgba(19,26,31,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+    --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+    --good:#26a877; --goodFill:rgba(38,168,119,.16);
+    --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+    --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+    --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+    --idle:#6b7883;
+    --accent:#26a877; --onAccent:#0c1216;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+  --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+  --good:#26a877; --goodFill:rgba(38,168,119,.16);
+  --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+  --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+  --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+  --idle:#6b7883;
+  --accent:#26a877; --onAccent:#0c1216;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.55;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:26px 20px 80px}
+header.top{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{font-family:Chivo,system-ui,sans-serif;font-weight:900;font-size:clamp(28px,4.2vw,44px);
+   line-height:.98;letter-spacing:-.025em;margin:0;text-wrap:balance}
+h1 .sub{display:block;font-size:.36em;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5em}
+.lede{max-width:64ch;color:var(--ink2);margin:10px 0 0;font-size:15.5px}
+.themebtn{font:600 12px/1 "Public Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--card);color:var(--ink2);border:1px solid var(--rule);border-radius:999px;
+  padding:9px 15px;cursor:pointer;white-space:nowrap}
+.themebtn:hover{border-color:var(--rule2);color:var(--ink)}
+
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow)}
+.pad{padding:16px 18px}
+h2{font-family:Chivo,sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em;margin:32px 0 12px}
+h3{font-family:Chivo,sans-serif;font-weight:700;font-size:14px;letter-spacing:.02em;margin:0 0 8px;color:var(--ink)}
+.eyebrow{font:600 10.5px/1 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.small{font-size:12.5px;color:var(--muted)}
+
+/* ---- controls ---- */
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin:0 0 16px}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl label{font:600 10.5px/1 "Public Sans",sans-serif;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+select,.btn{font:600 13px/1 "Public Sans",sans-serif;background:var(--card);color:var(--ink);
+  border:1px solid var(--rule);border-radius:9px;padding:9px 12px;cursor:pointer}
+select{min-width:230px}
+select:hover,.btn:hover{border-color:var(--rule2)}
+.btn.primary{background:var(--accent);color:var(--onAccent);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btnrow{display:flex;gap:7px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+.seg button{font:600 12.5px/1 "Public Sans",sans-serif;background:var(--card);color:var(--ink2);
+  border:0;border-right:1px solid var(--rule);padding:9px 13px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--onAccent)}
+
+/* ---- progress ---- */
+.prog{height:5px;background:var(--sunk);border-radius:99px;overflow:hidden;margin:2px 0 18px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .18s ease}
+
+/* ---- stage ---- */
+.stage{display:grid;grid-template-columns:260px minmax(0,1fr) 268px;gap:16px;align-items:start}
+@media (max-width:1080px){.stage{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--rule)}
+.kv:last-child{border-bottom:0}
+.kv b{font-weight:600;color:var(--muted);font-size:11.5px;letter-spacing:.03em;text-transform:uppercase}
+.kv span{font-family:"IBM Plex Mono",monospace;font-size:12.5px;text-align:right;color:var(--ink)}
+
+.pill{display:inline-block;font:600 10.5px/1 "IBM Plex Mono",monospace;letter-spacing:.04em;
+  padding:4px 8px;border-radius:6px;border:1px solid var(--rule2);background:var(--card2);color:var(--ink2)}
+.pill.good{color:var(--good);border-color:var(--good);background:var(--goodFill)}
+.pill.bad{color:var(--bad);border-color:var(--bad);background:var(--badFill)}
+.pill.warn{color:var(--warn);border-color:var(--warn);background:var(--warnFill)}
+.pill.cool{color:var(--cool);border-color:var(--cool);background:var(--coolFill)}
+.pill.dead{color:var(--muted);border-color:var(--rule2);text-decoration:line-through}
+
+.actor{border:1px solid var(--rule);border-radius:12px;background:var(--card2);padding:12px 13px}
+.actor.dead{opacity:.55}
+.actor h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+/* ---- logs ---- */
+.log{background:var(--sunk);border-radius:10px;padding:8px;margin-top:9px;max-height:190px;overflow:auto}
+.logline{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink2);
+  padding:3px 6px;border-radius:5px;white-space:nowrap}
+.logline.new{background:var(--coolFill);color:var(--ink)}
+
+.parts{display:flex;flex-direction:column;gap:12px}
+.part{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:12px 13px}
+.part .hdr{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.part .nm{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600}
+.recs{display:flex;gap:5px;flex-wrap:wrap;align-items:stretch}
+.rec{border:1px solid var(--rule2);border-radius:8px;background:var(--card2);padding:6px 8px;min-width:86px;
+  display:flex;flex-direction:column;gap:2px;position:relative}
+.rec .off{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+.rec .txt{font-size:11.5px;line-height:1.25;color:var(--ink)}
+.rec.plain{border-style:dashed}
+.rec.undecided{border-color:var(--warn);background:var(--warnFill)}
+.rec.committed{border-color:var(--good);background:var(--goodFill)}
+.rec.aborted{border-color:var(--bad);background:var(--badFill)}
+.rec.aborted .txt{text-decoration:line-through;opacity:.75}
+.rec.marker{min-width:0;padding:6px 9px;border-style:solid;font-weight:600}
+.rec.marker .txt{font-family:"IBM Plex Mono",monospace;font-size:10.5px}
+.rec.fresh{outline:2px solid var(--cool);outline-offset:1px}
+.lsobar{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:11.5px;color:var(--muted)}
+.lsobar .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 7px;border-radius:5px;
+  border:1px solid var(--rule2);background:var(--card2)}
+.lsobar .tag.stall{color:var(--warn);border-color:var(--warn);background:var(--warnFill)}
+
+.reader{border:1px solid var(--rule);border-radius:12px;background:var(--card2);padding:12px 13px}
+.reader.rc{border-left:3px solid var(--good)}
+.reader.ru{border-left:3px solid var(--bad)}
+.delivered{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:150px;overflow:auto}
+.dl{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:3px 6px;border-radius:5px;
+  background:var(--card);border:1px solid var(--rule)}
+.dl.phantom{border-color:var(--bad);color:var(--bad)}
+.dl.dupe{border-color:var(--warn);color:var(--warn)}
+.dl.pending{border-color:var(--warn);color:var(--warn);border-style:dashed}
+.dl.empty{border:0;background:none;color:var(--muted);font-family:"Public Sans",sans-serif;font-size:12px;padding:2px 0}
+
+.verdict{margin-top:12px;border-radius:10px;padding:11px 12px;border:1px solid var(--rule2);background:var(--card)}
+.verdict .amt{font-family:Chivo,sans-serif;font-weight:900;font-size:24px;line-height:1.1;letter-spacing:-.02em}
+.verdict.ok{border-color:var(--good)} .verdict.ok .amt{color:var(--good)}
+.verdict.bad{border-color:var(--bad)} .verdict.bad .amt{color:var(--bad)}
+.verdict.wait{border-color:var(--warn)} .verdict.wait .amt{color:var(--warn)}
+
+.note{margin-top:16px;border-left:3px solid var(--cool);background:var(--coolFill);
+  border-radius:0 10px 10px 0;padding:13px 15px}
+.note .step{font:600 10.5px/1 "Public Sans",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--cool);margin-bottom:6px}
+.note p{margin:0;font-size:14px;color:var(--ink)}
+.note code{font-family:"IBM Plex Mono",monospace;font-size:12.5px;background:var(--card);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
+.legend .u{background:var(--warnFill);border-color:var(--warn)}
+.legend .c{background:var(--goodFill);border-color:var(--good)}
+.legend .a{background:var(--badFill);border-color:var(--bad)}
+.legend .m{background:var(--card2);border-color:var(--rule2)}
+
+/* ---- predict cards ---- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.pcard{background:var(--card);border:1px solid var(--rule);border-radius:13px;padding:15px 16px;box-shadow:var(--shadow)}
+.pcard h3{margin-bottom:6px}
+.pcard p{margin:0 0 11px;font-size:13.5px;color:var(--ink2)}
+.opts{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
+.opt{text-align:left;font:500 13px/1.35 "Public Sans",sans-serif;background:var(--card2);color:var(--ink);
+  border:1px solid var(--rule);border-radius:8px;padding:8px 11px;cursor:pointer}
+.opt:hover{border-color:var(--rule2)}
+.opt[data-state="right"]{border-color:var(--good);background:var(--goodFill)}
+.opt[data-state="wrong"]{border-color:var(--bad);background:var(--badFill)}
+.reveal{display:none;font-size:13px;color:var(--ink2);border-top:1px solid var(--rule);padding-top:10px}
+.reveal.on{display:block}
+.reveal b{color:var(--ink)}
+
+table.t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px}
+table.t th,table.t td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+table.t th{font:600 10.5px/1 "Public Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+table.t td.mono{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--rule);color:var(--muted);font-size:12.5px}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1><span class="sub">Kafka exactly-once</span>The Settlement Run</h1>
+    <p class="lede">Rupaya's settlement service reads three captured payments, writes ledger
+    lines and payout rows, and records its progress — five appends across three partitions that
+    must all count or none of them. Step through the protocol one message at a time and watch
+    the one thing that surprises everybody: <b>the records appear in the log long before any
+    decision exists, and an abort never removes them.</b></p>
+  </div>
+  <button class="themebtn" id="theme">Theme</button>
+</header>
+
+<div class="panel pad">
+  <div class="controls">
+    <div class="ctl">
+      <label for="scenario">Scenario</label>
+      <select id="scenario"></select>
+    </div>
+    <div class="ctl">
+      <label>Step through it</label>
+      <div class="btnrow">
+        <button class="btn" id="back">‹ Back</button>
+        <button class="btn primary" id="step">Step ›</button>
+        <button class="btn" id="play">Run it for me</button>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>The bank job reads with</label>
+      <div class="seg" id="iso">
+        <button data-v="read_committed" aria-pressed="true">read_committed</button>
+        <button data-v="read_uncommitted" aria-pressed="false">read_uncommitted <span class="small">(default)</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="prog"><i id="progbar" style="width:0%"></i></div>
+
+  <div class="stage">
+
+    <div class="col">
+      <div class="actor" id="appA">
+        <h3>Settlement instance A <span class="pill" id="appAstate">idle</span></h3>
+        <div id="appAkv"></div>
+      </div>
+      <div class="actor" id="appB" style="display:none">
+        <h3>Settlement instance B <span class="pill" id="appBstate">idle</span></h3>
+        <div id="appBkv"></div>
+      </div>
+      <div class="actor" id="coord">
+        <h3>Transaction coordinator <span class="pill" id="coordstate">Empty</span></h3>
+        <p class="small" style="margin:0 0 2px">Leader of <span class="mono">__transaction_state-17</span>.
+        Every state change below is an <i>appended record</i>, not a variable in memory — which is
+        why killing this broker changes nothing.</p>
+        <div class="log" id="coordlog"></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="parts" id="parts"></div>
+      <div class="legend">
+        <span><i class="u"></i>undecided — written, no marker yet</span>
+        <span><i class="c"></i>committed</span>
+        <span><i class="a"></i>aborted — still on disk, filtered by the client</span>
+        <span><i class="m"></i>control record (marker) — occupies an offset</span>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="reader rc" id="readerRC">
+        <h3>Bank transfer job <span class="pill good" id="rcIso">read_committed</span></h3>
+        <p class="small" style="margin:0">Reads <span class="mono">merchant-payouts-0</span>.
+        Pays whatever it is handed.</p>
+        <div class="delivered" id="rcDelivered"></div>
+        <div class="verdict" id="verdict">
+          <div class="eyebrow" style="margin-bottom:3px">TeaHouse has been paid</div>
+          <div class="amt" id="verdictAmt">₹0</div>
+          <div class="small" id="verdictNote">Captured: ₹2,000. Correct payout: ₹1,960.</div>
+        </div>
+      </div>
+      <div class="reader ru">
+        <h3>Reconciliation tap <span class="pill bad">read_uncommitted</span></h3>
+        <p class="small" style="margin:0">The same partition, the only difference being one
+        config line. Watch how much earlier it sees things — and what it sees that never counted.</p>
+        <div class="delivered" id="ruDelivered"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <div class="step" id="noteStep">Ready</div>
+    <p id="noteText">Pick a scenario and press <b>Step</b>. Before each step, say out loud what
+    the bank job is allowed to see — if you can predict that number all the way through, you
+    understand the protocol.</p>
+  </div>
+</div>
+
+<h2>Predict before you run</h2>
+<p class="small" style="max-width:70ch;margin:0 0 14px">Commit to an answer, then load the named
+scenario and check. The explanation matters more than the score — each one is a place where a
+reasonable mental model gives the wrong answer.</p>
+<div class="cards" id="cards"></div>
+
+<h2>What each scenario is for</h2>
+<div class="panel pad">
+  <table class="t" id="scenTable"><thead><tr>
+    <th>Scenario</th><th>The question it answers</th><th>README</th>
+  </tr></thead><tbody></tbody></table>
+</div>
+
+<footer>
+  A teaching model of Kafka's transaction protocol, not an implementation. Offsets, states and
+  message names follow KIP-98, KIP-447 and KIP-890 and the Kafka 4.3 documentation; timing,
+  batching, replication and the aborted-transaction index are simplified away. Defaults shown
+  (<span class="mono">transaction.timeout.ms=60000</span>,
+  <span class="mono">isolation.level=read_uncommitted</span>) are the real 4.3 defaults.
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* ===================== engine =====================
+   A scripted model of Kafka's transaction protocol. Each scenario produces a
+   list of immutable frames; the UI just indexes into them, so Back is exact.
+   Message names and states follow KIP-98 / KIP-447 / KIP-890.
+==================================================== */
+
+var PK = ['LE','MP','CO'];
+var PNAME = {LE:'ledger-entries-1', MP:'merchant-payouts-0', CO:'__consumer_offsets-12'};
+
+function fresh(){
+  return {
+    apps:{},
+    coord:{alive:true, txns:[], log:[], focus:null},
+    parts:{
+      LE:{base:808, recs:[
+        {off:808,type:'plain',status:'plain',text:'ledger: ChaiCart batch 88'},
+        {off:809,type:'plain',status:'plain',text:'ledger: Anjali batch 88'}]},
+      MP:{base:42, recs:[
+        {off:42,type:'plain',status:'plain',text:'ChaiCart ₹410'},
+        {off:43,type:'plain',status:'plain',text:'Anjali Foods ₹880'}]},
+      CO:{base:8999, recs:[
+        {off:8999,type:'plain',status:'plain',text:'settlement: captures-3 → 4997'},
+        {off:9000,type:'plain',status:'plain',text:'settlement: captures-3 → 5000'}]}
+    },
+    clock:'t+0s'
+  };
+}
+
+function leoOf(p){ return p.base + p.recs.length; }
+function lsoOf(p){
+  for(var i=0;i<p.recs.length;i++){ if(p.recs[i].status==='undecided') return p.recs[i].off; }
+  return leoOf(p);
+}
+
+/* ---- mutations ---- */
+function append(W,pk,rec){
+  var p=W.parts[pk];
+  rec.off = leoOf(p);
+  p.recs.push(rec);
+  return rec.off;
+}
+function txnOf(W,id){
+  for(var i=0;i<W.coord.txns.length;i++){ if(W.coord.txns[i].id===id) return W.coord.txns[i]; }
+  return null;
+}
+function coordLog(W,text){ W.coord.log.push({n:W.coord.log.length+1,text:text}); }
+function setState(W,id,state,extra){
+  var t=txnOf(W,id); t.state=state; W.coord.focus=id;
+  coordLog(W, id+' → '+state+(extra?'  '+extra:''));
+}
+/* Write a marker into a partition and decide the records it covers.
+   matchEpoch=true models transaction version 2, where (pid,epoch) identifies
+   one transaction; false models version 1, where the marker covers every
+   undecided record from that producer id. */
+function marker(W,pk,pid,epoch,commit,matchEpoch){
+  var p=W.parts[pk], st = commit?'committed':'aborted', touched=[];
+  for(var i=0;i<p.recs.length;i++){
+    var r=p.recs[i];
+    if(r.status==='undecided' && r.pid===pid && (!matchEpoch || r.epoch===epoch)){ r.status=st; touched.push(r.off); }
+  }
+  var off = append(W,pk,{type:'marker',status:st,pid:pid,epoch:epoch,
+    text:(commit?'COMMIT':'ABORT')+'(pid '+pid+')'});
+  return {marker:off, decided:touched};
+}
+
+/* ---- payload ---- */
+function ledgerRecs(pid,epoch){return [
+  {type:'data',status:'undecided',pid:pid,epoch:epoch,text:'TeaHouse ₹1,200 · fee ₹24'},
+  {type:'data',status:'undecided',pid:pid,epoch:epoch,text:'TeaHouse ₹800 · fee ₹16'},
+  {type:'data',status:'undecided',pid:pid,epoch:epoch,text:'BookBarn ₹2,500 · fee ₹50'}];}
+function payoutRecs(pid,epoch){return [
+  {type:'data',status:'undecided',pid:pid,epoch:epoch,acct:true,key:'TeaHouse',amt:1960,text:'TeaHouse ₹1,960'},
+  {type:'data',status:'undecided',pid:pid,epoch:epoch,acct:true,key:'BookBarn',amt:2450,text:'BookBarn ₹2,450'}];}
+function offsetRec(pid,epoch){
+  return {type:'data',status:'undecided',pid:pid,epoch:epoch,text:'captures-3 → 5003'};
+}
+
+/* ---- reader model ---- */
+function readers(W){
+  var mp=W.parts.MP, LEO=leoOf(mp), LSO=lsoOf(mp);
+  function deliver(limit,committedOnly){
+    var out=[], seen={}, paid=0;
+    for(var i=0;i<mp.recs.length;i++){
+      var r=mp.recs[i];
+      if(r.off>=limit) break;
+      if(r.type==='marker') continue;
+      if(committedOnly && r.status==='aborted') continue;
+      var flag='';
+      if(r.status==='aborted') flag='phantom';
+      else if(r.status==='undecided') flag='pending';
+      else if(r.acct && seen[r.key]) flag='dupe';
+      if(r.acct){ seen[r.key]=true; paid+=r.amt; }
+      out.push({off:r.off,text:r.text,flag:flag});
+    }
+    return {rows:out,paid:paid};
+  }
+  var rc=deliver(LSO,true), ru=deliver(LEO,false);
+  return {rc:rc.rows, rcPaid:rc.paid, ru:ru.rows, ruPaid:ru.paid, lso:LSO, leo:LEO};
+}
+
+/* ---- frame builder ---- */
+function Run(meta){ this.W=fresh(); this.frames=[]; this.meta=meta; }
+Run.prototype.at=function(label,note,fn){
+  var W=this.W;
+  var before={}; for(var k=0;k<PK.length;k++){ before[PK[k]]=W.parts[PK[k]].recs.length; }
+  var beforeLog=W.coord.log.length;
+  if(fn) fn(W);
+  var freshOff={};
+  for(var j=0;j<PK.length;j++){
+    var p=W.parts[PK[j]];
+    for(var i=before[PK[j]];i<p.recs.length;i++) freshOff[PK[j]+':'+p.recs[i].off]=1;
+  }
+  var snap=JSON.parse(JSON.stringify(W));
+  snap.label=label; snap.note=note; snap.freshOff=freshOff; snap.freshLog=beforeLog;
+  snap.readers=readers(W);
+  snap.lso={LE:lsoOf(W.parts.LE),MP:lsoOf(W.parts.MP),CO:lsoOf(W.parts.CO)};
+  snap.leo={LE:leoOf(W.parts.LE),MP:leoOf(W.parts.MP),CO:leoOf(W.parts.CO)};
+  this.frames.push(snap);
+};
+
+/* ---- shared openings ---- */
+function initA(R,txnId,pid){
+  R.at('initTransactions()',
+    'The producer hashes <code>'+txnId+'</code> onto a partition of <code>__transaction_state</code>, '+
+    'finds its coordinator, and sends <code>InitProducerId</code>. It gets back producer id '+pid+
+    ' at epoch 0, and the coordinator writes that down. Nothing has been produced yet.',
+    function(W){
+      W.apps.A={name:'A',txnId:txnId,pid:pid,epoch:0,call:'initTransactions()',alive:true,fenced:false};
+      W.coord.txns.push({id:txnId,pid:pid,epoch:0,state:'Empty',parts:[]});
+      W.coord.focus=txnId; coordLog(W, txnId+' → Empty  pid='+pid+' epoch=0');
+    });
+}
+function beginA(R,txnId){
+  R.at('beginTransaction()',
+    'This call sends <b>nothing over the network</b>. It sets a flag inside the producer object. '+
+    'The coordinator still says <code>Empty</code> — it does not yet know a transaction has begun, '+
+    'which is exactly why the next step has to exist.',
+    function(W){ W.apps.A.call='beginTransaction()'; });
+}
+function addLE(R,txnId){
+  R.at('AddPartitionsToTxn(ledger-entries-1)',
+    'The first <code>send()</code> to a partition triggers this first. The coordinator moves to '+
+    '<code>Ongoing</code> and records the partition. <b>This is when the 60-second '+
+    '<code>transaction.timeout.ms</code> clock starts</b> — not at <code>beginTransaction()</code>.',
+    function(W){ var t=txnOf(W,txnId); t.parts.push('ledger-entries-1');
+      W.apps.A.call='send() → ledger-entries-1';
+      setState(W,txnId,'Ongoing','parts=[ledger-entries-1]'); });
+}
+function produceLE(R,txnId){
+  R.at('Produce → ledger-entries-1',
+    'Three ledger records are appended at offsets 810–812. <b>They are durably in the log right now</b>, '+
+    'replicated, past the high watermark — and no decision exists anywhere. The reconciliation tap '+
+    '(<code>read_uncommitted</code>) could already read them. The last stable offset stays at 810.',
+    function(W){ var a=W.apps.A, rs=ledgerRecs(a.pid,a.epoch);
+      for(var i=0;i<rs.length;i++) append(W,'LE',rs[i]); });
+}
+function addMPproduce(R,txnId){
+  R.at('AddPartitionsToTxn + Produce → merchant-payouts-0',
+    'A second partition, so it is registered with the coordinator first, then written: TeaHouse ₹1,960 '+
+    'and BookBarn ₹2,450 at offsets 44 and 45. Watch the bank job on the right — it is served nothing, '+
+    'because the LSO for this partition is now pinned at 44.',
+    function(W){ var a=W.apps.A, t=txnOf(W,a.txnId); t.parts.push('merchant-payouts-0');
+      a.call='send() → merchant-payouts-0';
+      setState(W,a.txnId,'Ongoing','parts=[ledger-entries-1, merchant-payouts-0]');
+      var rs=payoutRecs(a.pid,a.epoch); for(var i=0;i<rs.length;i++) append(W,'MP',rs[i]); });
+}
+function sendOffsets(R){
+  R.at('sendOffsetsToTransaction(offsets, groupMetadata)',
+    'Two messages to two different brokers: <code>AddOffsetsToTxn</code> to the transaction coordinator, '+
+    'and <code>TxnOffsetCommit</code> to the <b>group</b> coordinator, which appends the offset record to '+
+    '<code>__consumer_offsets-12</code> — marked transactional, exactly like the payload. '+
+    '<b>The progress marker is now one of the outputs.</b>',
+    function(W){ var a=W.apps.A, t=txnOf(W,a.txnId); t.parts.push('__consumer_offsets-12');
+      a.call='sendOffsetsToTransaction(…)';
+      setState(W,a.txnId,'Ongoing','parts=[3 partitions]');
+      append(W,'CO',offsetRec(a.pid,a.epoch)); });
+}
+
+/* ===================== scenarios ===================== */
+var SCEN = {};
+
+SCEN.happy = {
+  name:'1 · Commit — the whole protocol',
+  q:'What are the nine steps, and when does the outside world first change?',
+  ref:'§10.2',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T); addMPproduce(R,T); sendOffsets(R);
+    R.at('commitTransaction() → EndTxn(commit) → PrepareCommit',
+      '<b>This is the commit point.</b> Once <code>PrepareCommit</code> is replicated to '+
+      '<code>transaction.state.log.min.isr</code> replicas, the run is committed. Every broker, the '+
+      'producer and every network link can now fail and the outcome is still commit. '+
+      'Notice that nothing visible has changed yet — the bank job is still served nothing.',
+      function(W){ W.apps.A.call='commitTransaction()'; setState(W,T,'PrepareCommit'); });
+    R.at('WriteTxnMarkers → ledger-entries-1',
+      'The coordinator tells each partition leader to append a control record. The ledger partition '+
+      'gets <code>COMMIT(pid 4711)</code> at offset 813 — <b>a real offset, consumed by a record your '+
+      'application will never see</b>. Its LSO jumps from 810 to 814.',
+      function(W){ marker(W,'LE',4711,0,true,false); });
+    R.at('WriteTxnMarkers → merchant-payouts-0',
+      'Now the payouts partition. The instant this marker lands the LSO moves to 47 and the bank job is '+
+      'released — it receives offsets 44 and 45 in one go and silently skips the marker at 46. '+
+      '<b>This is the only step in the entire run at which the outside world’s behaviour changed.</b>',
+      function(W){ marker(W,'MP',4711,0,true,false); });
+    R.at('WriteTxnMarkers → __consumer_offsets-12',
+      'The progress record is committed by the same mechanism as the payload. The group’s committed '+
+      'offset for <code>captures-3</code> is now 5003 — and it became true at the same instant the '+
+      'payouts did. That single fact is what the whole protocol exists to deliver.',
+      function(W){ marker(W,'CO',4711,0,true,false); });
+    R.at('CompleteCommit',
+      'The coordinator writes the final state and forgets the transaction. <code>commitTransaction()</code> '+
+      'returns to the application. Compare the two readers: identical partition, one config line apart, '+
+      'and the reconciliation tap saw the payouts several steps earlier than the bank job did.',
+      function(W){ W.apps.A.call='(returned)'; setState(W,T,'CompleteCommit'); });
+    return R;
+  }
+};
+
+SCEN.abort = {
+  name:'2 · Abort — and nothing is undone',
+  q:'What does a rollback actually remove? (Nothing.)',
+  ref:'§10.5, §14.2',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T); addMPproduce(R,T); sendOffsets(R);
+    R.at('The listener throws — abortTransaction()',
+      'A downstream validation fails and the application aborts. Predict what happens to offsets '+
+      '810–812 and 44–45 before you step: are they removed, rewritten, or left where they are?',
+      function(W){ W.apps.A.call='abortTransaction()'; setState(W,T,'PrepareAbort'); });
+    R.at('ABORT markers written to all three partitions',
+      '<b>Look at the logs, not at the counter.</b> Every record is exactly where it was, at the offset '+
+      'it was given, replicated to every follower. All that changed is a marker appended after them and '+
+      'a strike through the text. The abort cost <i>more</i> than the commit would have — same data, '+
+      'plus three extra control records — and reclaimed nothing.',
+      function(W){ marker(W,'LE',4711,0,false,false); marker(W,'MP',4711,0,false,false);
+                   marker(W,'CO',4711,0,false,false); });
+    R.at('CompleteAbort',
+      'The bank job is released and receives… nothing new: it skips the aborted rows and lands on '+
+      'offset 47. But look at the reconciliation tap. It was handed TeaHouse ₹1,960 several steps ago '+
+      'and has no idea the transaction was aborted. <b>That is what <code>read_uncommitted</code> means, '+
+      'and it is the default.</b> Flip the toggle above the stage to feel it.',
+      function(W){ W.apps.A.call='(returned)'; setState(W,T,'CompleteAbort'); });
+    return R;
+  }
+};
+
+SCEN.pcrash = {
+  name:'3 · Producer dies mid-transaction — everyone waits',
+  q:'Who pays for an abandoned transaction, and for how long?',
+  ref:'§11.1',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T); addMPproduce(R,T); sendOffsets(R);
+    R.at('t+0s — the pod is OOM-killed',
+      'The producer is gone before <code>commitTransaction()</code>. Five records sit undecided across '+
+      'three partitions. The coordinator is still in <code>Ongoing</code> and its 60-second clock — '+
+      'started at the first <code>AddPartitionsToTxn</code>, not at <code>beginTransaction()</code> — '+
+      'is running.',
+      function(W){ W.apps.A.alive=false; W.apps.A.call='(dead)'; W.clock='t+0s'; });
+    R.at('t+20s — a different application appends to the same partition',
+      'A completely unrelated service writes a non-transactional payout row at offset 46. It is '+
+      'committed the moment it lands. <b>The bank job still cannot see it</b>, because the LSO is pinned '+
+      'at 44 by somebody else’s dead transaction. This is the blast radius: it is the partition, not '+
+      'the producer.',
+      function(W){ W.clock='t+20s';
+        append(W,'MP',{type:'plain',status:'plain',acct:true,key:'Deepa',amt:500,text:'Deepa Tailors ₹500'}); });
+    R.at('t+60s — transaction.timeout.ms expires',
+      'The coordinator gives up on its own: <code>PrepareAbort</code>, then ABORT markers, then '+
+      '<code>CompleteAbort</code>. Nobody asked it to; nothing reported an error anywhere.',
+      function(W){ W.clock='t+60s'; setState(W,T,'PrepareAbort');
+        marker(W,'LE',4711,0,false,false); marker(W,'MP',4711,0,false,false);
+        marker(W,'CO',4711,0,false,false); setState(W,T,'CompleteAbort'); });
+    R.at('The stall clears',
+      'The LSO jumps and the bank job receives, in one burst, the record it should have had 40 seconds '+
+      'ago. <b>Correctness was never at risk — latency was.</b> In production this is a step-change on a '+
+      'p99 graph with nothing in any error log to explain it, and it hits every <code>read_committed</code> '+
+      'consumer of every partition the dead transaction had touched.',
+      function(W){ W.clock='t+60s'; });
+    return R;
+  }
+};
+
+SCEN.ccrash = {
+  name:'4 · Coordinator dies after the decision',
+  q:'Why does this two-phase commit not block the way the classic one does?',
+  ref:'§10.4, §11.2',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T); addMPproduce(R,T); sendOffsets(R);
+    R.at('EndTxn(commit) → PrepareCommit is durable',
+      'The decision is now a replicated record in <code>__transaction_state-17</code>. Note where it is '+
+      'not: it is not in any process’s memory.',
+      function(W){ W.apps.A.call='commitTransaction()'; setState(W,T,'PrepareCommit'); });
+    R.at('One marker written, then the coordinator broker dies',
+      'The ledger partition got its COMMIT marker; the other two did not. The transaction is now half '+
+      'marked. In classic two-phase commit this is the moment participants are stuck holding locks with '+
+      'no safe way to guess. <b>Predict what the payouts partition does next.</b>',
+      function(W){ marker(W,'LE',4711,0,true,false); W.coord.alive=false;
+        coordLog(W,'— coordinator broker failed —'); });
+    R.at('A new coordinator is elected and replays the log',
+      'Failover here is an ordinary partition leader election plus a log replay. The new coordinator '+
+      'reads <code>__transaction_state-17</code>, finds <code>PrepareCommit</code>, and knows the answer '+
+      'without asking anybody. <b>No participant was ever uncertain</b> — the brokers held no locks, and '+
+      'the only party waiting was a reader.',
+      function(W){ W.coord.alive=true; coordLog(W,'— new coordinator elected, log replayed —');
+        coordLog(W,T+' recovered in state PrepareCommit'); });
+    R.at('Markers re-driven to all three partitions',
+      'The ledger partition already has its marker and ignores the duplicate; the other two get theirs. '+
+      'The outcome is identical to scenario 1 — the only cost of killing the coordinator was the '+
+      'election delay.',
+      function(W){ marker(W,'MP',4711,0,true,false); marker(W,'CO',4711,0,true,false); });
+    R.at('CompleteCommit',
+      'The transferable idea: <b>Kafka moved the uncertainty out of the writers and into the readers.</b> '+
+      'A reader that waits too long is merely stale; a writer that waits too long is holding locks that '+
+      'stop everyone else. Whenever you meet a distributed commit problem, ask first whether the '+
+      'uncertainty can be pushed to the reading side.',
+      function(W){ setState(W,T,'CompleteCommit'); });
+    return R;
+  }
+};
+
+/* --- zombie scenarios: A freezes after producing, B takes over --- */
+function zombieOpening(R,T){
+  initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T); addMPproduce(R,T);
+  R.at('Instance A freezes mid-transaction',
+    'A stop-the-world pause — GC, a throttled container, a hypervisor stall. A has written five records '+
+    'and decided nothing. It does not know any time is passing.',
+    function(W){ W.apps.A.call='(frozen)'; W.apps.A.frozen=true; W.clock='t+0s'; });
+  R.at('t+45s — the group evicts A and rebalances to instance B',
+    'A missed its heartbeats, <code>session.timeout.ms</code> expired, and <code>captures-3</code> now '+
+    'belongs to B. B starts from the last committed offset, 5000, and will redo the batch. Everything so '+
+    'far is normal and healthy. The only question that matters is the next one.',
+    function(W){ W.clock='t+45s'; });
+}
+
+SCEN.zfenced = {
+  name:'5 · Zombie, with a stable transactional.id',
+  q:'How is a frozen process stopped without anyone detecting that it died?',
+  ref:'§10.6',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    zombieOpening(R,T);
+    R.at('B calls initTransactions() with the SAME transactional.id',
+      'B’s <code>transactional.id</code> is <code>settlement-3</code>, derived from the input partition — '+
+      'the same string A used. The coordinator therefore <b>bumps the epoch from 0 to 1</b> and '+
+      'unilaterally aborts A’s open transaction. Nobody determined that A was dead; A was simply made '+
+      'irrelevant.',
+      function(W){ W.clock='t+46s';
+        W.apps.B={name:'B',txnId:T,pid:4711,epoch:1,call:'initTransactions()',alive:true,fenced:false};
+        var t=txnOf(W,T); t.epoch=1; setState(W,T,'PrepareAbort','epoch 0 → 1, fencing the old holder');
+        marker(W,'LE',4711,0,false,false); marker(W,'MP',4711,0,false,false);
+        setState(W,T,'CompleteAbort'); });
+    R.at('B reprocesses the batch and commits',
+      'B writes its own ledger lines, payout rows and offset commit in a fresh transaction at epoch 1, '+
+      'and commits. The bank job is released and receives TeaHouse ₹1,960 — <b>once</b>.',
+      function(W){ W.clock='t+50s'; var t=txnOf(W,T);
+        t.parts=['ledger-entries-1','merchant-payouts-0','__consumer_offsets-12'];
+        setState(W,T,'Ongoing','epoch=1');
+        var ls=ledgerRecs(4711,1); for(var i=0;i<ls.length;i++) append(W,'LE',ls[i]);
+        var ps=payoutRecs(4711,1); for(var j=0;j<ps.length;j++) append(W,'MP',ps[j]);
+        append(W,'CO',offsetRec(4711,1));
+        setState(W,T,'PrepareCommit');
+        marker(W,'LE',4711,1,true,false); marker(W,'MP',4711,1,true,false); marker(W,'CO',4711,1,true,false);
+        setState(W,T,'CompleteCommit'); W.apps.B.call='(returned)'; });
+    R.at('t+90s — A wakes up and calls commitTransaction()',
+      'A has no idea 90 seconds passed. It sends <code>EndTxn(commit)</code> carrying epoch 0. The '+
+      'coordinator is at epoch 1, so the answer is <code>ProducerFenced</code> — fatal for the Java '+
+      'producer, which must now be closed. <b>This is <code>split-brain</code>’s fencing token, doing '+
+      'exactly what that lab said it must.</b>',
+      function(W){ W.clock='t+90s'; W.apps.A.frozen=false; W.apps.A.fenced=true;
+        W.apps.A.call='ProducerFenced'; coordLog(W,'REJECT EndTxn from pid 4711 epoch 0 (current 1)'); });
+    return R;
+  }
+};
+
+SCEN.zunfenced = {
+  name:'6 · Zombie, with a random transactional.id  ⚠',
+  q:'What does a UUID transactional.id actually cost? (Everything.)',
+  ref:'§11.3',
+  build:function(){
+    var R=new Run(); var T='settlement-a3f91e';
+    zombieOpening(R,T);
+    R.at('B calls initTransactions() — with a NEW random id',
+      'The application builds its <code>transactional.id</code> from a UUID at startup, so B’s id is '+
+      '<code>settlement-7c02bb</code>. The coordinator has never seen it, so it creates a second, '+
+      'independent entry with a new producer id. <b>A is not fenced. A’s transaction is still '+
+      '<code>Ongoing</code>.</b> Nothing anywhere reports a problem.',
+      function(W){ W.clock='t+46s';
+        W.apps.B={name:'B',txnId:'settlement-7c02bb',pid:5002,epoch:0,call:'initTransactions()',alive:true,fenced:false};
+        W.coord.txns.push({id:'settlement-7c02bb',pid:5002,epoch:0,state:'Empty',parts:[]});
+        W.coord.focus='settlement-7c02bb';
+        coordLog(W,'settlement-7c02bb → Empty  pid=5002 epoch=0  (settlement-a3f91e untouched)'); });
+    R.at('B reprocesses the batch and commits successfully',
+      'B’s transaction commits cleanly. But look at the bank job: <b>still nothing</b>. The LSO of the '+
+      'payouts partition is pinned at 44 by A’s undecided records, so B’s perfectly good work is '+
+      'unreachable behind them. Right now this looks like scenario 3 — a latency problem.',
+      function(W){ W.clock='t+50s'; var t=txnOf(W,'settlement-7c02bb');
+        t.parts=['ledger-entries-1','merchant-payouts-0','__consumer_offsets-12'];
+        setState(W,'settlement-7c02bb','Ongoing','');
+        var ls=ledgerRecs(5002,0); for(var i=0;i<ls.length;i++) append(W,'LE',ls[i]);
+        var ps=payoutRecs(5002,0); for(var j=0;j<ps.length;j++) append(W,'MP',ps[j]);
+        append(W,'CO',offsetRec(5002,0));
+        setState(W,'settlement-7c02bb','PrepareCommit');
+        marker(W,'LE',5002,0,true,false); marker(W,'MP',5002,0,true,false); marker(W,'CO',5002,0,true,false);
+        setState(W,'settlement-7c02bb','CompleteCommit'); W.apps.B.call='(returned)'; });
+    R.at('t+90s — A wakes up and commits. It succeeds.',
+      'A’s epoch was never bumped, because nothing shares its id. Its <code>EndTxn(commit)</code> is '+
+      'accepted, its markers are written, and its records become visible. The LSO finally moves — and '+
+      'hands the bank job <b>both</b> settlements at once. <b>TeaHouse is paid twice, and every EOS '+
+      'mechanism in the protocol was enabled the entire time.</b>',
+      function(W){ W.clock='t+90s'; W.apps.A.frozen=false; W.apps.A.call='commitTransaction() → OK';
+        setState(W,T,'PrepareCommit');
+        marker(W,'LE',4711,0,true,false); marker(W,'MP',4711,0,true,false);
+        setState(W,T,'CompleteCommit'); });
+    R.at('The diagnosis',
+      'Duplicates in a pipeline with EOS switched on, and the tell is not in any data: it is that '+
+      '<code>kafka-transactions.sh --list</code> shows a <code>transactional.id</code> count that grows '+
+      'with every deploy and never shrinks — each abandoned id lingers for '+
+      '<code>transactional.id.expiration.ms</code>, seven days. <b>The id must name the job, not the '+
+      'process.</b>',
+      function(W){ });
+    return R;
+  }
+};
+
+/* --- the KIP-890 pair: a delayed produce request, under each protocol version --- */
+function delayedOpening(R,T,tv){
+  R.at('T1 begins — AddPartitionsToTxn(merchant-payouts-0)',
+    'A single partition this time, so the mechanism is easy to see. Producer id 4711, epoch 0.'+
+    (tv===2?' The cluster is running <code>transaction.version=2</code> (the default since Kafka 4.0).'
+           :' The cluster is running the pre-4.0 protocol, <code>transaction.version=1</code>.'),
+    function(W){
+      W.apps.A={name:'A',txnId:T,pid:4711,epoch:0,call:'beginTransaction()',alive:true,fenced:false};
+      W.coord.txns.push({id:T,pid:4711,epoch:0,state:'Ongoing',parts:['merchant-payouts-0']});
+      W.coord.focus=T; coordLog(W,T+' → Ongoing  pid=4711 epoch=0'); });
+  R.at('Two sends — one lands, one stalls in the network',
+    'TeaHouse ₹1,960 is appended at offset 44. The request carrying BookBarn ₹2,450 leaves the client '+
+    'and is <b>stuck in a network buffer</b>. It has not been rejected; it has not been lost; it is '+
+    'simply late. Hold on to the fact that it carries <span class="mono">pid 4711, epoch 0</span>.',
+    function(W){ append(W,'MP',{type:'data',status:'undecided',pid:4711,epoch:0,acct:true,
+        key:'TeaHouse',amt:1960,text:'TeaHouse ₹1,960'});
+      W.inflight={text:'BookBarn ₹2,450',pid:4711,epoch:0}; });
+}
+
+SCEN.delay1 = {
+  name:'7 · A message from the past — protocol v1  ⚠',
+  q:'How can a record that was explicitly aborted end up committed?',
+  ref:'§10.8',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    delayedOpening(R,T,1);
+    R.at('The client gives up and aborts T1',
+      'A client-side timeout fires, so the application aborts. The ABORT marker lands at offset 45 and '+
+      'TeaHouse ₹1,960 is struck through. <b>In protocol version 1 the epoch is not bumped by a '+
+      'client-initiated abort</b> — the producer is still pid 4711, epoch 0.',
+      function(W){ W.apps.A.call='abortTransaction()'; setState(W,T,'PrepareAbort');
+        marker(W,'MP',4711,0,false,true); setState(W,T,'CompleteAbort'); });
+    R.at('T2 begins — same partition, same pid, same epoch',
+      'A new transaction from the same producer. Deepa Tailors ₹500 is appended at offset 46. Every '+
+      'record in this partition from this producer now looks identical to every record from the last '+
+      'transaction, because nothing in a record says which transaction it belongs to.',
+      function(W){ W.apps.A.call='beginTransaction() [T2]'; setState(W,T,'Ongoing','T2, epoch still 0');
+        append(W,'MP',{type:'data',status:'undecided',pid:4711,epoch:0,acct:true,
+          key:'Deepa',amt:500,text:'Deepa Tailors ₹500'}); });
+    R.at('The stalled request finally arrives',
+      'The broker sees a transactional record with pid 4711, epoch 0, for a partition that currently has '+
+      'an open transaction for pid 4711, epoch 0. Every check passes. It is appended at offset 47 — '+
+      '<b>and it has just joined T2.</b>',
+      function(W){ append(W,'MP',{type:'data',status:'undecided',pid:4711,epoch:0,acct:true,
+          key:'BookBarn',amt:2450,text:'BookBarn ₹2,450  ← from aborted T1'}); W.inflight=null; });
+    R.at('T2 commits',
+      'One COMMIT marker, and it decides <b>every</b> undecided record from pid 4711 in this partition — '+
+      'including the one from the transaction that was explicitly aborted. The bank job pays BookBarn '+
+      '₹2,450 that nobody ever committed. Exactly-once has been violated by the mechanism whose entire '+
+      'job is to enforce it. Now run scenario 8.',
+      function(W){ W.apps.A.call='commitTransaction()'; setState(W,T,'PrepareCommit');
+        marker(W,'MP',4711,0,true,false); setState(W,T,'CompleteCommit'); });
+    return R;
+  }
+};
+
+SCEN.delay2 = {
+  name:'8 · The same delay — protocol v2 (KIP-890)',
+  q:'What single change makes the late message impossible to mistake?',
+  ref:'§10.8',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    delayedOpening(R,T,2);
+    R.at('The client aborts T1 — and the epoch is bumped',
+      'Identical to scenario 7 except for one thing: under <code>transaction.version=2</code> the '+
+      'producer epoch is bumped on <b>every</b> commit and abort, and the new epoch comes back in the '+
+      '<code>EndTxn</code> response. The producer is now at epoch 1.',
+      function(W){ W.apps.A.call='abortTransaction()'; setState(W,T,'PrepareAbort');
+        marker(W,'MP',4711,0,false,true);
+        var t=txnOf(W,T); t.epoch=1; W.apps.A.epoch=1;
+        setState(W,T,'CompleteAbort','epoch 0 → 1'); });
+    R.at('T2 begins — at epoch 1',
+      'Deepa Tailors ₹500 is appended at offset 46, tagged epoch 1. T1 was epoch 0 and T2 is epoch 1, '+
+      'so the pair <span class="mono">(pid, epoch)</span> now identifies <i>one transaction</i> rather '+
+      'than one producer. That is the whole fix.',
+      function(W){ W.apps.A.call='beginTransaction() [T2]'; setState(W,T,'Ongoing','T2, epoch=1');
+        append(W,'MP',{type:'data',status:'undecided',pid:4711,epoch:1,acct:true,
+          key:'Deepa',amt:500,text:'Deepa Tailors ₹500'}); });
+    R.at('The stalled request arrives — and is rejected',
+      'It carries epoch 0. The current epoch is 1. The broker refuses it; nothing is appended, and the '+
+      'partition never learns it existed. <b>Records from a previous transaction are fenced by exactly '+
+      'the same trick that fences a previous producer instance.</b>',
+      function(W){ W.inflight=null;
+        coordLog(W,'REJECT produce pid 4711 epoch 0 (current 1) — fenced'); });
+    R.at('T2 commits — correctly',
+      'The marker decides only the epoch-1 record. The bank job pays ₹500, which is exactly what T2 '+
+      'wrote. Same delay, same network, same client bug — different outcome, from one extra integer.',
+      function(W){ W.apps.A.call='commitTransaction()'; setState(W,T,'PrepareCommit');
+        marker(W,'MP',4711,1,true,true); setState(W,T,'CompleteCommit'); });
+    return R;
+  }
+};
+
+SCEN.hanging = {
+  name:'9 · The hanging transaction — no timeout saves you',
+  q:'What does a stuck LSO look like, and why does no timer fire?',
+  ref:'§11.5',
+  build:function(){
+    var R=new Run(); var T='settlement-3';
+    initA(R,T,4711); beginA(R,T); addLE(R,T); produceLE(R,T);
+    R.at('The client produces to merchant-payouts-0 without adding it first',
+      'A client bug, or an older non-Java client. The record is appended at offset 44, marked '+
+      'transactional — but the coordinator’s partition set contains only <code>ledger-entries-1</code>. '+
+      '<b>On a Kafka 4.x broker this append is refused</b> with <code>INVALID_TXN_STATE</code>, because '+
+      '<code>transaction.partition.verification.enable</code> defaults to <code>true</code>. This cluster '+
+      'is older.',
+      function(W){ W.apps.A.call='send() → merchant-payouts-0 (unregistered)';
+        append(W,'MP',{type:'data',status:'undecided',pid:4711,epoch:0,acct:true,
+          key:'TeaHouse',amt:1960,text:'TeaHouse ₹1,960  ← never registered'}); });
+    R.at('The transaction commits — and the coordinator forgets it',
+      'The coordinator writes markers to the partitions it knows about: the ledger only. It then writes '+
+      '<code>CompleteCommit</code> and discards the transaction. From its point of view the run is over '+
+      'and everything succeeded.',
+      function(W){ W.apps.A.call='commitTransaction()'; setState(W,T,'PrepareCommit');
+        marker(W,'LE',4711,0,true,false); setState(W,T,'CompleteCommit'); });
+    R.at('t+10m — other producers keep working',
+      'Two ordinary non-transactional payouts are appended. The high watermark advances normally; '+
+      '<b>the LSO does not move at all.</b> The gap between them is now 3 and it will grow forever.',
+      function(W){ W.clock='t+10m';
+        append(W,'MP',{type:'plain',status:'plain',acct:true,key:'Deepa',amt:500,text:'Deepa Tailors ₹500'});
+        append(W,'MP',{type:'plain',status:'plain',acct:true,key:'Kirana',amt:720,text:'Kirana Co ₹720'}); });
+    R.at('t+1h — still stuck, and nothing is on fire',
+      '<b>No timer will ever fire.</b> The coordinator has no open transaction, nothing is late, every '+
+      'clock is idle. The reconciliation tap is perfectly healthy; only the <code>read_committed</code> '+
+      'reader is frozen, its lag climbing linearly, while log cleanup stops reclaiming this partition. '+
+      'This is the signature: <b>high watermark rising, LSO flat.</b>',
+      function(W){ W.clock='t+1h'; });
+    R.at('An operator finds it and forces an abort',
+      '<code>kafka-transactions.sh --find-hanging --broker-id 2</code> locates it and '+
+      '<code>--abort</code> writes the missing marker. Note that the tool can only abort, never commit — '+
+      'there is no safe way to decide that an orphaned record should count. The backlog is delivered at '+
+      'last.',
+      function(W){ W.clock='t+1h'; coordLog(W,'kafka-transactions.sh --abort  (manual)');
+        marker(W,'MP',4711,0,false,false); });
+    return R;
+  }
+};
+
+var ORDER=['happy','abort','pcrash','ccrash','zfenced','zunfenced','delay1','delay2','hanging'];
+
+/* scenario presentation metadata */
+SCEN.happy.parts=['LE','MP','CO'];    SCEN.happy.expected='Correct total for this run: ₹1,960 (TeaHouse) + ₹2,450 (BookBarn).';
+SCEN.abort.parts=['LE','MP','CO'];    SCEN.abort.expected='Nothing should be paid — the run was aborted.';
+SCEN.pcrash.parts=['LE','MP','CO'];   SCEN.pcrash.expected='Only the unrelated ₹500 should be paid. The settlement was abandoned.';
+SCEN.ccrash.parts=['LE','MP','CO'];   SCEN.ccrash.expected='Correct total: ₹1,960 + ₹2,450. The coordinator crash must not change it.';
+SCEN.zfenced.parts=['LE','MP','CO'];  SCEN.zfenced.expected='Correct total: ₹1,960 + ₹2,450, paid once despite two live instances.';
+SCEN.zunfenced.parts=['LE','MP','CO'];SCEN.zunfenced.expected='Correct total: ₹1,960 + ₹2,450. Anything more is a double settlement.';
+SCEN.delay1.parts=['MP'];             SCEN.delay1.expected='Correct total: ₹500. T1 was aborted, so nothing from it should be paid.';
+SCEN.delay2.parts=['MP'];             SCEN.delay2.expected='Correct total: ₹500. T1 was aborted, so nothing from it should be paid.';
+SCEN.hanging.parts=['LE','MP'];       SCEN.hanging.expected='Correct total: ₹500 + ₹720. The orphaned ₹1,960 was never committed.';
+
+/* ===================== rendering ===================== */
+if (typeof document !== 'undefined') (function(){
+  var $=function(id){return document.getElementById(id)};
+  var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+
+  var state={key:'happy', i:0, frames:[], iso:'read_committed', timer:null};
+
+  /* -- scenario picker -- */
+  var sel=$('scenario');
+  for(var i=0;i<ORDER.length;i++){
+    var o=document.createElement('option'); o.value=ORDER[i]; o.textContent=SCEN[ORDER[i]].name; sel.appendChild(o);
+  }
+  var tb=$('scenTable').getElementsByTagName('tbody')[0];
+  for(var j=0;j<ORDER.length;j++){
+    var s=SCEN[ORDER[j]], tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(s.name)+'</td><td>'+esc(s.q)+'</td><td class="mono">'+esc(s.ref)+'</td>';
+    tb.appendChild(tr);
+  }
+
+  function load(key){
+    stop();
+    state.key=key; state.frames=SCEN[key].build().frames; state.i=0; render();
+  }
+
+  /* -- record chip -- */
+  function recHtml(pk,r,f){
+    var cls='rec '+(r.type==='marker'?'marker ':'')+(r.status==='plain'?'plain ':r.status+' ');
+    if(f.freshOff[pk+':'+r.off]) cls+='fresh ';
+    return '<div class="'+cls+'"><span class="off">'+r.off+'</span><span class="txt">'+esc(r.text)+'</span></div>';
+  }
+
+  function render(){
+    var f=state.frames[state.i], sc=SCEN[state.key];
+
+    /* progress */
+    $('progbar').style.width = (state.frames.length<2?100:(state.i/(state.frames.length-1))*100)+'%';
+    $('step').disabled = state.i>=state.frames.length-1;
+    $('back').disabled = state.i<=0;
+
+    /* apps */
+    function app(a,idBox,idPill,idKv){
+      var box=$(idBox);
+      if(!a){ box.style.display='none'; return; }
+      box.style.display='';
+      box.className='actor'+((a.alive===false||a.fenced)?' dead':'');
+      var pill=$(idPill), cls='pill', txt=a.call;
+      if(a.fenced){cls='pill dead';txt='ProducerFenced';}
+      else if(a.alive===false){cls='pill dead';txt='dead';}
+      else if(a.frozen){cls='pill warn';txt='frozen';}
+      else if(/commit|Commit/.test(a.call)) cls='pill good';
+      else if(/abort/i.test(a.call)) cls='pill bad';
+      else cls='pill cool';
+      pill.className=cls; pill.textContent=txt;
+      $(idKv).innerHTML =
+        '<div class="kv"><b>transactional.id</b><span>'+esc(a.txnId)+'</span></div>'+
+        '<div class="kv"><b>producer id</b><span>'+a.pid+'</span></div>'+
+        '<div class="kv"><b>epoch</b><span>'+a.epoch+'</span></div>';
+    }
+    app(f.apps.A,'appA','appAstate','appAkv');
+    app(f.apps.B,'appB','appBstate','appBkv');
+
+    /* coordinator */
+    $('coord').className='actor'+(f.coord.alive?'':' dead');
+    var ft=null;
+    for(var k=0;k<f.coord.txns.length;k++) if(f.coord.txns[k].id===f.coord.focus) ft=f.coord.txns[k];
+    var cp=$('coordstate');
+    if(!f.coord.alive){ cp.className='pill dead'; cp.textContent='broker down'; }
+    else { var st=ft?ft.state:'—';
+      cp.className='pill '+(/CompleteCommit|PrepareCommit/.test(st)?'good':/Abort/.test(st)?'bad':/Ongoing/.test(st)?'warn':'');
+      cp.textContent=st; }
+    var lg='';
+    for(var m=0;m<f.coord.log.length;m++)
+      lg+='<div class="logline'+(m>=f.freshLog?' new':'')+'">'+esc('#'+f.coord.log[m].n+'  '+f.coord.log[m].text)+'</div>';
+    if(f.inflight) lg+='<div class="logline new">'+esc('⟳ in flight (stalled): '+f.inflight.text+'  pid '+f.inflight.pid+' epoch '+f.inflight.epoch)+'</div>';
+    $('coordlog').innerHTML=lg;
+    $('coordlog').scrollTop=99999;
+
+    /* partitions */
+    var out='';
+    for(var p=0;p<sc.parts.length;p++){
+      var pk=sc.parts[p], part=f.parts[pk], recs='';
+      for(var r=0;r<part.recs.length;r++) recs+=recHtml(pk,part.recs[r],f);
+      var stalled = f.leo[pk]-f.lso[pk];
+      out+='<div class="part"><div class="hdr"><span class="nm">'+PNAME[pk]+'</span>'+
+        '<span class="small mono">high watermark '+f.leo[pk]+'</span></div>'+
+        '<div class="recs">'+recs+'</div>'+
+        '<div class="lsobar"><span class="tag'+(stalled>0?' stall':'')+'">LSO '+f.lso[pk]+'</span>'+
+        (stalled>0
+          ? '<span>read_committed consumers are held '+stalled+' record'+(stalled===1?'':'s')+' back</span>'
+          : '<span>nothing undecided — readers are current</span>')+
+        '</div></div>';
+    }
+    $('parts').innerHTML=out;
+
+    /* readers */
+    function rows(list,el,limitNote){
+      var h='';
+      if(!list.length) h='<div class="dl empty">'+limitNote+'</div>';
+      for(var i2=0;i2<list.length;i2++){
+        var d=list[i2];
+        h+='<div class="dl'+(d.flag?' '+d.flag:'')+'">'+esc(d.off+'  '+d.text)+
+           (d.flag==='phantom'?'  ← never committed':d.flag==='dupe'?'  ← DUPLICATE':
+            d.flag==='pending'?'  ← not committed yet':'')+'</div>';
+      }
+      $(el).innerHTML=h;
+    }
+    var bank = state.iso==='read_committed' ? f.readers.rc : f.readers.ru;
+    var bankPaid = state.iso==='read_committed' ? f.readers.rcPaid : f.readers.ruPaid;
+    rows(bank,'rcDelivered','nothing delivered yet');
+    rows(f.readers.ru,'ruDelivered','nothing delivered yet');
+    var isoPill=$('rcIso');
+    isoPill.textContent=state.iso;
+    isoPill.className='pill '+(state.iso==='read_committed'?'good':'bad');
+
+    var bad=false;
+    for(var b=0;b<bank.length;b++) if(bank[b].flag) bad=true;
+    var v=$('verdict');
+    v.className='verdict '+(bad?'bad':(state.i===state.frames.length-1?'ok':'wait'));
+    $('verdictAmt').textContent='₹'+bankPaid.toLocaleString('en-IN');
+    $('verdictNote').textContent=sc.expected;
+
+    /* note */
+    $('noteStep').textContent='Step '+(state.i+1)+' of '+state.frames.length+' · '+f.label+(f.clock&&f.clock!=='t+0s'?'  ·  '+f.clock:'');
+    $('noteText').innerHTML=f.note;
+  }
+
+  function step(){ if(state.i<state.frames.length-1){state.i++;render();} else stop(); }
+  function back(){ if(state.i>0){state.i--;render();} }
+  function stop(){ if(state.timer){clearInterval(state.timer);state.timer=null;$('play').textContent='Run it for me';} }
+  function play(){
+    if(state.timer){stop();return;}
+    if(state.i>=state.frames.length-1) state.i=0;
+    $('play').textContent='Pause';
+    state.timer=setInterval(function(){ if(state.i>=state.frames.length-1){stop();} else step(); },1900);
+    render();
+  }
+
+  sel.addEventListener('change',function(){ load(sel.value); });
+  $('step').addEventListener('click',function(){stop();step();});
+  $('back').addEventListener('click',function(){stop();back();});
+  $('play').addEventListener('click',play);
+  $('reset').addEventListener('click',function(){stop();state.i=0;render();});
+  var isoBtns=$('iso').getElementsByTagName('button');
+  for(var ib=0;ib<isoBtns.length;ib++)(function(btn){
+    btn.addEventListener('click',function(){
+      state.iso=btn.getAttribute('data-v');
+      for(var q=0;q<isoBtns.length;q++) isoBtns[q].setAttribute('aria-pressed', isoBtns[q]===btn?'true':'false');
+      render();
+    });
+  })(isoBtns[ib]);
+
+  $('theme').addEventListener('click',function(){
+    var r=document.documentElement, cur=r.getAttribute('data-theme');
+    var dark = cur ? cur==='dark'
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
+    r.setAttribute('data-theme', dark?'light':'dark');
+  });
+
+  /* -- predict cards -- */
+  var CARDS=[
+    {h:'Before scenario 2 (Abort)',
+     q:'Three records are written and the transaction aborts. What happens to the bytes at offsets 810–812?',
+     opts:['They are removed from the log','They are rewritten as tombstones','They stay exactly where they are'],
+     right:2,
+     why:'<b>Nothing is removed.</b> An abort is an <i>append</i> — a marker after the records saying they do not count — plus a filter the <i>client</i> applies. The records occupy their offsets, sit on disk, and were replicated to every follower at full cost, until ordinary retention deletes the segment. The abort cost more than the commit would have.'},
+    {h:'Before scenario 3 (Producer dies)',
+     q:'A producer dies mid-transaction. A completely unrelated application then writes a normal, non-transactional record to the same partition. When can a read_committed consumer see that record?',
+     opts:['Immediately — it is not part of any transaction','Only after the dead transaction is resolved','Never'],
+     right:1,
+     why:'The LSO is a property of the <b>partition</b>, not of a producer. It sits at the first undecided record, and nothing beyond it is served — including perfectly healthy records from other applications. That is why the blast radius of a hung transaction is every consumer of that partition, and why transaction duration becomes a shared latency contract on a shared topic.'},
+    {h:'Before scenario 6 (Random id)',
+     q:'Two instances of the same service are briefly alive at once, each with its own UUID transactional.id. Both commit. What does EOS give you?',
+     opts:['Exactly-once — that is what fencing is for','Nothing; both transactions commit in full','An error on the second commit'],
+     right:1,
+     why:'Fencing is <b>by name</b>. Two different <code>transactional.id</code>s are two different jobs as far as Kafka is concerned, so no epoch is bumped and nobody is fenced. The system behaves exactly as configured — you told it two independent jobs were running. The id must be a deterministic function of the work assignment, stable across restarts.'},
+    {h:'Before scenario 8 (KIP-890)',
+     q:'A produce request from an aborted transaction arrives late, carrying the same producer id and epoch as the current one. What single change makes it impossible to mistake?',
+     opts:['Reject any request older than the transaction timeout','Bump the epoch on every commit and abort','Have the coordinator list every valid offset'],
+     right:1,
+     why:'If the epoch only changes when a producer restarts, then <span class="mono">(pid, epoch)</span> identifies a <i>producer</i>, and consecutive transactions are indistinguishable. Bumping it on every commit and abort makes <span class="mono">(pid, epoch)</span> identify a <i>transaction</i> — and a late record from the previous one carries a stale epoch and is fenced by machinery that already existed. That is KIP-890 phase 2, on by default since Kafka 4.0.'}
+  ];
+  var cw=$('cards'), html='';
+  for(var c=0;c<CARDS.length;c++){
+    var cd=CARDS[c], op='';
+    for(var oi=0;oi<cd.opts.length;oi++) op+='<button class="opt" data-c="'+c+'" data-o="'+oi+'">'+esc(cd.opts[oi])+'</button>';
+    html+='<div class="pcard"><h3>'+esc(cd.h)+'</h3><p>'+esc(cd.q)+'</p><div class="opts">'+op+
+          '</div><div class="reveal" id="rv'+c+'">'+cd.why+'</div></div>';
+  }
+  cw.innerHTML=html;
+  cw.addEventListener('click',function(e){
+    var t=e.target; if(!t.classList||!t.classList.contains('opt')) return;
+    var c=+t.getAttribute('data-c'), o=+t.getAttribute('data-o');
+    var sibs=t.parentNode.getElementsByTagName('button');
+    for(var s2=0;s2<sibs.length;s2++) sibs[s2].setAttribute('data-state', s2===CARDS[c].right?'right':(s2===o?'wrong':''));
+    $('rv'+c).className='reveal on';
+  });
+
+  load('happy');
+})();
+</script>

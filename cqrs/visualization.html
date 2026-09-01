@@ -1,439 +1,1096 @@
-<title>Ledger &amp; Chalkboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Red+Hat+Mono:wght@400;600&display=swap">
+<meta charset="utf-8">
+<title>The Two Desks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-  :root {
-    --bg: #eef2ef; --surface: #fafcfa; --surface2: #e2eae4;
-    --ink: #1f2823; --muted: #6f7d74; --line: #d0dcd3;
-    --accent: #2e7f6e; --accent-soft: #d9ece7;
-    --write: #44599e; --write-soft: #dfe4f2;
-    --event: #b8860f; --event-soft: #f3e8cd;
-    --stale: #b8860f; --stale-soft: #f3e8cd;
-    --fresh: #2e7f6e; --fresh-soft: #d9ece7;
-    --bad: #c04a3e; --bad-soft: #f2ddda;
+:root{
+  --ground:#e9edf0; --card:#fbfcfd; --card2:#f2f5f7; --sunk:#e2e7eb;
+  --ink:#131a1f; --ink2:#3f4d58; --muted:#66737e; --rule:#d2d9df; --rule2:#c0c9d1;
+  --good:#00874f; --goodFill:rgba(0,135,79,.13);
+  --bad:#8e4585;  --badFill:rgba(142,69,133,.13);
+  --warn:#a2650b; --warnFill:rgba(162,101,11,.14);
+  --cool:#1f6f9c; --coolFill:rgba(31,111,156,.13);
+  --idle:#9aa6b1;
+  --accent:#1f6f9c; --onAccent:#ffffff;
+  --shadow:0 1px 2px rgba(19,26,31,.06),0 6px 20px rgba(19,26,31,.07);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+    --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+    --good:#26a877; --goodFill:rgba(38,168,119,.16);
+    --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+    --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+    --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+    --idle:#6b7883;
+    --accent:#4c9ecb; --onAccent:#0c1216;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #151b17; --surface: #1d2620; --surface2: #263129;
-      --ink: #e4ece6; --muted: #93a398; --line: #34423a;
-      --accent: #5cb8a2; --accent-soft: #1e352f;
-      --write: #8fa3e0; --write-soft: #232b42;
-      --event: #d9a940; --event-soft: #362c14;
-      --stale: #d9a940; --stale-soft: #362c14;
-      --fresh: #5cb8a2; --fresh-soft: #1e352f;
-      --bad: #dd7364; --bad-soft: #3c211d;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #151b17; --surface: #1d2620; --surface2: #263129;
-    --ink: #e4ece6; --muted: #93a398; --line: #34423a;
-    --accent: #5cb8a2; --accent-soft: #1e352f;
-    --write: #8fa3e0; --write-soft: #232b42;
-    --event: #d9a940; --event-soft: #362c14;
-    --stale: #d9a940; --stale-soft: #362c14;
-    --fresh: #5cb8a2; --fresh-soft: #1e352f;
-    --bad: #dd7364; --bad-soft: #3c211d;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-    font-family: "Manrope", "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; }
-  .mono { font-family: "Red Hat Mono", ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 20px 60px; }
-  header h1 { font-size: 27px; font-weight: 800; margin: 4px 0 2px; text-wrap: balance; }
-  header .sub { color: var(--muted); max-width: 76ch; margin: 0 0 6px; }
-  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-
-  #verdict { margin: 14px 0; padding: 12px 16px; border-radius: 10px; background: var(--surface);
-    border: 1px solid var(--line); border-left: 5px solid var(--accent); font-size: 15px; }
-  #verdict.stale { border-left-color: var(--stale); } #verdict.bad { border-left-color: var(--bad); }
-  #verdict.good { border-left-color: var(--fresh); }
-  #verdict .tech { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; font-family: "Red Hat Mono", monospace; }
-
-  .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
-  @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
-  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-  .panel h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 10px; color: var(--muted); }
-
-  .stories { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
-  .stories button, .cmds button, .transport button {
-    text-align: left; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
-    background: var(--surface2); color: var(--ink); font: 600 13px "Manrope", sans-serif; cursor: pointer; }
-  .stories button:hover, .cmds button:hover, .transport button:hover { border-color: var(--accent); }
-  .stories button .hint { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
-  .transport { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .transport button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-
-  .flow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
-  @media (max-width: 760px) { .flow { grid-template-columns: 1fr; } }
-  .zone { border-radius: 10px; padding: 10px 12px; border: 1px dashed var(--line); background: var(--surface2); }
-  .zone h3 { margin: 0 0 2px; font-size: 13.5px; }
-  .zone .zsub { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; }
-  .zone.writez { border-color: var(--write); } .zone.readz { border-color: var(--accent); }
-  .projz { border: 2px solid var(--event); border-radius: 10px; background: var(--surface); padding: 10px 12px;
-    display: flex; flex-direction: column; gap: 8px; min-width: 190px; }
-  .projz h3 { margin: 0; font-size: 13.5px; }
-  .projz .status { font-family: "Red Hat Mono", monospace; font-size: 11.5px; }
-  .projz label { display: flex; gap: 6px; align-items: baseline; font-size: 12px; cursor: pointer; }
-  .projz input { accent-color: var(--accent); }
-  .projz .speedrow { font-size: 12px; }
-  .projz input[type=range] { width: 100%; accent-color: var(--accent); }
-
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
-  td.num, th.num { text-align: right; font-family: "Red Hat Mono", monospace; font-variant-numeric: tabular-nums; }
-  .tablewrap { overflow-x: auto; }
-  td.cancelled { color: var(--muted); text-decoration: line-through; }
-
-  .feed { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0 2px; align-items: center; }
-  .ev { font-family: "Red Hat Mono", monospace; font-size: 10.5px; font-weight: 600; padding: 2px 7px;
-    border-radius: 999px; border: 1px solid var(--event); background: var(--event-soft); color: var(--event); }
-  .ev.applied { opacity: .45; border-style: dashed; }
-  .ckpt { font-family: "Red Hat Mono", monospace; font-size: 10px; color: var(--accent); font-weight: 600; }
-
-  .bigtile { display: flex; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
-  .tile { flex: 1 1 120px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
-  .tile .n { font-family: "Red Hat Mono", monospace; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .tile .l { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-  .tile.freshT { border-color: var(--fresh); } .tile.staleT { border-color: var(--stale); }
-  .tile.badT { border-color: var(--bad); background: var(--bad-soft); }
-  .badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    border-radius: 999px; padding: 1px 8px; }
-  .badge.fresh { background: var(--fresh-soft); color: var(--fresh); }
-  .badge.stale { background: var(--stale-soft); color: var(--stale); }
-  .badge.bad { background: var(--bad-soft); color: var(--bad); }
-
-  #loglines { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; }
-  .ll { border-left: 3px solid var(--line); padding: 2px 10px; }
-  .ll .t { font-size: 13px; }
-  .ll .tech { font-family: "Red Hat Mono", monospace; font-size: 11px; color: var(--muted); }
-  .ll.w { border-left-color: var(--write); } .ll.p { border-left-color: var(--event); }
-  .ll.q { border-left-color: var(--accent); } .ll.x { border-left-color: var(--bad); }
-  .foot { margin-top: 16px; color: var(--muted); font-size: 12.5px; max-width: 84ch; }
-  .cmds { display: flex; flex-direction: column; gap: 6px; }
+}
+:root[data-theme="dark"]{
+  --ground:#101519; --card:#192026; --card2:#1f272e; --sunk:#141a20;
+  --ink:#e7ecf0; --ink2:#bcc7d1; --muted:#8d9aa6; --rule:#2b343d; --rule2:#3a454f;
+  --good:#26a877; --goodFill:rgba(38,168,119,.16);
+  --bad:#b271ae;  --badFill:rgba(178,113,174,.16);
+  --warn:#bf8526; --warnFill:rgba(191,133,38,.16);
+  --cool:#4c9ecb; --coolFill:rgba(76,158,203,.16);
+  --idle:#6b7883;
+  --accent:#4c9ecb; --onAccent:#0c1216;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.55;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 72px}
+header.top{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+h1{font-family:Chivo,system-ui,sans-serif;font-weight:900;font-size:clamp(30px,4.4vw,46px);
+   line-height:.98;letter-spacing:-.025em;margin:0;text-wrap:balance}
+h1 .sub{display:block;font-size:.38em;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5em}
+.lede{max-width:64ch;color:var(--ink2);margin:10px 0 0;font-size:15.5px}
+.themebtn{font:600 12px/1 "Public Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--card);color:var(--ink2);border:1px solid var(--rule);border-radius:999px;
+  padding:9px 15px;cursor:pointer;white-space:nowrap}
+.themebtn:hover{border-color:var(--rule2);color:var(--ink)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+  margin:0 0 8px;box-shadow:var(--shadow)}
+.cell{background:var(--card);padding:15px 17px 16px;min-width:0}
+.cell .lab{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.cell .val{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;
+  font-size:clamp(19px,2.6vw,27px);line-height:1.12;margin-top:7px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.cell .note{font-size:11.5px;color:var(--muted);margin-top:3px;min-height:1.3em}
+.cell.hero{background:var(--card2)}
+.v-good{color:var(--good)} .v-bad{color:var(--bad)} .v-warn{color:var(--warn)} .v-cool{color:var(--cool)}
+.readnote{font-size:12.5px;color:var(--muted);margin:0 0 22px;max-width:78ch}
+/* Greek letters must not be uppercased: text-transform turns μ→Μ, ρ→Ρ, λ→Λ,
+   which read as Latin M, P and A. */
+.gk{text-transform:none}
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--sunk);padding:4px;border-radius:12px;margin-bottom:20px;border:1px solid var(--rule)}
+nav.tabs button{font:600 13px/1 "Public Sans",sans-serif;color:var(--ink2);background:transparent;
+  border:0;border-radius:9px;padding:10px 15px;cursor:pointer;white-space:nowrap}
+nav.tabs button:hover{color:var(--ink);background:var(--card2)}
+nav.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+nav.tabs button .n{font-family:"IBM Plex Mono",monospace;color:var(--muted);margin-right:7px;font-weight:500}
+nav.tabs button[aria-selected="true"] .n{color:var(--accent)}
+.panel{display:none}
+.panel.on{display:block}
+.grid{display:grid;grid-template-columns:310px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card+.card{margin-top:20px}
+.card h2{font-family:Chivo,sans-serif;font-weight:700;font-size:17px;letter-spacing:-.01em;margin:0 0 6px;text-wrap:balance}
+.card h3{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:20px 0 10px}
+.card h3:first-child{margin-top:0}
+.card p{margin:0 0 12px;color:var(--ink2);font-size:14px}
+.card p.tight{margin-bottom:6px}
+.ctl{margin:0 0 15px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font:600 11px/1.3 "Public Sans",sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.ctl label .v{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink);letter-spacing:0;text-transform:none}
+.ctl input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.ctl .hint{font-size:11.5px;color:var(--muted);margin-top:5px}
+.seg{display:flex;gap:2px;background:var(--sunk);padding:3px;border-radius:9px;border:1px solid var(--rule)}
+.seg button{flex:1;font:600 12px/1 "Public Sans",sans-serif;color:var(--ink2);background:transparent;border:0;border-radius:7px;padding:8px 6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.btn{font:600 13px/1 "Public Sans",sans-serif;background:var(--accent);color:var(--onAccent);
+  border:0;border-radius:9px;padding:11px 15px;cursor:pointer;width:100%}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:var(--card2);color:var(--ink2);border:1px solid var(--rule)}
+.btn+.btn{margin-top:8px}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 0}
+table.t th{font:600 10.5px/1.3 "Public Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);text-align:right;padding:7px 9px;border-bottom:1px solid var(--rule)}
+table.t th:first-child{text-align:left}
+table.t td{padding:8px 9px;border-bottom:1px solid var(--rule);text-align:right;
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+table.t td:first-child{text-align:left;font-family:"Public Sans",sans-serif;color:var(--ink2)}
+table.t tr.hi td{background:var(--coolFill);font-weight:600}
+table.t tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+svg{display:block;max-width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:12px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.callout{background:var(--card2);border-left:3px solid var(--accent);border-radius:0 9px 9px 0;padding:13px 15px;margin:14px 0 0;font-size:13.5px;color:var(--ink2)}
+.callout b{color:var(--ink)}
+.callout.warn{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.predict{background:var(--warnFill);border:1px solid var(--rule);border-radius:11px;padding:14px 15px;margin:0 0 16px}
+.predict .q{font-weight:600;color:var(--ink);font-size:14px;margin-bottom:9px}
+.predict .opts{display:flex;flex-wrap:wrap;gap:7px}
+.predict .opts button{font:600 12.5px/1 "Public Sans",sans-serif;background:var(--card);color:var(--ink2);
+  border:1px solid var(--rule2);border-radius:8px;padding:9px 12px;cursor:pointer}
+.predict .opts button:hover{border-color:var(--accent);color:var(--ink)}
+.predict .opts button[aria-pressed="true"]{background:var(--accent);color:var(--onAccent);border-color:var(--accent)}
+.predict .ans{font-size:13.5px;color:var(--ink2);margin-top:11px;display:none}
+.predict .ans.on{display:block}
+.mono{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.status{font-size:12px;color:var(--muted);font-family:"IBM Plex Mono",monospace;min-height:1.4em;margin-top:8px}
+footer.foot{margin-top:34px;padding-top:20px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);max-width:80ch}
 </style>
 
 <div class="wrap">
-  <header>
-    <div class="eyebrow">CQRS · command–query separation, simulated</div>
-    <h1>Ledger &amp; Chalkboard</h1>
-    <p class="sub">A shop records every sale in one guarded <b>ledger</b> (the write side — rules enforced, one entry
-    per sale, an event per entry). A <b>clerk</b> copies new events onto <b>chalkboards</b> (the read side — one board
-    per question) whenever they get to it. Queries read only the boards — instantly, but the boards run behind the
-    ledger. Place orders, slow the clerk down, break the clerk's habits, and watch what queries see. The stories on the
-    left narrate the important scenes.</p>
-  </header>
+<header class="top">
+  <div>
+    <h1><span class="sub">CQRS · a learning lab</span>The Two Desks</h1>
+    <p class="lede">One desk takes changes and enforces every rule. Other desks
+    answer questions from boards that are always slightly out of date. This page
+    lets you measure exactly how out of date, and break each protection in turn
+    to see what it was holding up.</p>
+  </div>
+  <button class="themebtn" id="themebtn">Theme</button>
+</header>
 
-  <div id="verdict"><span id="vtext">Pick a story, or just start placing orders.</span><span class="tech" id="vtech"></span></div>
+<nav class="tabs" id="tabs">
+  <button data-p="p1" aria-selected="true"><span class="n">1</span>The window</button>
+  <button data-p="p2"><span class="n">2</span>The stale read</button>
+  <button data-p="p3"><span class="n">3</span>The split</button>
+  <button data-p="p4"><span class="n">4</span>Projection correctness</button>
+  <button data-p="p5"><span class="n">5</span>The rebuild</button>
+</nav>
+<!-- ============================ PANEL 1 ============================ -->
+<section class="panel on" id="p1">
+  <div class="readout">
+    <div class="cell hero"><div class="lab">Mean window</div><div class="val" id="r1mean">—</div><div class="note" id="r1meannote">commit → visible</div></div>
+    <div class="cell"><div class="lab">p99 window</div><div class="val" id="r1p99">—</div><div class="note">1 event in 100 is at least this stale</div></div>
+    <div class="cell"><div class="lab">Capacity <span class="gk">μ</span></div><div class="val" id="r1mu">—</div><div class="note">events/s the projector can apply</div></div>
+    <div class="cell"><div class="lab">Utilisation <span class="gk">ρ</span></div><div class="val" id="r1rho">—</div><div class="note" id="r1rhonote">λ ÷ μ</div></div>
+  </div>
+  <p class="readnote">The window is not a constant — it is a distribution. Watch the
+  <b>mean</b> track the poll interval, and watch ρ stay quiet until it doesn't.</p>
 
-  <div class="layout">
-    <div class="panel">
-      <h2>Play a story for me</h2>
-      <div class="stories">
-        <button data-story="lagclose"><span>1 · A sale reaches the board</span><span class="hint">Command, lag, projection, fresh query</span></button>
-        <button data-story="stale"><span>2 · The stale confirmation page</span><span class="hint">Query races the clerk — and loses</span></button>
-        <button data-story="holiday"><span>3 · The clerk takes a break</span><span class="hint">Writes keep working; boards freeze; backlog drains later</span></button>
-        <button data-story="dup"><span>4 · The careless clerk</span><span class="hint">Redelivery + non-idempotent copying = wrong revenue</span></button>
-        <button data-story="rebuild"><span>5 · Erase the board, keep the truth</span><span class="hint">Any board rebuilds from the ledger's events</span></button>
-      </div>
-
-      <h2>Commands (the ledger door)</h2>
-      <div class="cmds">
-        <button id="cmdPriya">Priya orders a keyboard — ₹80</button>
-        <button id="cmdAmit">Amit orders a desk — ₹300</button>
-        <button id="cmdCancel">Cancel Priya's latest order</button>
-      </div>
-
-      <h2 style="margin-top:14px">Queries (the boards)</h2>
-      <div class="cmds">
-        <button id="qRevenue">Manager asks: revenue today?</button>
-        <button id="qDash">Priya asks: where are my orders?</button>
-      </div>
-
-      <div class="transport">
-        <button id="btnPlay" class="primary">Run clock</button>
-        <button id="btnReset">Reset shop</button>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>The traffic</h3>
+        <div class="ctl"><label>Commit rate <span class="gk">λ</span> <span class="v" id="v1lam">40 /s</span></label>
+          <input type="range" id="s1lam" min="10" max="600" step="10" value="40">
+          <div class="hint">Orders per second reaching the write store.</div></div>
+        <h3>The projector</h3>
+        <div class="ctl"><label>Mode</label>
+          <div class="seg" id="s1mode"><button data-v="poll" aria-pressed="true">Poll on a timer</button><button data-v="stream">Stream</button></div>
+          <div class="hint">Streaming means the write side notifies the projector instead of it waking on a clock.</div></div>
+        <div class="ctl" id="s1pollwrap"><label>Poll interval <span class="v" id="v1poll">500 ms</span></label>
+          <input type="range" id="s1poll" min="50" max="5000" step="50" value="500"></div>
+        <div class="ctl"><label>Cost of one apply <span class="v" id="v1apply">2 ms</span></label>
+          <input type="range" id="s1apply" min="1" max="30" step="1" value="2">
+          <div class="hint">How long the read store takes for one event. Raising this is §11.4.</div></div>
+        <div class="ctl"><label>Max batch <span class="v" id="v1batch">100</span></label>
+          <input type="range" id="s1batch" min="1" max="500" step="1" value="100"></div>
+        <button class="btn" id="b1run">Run this scenario for me</button>
+        <button class="btn ghost" id="b1reset">Reset to the document's setup</button>
+        <div class="status" id="st1"></div>
       </div>
     </div>
-
     <div>
-      <div class="panel">
-        <div class="flow">
-          <div class="zone writez">
-            <h3>Write side — the ledger</h3>
-            <p class="zsub">Normalized; every rule checked here. Commands land instantly.</p>
-            <div class="tablewrap"><table id="ordersTbl">
-              <thead><tr><th>order</th><th>customer</th><th>status</th><th class="num">total</th></tr></thead>
-              <tbody></tbody></table></div>
-            <p class="zsub" style="margin-top:8px">Event feed (the facts, in order):</p>
-            <div class="feed" id="feed"></div>
-          </div>
-          <div class="projz">
-            <h3>The clerk (projector)</h3>
-            <div class="status" id="projStatus">idle</div>
-            <div class="speedrow">Clerk speed: <span class="mono" id="vSpeed">1 event / 2 ticks</span>
-              <input type="range" id="speed" min="0" max="4" value="2"></div>
-            <label><input type="checkbox" id="paused"><span><b>on a break</b> (stop projecting)</span></label>
-            <label><input type="checkbox" id="naive"><span><b>careless</b> (non-idempotent copying)</span></label>
-            <button id="btnRedeliver" title="Rewind the checkpoint to 0 — the feed will redeliver everything, as at-least-once feeds do">Redeliver the feed</button>
-            <button id="btnRebuild" title="Erase both boards and reset the checkpoint — the clerk rewrites them from history">Erase boards &amp; rebuild</button>
-          </div>
-          <div class="zone readz">
-            <h3>Read side — the chalkboards</h3>
-            <p class="zsub">Denormalized; one board per question; zero business logic.</p>
-            <div class="bigtile">
-              <div class="tile" id="revTile"><div class="n" id="revN">₹0</div><div class="l">today's revenue board</div></div>
-              <div class="tile" id="lagTile"><div class="n" id="lagN">0</div><div class="l">events behind the ledger</div></div>
-            </div>
-            <p class="zsub">Priya's dashboard board:</p>
-            <div class="tablewrap"><table id="dashTbl">
-              <thead><tr><th>order</th><th>status</th><th class="num">total</th></tr></thead>
-              <tbody></tbody></table></div>
-          </div>
+      <div class="card">
+        <h2>Where each event lands</h2>
+        <p class="tight">Every bar is a slice of the window. Tall bars near the left
+        mean most events become visible quickly. The dashed line is the mean.</p>
+        <div id="c1hist"></div>
+        <div class="legend"><span><i style="background:var(--cool)"></i>events, by how stale they were when they became visible</span></div>
+      </div>
+      <div class="card">
+        <h2>The cliff</h2>
+        <p class="tight">The same projector, swept from idle to over capacity. This is the
+        chart that explains why lag monitoring gives you no warning: it is flat across
+        almost the whole operating range, then vertical. The sweep is fixed at the
+        document's setup (poll 500&nbsp;ms, apply 2&nbsp;ms, batch 100) so it reproduces
+        §11.3 exactly — your sliders move the <b>you</b> marker, not the curve.</p>
+        <div id="c1cliff"></div>
+        <div class="legend">
+          <span><i style="background:var(--cool)"></i>mean window</span>
+          <span><i style="background:var(--bad)"></i>p99 window</span>
+          <span><i style="background:var(--warn)"></i>your current ρ</span>
         </div>
+        <div class="callout"><b>Read the flat part.</b> From ρ = 0.10 to ρ = 0.98 the mean
+        window moves 307 → 509 ms. A 2% further rise in traffic then multiplies it by 17×.
+        Below capacity the window is set by the <i>timer</i>, not the queue — so the queue's
+        growth is invisible until the drain no longer fits in one interval.</div>
       </div>
-
-      <div class="panel" style="margin-top:14px">
-        <h2>What just happened</h2>
-        <div id="loglines"></div>
+      <div class="card">
+        <h2>Poll versus stream, at this load</h2>
+        <div class="scroll"><table class="t" id="t1cmp"></table></div>
+        <div class="callout good"><b>Streaming fixes the floor, not the ceiling.</b>
+        Capacity is identical in both rows — deleting the timer changes how long an event
+        waits before work starts, not how fast work goes.</div>
       </div>
-
-      <p class="foot"><b>Rules this page uses</b>: the clock ticks continuously while "Run clock" is on; the clerk copies
-      one event per <i>N</i> ticks (the speed slider — production projectors are fast, but never instantaneous; the slider
-      exaggerates reality so you can see it). "Careless" copying adds revenue without checking whether the event was
-      already applied — harmless until "Redeliver the feed", which every real at-least-once feed eventually does on its
-      own. The verdict compares each board against the ledger's own truth, which the page computes on the side — in
-      production nobody has that luxury, which is exactly why idempotency and rebuilds matter.</p>
     </div>
   </div>
+</section>
+
+<!-- ============================ PANEL 2 ============================ -->
+<section class="panel" id="p2">
+  <div class="readout">
+    <div class="cell hero"><div class="lab">Users who see their own write missing</div><div class="val" id="r2ryow">—</div><div class="note" id="r2ryownote">—</div></div>
+    <div class="cell"><div class="lab">Mean window</div><div class="val" id="r2mean">—</div><div class="note">commit → visible</div></div>
+    <div class="cell hero"><div class="lab">Orders accepted for 1 unit of stock</div><div class="val" id="r2over">—</div><div class="note">when the command reads the read model</div></div>
+    <div class="cell"><div class="lab">Worst case seen</div><div class="val" id="r2overmax">—</div><div class="note">for a single unit</div></div>
+  </div>
+  <p class="readnote">Two questions asked of one run. The first is a UX cost. The second
+  is a correctness bug, and no setting on this page reduces it to zero.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>Setup</h3>
+        <div class="ctl"><label>Commit rate <span class="gk">λ</span> <span class="v" id="v2lam">40 /s</span></label>
+          <input type="range" id="s2lam" min="10" max="600" step="10" value="40"></div>
+        <div class="ctl"><label>Mode</label>
+          <div class="seg" id="s2mode"><button data-v="poll" aria-pressed="true">Poll</button><button data-v="stream">Stream</button></div></div>
+        <div class="ctl" id="s2pollwrap"><label>Poll interval <span class="v" id="v2poll">500 ms</span></label>
+          <input type="range" id="s2poll" min="50" max="5000" step="50" value="500"></div>
+        <div class="ctl"><label>Page queries this long after <span class="v" id="v2think">100 ms</span></label>
+          <input type="range" id="s2think" min="10" max="2000" step="10" value="100">
+          <div class="hint">A redirect plus a page load. 50–250 ms is realistic.</div></div>
+        <button class="btn" id="b2run">Run this scenario for me</button>
+        <div class="status" id="st2"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="predict" id="pr2">
+          <div class="q">🔮 One unit of stock is left. The command checks the read model
+          before accepting. At 40 orders/second with a 500 ms poll, how many orders get
+          accepted for that one unit?</div>
+          <div class="opts">
+            <button data-v="0">1 — that's the point of a check</button>
+            <button data-v="1">2 or 3</button>
+            <button data-v="2">about 12</button>
+            <button data-v="3">hundreds</button>
+          </div>
+          <div class="ans" id="an2"></div>
+        </div>
+        <h2>Read-your-own-writes, by how fast the page comes back</h2>
+        <p class="tight">Each line is one projector configuration. The x-axis is how long
+        after the command the user's page issues its query.</p>
+        <div id="c2ryow"></div>
+        <div class="legend">
+          <span><i style="background:var(--bad)"></i>poll 2000 ms</span>
+          <span><i style="background:var(--warn)"></i>poll 500 ms</span>
+          <span><i style="background:var(--cool)"></i>poll 100 ms</span>
+          <span><i style="background:var(--good)"></i>streaming</span>
+          <span><i style="background:var(--ink2)"></i>your setting</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>The oversell, by window width</h2>
+        <div class="scroll"><table class="t" id="t2over"></table></div>
+        <div class="callout warn"><b>It never reaches zero.</b> Tightening the window from
+        2 s to streaming takes the oversell from 46.7 to 0.33 — 140× better, still not safe.
+        You cannot fix a decision made on stale data by making the data less stale.
+        You can only move the decision to the write model, where one conditional
+        <span class="mono">UPDATE … WHERE units &gt;= 1</span> makes it exactly zero at any window.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PANEL 3 ============================ -->
+<section class="panel" id="p3">
+  <div class="readout">
+    <div class="cell hero"><div class="lab">Checkout p99</div><div class="val" id="r3p99">—</div><div class="note" id="r3p99note">—</div></div>
+    <div class="cell"><div class="lab">Checkout mean</div><div class="val" id="r3mean">—</div><div class="note">5 ms of actual work</div></div>
+    <div class="cell"><div class="lab">Pool utilisation</div><div class="val" id="r3rho">—</div><div class="note">both workloads together</div></div>
+    <div class="cell"><div class="lab">Report p99</div><div class="val" id="r3rep">—</div><div class="note">800 ms of actual work</div></div>
+  </div>
+  <p class="readnote">Checkout's own traffic never changes on this panel. Only the reports
+  sharing its queue do.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>The database</h3>
+        <div class="ctl"><label>Report queries <span class="v" id="v3rep">4 /s</span></label>
+          <input type="range" id="s3rep" min="0" max="9" step="1" value="4">
+          <div class="hint">Each takes 800 ms — a five-way join with aggregation.</div></div>
+        <div class="ctl"><label>Arrangement</label>
+          <div class="seg" id="s3mode">
+            <button data-v="shared" aria-pressed="true">One shared pool of 8</button>
+            <button data-v="split">Split 6 + 2</button></div>
+          <div class="hint">Splitting gives checkout <i>fewer</i> workers — and no reports.</div></div>
+        <button class="btn" id="b3run">Run this scenario for me</button>
+        <div class="status" id="st3"></div>
+        <div class="callout"><b>Checkout does 1.5 s of work per second</b> across 8 workers —
+        19% utilisation. The database is nearly idle throughout this panel.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>What the reports do to checkout</h2>
+        <p class="tight">Log scale. The bar you care about is checkout's p99 — the customer's
+        experience of pressing Place Order.</p>
+        <div id="c3bars"></div>
+        <div class="legend">
+          <span><i style="background:var(--cool)"></i>shared pool of 8</span>
+          <span><i style="background:var(--good)"></i>checkout alone on 6</span>
+        </div>
+        <div class="callout warn"><b>The mechanism is not CPU.</b> An 800 ms report occupies a
+        worker for 800 ms. A 5 ms write arriving when several workers hold reports waits
+        behind them — head-of-line blocking. At 4 reports/s checkout's p99 is 406 ms, about
+        half of one report's service time, which is exactly the average wait behind a job
+        you are stuck behind.</div>
+      </div>
+      <div class="card">
+        <h2>The two arrangements, side by side</h2>
+        <div class="scroll"><table class="t" id="t3cmp"></table></div>
+        <div class="callout good"><b>Giving checkout 25% fewer workers made it 69× faster</b>,
+        because it stopped sharing a queue with work 160× larger. This is the pooling result
+        from your load-balancing lab read backwards: pool identical work, separate dissimilar
+        work. It is also the first reason to split reads from writes — before shape,
+        before scale.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PANEL 4 ============================ -->
+<section class="panel" id="p4">
+  <div class="readout">
+    <div class="cell hero"><div class="lab">Revenue error</div><div class="val" id="r4err">—</div><div class="note" id="r4errnote">vs the truth</div></div>
+    <div class="cell"><div class="lab">Crashes</div><div class="val" id="r4crash">—</div><div class="note">during the run</div></div>
+    <div class="cell"><div class="lab">Wasted replay</div><div class="val" id="r4replay">—</div><div class="note">× useful work</div></div>
+    <div class="cell"><div class="lab">B<span class="gk">·h</span></div><div class="val" id="r4bh">—</div><div class="note">expected crashes per batch</div></div>
+  </div>
+  <p class="readnote">Nothing on this panel logs an error or fires an alert. The only symptom
+  is that a number is wrong.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>Crash safety</h3>
+        <div class="ctl"><label>Apply is idempotent</label>
+          <div class="seg" id="s4idem"><button data-v="1" aria-pressed="true">Yes — upsert</button><button data-v="0">No — <span class="mono">+=</span></button></div>
+          <div class="hint">Counters and sums are the non-idempotent case.</div></div>
+        <div class="ctl"><label>Checkpoint in the same transaction</label>
+          <div class="seg" id="s4atom"><button data-v="1" aria-pressed="true">Yes</button><button data-v="0">No</button></div>
+          <div class="hint">Only possible when the checkpoint lives in the read store. A Kafka offset does not.</div></div>
+        <div class="ctl"><label>Batch size <span class="v" id="v4batch">100</span></label>
+          <input type="range" id="s4batch" min="1" max="3000" step="1" value="100"></div>
+        <div class="ctl"><label>Crash hazard <span class="v" id="v4hz">1 per 1000</span></label>
+          <input type="range" id="s4hz" min="1" max="40" step="1" value="10"></div>
+        <button class="btn" id="b4run">Run this scenario for me</button>
+        <div class="status" id="st4"></div>
+      </div>
+      <div class="card">
+        <h3>Ordering</h3>
+        <div class="ctl"><label>Parallel projectors <span class="v" id="v4w">8</span></label>
+          <input type="range" id="s4w" min="1" max="32" step="1" value="8"></div>
+        <div class="ctl"><label>One worker stalls for <span class="v" id="v4stall">1000 ms</span></label>
+          <input type="range" id="s4stall" min="0" max="3000" step="100" value="1000"></div>
+        <div class="ctl"><label>Routing</label>
+          <div class="seg" id="s4key"><button data-v="0" aria-pressed="true">Round robin</button><button data-v="1">By order id</button></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="predict" id="pr4">
+          <div class="q">🔮 A projector dies partway through a batch and restarts from its
+          old checkpoint, re-applying events it already applied. Which protections do you
+          need to keep the numbers correct?</div>
+          <div class="opts">
+            <button data-v="0">Both, always</button>
+            <button data-v="1">Either one alone is enough</button>
+            <button data-v="2">Neither — the feed handles it</button>
+          </div>
+          <div class="ans" id="an4"></div>
+        </div>
+        <h2>The four combinations</h2>
+        <div class="scroll"><table class="t" id="t4matrix"></table></div>
+      </div>
+      <div class="card">
+        <h2>Batch size is the blast radius</h2>
+        <p class="tight">Two different costs of a large batch. The left column is how wrong
+        you get with no protection; the right is how much work you waste <i>even when
+        fully correct</i>, because replayed events are themselves exposed to the hazard.</p>
+        <div class="scroll"><table class="t" id="t4batch"></table></div>
+        <div class="callout warn"><b>The poison batch.</b> Keep B·h well under 1. At B·h = 5
+        the projector does 27 units of wasted work per unit of progress — perfectly correct,
+        and barely moving.</div>
+      </div>
+      <div class="card">
+        <h2>Ordering: what a stalled worker corrupts</h2>
+        <div class="scroll"><table class="t" id="t4ord"></table></div>
+        <div class="callout" id="cal4ord"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PANEL 5 ============================ -->
+<section class="panel" id="p5">
+  <div class="readout">
+    <div class="cell hero"><div class="lab">Rebuild time</div><div class="val" id="r5time">—</div><div class="note" id="r5note">H ÷ (μ − λ)</div></div>
+    <div class="cell"><div class="lab">Spare capacity</div><div class="val" id="r5spare">—</div><div class="note">μ − λ, your actual replay speed</div></div>
+    <div class="cell"><div class="lab">Utilisation <span class="gk">ρ</span></div><div class="val" id="r5rho">—</div><div class="note">λ ÷ μ</div></div>
+    <div class="cell"><div class="lab">If you replay in parallel ×8</div><div class="val" id="r5par">—</div><div class="note">keyed partitions, 8 workers</div></div>
+  </div>
+  <p class="readnote">Your rebuild speed is not your projector's capacity. It is your
+  projector's <b>spare</b> capacity — and that is why the curve below is not a straight line.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h3>The rebuild</h3>
+        <div class="ctl"><label>History to replay <span class="v" id="v5h">50 M events</span></label>
+          <input type="range" id="s5h" min="1" max="200" step="1" value="50"></div>
+        <div class="ctl"><label>Live commit rate <span class="gk">λ</span> <span class="v" id="v5lam">40 /s</span></label>
+          <input type="range" id="s5lam" min="10" max="490" step="10" value="40">
+          <div class="hint">Traffic keeps arriving while you replay, and must also be applied.</div></div>
+        <div class="ctl"><label>Cost of one apply <span class="v" id="v5apply">2 ms</span></label>
+          <input type="range" id="s5apply" min="1" max="20" step="1" value="2"></div>
+        <button class="btn" id="b5run">Run this scenario for me</button>
+        <div class="status" id="st5"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Rebuild time against live load</h2>
+        <p class="tight">The vertical asymptote is at λ = μ. To the right of it there is no
+        rebuild time, because the rebuild never finishes.</p>
+        <div id="c5curve"></div>
+        <div class="legend">
+          <span><i style="background:var(--cool)"></i>rebuild time</span>
+          <span><i style="background:var(--warn)"></i>your current λ</span>
+          <span><i style="background:var(--bad)"></i>λ = μ, never finishes</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>The same rebuild, at different live loads</h2>
+        <div class="scroll"><table class="t" id="t5"></table></div>
+        <div class="callout warn"><b>31 hours on a quiet system, 6.6 days at 82% utilisation
+        — which most teams would call healthy.</b> Past ρ = 1 you have a read model you can
+        never recreate, which means a read-side schema change you can never make. Compute
+        this number quarterly, before you need it, not during the incident.</div>
+        <div class="callout good"><b>The three real answers</b> when the number is too big:
+        build the new version alongside the live one and cut over (blue/green); replay with
+        far more workers than the live projector uses — safe because the ordering constraint
+        is only per key, which is why §10.4's keying decision pays off twice; or reduce H
+        with snapshots or a shorter retention.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  Every figure on this page comes from the simulator below, which is the same engine the
+  lab's <span class="mono">README.md</span> quotes — the document and this page agree digit
+  for digit. The model: commands commit as a Poisson process; a projector reads after its
+  checkpoint, applies each event, and commits the checkpoint, with the applies and the
+  checkpoint sharing one read-side transaction so a batch becomes visible at one instant.
+  It is a model of the mechanism, not a measurement of any real database.
+</footer>
 </div>
-
 <script>
-"use strict";
-/* ---------------- engine (no DOM — testable headlessly) ---------------- */
-function makeShop() {
-  const shop = {
-    // write side
-    orders: [],            // {id, customer, status, total}
-    events: [],            // {seq, type, order_id, customer, total}
-    // read side
-    checkpoint: 0,
-    dashboard: {},         // order_id -> {customer, status, total}
-    revenue: 0,
-    // knobs
-    naive: false,
-    nextId: 1,
-    log: [],
-  };
-  const ev = (kind, text, tech) => shop.log.push({ kind, text, tech });
+/* ============================================================================
+   CQRS lab — simulation engine.  (Also embedded verbatim in visualization.html,
+   so every figure in README.md is reproducible from the page you can open.)
 
-  shop.place = function (customer, product, total) {
-    const id = "ord-" + shop.nextId++;
-    shop.orders.push({ id, customer, status: "PLACED", total });
-    shop.events.push({ seq: shop.events.length + 1, type: "OrderPlaced", order_id: id, customer, total });
-    ev("w", `${customer} placed ${id} (${product}, ₹${total}). The ledger recorded it and appended event #${shop.events.length} — in one transaction. The boards know nothing yet.`,
-       `command OK → OrderPlaced seq=${shop.events.length}`);
-    return id;
-  };
-  shop.cancel = function (customer) {
-    const o = [...shop.orders].reverse().find(x => x.customer === customer && x.status === "PLACED");
-    if (!o) { ev("x", `Cancel rejected: ${customer} has no cancellable order. The write side said no; no event was produced.`, "CommandRejected"); return false; }
-    o.status = "CANCELLED";
-    shop.events.push({ seq: shop.events.length + 1, type: "OrderCancelled", order_id: o.id, customer, total: o.total });
-    ev("w", `${o.id} cancelled in the ledger; event #${shop.events.length} appended. The boards still show it as PLACED until the clerk catches up.`,
-       `OrderCancelled seq=${shop.events.length}`);
-    return true;
-  };
-  shop.lag = () => shop.events.length - shop.checkpoint;
+   THE MODEL, stated so it can be argued with:
+     - Commands commit to the write store as a Poisson process at rate lambda.
+       Each accepted command appends one event, with a monotonic sequence
+       number and a commit timestamp, in the SAME transaction as the state
+       change (the transactional-outbox rule).
+     - A projector reads events after its checkpoint, applies each to a read
+       store, then commits the checkpoint. One apply costs applyMs; committing
+       the checkpoint costs ckptMs; a batch holds at most `batch` events.
+     - The applies and the checkpoint share ONE read-side transaction, so every
+       event in a batch becomes visible at the same instant -- the batch commit.
+       Visibility is therefore quantised by the batch, not smooth.
+     - Projector capacity is mu = 1000*batch/(batch*applyMs + ckptMs) events/s.
+   ========================================================================== */
 
-  shop.applyOne = function () {                      // the clerk copies ONE event
-    if (shop.checkpoint >= shop.events.length) return false;
-    const e = shop.events[shop.checkpoint];          // next unapplied (seq = checkpoint+1)
-    if (e.type === "OrderPlaced") {
-      const firstTime = !(e.order_id in shop.dashboard);
-      if (firstTime || shop.naive) shop.revenue += e.total;
-      if (firstTime || shop.naive) shop.dashboard[e.order_id] = { customer: e.customer, status: "PLACED", total: e.total };
-      ev("p", `The clerk copied event #${e.seq}: ${e.order_id} onto the boards — dashboard row written, ₹${e.total} added to the revenue board.` +
-         (!firstTime && shop.naive ? " (It was ALREADY on the board — a careful clerk would have skipped the revenue add!)" : ""),
-         `apply seq=${e.seq}${!firstTime && shop.naive ? " — DUPLICATE, added anyway" : ""}`);
-    } else if (e.type === "OrderCancelled") {
-      const row = shop.dashboard[e.order_id];
-      const firstTime = row && row.status !== "CANCELLED";
-      if (row) row.status = "CANCELLED";
-      if (firstTime || shop.naive) shop.revenue -= e.total;
-      ev("p", `The clerk copied event #${e.seq}: ${e.order_id} marked CANCELLED, ₹${e.total} subtracted from revenue.` +
-         (!firstTime && shop.naive ? " (Already cancelled on the board — the careful clerk would not subtract again!)" : ""),
-         `apply seq=${e.seq}${!firstTime && shop.naive ? " — DUPLICATE, subtracted anyway" : ""}`);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function expo(r,m){return -Math.log(1-r())*m}
+function pctl(s,p){if(!s.length)return 0;var i=Math.min(s.length-1,Math.max(0,Math.ceil(p/100*s.length)-1));return s[i]}
+function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
+function stats(a){var s=a.slice().sort(function(x,y){return x-y});return{n:a.length,mean:avg(a),p50:pctl(s,50),p95:pctl(s,95),p99:pctl(s,99),max:s.length?s[s.length-1]:0}}
+
+function makeCommits(lambdaPerSec,durMs,seed){
+  var r=mulberry32(seed),t=0,out=[],iat=1000/lambdaPerSec,seq=0;
+  for(;;){ t+=expo(r,iat); if(t>durMs) break; out.push({seq:++seq,commit:t}); }
+  return out;
+}
+function capacity(applyMs,ckptMs,batch){ return 1000*batch/(batch*applyMs+ckptMs); }
+
+/* ---- SIM 1 : THE CONSISTENCY WINDOW ------------------------------------ */
+function simWindow(o){
+  var lambda=o.lambda, pollMs=(o.poll==null?500:o.poll), applyMs=(o.applyMs==null?2:o.applyMs),
+      ckptMs=(o.ckptMs==null?5:o.ckptMs), batch=(o.batch==null?100:o.batch),
+      mode=o.mode||'poll', durMs=(o.durMs==null?600000:o.durMs), seed=(o.seed==null?1:o.seed);
+  var ev=o.commits||makeCommits(lambda,durMs,seed);
+  var lag=new Array(ev.length), visible=new Array(ev.length);
+  var phase=(o.phase==null?0:o.phase);
+  var i=0,t=0,nextTick=(phase>0?phase:pollMs),busy=0,batches=0,batched=0,drain=false;
+  while(i<ev.length){
+    if(mode==='poll'){
+      if(!drain){ t=Math.max(t,nextTick); while(nextTick<=t) nextTick+=pollMs; }
+    } else {
+      if(ev[i].commit>t) t=ev[i].commit;
     }
-    shop.checkpoint = e.seq;
-    return true;
-  };
-
-  shop.redeliver = function () {
-    shop.checkpoint = 0;
-    ev("x", "The feed redelivered from the start (at-least-once delivery doing what it always eventually does). A careful clerk will shrug; a careless one is about to corrupt the boards.",
-       "checkpoint ← 0; all events will be re-applied");
-  };
-  shop.rebuild = function () {
-    shop.dashboard = {}; shop.revenue = 0; shop.checkpoint = 0;
-    ev("p", "Both boards erased and the clerk sent back to event #1. Nothing of value was lost — the ledger's events are the durable truth; boards are rebuildable caches.",
-       "read models dropped; replay from seq 1");
-  };
-
-  // ground truth, computed from the ledger (what the boards SHOULD say)
-  shop.truthRevenue = () => shop.orders.reduce((s, o) => s + (o.status === "CANCELLED" ? 0 : o.total), 0);
-  shop.boardState = function () {                    // fresh / stale / corrupt
-    if (shop.lag() > 0) return "stale";
-    return shop.revenue === shop.truthRevenue() ? "fresh" : "corrupt";
-  };
-  return shop;
+    var n=0; while(i+n<ev.length && ev[i+n].commit<=t && n<batch) n++;
+    if(n===0){ drain=false; continue; }
+    var dur=n*applyMs+ckptMs, commitAt=t+dur;
+    for(var k=0;k<n;k++){ visible[i+k]=commitAt; lag[i+k]=commitAt-ev[i+k].commit; }
+    busy+=dur; batches++; batched+=n; i+=n; t=commitAt; drain=(n===batch);
+    if(mode==='poll'){ while(nextTick<=t) nextTick+=pollMs; }
+  }
+  var ages=[],j=0;
+  for(var s=0;s<durMs;s+=100){
+    while(j<ev.length && visible[j]<=s) j++;
+    ages.push(j<ev.length && ev[j].commit<=s ? s-ev[j].commit : 0);
+  }
+  var mu=capacity(applyMs,ckptMs,batch);
+  return {lag:stats(lag),age:stats(ages),lagArr:lag,visible:visible,commits:ev,
+          util:busy/Math.max(t,durMs),meanBatch:batched/Math.max(1,batches),
+          capacity:mu,rho:lambda/mu,endT:t,finalLag:(ev.length?lag[ev.length-1]:0)};
 }
 
-/* ---------------- headless self-test ---------------- */
-if (typeof document === "undefined") {
-  const s = makeShop();
-  s.place("priya", "keyboard", 80);
-  console.assert(s.lag() === 1 && s.revenue === 0, "command lands, board stale");
-  while (s.applyOne()) {}
-  console.assert(s.lag() === 0 && s.revenue === 80 && s.boardState() === "fresh", "drain -> fresh");
-  s.cancel("priya"); while (s.applyOne()) {}
-  console.assert(s.revenue === 0 && s.boardState() === "fresh", "cancel projected");
-  // careful clerk survives redelivery
-  s.redeliver(); while (s.applyOne()) {}
-  console.assert(s.revenue === 0 && s.boardState() === "fresh", "idempotent redelivery harmless, got " + s.revenue);
-  // careless clerk corrupts
-  const n = makeShop(); n.naive = true;
-  n.place("priya", "keyboard", 80); while (n.applyOne()) {}
-  n.redeliver(); while (n.applyOne()) {}
-  console.assert(n.revenue === 160 && n.boardState() === "corrupt", "naive redelivery double-counts, got " + n.revenue);
-  // rebuild heals
-  n.naive = false; n.rebuild(); while (n.applyOne()) {}
-  console.assert(n.revenue === 80 && n.boardState() === "fresh", "rebuild heals corruption, got " + n.revenue);
-  // rejection produces no event
-  const r = makeShop(); const evs = r.events.length; r.cancel("nobody");
-  console.assert(r.events.length === evs, "rejected command emits nothing");
-  console.log("self-test complete: lag/fresh/corrupt/rebuild/rejection all verified");
+/* ---- SIM 2 : READ-YOUR-OWN-WRITES -------------------------------------- */
+function simStaleRead(w,thinkMs){
+  var stale=0,n=w.commits.length;
+  for(var i=0;i<n;i++) if(w.commits[i].commit+thinkMs < w.visible[i]) stale++;
+  return n?stale/n:0;
 }
 
-/* ---------------- UI ---------------- */
-if (typeof document !== "undefined") {
-  const $ = id => document.getElementById(id);
-  let shop = makeShop(), clock = null, tickCount = 0, narration = null;
-  const SPEED_LABELS = ["stopped", "1 event / 4 ticks", "1 event / 2 ticks", "1 event / tick", "2 events / tick"];
-  const SPEED_APPLY = t => [0, (t % 4 === 0 ? 1 : 0), (t % 2 === 0 ? 1 : 0), 1, 2][+$("speed").value];
-
-  function verdict(text, tech, cls) { $("vtext").textContent = text; $("vtech").textContent = tech || ""; $("verdict").className = cls || ""; }
-
-  function autoVerdict() {
-    const st = shop.boardState(), lag = shop.lag(), truth = shop.truthRevenue();
-    if (st === "corrupt") verdict(`The boards are CORRUPTED: the revenue board says ₹${shop.revenue} but the ledger's truth is ₹${truth}. No amount of waiting fixes this — only "Erase boards & rebuild" (with a careful clerk) will.`,
-      `board ${shop.revenue} ≠ ledger ${truth}; lag 0`, "bad");
-    else if (st === "stale") verdict(`The boards are ${lag} event(s) behind the ledger. Queries right now answer from the past — correctly for their checkpoint, wrongly for the present.`,
-      `checkpoint ${shop.checkpoint} / ${shop.events.length}`, "stale");
-    else verdict(`The boards are fresh: every recorded event is reflected. Queries and ledger agree (revenue ₹${shop.revenue}).`,
-      `checkpoint ${shop.checkpoint} / ${shop.events.length}`, "good");
+/* ---- SIM 3 : COMMANDS THAT DECIDE FROM A STALE READ MODEL --------------
+   For every event i, how many further commands arrive before i is visible?
+   Those commands all see a read model in which i has not happened.
+   With one unit left in stock, that is exactly the oversell count.          */
+function simStaleAdmits(w){
+  /* vis[] is non-decreasing in i, so the frontier k is monotone: O(n), exact. */
+  var ev=w.commits,vis=w.visible,n=ev.length,out=new Array(n),k=0;
+  for(var i=0;i<n;i++){
+    if(k<i+1) k=i+1;
+    while(k<n && ev[k].commit<vis[i]) k++;
+    out[i]=k-i-1;
   }
+  return stats(out);
+}
 
-  function render() {
-    $("ordersTbl").tBodies[0].replaceChildren(...shop.orders.map(o => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="mono">${o.id}</td><td>${o.customer}</td><td${o.status === "CANCELLED" ? ' class="cancelled"' : ""}>${o.status}</td><td class="num">₹${o.total}</td>`;
-      return tr;
-    }));
-    const feed = shop.events.map(e => {
-      const s = document.createElement("span");
-      s.className = "ev" + (e.seq <= shop.checkpoint ? " applied" : "");
-      s.textContent = `#${e.seq} ${e.type === "OrderPlaced" ? "placed" : "cancelled"}`;
-      s.title = `${e.type} ${e.order_id} ₹${e.total}` + (e.seq <= shop.checkpoint ? " (applied)" : " (waiting)");
-      return s;
-    });
-    const ck = document.createElement("span"); ck.className = "ckpt"; ck.textContent = `▲ clerk at ${shop.checkpoint}`;
-    $("feed").replaceChildren(...feed, ck);
-    $("revN").textContent = "₹" + shop.revenue;
-    $("lagN").textContent = shop.lag();
-    const st = shop.boardState();
-    $("revTile").className = "tile " + (st === "corrupt" ? "badT" : st === "stale" ? "staleT" : "freshT");
-    $("lagTile").className = "tile " + (shop.lag() ? "staleT" : "freshT");
-    $("dashTbl").tBodies[0].replaceChildren(...Object.entries(shop.dashboard).filter(([, r]) => r.customer === "priya").map(([id, r]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="mono">${id}</td><td${r.status === "CANCELLED" ? ' class="cancelled"' : ""}>${r.status}</td><td class="num">₹${r.total}</td>`;
-      return tr;
-    }));
-    $("projStatus").textContent = $("paused").checked ? "on a break — backlog " + shop.lag()
-      : (shop.lag() ? "copying… " + shop.lag() + " behind" : "idle — all caught up");
-    $("loglines").replaceChildren(...shop.log.slice(-50).map(e => {
-      const d = document.createElement("div"); d.className = "ll " + e.kind;
-      d.innerHTML = `<div class="t">${e.text}</div><div class="tech">${e.tech}</div>`;
-      return d;
-    }).reverse());
-    if (!narration) autoVerdict();
+/* ---- SIM 4 : SHARED POOL vs SEPARATED POOLS ---------------------------- */
+function simPool(o){
+  var k=o.k,classes=o.classes,durMs=o.durMs,seed=(o.seed==null?7:o.seed);
+  var r=mulberry32(seed),arr=[];
+  classes.forEach(function(c,ci){
+    var t=0,iat=1000/c.rate;
+    for(;;){ t+=expo(r,iat); if(t>durMs) break;
+      arr.push({t:t,ci:ci,s:(c.dist==='exp'?expo(r,c.svc):c.svc)}); }
+  });
+  arr.sort(function(a,b){return a.t-b.t});
+  var free=new Array(k).fill(0),lat=classes.map(function(){return []});
+  for(var i=0;i<arr.length;i++){
+    var a=arr[i],m=0; for(var w=1;w<k;w++) if(free[w]<free[m]) m=w;
+    var st=Math.max(a.t,free[m]); free[m]=st+a.s; lat[a.ci].push(free[m]-a.t);
   }
+  return classes.map(function(c,ci){return {name:c.name,stats:stats(lat[ci])}});
+}
 
-  function tick() {
-    tickCount++;
-    if (!$("paused").checked) {
-      shop.naive = $("naive").checked;
-      for (let i = 0; i < SPEED_APPLY(tickCount); i++) shop.applyOne();
+/* ---- SIM 5 : ORDERING UNDER PARALLEL PROJECTORS ------------------------
+   Each aggregate emits PLACED then CANCELLED gapMs later. Events are handed
+   to W projector workers either round-robin (no key affinity) or by key.
+   One worker stalls for stallMs at stallAt (GC pause / slow read-store shard).
+   A key is WRONG if CANCELLED was applied before PLACED: the later PLACED
+   overwrites the row and the order looks alive again.                       */
+function simOrdering(o){
+  var nAgg=o.nAgg,gap=o.gapMs,W=o.workers,applyMs=(o.applyMs==null?2:o.applyMs),
+      jit=(o.jitter==null?1.0:o.jitter),keyed=!!o.keyed,seed=(o.seed==null?3:o.seed),
+      dur=o.durMs,stallMs=(o.stallMs==null?0:o.stallMs),stallAt=(o.stallAt==null?dur/2:o.stallAt),
+      stallWorker=(o.stallWorker==null?0:o.stallWorker);
+  var r=mulberry32(seed),ev=[];
+  for(var a=0;a<nAgg;a++){ var t0=r()*dur; ev.push({key:a,type:'P',t:t0}); ev.push({key:a,type:'C',t:t0+gap}); }
+  ev.sort(function(x,y){return x.t-y.t});
+  var free=new Array(W).fill(0),stalled=new Array(W).fill(false);
+  for(var i=0;i<ev.length;i++){
+    var e=ev[i],wi=keyed?(e.key%W):(i%W);
+    if(wi===stallWorker && stallMs>0 && !stalled[wi] && e.t>=stallAt){ stalled[wi]=true; free[wi]=Math.max(free[wi],stallAt)+stallMs; }
+    var st=Math.max(e.t,free[wi]); free[wi]=st+applyMs*(1+jit*r()); e.applied=free[wi];
+  }
+  var byKey={},wrong=0,maxDelay=0;
+  ev.forEach(function(e){(byKey[e.key]=byKey[e.key]||[]).push(e); if(e.applied-e.t>maxDelay) maxDelay=e.applied-e.t;});
+  Object.keys(byKey).forEach(function(kk){
+    var p=byKey[kk].sort(function(x,y){return x.applied-y.applied});
+    if(p[0].type==='C') wrong++;
+  });
+  return {aggregates:nAgg,wrong:wrong,rate:wrong/nAgg,maxDelayMs:maxDelay};
+}
+
+/* ---- SIM 6 : CRASH + REDELIVERY ---------------------------------------
+   The projector dies partway through a batch. Two independent protections:
+     atomic     - applies AND checkpoint share one read-side transaction, so a
+                  crash rolls back the whole batch (possible only when the
+                  checkpoint lives in the read store).
+     idempotent - re-applying an event is a no-op (upsert / guarded update)
+                  rather than an accumulation (revenue += total).
+   Crash hazard is PER EVENT APPLIED, so the number of crashes does not depend
+   on batch size -- only the amount of work replayed after each one does.
+   Truth = every event counted exactly once.                                 */
+function simCrash(o){
+  var nEvents=o.nEvents,batch=o.batch,hz=(o.crashPerEvent==null?0.001:o.crashPerEvent),
+      seed=(o.seed==null?5:o.seed),idem=!!o.idempotent,atomic=!!o.atomic;
+  var r=mulberry32(seed),amt=[];
+  for(var i=0;i<nEvents;i++) amt.push(10+Math.floor(r()*90));
+  var truth=amt.reduce(function(a,b){return a+b},0);
+  var rev=0,applied={},ck=0,crashes=0,replayed=0,work=0,stalled=false;
+  var budget=(o.maxWork==null?nEvents*60:o.maxWork);   /* see the poison batch, below */
+  while(ck<nEvents){
+    if(work>budget){ stalled=true; break; }
+    var n=Math.min(batch,nEvents-ck), crashAt=-1;
+    for(var k=0;k<n;k++){ if(r()<hz){ crashAt=k+1; break; } }
+    var upto=(crashAt<0)?n:crashAt;
+    for(var k2=0;k2<upto;k2++){
+      var idx=ck+k2;
+      if(idem){ if(!applied[idx]){applied[idx]=1;rev+=amt[idx];} } else rev+=amt[idx];
     }
-    render();
+    work+=upto;
+    if(crashAt>=0){
+      crashes++; replayed+=upto;
+      if(atomic){ for(var k3=0;k3<upto;k3++){ var ix=ck+k3;
+          if(idem){ if(applied[ix]){delete applied[ix];rev-=amt[ix];} } else rev-=amt[ix]; } }
+      continue;                       /* checkpoint never advanced: replay batch */
+    }
+    ck+=n;
   }
-  function startClock() { if (!clock) { clock = setInterval(tick, 450); $("btnPlay").textContent = "Pause clock"; } else { clearInterval(clock); clock = null; $("btnPlay").textContent = "Run clock"; } }
-
-  $("cmdPriya").addEventListener("click", () => { narration = null; shop.place("priya", "keyboard", 80); render(); });
-  $("cmdAmit").addEventListener("click", () => { narration = null; shop.place("amit", "desk", 300); render(); });
-  $("cmdCancel").addEventListener("click", () => { narration = null; shop.cancel("priya"); render(); });
-  $("qRevenue").addEventListener("click", () => {
-    narration = null;
-    const truth = shop.truthRevenue(), st = shop.boardState();
-    shop.log.push({ kind: "q", text: `Manager queries the revenue board: ₹${shop.revenue}. ` +
-      (st === "fresh" ? "Fresh — matches the ledger." : st === "stale" ? `The ledger's truth is ₹${truth} — the board is ${shop.lag()} event(s) behind. Stale, not wrong: it is the correct answer for an earlier moment.` :
-      `The ledger's truth is ₹${truth} — the board is simply WRONG (corrupted), and waiting won't fix it.`),
-      tech: `SELECT revenue — no joins, no locks on the write side` });
-    render();
-  });
-  $("qDash").addEventListener("click", () => {
-    narration = null;
-    const rows = Object.entries(shop.dashboard).filter(([, r]) => r.customer === "priya");
-    const missing = shop.orders.filter(o => o.customer === "priya" && !(o.id in shop.dashboard)).length;
-    shop.log.push({ kind: "q", text: `Priya queries her dashboard: ${rows.length} order(s) shown.` +
-      (missing ? ` She just placed ${missing} more that the board hasn't heard about — the confirmation page looks broken to her. This is the read-your-own-writes problem.` : " Complete."),
-      tech: "SELECT * FROM customer_dashboard WHERE customer='priya'" });
-    render();
-  });
-  $("btnRedeliver").addEventListener("click", () => { narration = null; shop.redeliver(); render(); });
-  $("btnRebuild").addEventListener("click", () => { narration = null; shop.rebuild(); render(); });
-  $("btnPlay").addEventListener("click", startClock);
-  $("btnReset").addEventListener("click", () => { shop = makeShop(); tickCount = 0; narration = null;
-    $("paused").checked = false; $("naive").checked = false; render(); verdict("Shop reset. Place an order, or pick a story.", "", ""); });
-  $("speed").addEventListener("input", () => $("vSpeed").textContent = SPEED_LABELS[+$("speed").value]);
-  ["paused", "naive"].forEach(id => $(id).addEventListener("change", render));
-
-  const STORIES = {
-    lagclose: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = false; $("speed").value = 1;
-      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300);
-      verdict("Story 1 — two commands hit the ledger instantly; the boards start 2 events behind. Watch the clerk (slow today) copy them over, and the lag tile fall to 0.", "", "stale"); },
-    stale: () => { shop = makeShop(); $("paused").checked = true; $("naive").checked = false;
-      shop.place("priya", "keyboard", 80);
-      shop.log.push({ kind: "q", text: "Priya's confirmation page queries her dashboard immediately: EMPTY. Her order exists — the ledger has it — but the board hasn't heard. Un-pause the clerk (or press her query button again after) to watch it appear.", tech: "the consistency window, experienced as a user" });
-      verdict("Story 2 — the command succeeded, the immediate query shows nothing. This exact moment is CQRS's price. Fixes: wait-for-checkpoint, route this one query to the ledger, or build the page from the command's own result.", "", "stale"); },
-    holiday: () => { shop = makeShop(); $("paused").checked = true; $("naive").checked = false;
-      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300); shop.cancel("priya");
-      verdict("Story 3 — the clerk is on a break and three events queue up. Notice commands NEVER failed — writes and reads are decoupled; reads just age. Un-pause 'on a break' and watch the backlog drain in order.", "", "stale"); },
-    dup: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = true; $("speed").value = 3;
-      shop.place("priya", "keyboard", 80);
-      verdict("Story 4 — the clerk is CARELESS (adds revenue without checking if an event was already copied). Let it catch up, then press 'Redeliver the feed' and watch ₹80 become ₹160 — silent corruption. Then fix the habit (uncheck careless) and press 'Erase boards & rebuild'.", "", "bad"); },
-    rebuild: () => { shop = makeShop(); $("paused").checked = false; $("naive").checked = false; $("speed").value = 3;
-      shop.place("priya", "keyboard", 80); shop.place("amit", "desk", 300); shop.cancel("priya");
-      verdict("Story 5 — let the clerk catch up, then press 'Erase boards & rebuild': the boards vanish and reappear identical, replayed from the ledger's events. Boards are caches; the feed is what you protect.", "", ""); },
-  };
-  document.querySelectorAll(".stories button").forEach(b => b.addEventListener("click", () => {
-    narration = true; STORIES[b.dataset.story]();
-    $("vSpeed").textContent = SPEED_LABELS[+$("speed").value];
-    render(); if (!clock) startClock();
-  }));
-
-  $("vSpeed").textContent = SPEED_LABELS[+$("speed").value];
-  render(); verdict("Pick a story, or place an order and press Run clock.", "", "");
+  return {truth:truth,revenue:rev,errPct:100*(rev-truth)/truth,crashes:crashes,
+          replayed:replayed,work:work,stalled:stalled,progress:ck/nEvents};
 }
+
+/* ---- SIM 7 : REBUILD ---------------------------------------------------- */
+function rebuildTime(H,mu,lambda){ return lambda>=mu?Infinity:H/(mu-lambda); }
+
+/* ---- SIM 8 : CROSS-MODEL SKEW ------------------------------------------ */
+function simSkew(a,b,durMs){
+  var pa=0,pb=0,samples=0,dis=0,gap=[];
+  for(var t=1000;t<durMs;t+=100){
+    while(pa<a.visible.length&&a.visible[pa]<=t) pa++;
+    while(pb<b.visible.length&&b.visible[pb]<=t) pb++;
+    samples++; if(pa!==pb){dis++;gap.push(Math.abs(pa-pb));}
+  }
+  return {samples:samples,disagreeRate:dis/samples,gapEvents:stats(gap)};
+}
+
+/* =========================== small helpers =========================== */
+var $=function(id){return document.getElementById(id)};
+function fmt(x,d){d=(d==null?1:d);if(!isFinite(x))return"∞";return (Math.round(x*Math.pow(10,d))/Math.pow(10,d)).toFixed(d)}
+function ms(x){ if(!isFinite(x)) return "∞"; return x<1000?fmt(x,0)+" ms":fmt(x/1000,x<10000?2:1)+" s"; }
+function dur(sec){ if(!isFinite(sec)) return "never"; if(sec<3600) return fmt(sec/60,1)+" min";
+  if(sec<172800) return fmt(sec/3600,1)+" h"; return fmt(sec/86400,1)+" days"; }
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+
+/* generic SVG line chart. series: [{pts:[[x,y]...], color, w}] */
+function lineChart(el,o){
+  var W=o.w||640,H=o.h||260,ml=o.ml||56,mr=14,mt=14,mb=38;
+  var iw=W-ml-mr, ih=H-mt-mb;
+  var logY=!!o.logY;
+  var ys=function(v){ if(logY){ var a=Math.log10(Math.max(v,o.ymin)), b=Math.log10(o.ymin), c=Math.log10(o.ymax);
+      return mt+ih-(a-b)/(c-b)*ih; } return mt+ih-(v-o.ymin)/(o.ymax-o.ymin)*ih; };
+  var xs=function(v){ return ml+(v-o.xmin)/(o.xmax-o.xmin)*iw; };
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'chart')+'">';
+  (o.yticks||[]).forEach(function(t){
+    var y=ys(t.v); s+='<line x1="'+ml+'" y1="'+y+'" x2="'+(ml+iw)+'" y2="'+y+'" stroke="'+cssv('--rule')+'" stroke-width="1"/>';
+    s+='<text x="'+(ml-8)+'" y="'+(y+4)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="'+cssv('--muted')+'">'+esc(t.t)+'</text>';
+  });
+  (o.xticks||[]).forEach(function(t){
+    var x=xs(t.v); s+='<line x1="'+x+'" y1="'+mt+'" x2="'+x+'" y2="'+(mt+ih)+'" stroke="'+cssv('--rule')+'" stroke-width="1" stroke-dasharray="2 3"/>';
+    s+='<text x="'+x+'" y="'+(mt+ih+16)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="'+cssv('--muted')+'">'+esc(t.t)+'</text>';
+  });
+  (o.vlines||[]).forEach(function(v){
+    var x=xs(v.v); if(x<ml-1||x>ml+iw+1) return;
+    s+='<line x1="'+x+'" y1="'+mt+'" x2="'+x+'" y2="'+(mt+ih)+'" stroke="'+v.color+'" stroke-width="2" stroke-dasharray="'+(v.dash||"4 3")+'"/>';
+    if(v.t){ var nearRight=(x>ml+iw-70);
+      s+='<text x="'+(nearRight?x-5:x+5)+'" y="'+(mt+12)+'" text-anchor="'+(nearRight?'end':'start')+'" font-family="Public Sans,sans-serif" font-size="10.5" font-weight="600" fill="'+v.color+'">'+esc(v.t)+'</text>'; }
+  });
+  (o.series||[]).forEach(function(se){
+    var d=se.pts.map(function(p,i){return (i?'L':'M')+fmt(xs(p[0]),1)+' '+fmt(ys(Math.max(p[1],o.ymin)),1)}).join(' ');
+    s+='<path d="'+d+'" fill="none" stroke="'+se.color+'" stroke-width="'+(se.w||2.2)+'" stroke-linejoin="round" stroke-linecap="round"'+(se.dash?' stroke-dasharray="'+se.dash+'"':'')+'/>';
+    if(se.dots) se.pts.forEach(function(p){ s+='<circle cx="'+fmt(xs(p[0]),1)+'" cy="'+fmt(ys(Math.max(p[1],o.ymin)),1)+'" r="2.8" fill="'+se.color+'"/>'; });
+  });
+  s+='<text x="'+(ml+iw/2)+'" y="'+(H-3)+'" text-anchor="middle" font-family="Public Sans,sans-serif" font-size="11" fill="'+cssv('--muted')+'">'+esc(o.xlab||'')+'</text>';
+  s+='<text transform="translate(13,'+(mt+ih/2)+') rotate(-90)" text-anchor="middle" font-family="Public Sans,sans-serif" font-size="11" fill="'+cssv('--muted')+'">'+esc(o.ylab||'')+'</text>';
+  s+='</svg>'; el.innerHTML=s;
+}
+
+function histChart(el,vals,meanV){
+  var W=640,H=200,ml=46,mr=14,mt=12,mb=36,iw=W-ml-mr,ih=H-mt-mb,NB=44;
+  var mx=0; for(var i=0;i<vals.length;i++) if(vals[i]>mx) mx=vals[i];
+  if(mx<=0) mx=1;
+  var b=new Array(NB).fill(0);
+  for(var i2=0;i2<vals.length;i2++){ var k=Math.min(NB-1,Math.floor(vals[i2]/mx*NB)); b[k]++; }
+  var pk=Math.max.apply(null,b)||1, bw=iw/NB;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="distribution of the consistency window">';
+  s+='<line x1="'+ml+'" y1="'+(mt+ih)+'" x2="'+(ml+iw)+'" y2="'+(mt+ih)+'" stroke="'+cssv('--rule2')+'"/>';
+  for(var j=0;j<NB;j++){ if(!b[j])continue; var h=b[j]/pk*ih;
+    s+='<rect x="'+fmt(ml+j*bw,1)+'" y="'+fmt(mt+ih-h,1)+'" width="'+fmt(Math.max(bw-1,1),1)+'" height="'+fmt(h,1)+'" fill="'+cssv('--cool')+'" opacity=".85" rx="1.5"/>'; }
+  var mxp=ml+meanV/mx*iw;
+  s+='<line x1="'+fmt(mxp,1)+'" y1="'+mt+'" x2="'+fmt(mxp,1)+'" y2="'+(mt+ih)+'" stroke="'+cssv('--ink')+'" stroke-width="1.6" stroke-dasharray="5 3"/>';
+  s+='<text x="'+fmt(Math.min(mxp+6,ml+iw-90),1)+'" y="'+(mt+12)+'" font-family="Public Sans,sans-serif" font-size="11" font-weight="600" fill="'+cssv('--ink')+'">mean '+ms(meanV)+'</text>';
+  [0,.25,.5,.75,1].forEach(function(fr){ var x=ml+fr*iw;
+    s+='<text x="'+fmt(x,1)+'" y="'+(mt+ih+16)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="'+cssv('--muted')+'">'+ms(fr*mx)+'</text>'; });
+  s+='<text x="'+(ml+iw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-family="Public Sans,sans-serif" font-size="11" fill="'+cssv('--muted')+'">how stale an event was at the moment it became visible</text>';
+  s+='</svg>'; el.innerHTML=s;
+}
+
+function barChart(el,rows,o){
+  var W=640,mb=38,mt=14,ml=150,mr=60,rh=30,H=mt+mb+rows.length*rh,iw=W-ml-mr;
+  var lo=o.min,hi=o.max;
+  var xs=function(v){ return ml+(Math.log10(Math.max(v,lo))-Math.log10(lo))/(Math.log10(hi)-Math.log10(lo))*iw; };
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'bars')+'">';
+  (o.ticks||[]).forEach(function(t){ var x=xs(t);
+    s+='<line x1="'+fmt(x,1)+'" y1="'+mt+'" x2="'+fmt(x,1)+'" y2="'+(mt+rows.length*rh)+'" stroke="'+cssv('--rule')+'" stroke-dasharray="2 3"/>';
+    s+='<text x="'+fmt(x,1)+'" y="'+(mt+rows.length*rh+16)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="'+cssv('--muted')+'">'+esc(ms(t))+'</text>'; });
+  rows.forEach(function(r,i){ var y=mt+i*rh, x=xs(r.v);
+    s+='<rect x="'+ml+'" y="'+(y+6)+'" width="'+fmt(Math.max(x-ml,2),1)+'" height="'+(rh-13)+'" fill="'+r.color+'" opacity=".9" rx="3"/>';
+    s+='<text x="'+(ml-9)+'" y="'+(y+rh/2+3)+'" text-anchor="end" font-family="Public Sans,sans-serif" font-size="12" fill="'+cssv('--ink2')+'">'+esc(r.name)+'</text>';
+    s+='<text x="'+fmt(x+7,1)+'" y="'+(y+rh/2+3)+'" font-family="IBM Plex Mono,monospace" font-size="11.5" font-weight="600" fill="'+cssv('--ink')+'">'+esc(ms(r.v))+'</text>'; });
+  s+='<text x="'+(ml+iw/2)+'" y="'+(H-2)+'" text-anchor="middle" font-family="Public Sans,sans-serif" font-size="11" fill="'+cssv('--muted')+'">'+esc(o.xlab||'')+'</text>';
+  s+='</svg>'; el.innerHTML=s;
+}
+
+function tbl(el,head,rows,hiIdx){
+  /* header strings are author-written, not user input, so they may carry markup
+     (needed for <span class="gk"> around Greek letters) */
+  var s='<thead><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr></thead><tbody>';
+  rows.forEach(function(r,i){ s+='<tr'+(i===hiIdx?' class="hi"':'')+'>'+r.map(function(c){return '<td>'+c+'</td>'}).join('')+'</tr>'; });
+  el.innerHTML=s+'</tbody>';
+}
+function seg(id,cb){ var w=$(id); w.addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  Array.prototype.forEach.call(w.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  cb(b.dataset.v); }); }
+function segVal(id){ return $(id).querySelector('[aria-pressed="true"]').dataset.v; }
+var raf=null;
+function sched(fn){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(function(){raf=null;fn()}); }
+
+/* tabs + theme */
+$('tabs').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  Array.prototype.forEach.call($('tabs').querySelectorAll('button'),function(x){x.setAttribute('aria-selected',x===b?'true':'false')});
+  ['p1','p2','p3','p4','p5'].forEach(function(p){$(p).classList.toggle('on',p===b.dataset.p)});
+  if(b.dataset.p==='p1')draw1(); if(b.dataset.p==='p2')draw2(); if(b.dataset.p==='p3')draw3();
+  if(b.dataset.p==='p4')draw4(); if(b.dataset.p==='p5')draw5();
+});
+$('themebtn').addEventListener('click',function(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var dark=cur? cur==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  draw1();draw2();draw3();draw4();draw5();
+});
+
+/* =========================== PANEL 1 =========================== */
+var DUR=900000, SEED=15, CKPT=5;
+var cliffCache=null, cliffPending=false;
+function p1cfg(){ return {lambda:+$('s1lam').value, poll:+$('s1poll').value, applyMs:+$('s1apply').value,
+  batch:+$('s1batch').value, mode:segVal('s1mode')}; }
+function draw1(){
+  var c=p1cfg();
+  $('v1lam').textContent=c.lambda+' /s'; $('v1poll').textContent=c.poll+' ms';
+  $('v1apply').textContent=c.applyMs+' ms'; $('v1batch').textContent=c.batch;
+  $('s1pollwrap').style.display = c.mode==='poll' ? '' : 'none';
+  var mu=capacity(c.applyMs,CKPT,c.batch), rho=c.lambda/mu;
+  $('r1mu').textContent=fmt(mu,1)+' /s';
+  $('r1rho').textContent=fmt(rho,3);
+  $('r1rho').className='val '+(rho>=1?'v-bad':rho>0.8?'v-warn':'v-good');
+  $('r1rhonote').textContent = rho>=1 ? 'over capacity — the window is unbounded' : 'λ ÷ μ';
+  if(rho>=1){
+    $('r1mean').textContent='unbounded'; $('r1mean').className='val v-bad';
+    $('r1p99').textContent='unbounded'; $('r1p99').className='val v-bad';
+    $('r1meannote').textContent='backlog grows for as long as this lasts';
+    $('c1hist').innerHTML='<p style="color:var(--muted);font-size:13.5px;margin:26px 0">The projector cannot keep up, so there is no steady-state distribution to draw. The window is a function of how long you have been over capacity, not of your configuration.</p>';
+  } else {
+    var w=simWindow({lambda:c.lambda,poll:c.poll,applyMs:c.applyMs,ckptMs:CKPT,batch:c.batch,mode:c.mode,durMs:DUR,seed:SEED});
+    $('r1mean').textContent=ms(w.lag.mean); $('r1mean').className='val v-cool';
+    $('r1p99').textContent=ms(w.lag.p99); $('r1p99').className='val';
+    $('r1meannote').textContent='p50 '+ms(w.lag.p50)+' · max '+ms(w.lag.max);
+    histChart($('c1hist'),w.lagArr,w.lag.mean);
+    var pw=simWindow({lambda:c.lambda,poll:c.poll,applyMs:c.applyMs,ckptMs:CKPT,batch:c.batch,mode:'poll',durMs:DUR,seed:SEED});
+    var sw=simWindow({lambda:c.lambda,applyMs:c.applyMs,ckptMs:CKPT,batch:c.batch,mode:'stream',durMs:DUR,seed:SEED});
+    tbl($('t1cmp'),['Projector','Mean','p50','p99','Max','Capacity'],[
+      ['poll '+c.poll+' ms',ms(pw.lag.mean),ms(pw.lag.p50),ms(pw.lag.p99),ms(pw.lag.max),fmt(mu,1)+'/s'],
+      ['streaming',ms(sw.lag.mean),ms(sw.lag.p50),ms(sw.lag.p99),ms(sw.lag.max),fmt(mu,1)+'/s']
+    ], c.mode==='poll'?0:1);
+  }
+  drawCliff(rho);
+}
+function drawCliff(curRho){
+  /* Fixed reference sweep at the document's canonical setup (poll 500 ms, apply 2 ms,
+     batch 100) so this chart reproduces README §11.3 exactly, and so dragging a slider
+     never triggers a 13-simulation recompute. Only the "you" marker moves. */
+  if(!cliffCache){
+    /* 13 full simulations: compute once, off the first paint, so the page is
+       interactive immediately and the chart fills in a moment later. */
+    if(!cliffPending){
+      cliffPending=true;
+      $('c1cliff').innerHTML='<p style="color:var(--muted);font-size:13.5px;margin:26px 0">Simulating thirteen projectors from idle to over capacity…</p>';
+      setTimeout(function(){
+        var acc=[], mu=capacity(2,CKPT,100);
+        [0.1,0.3,0.5,0.7,0.8,0.9,0.95,0.98,1.0,1.02,1.05,1.1,1.2].forEach(function(r){
+          var w=simWindow({lambda:r*mu,poll:500,applyMs:2,ckptMs:CKPT,batch:100,mode:'poll',durMs:DUR,seed:17});
+          acc.push([r,w.lag.mean,w.lag.p99]);
+        });
+        cliffCache=acc; cliffPending=false; drawCliff(curRho);
+      },30);
+    }
+    return;
+  }
+  lineChart($('c1cliff'),{h:280,logY:true,ymin:100,ymax:300000,xmin:0.05,xmax:1.2,
+    label:'consistency window against projector utilisation',
+    xlab:'projector utilisation \u03c1 = \u03bb \u00f7 \u03bc  (poll 500 ms, apply 2 ms, batch 100)',
+    ylab:'window (log scale)',
+    yticks:[{v:100,t:'100 ms'},{v:1000,t:'1 s'},{v:10000,t:'10 s'},{v:100000,t:'100 s'}],
+    xticks:[{v:0.2,t:'0.2'},{v:0.5,t:'0.5'},{v:0.8,t:'0.8'},{v:1.0,t:'1.0'},{v:1.2,t:'1.2'}],
+    vlines:[{v:1.0,color:cssv('--bad'),t:'capacity',dash:'3 3'},
+            {v:Math.max(0.06,Math.min(curRho,1.2)),color:cssv('--warn'),t:'you',dash:'6 3'}],
+    series:[{pts:cliffCache.map(function(r){return [r[0],r[1]]}),color:cssv('--cool'),dots:true},
+            {pts:cliffCache.map(function(r){return [r[0],r[2]]}),color:cssv('--bad'),dash:'5 3',w:1.8}]});
+}
+['s1lam','s1poll','s1apply','s1batch'].forEach(function(id){ $(id).addEventListener('input',function(){sched(draw1)}); });
+seg('s1mode',function(){draw1()});
+$('b1reset').addEventListener('click',function(){
+  $('s1lam').value=40; $('s1poll').value=500; $('s1apply').value=2; $('s1batch').value=100;
+  Array.prototype.forEach.call($('s1mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='poll'?'true':'false')});
+  draw1(); $('st1').textContent='λ=40/s, poll 500 ms, apply 2 ms, batch 100 — the document’s canonical setup.';
+});
+$('b1run').addEventListener('click',function(){
+  var steps=[['Start at the document’s setup: a 500 ms poll.',function(){$('s1poll').value=500;$('s1lam').value=40;$('s1apply').value=2;
+      Array.prototype.forEach.call($('s1mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='poll'?'true':'false')});}],
+    ['Widen the poll to 2 s — the window follows it almost exactly.',function(){$('s1poll').value=2000}],
+    ['Tighten it to 100 ms — still just poll ÷ 2.',function(){$('s1poll').value=100}],
+    ['Now delete the timer entirely. The floor collapses to one apply plus one commit.',function(){
+      Array.prototype.forEach.call($('s1mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='stream'?'true':'false')});}],
+    ['Back to polling, and push traffic to 90% of capacity. Notice how little the window moves.',function(){
+      Array.prototype.forEach.call($('s1mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='poll'?'true':'false')});
+      $('s1poll').value=500; $('s1lam').value=440}],
+    ['Now 2% more traffic than the projector can take. This is the only step that changed anything, and it changed everything.',function(){$('s1lam').value=500}]];
+  var i=0; (function nxt(){ if(i>=steps.length){$('st1').textContent='Done. Reset to return to the document’s setup.';return}
+    steps[i][1](); draw1(); $('st1').textContent='('+(i+1)+'/'+steps.length+') '+steps[i][0]; i++; setTimeout(nxt,2600); })();
+});
+
+/* =========================== PANEL 2 =========================== */
+var p2cache={};
+function w2(lam,poll,mode){ var k=lam+'|'+poll+'|'+mode;
+  if(!p2cache[k]) p2cache[k]=simWindow({lambda:lam,poll:poll,mode:mode,applyMs:2,ckptMs:CKPT,batch:100,durMs:DUR,seed:15});
+  return p2cache[k]; }
+function draw2(){
+  var lam=+$('s2lam').value, poll=+$('s2poll').value, mode=segVal('s2mode'), think=+$('s2think').value;
+  $('v2lam').textContent=lam+' /s'; $('v2poll').textContent=poll+' ms'; $('v2think').textContent=think+' ms';
+  $('s2pollwrap').style.display = mode==='poll' ? '' : 'none';
+  var mu=capacity(2,CKPT,100);
+  if(lam>=mu){ $('r2ryow').textContent='100%'; $('r2ryow').className='val v-bad';
+    $('r2ryownote').textContent='over capacity'; $('r2mean').textContent='unbounded';
+    $('r2over').textContent='unbounded'; $('r2overmax').textContent='—'; return; }
+  var w=w2(lam,poll,mode);
+  var r=simStaleRead(w,think), ad=simStaleAdmits(w);
+  $('r2ryow').textContent=fmt(100*r,1)+'%'; $('r2ryow').className='val '+(r>0.5?'v-bad':r>0.1?'v-warn':'v-good');
+  $('r2ryownote').textContent='querying '+think+' ms after the command returned';
+  $('r2mean').textContent=ms(w.lag.mean);
+  $('r2over').textContent=fmt(ad.mean,2); $('r2over').className='val '+(ad.mean>3?'v-bad':ad.mean>0.5?'v-warn':'v-good');
+  $('r2overmax').textContent=ad.max; $('r2overmax').className='val '+(ad.max>5?'v-bad':'v-warn');
+  var xs=[]; for(var t=10;t<=2000;t+=40) xs.push(t);
+  function ser(lm,pl,md,col,dash){ var ww=w2(lm,pl,md);
+    return {pts:xs.map(function(t){return [t,100*simStaleRead(ww,t)]}),color:col,dash:dash}; }
+  lineChart($('c2ryow'),{h:270,ymin:0,ymax:100,xmin:0,xmax:2000,
+    label:'share of users who see their own write missing',
+    xlab:'milliseconds between the command returning and the page querying',
+    ylab:'% of users seeing a stale page',
+    yticks:[{v:0,t:'0%'},{v:25,t:'25%'},{v:50,t:'50%'},{v:75,t:'75%'},{v:100,t:'100%'}],
+    xticks:[{v:250,t:'250'},{v:500,t:'500'},{v:1000,t:'1000'},{v:1500,t:'1500'},{v:2000,t:'2000'}],
+    vlines:[{v:think,color:cssv('--ink2'),t:'your think time'}],
+    series:[ser(lam,2000,'poll',cssv('--bad')),ser(lam,500,'poll',cssv('--warn')),
+            ser(lam,100,'poll',cssv('--cool')),ser(lam,0,'stream',cssv('--good')),
+            {pts:xs.map(function(t){return [t,100*simStaleRead(w,t)]}),color:cssv('--ink2'),dash:'4 3',w:1.6}]});
+  var rows=[['poll 2000 ms','poll',2000],['poll 500 ms','poll',500],['poll 100 ms','poll',100],['streaming','stream',0]]
+    .map(function(r2){ var ww=w2(lam,r2[2],r2[1]); var a=simStaleAdmits(ww);
+      return [r2[0],ms(ww.lag.mean),fmt(a.mean,2),a.p99,a.max]; });
+  rows.push(['<b>check on the write model instead</b>','—','<b>0</b>','<b>0</b>','<b>0</b>']);
+  tbl($('t2over'),['Where the check reads from','Mean window','Mean oversells','p99','Worst'],rows,rows.length-1);
+}
+['s2lam','s2poll','s2think'].forEach(function(id){ $(id).addEventListener('input',function(){sched(draw2)}); });
+seg('s2mode',function(){draw2()});
+$('pr2').addEventListener('click',function(e){ var b=e.target.closest('.opts button'); if(!b)return;
+  Array.prototype.forEach.call($('pr2').querySelectorAll('.opts button'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  var a=$('an2'); a.classList.add('on');
+  a.innerHTML='<b>About 12 — and 41 in the worst case seen.</b> The expected count is just '+
+   'λ × window: 40 orders/second times a 297 ms window is 11.9, and the simulator measured 11.95. '+
+   (b.dataset.v==='2'?'That is the answer you picked. ':'')+
+   'The reason it feels wrong is that the check <i>looks</i> correct — it reads a real number from a real table. '+
+   'But that table is defined to be behind, so every order arriving inside the window sees stock that has already been spent. '+
+   'Now drag the poll interval down and watch the number fall but never reach zero: that is the point. '+
+   'Narrowing the window changes the probability, never the possibility.';
+});
+$('b2run').addEventListener('click',function(){
+  var steps=[['A 2 second poll: almost every user sees their own order missing, and 47 orders take the last unit.',function(){$('s2poll').value=2000;$('s2think').value=100;
+      Array.prototype.forEach.call($('s2mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='poll'?'true':'false')});}],
+    ['500 ms — an utterly ordinary setting. Still 89% of users, still 12 oversells.',function(){$('s2poll').value=500}],
+    ['Give the page a whole second before it queries. The UX problem softens a lot.',function(){$('s2think').value=1000}],
+    ['But the oversell does not care how long the page waits — nothing about it changed.',function(){$('s2think').value=1000}],
+    ['Stream instead of poll: the UX problem is gone, and the oversell is 0.33 — small, and not zero.',function(){
+      Array.prototype.forEach.call($('s2mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='stream'?'true':'false')});$('s2think').value=100}]];
+  var i=0;(function nxt(){ if(i>=steps.length){$('st2').textContent='The last row of the table is the only setting that reaches zero.';return}
+    steps[i][1]();draw2();$('st2').textContent='('+(i+1)+'/'+steps.length+') '+steps[i][0];i++;setTimeout(nxt,2900);})();
+});
+
+/* =========================== PANEL 3 =========================== */
+var p3cache={};
+function pool(k,rep,seed){ var key=k+'|'+rep+'|'+seed;
+  if(p3cache[key]) return p3cache[key];
+  var cls=[{name:'checkout',rate:300,svc:5,dist:'exp'}];
+  if(rep>0) cls.push({name:'report',rate:rep,svc:800,dist:'exp'});
+  return (p3cache[key]=simPool({k:k,durMs:1800000,seed:seed,classes:cls}));
+}
+function draw3(){
+  var rep=+$('s3rep').value, mode=segVal('s3mode');
+  $('v3rep').textContent=rep+' /s';
+  $('st3').textContent='computing…';
+  setTimeout(function(){
+    var co,rp,rho;
+    if(mode==='shared'){ var r=pool(8,rep,23); co=r[0].stats; rp=rep>0?r[1].stats:null; rho=(300*5+rep*800)/8000; }
+    else { co=pool(6,0,23)[0].stats; rho=300*5/6000;
+      rp=rep>0? simPool({k:2,durMs:1800000,seed:24,classes:[{name:'report',rate:rep,svc:800,dist:'exp'}]})[0].stats : null; }
+    $('r3p99').textContent=ms(co.p99);
+    $('r3p99').className='val '+(co.p99>500?'v-bad':co.p99>100?'v-warn':'v-good');
+    $('r3p99note').textContent = mode==='shared' ? 'sharing 8 workers with the reports' : 'alone on 6 workers';
+    $('r3mean').textContent=fmt(co.mean,2)+' ms';
+    $('r3rho').textContent=fmt(rho,2);
+    $('r3rep').textContent= rp? ms(rp.p99) : '—';
+    $('r3rep').className='val '+(rp&&rp.p99>60000?'v-bad':'');
+    var rows=[]; for(var q=0;q<=8;q+=2){ rows.push({name:'shared, '+q+' reports/s',v:pool(8,q,23)[0].stats.p99,color:cssv('--cool')}); }
+    rows.push({name:'split, checkout on 6',v:pool(6,0,23)[0].stats.p99,color:cssv('--good')});
+    barChart($('c3bars'),rows,{min:10,max:20000,ticks:[10,100,1000,10000],xlab:'checkout p99, log scale'});
+    var t=[]; for(var q2=0;q2<=8;q2+=2){ var rr=pool(8,q2,23);
+      t.push(['shared pool of 8, '+q2+' reports/s',fmt((300*5+q2*800)/8000,2),fmt(rr[0].stats.mean,2)+' ms',ms(rr[0].stats.p99),q2?ms(rr[1].stats.p99):'—']); }
+    var s6=pool(6,0,23);
+    t.push(['<b>split: checkout alone on 6</b>',fmt(300*5/6000,2),'<b>'+fmt(s6[0].stats.mean,2)+' ms</b>','<b>'+ms(s6[0].stats.p99)+'</b>','on its own pool']);
+    tbl($('t3cmp'),['Arrangement','Pool <span class="gk">ρ</span>','Checkout mean','Checkout p99','Report p99'],t,t.length-1);
+    $('st3').textContent='';
+  },10);
+}
+$('s3rep').addEventListener('input',function(){ $('v3rep').textContent=$('s3rep').value+' /s'; });
+$('s3rep').addEventListener('change',draw3);
+seg('s3mode',function(){draw3()});
+$('b3run').addEventListener('click',function(){
+  var steps=[['No reports. Checkout p99 is 23 ms and the pool is 19% utilised.',function(){$('s3rep').value=0;
+      Array.prototype.forEach.call($('s3mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='shared'?'true':'false')});}],
+    ['Two reports a second. Nothing happens — this is the reassuring stage.',function(){$('s3rep').value=2}],
+    ['Four. Checkout p99 is now 406 ms: about half of one report’s service time.',function(){$('s3rep').value=4}],
+    ['Six. 1.59 seconds. Checkout traffic has still never changed.',function(){$('s3rep').value=6}],
+    ['Eight. Checkout takes thirteen seconds. The service is effectively down.',function(){$('s3rep').value=8}],
+    ['Now split the pool — checkout gets 6 workers instead of 8, and no reports. Back to 23 ms.',function(){
+      Array.prototype.forEach.call($('s3mode').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v==='split'?'true':'false')});}]];
+  var i=0;(function nxt(){ if(i>=steps.length){$('st3').textContent='Fewer workers, 69× faster. That is isolation, not capacity.';return}
+    steps[i][1]();draw3();$('st3').textContent='('+(i+1)+'/'+steps.length+') '+steps[i][0];i++;setTimeout(nxt,3200);})();
+});
+
+/* =========================== PANEL 4 =========================== */
+function draw4(){
+  var idem=segVal('s4idem')==='1', atom=segVal('s4atom')==='1',
+      B=+$('s4batch').value, hz=(+$('s4hz').value)/10000;
+  $('v4batch').textContent=B;
+  $('v4hz').textContent='1 per '+fmt(1/hz,0);
+  var r=simCrash({nEvents:200000,batch:B,crashPerEvent:hz,idempotent:idem,atomic:atom,seed:31});
+  if(r.stalled){
+    $('r4err').textContent='no progress'; $('r4err').className='val v-bad';
+    $('r4errnote').textContent='only '+fmt(100*r.progress,1)+'% of the feed applied before the work budget ran out';
+  } else {
+    $('r4err').textContent=(r.errPct>0?'+':'')+fmt(r.errPct,2)+'%';
+    $('r4err').className='val '+(Math.abs(r.errPct)>0.001?'v-bad':'v-good');
+    $('r4errnote').textContent = Math.abs(r.errPct)<0.001 ? 'exactly right, and silent about it' : 'silently overstated, and it only grows';
+  }
+  $('r4crash').textContent=r.crashes;
+  $('r4replay').textContent=(r.stalled?'≥ ':'')+fmt(r.replayed/200000,2)+'×';
+  $('r4replay').className='val '+(r.replayed/200000>1?'v-bad':r.replayed/200000>0.4?'v-warn':'');
+  $('r4bh').textContent=fmt(B*hz,2);
+  $('r4bh').className='val '+(B*hz>1?'v-bad':B*hz>0.4?'v-warn':'v-good');
+  var m=[[true,true],[true,false],[false,true],[false,false]].map(function(c){
+    var x=simCrash({nEvents:200000,batch:B,crashPerEvent:hz,idempotent:c[0],atomic:c[1],seed:31});
+    return [(c[0]?'idempotent upsert':'<b>accumulating <span class="mono">+=</span></b>'),
+            (c[1]?'yes':'<b>no</b>'),
+            (x.stalled?'<b>never finishes</b>':(Math.abs(x.errPct)<0.001?'0.00%':'<b>+'+fmt(x.errPct,2)+'%</b>'))];
+  });
+  var hiRow=(idem?(atom?0:1):(atom?2:3));
+  tbl($('t4matrix'),['Apply','Checkpoint in the same transaction','Revenue error'],m,hiRow);
+  var bt=[1,10,100,500,2000].map(function(b){
+    var bad=simCrash({nEvents:200000,batch:b,crashPerEvent:hz,idempotent:false,atomic:false,seed:31});
+    var ok =simCrash({nEvents:200000,batch:b,crashPerEvent:hz,idempotent:false,atomic:true, seed:31});
+    return [b,fmt(b*hz,2),(bad.stalled?'<b>never finishes</b>':'+'+fmt(bad.errPct,2)+'%'),
+            (ok.stalled?'<b>≥'+fmt(ok.replayed/200000,0)+'× — no progress</b>':fmt(ok.replayed/200000,2)+'×')];
+  });
+  tbl($('t4batch'),['Batch','B<span class="gk">·h</span>','Error with no protection','Wasted replay when correct'],bt,null);
+  var W=+$('s4w').value, stall=+$('s4stall').value, keyed=segVal('s4key')==='1';
+  $('v4w').textContent=W; $('v4stall').textContent=stall+' ms';
+  var o1=simOrdering({nAgg:20000,gapMs:50,workers:W,keyed:keyed,durMs:600000,stallMs:stall,seed:41});
+  var o2=simOrdering({nAgg:20000,gapMs:50,workers:W,keyed:!keyed,durMs:600000,stallMs:stall,seed:41});
+  var rows=[[keyed?'by order id':'round robin',o1.wrong,fmt(100*o1.rate,3)+'%',ms(o1.maxDelayMs)],
+            [!keyed?'by order id':'round robin',o2.wrong,fmt(100*o2.rate,3)+'%',ms(o2.maxDelayMs)]];
+  tbl($('t4ord'),['Routing','Cancelled orders left looking alive','Rate','Max apply delay'],rows,0);
+  $('cal4ord').innerHTML = stall===0
+    ? '<b>With no stall, nothing goes wrong either way.</b> That is what makes this failure so durable: it needs a worker to fall behind, which happens rarely and briefly, so round-robin routing survives every test you write and corrupts a handful of orders on the day a GC pause lands.'
+    : '<b>Partitioning by key converts a correctness failure into a latency failure.</b> Keyed routing keeps the same '+ms(o1.maxDelayMs<o2.maxDelayMs?o2.maxDelayMs:o1.maxDelayMs)+' of delay from the stall — it just applies each order’s events in order while it waits. The orders corrupted by round robin are not stale; they have converged to the wrong value, permanently, and a rebuild would disagree with them.';
+}
+['s4batch','s4hz','s4w','s4stall'].forEach(function(id){ $(id).addEventListener('input',function(){sched(draw4)}); });
+['s4idem','s4atom','s4key'].forEach(function(id){ seg(id,function(){draw4()}); });
+$('pr4').addEventListener('click',function(e){ var b=e.target.closest('.opts button'); if(!b)return;
+  Array.prototype.forEach.call($('pr4').querySelectorAll('.opts button'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  var a=$('an4'); a.classList.add('on');
+  a.innerHTML='<b>Either one alone is enough</b> — the table below shows three zeros and one disaster. '+
+   'They are different mechanisms though, and it matters which you have: an <i>atomic checkpoint</i> rolls the whole batch back, '+
+   'and is only available when the checkpoint is a row in the read store. An <i>idempotent apply</i> works no matter where the '+
+   'checkpoint lives. That distinction decides your production options: when the feed is Kafka the offset lives in Kafka, there is '+
+   'no transaction spanning both, and idempotency stops being good practice and becomes the only protection you have.';
+});
+$('b4run').addEventListener('click',function(){
+  var setSeg=function(id,v){Array.prototype.forEach.call($(id).querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.dataset.v===v?'true':'false')})};
+  var steps=[['Both protections on. 210 crashes, and the revenue is exactly right.',function(){setSeg('s4idem','1');setSeg('s4atom','1');$('s4batch').value=100;$('s4hz').value=10}],
+    ['Drop the atomic checkpoint — the Kafka situation. Idempotency alone still holds.',function(){setSeg('s4atom','0')}],
+    ['Now switch the projection to an accumulating <span class="mono">+=</span>. Revenue is 5.39% too high, with no error anywhere.',function(){setSeg('s4idem','0')}],
+    ['Raise the batch to 500. The same crash rate now costs 33%.',function(){$('s4batch').value=500}],
+    ['Batch 2000: reported revenue is 3.4× the truth.',function(){$('s4batch').value=2000}],
+    ['Put the atomic checkpoint back. Correct again at every batch size — but look at the wasted replay: B·h is 2 and the projector replays more than it applies.',function(){setSeg('s4atom','1')}],
+    ['Now the ordering half. Round robin, no stall: nothing wrong.',function(){$('s4stall').value=0;setSeg('s4key','0');$('s4batch').value=100}],
+    ['One worker stalls for a second. Three orders are cancelled and still look alive — permanently.',function(){$('s4stall').value=1000}],
+    ['Route by order id instead. Same stall, zero corruption.',function(){setSeg('s4key','1')}]];
+  var i=0;(function nxt(){ if(i>=steps.length){$('st4').textContent='Done.';return}
+    steps[i][1]();draw4();$('st4').innerHTML='('+(i+1)+'/'+steps.length+') '+steps[i][0];i++;setTimeout(nxt,3000);})();
+});
+
+/* =========================== PANEL 5 =========================== */
+function draw5(){
+  var H=(+$('s5h').value)*1e6, lam=+$('s5lam').value, ap=+$('s5apply').value;
+  $('v5h').textContent=(+$('s5h').value)+' M events'; $('v5lam').textContent=lam+' /s'; $('v5apply').textContent=ap+' ms';
+  var mu=capacity(ap,CKPT,100), t=rebuildTime(H,mu,lam);
+  $('r5time').textContent=dur(t);
+  $('r5time').className='val '+(!isFinite(t)?'v-bad':t>86400*3?'v-bad':t>86400?'v-warn':'v-good');
+  $('r5note').textContent = isFinite(t)? 'H ÷ (μ − λ), with μ = '+fmt(mu,1)+'/s' : 'λ ≥ μ — there is no rebuild';
+  $('r5spare').textContent = (mu-lam>0? fmt(mu-lam,1)+' /s' : 'none');
+  $('r5spare').className='val '+(mu-lam<=0?'v-bad':(mu-lam)<mu*0.3?'v-warn':'v-good');
+  $('r5rho').textContent=fmt(lam/mu,2);
+  $('r5rho').className='val '+(lam/mu>=1?'v-bad':lam/mu>0.8?'v-warn':'v-good');
+  var tp=rebuildTime(H,mu*8,lam); $('r5par').textContent=dur(tp);
+  $('r5par').className='val '+(isFinite(tp)?'v-good':'v-bad');
+  var pts=[]; for(var l=10;l<mu*0.995;l+=Math.max(2,mu/200)) pts.push([l/mu,rebuildTime(H,mu,l)/3600]);
+  lineChart($('c5curve'),{h:280,logY:true,ymin:0.5,ymax:5000,xmin:0,xmax:1.05,
+    label:'rebuild time against live load', xlab:'projector utilisation ρ = λ ÷ μ', ylab:'rebuild time, hours (log)',
+    yticks:[{v:1,t:'1 h'},{v:10,t:'10 h'},{v:100,t:'4 days'},{v:1000,t:'6 weeks'}],
+    xticks:[{v:0.2,t:'0.2'},{v:0.4,t:'0.4'},{v:0.6,t:'0.6'},{v:0.8,t:'0.8'},{v:1.0,t:'1.0'}],
+    vlines:[{v:1.0,color:cssv('--bad'),t:'never finishes',dash:'3 3'},{v:lam/mu,color:cssv('--warn'),t:'you',dash:'6 3'}],
+    series:[{pts:pts,color:cssv('--cool')}]});
+  var rows=[40,200,400,450,470,480,488].map(function(l){
+    var tt=rebuildTime(H,mu,l);
+    return [l+' /s',fmt(l/mu,2),(mu-l>0?fmt(mu-l,1)+' /s':'none'),(isFinite(tt)?dur(tt):'<b>never finishes</b>')];
+  });
+  tbl($('t5'),['Live <span class="gk">λ</span>','<span class="gk">ρ</span>','Spare capacity','Rebuild time'],rows,null);
+}
+['s5h','s5lam','s5apply'].forEach(function(id){ $(id).addEventListener('input',function(){sched(draw5)}); });
+$('b5run').addEventListener('click',function(){
+  var steps=[['50 million events, a quiet system at 8% utilisation: 31 hours. Annoying, survivable.',function(){$('s5h').value=50;$('s5lam').value=40;$('s5apply').value=2}],
+    ['Same history, a busy-but-healthy system at 82%: 6.6 days.',function(){$('s5lam').value=400}],
+    ['92% — the kind of number nobody pages on: 15 days.',function(){$('s5lam').value=450}],
+    ['And if the read store gets a little slower, capacity falls and the rebuild stops existing.',function(){$('s5apply').value=3}],
+    ['The fix is not a faster projector. It is more of them: replay is parallel across keys.',function(){$('s5apply').value=2;$('s5lam').value=400}]];
+  var i=0;(function nxt(){ if(i>=steps.length){$('st5').textContent='Look at the fourth readout — parallel replay is why keyed routing pays off twice.';return}
+    steps[i][1]();draw5();$('st5').textContent='('+(i+1)+'/'+steps.length+') '+steps[i][0];i++;setTimeout(nxt,3000);})();
+});
+
+draw1();
 </script>

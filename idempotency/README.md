@@ -767,6 +767,16 @@ native habitat — most-referenced unlearned concept in your map),
 `/learn change-data-capture` (the other half of outbox plumbing),
 `/learn flp-impossibility` (the theory floor under "you cannot know").
 
+> **Follow-up completed 2026-09-01: [`idempotent-consumer`](../idempotent-consumer/).**
+> This lab's protocol assumes a *caller* — someone who mints the key and waits
+> for the replayed response. Take the caller away and put a broker in its place
+> and two of the three parts lose their owner. The sibling lab covers what is
+> left: where a message's identity comes from when nobody hands you one, why
+> deduplicating on the Kafka offset defeats exactly the sources that produce
+> duplicates, and the obligation this lab treated as a sizing question —
+> *how long the claim must be remembered* — turning out to be bounded by human
+> operational behaviour rather than by anything in your code.
+
 ## 16. GLOSSARY (in order of appearance)
 
 - **idempotent** — processing the same request again leaves the state the

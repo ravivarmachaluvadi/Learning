@@ -480,7 +480,7 @@ yet** — SQL's flexibility (any WHERE, any join, ad-hoc) is the best hedge agai
 an unknown future, which is why "default to Postgres until a specific incident
 forces otherwise" is professional advice, not laziness. Real users: basically every
 company on earth for the transactional core — Stripe on MySQL, Instagram and
-Robinhood on Postgres.
+Robinhood on Postgres.<br><br>
 **Walk away when:** (a) a single machine's write capacity is genuinely exceeded
 (~tens of thousands of writes/sec sustained) — replicas scale *reads* only, and
 sharding relational data yourself is a famous tar pit → ⑤ or ⑨; (b) the workload
@@ -506,7 +506,7 @@ replicated, still key-only).
 (read-through: check cache, miss → read DB → fill cache), counters and rate
 limiters (Redis `INCR` is atomic and lock-free — incident 3's cure), leaderboards
 (Redis sorted sets), feature flags. DynamoDB specifically: when you need KV at
-*any* scale with SLAs and zero ops — Amazon's own cart runs on it.
+*any* scale with SLAs and zero ops — Amazon's own cart runs on it.<br><br>
 **Walk away when:** you need queries by anything other than the key ("all sessions
 for user 42" — the store can't see inside values); you need multi-key transactions;
 **or you're tempted to make a cache the only copy of data you can't lose** — a
@@ -534,7 +534,7 @@ differ in shape; the writer decides, per document.
 product catalogs (each seller's item has different attributes — the canonical use),
 user profiles, CMS content, IoT payloads that vary by device — and when each
 record's shape varies enough that a fixed schema fights you. Real users: eBay's
-catalog, Forbes' CMS on MongoDB.
+catalog, Forbes' CMS on MongoDB.<br><br>
 **Walk away when:** (a) your entities are *many-to-many relational* — orders
 referencing users referencing addresses — because documents force you to either
 embed copies (which then must be updated everywhere: "user changed address" now
@@ -570,7 +570,7 @@ schema *is* the query plan.
 serious scale with multi-datacenter, no-single-point-of-failure requirements:
 messaging history (Discord stores trillions of messages on ScyllaDB), activity
 feeds, device telemetry, Netflix's viewing history (Cassandra), Apple runs
-hundreds of thousands of Cassandra nodes.
+hundreds of thousands of Cassandra nodes.<br><br>
 **Walk away when:** queries are ad-hoc or evolving (every new question = new
 table + backfill); data volume is under a few TB or writes under ~10 000/sec
 (Postgres does this without the operational bill — Cassandra clusters need real
@@ -601,7 +601,7 @@ reads across continents.
 machine can't give — global financial ledgers, multi-region inventory, any system
 where "Postgres but it survives a region and scales writes" is the actual spec.
 Real users: Google's own AdWords billing (Spanner exists because sharded-MySQL was
-unbearable), DoorDash and Netflix metadata on CockroachDB.
+unbearable), DoorDash and Netflix metadata on CockroachDB.<br><br>
 **Walk away when:** one region and one box's write volume suffice — which is *most
 businesses* — because you pay real costs: every write crosses the network for
 quorum (latency floor: milliseconds, not microseconds), cross-shard joins and
@@ -628,7 +628,7 @@ truth; a pipeline (§15) copies changes into the warehouse; analysts hammer the
 warehouse where they can't hurt production. ClickHouse/DuckDB variants: ClickHouse
 when you need *sub-second* analytics inside a product (Cloudflare's dashboards);
 DuckDB when the data fits one machine — it's "SQLite for analytics", a library,
-no server (you'll run it in this lab's experiments).
+no server (you'll run it in this lab's experiments).<br><br>
 **Walk away when:** the workload is operational — point lookups ("order 12345"),
 single-row updates, thousands of small queries per second. Columnar layout makes
 each of those touch every column file; warehouses also often charge *per data
@@ -652,7 +652,7 @@ Kibana dashboards out — likely where you've already met it).
 **Reach for it when:** humans type words and expect the *best* matches ranked —
 product search (Amazon-style), site search, log search (grep over terabytes in
 milliseconds), autocomplete. Real users: Wikipedia, GitHub code search lineage,
-Uber (Elasticsearch); Stripe's dashboard search (Typesense/Algolia class).
+Uber (Elasticsearch); Stripe's dashboard search (Typesense/Algolia class).<br><br>
 **Walk away when:** matching is *exact and structured* ("orders over ₹500 this
 week" — SQL does this; a search engine adds ops for nothing), or you're tempted to
 treat it as a primary store — it is the canonical **derived** store: near-real-time
@@ -683,7 +683,7 @@ the de-facto standard for infrastructure metrics.
 primary key is really *(thing, timestamp)* and whose queries are windows and
 rollups. TimescaleDB is the pragmatic pick when it's one workload among many —
 it's a Postgres extension, so your metrics sit next to your relational data with
-full SQL.
+full SQL.<br><br>
 **Walk away when:** data isn't time-keyed, gets updated after the fact, or the
 volume is modest (a plain Postgres table with a timestamp index handles millions
 of rows fine — the specialized machinery pays off at billions). And never store
@@ -705,7 +705,7 @@ variable-depth: fraud rings (accounts sharing devices sharing cards — bank
 anti-fraud is the killer app), recommendations, knowledge graphs, dependency and
 impact analysis, network topology, permissions inheritance. Real users: LinkedIn's
 graph (custom-built), NASA's lessons-learned knowledge graph (Neo4j), most large
-banks' fraud units.
+banks' fraud units.<br><br>
 **Walk away when:** you have relationships but your queries are only ever 1–2
 fixed hops — SQL joins handle that fine, and "our data has relationships!"
 describes *every* dataset — the honest test is *do you ask variable-depth or
@@ -741,7 +741,7 @@ Kafka — your outbox lab's relay, industrialized — is *the* standard pattern)
 event-driven microservices; stream processing (fraud scoring on the purchase
 stream in flight — Kafka Streams/Flink); buffering firehoses in front of slower
 stores. Real users: LinkedIn (built Kafka: ~7 trillion messages/day), Uber, every
-bank's integration backbone.
+bank's integration backbone.<br><br>
 **Walk away when:** you need to *query* ("what's the current state of order 123?"
 — a log can only replay; state lives in stores derived from it); request/response
 RPC between two services (that's an API call — putting Kafka in the middle adds
@@ -774,7 +774,7 @@ and storage stays $0.02/GB. The current industry consensus is converging here
 training corpora; the cheap long-term layer beneath the warehouse; sharing one
 copy of data across many engines without N copies. Also plain object storage for
 what it is: the correct home for **files** (images, PDFs, backups — put the *URL*
-in your database, never megabyte blobs in Postgres rows).
+in your database, never megabyte blobs in Postgres rows).<br><br>
 **Walk away when:** you need low-latency serving (lake queries are seconds-to-
 minutes; nothing user-facing reads a lake directly); small structured data a
 warehouse or Postgres handles (a lakehouse's Spark-sized toolchain is a heavy
@@ -804,7 +804,7 @@ Pragmatic guidance that mirrors ⑧'s: **pgvector first** — an extension keepi
 vectors next to your relational data with joins and transactions; a dedicated
 vector DB (Pinecone/Milvus) when vectors are your *primary* workload at
 hundreds-of-millions scale. Real users: most production RAG stacks (Notion AI,
-etc.) started on pgvector.
+etc.) started on pgvector.<br><br>
 **Walk away when:** exact keyword/filter queries (a *hybrid* of ⑦ + ⑫ usually
 beats either alone for search — BM25 keywords + vector similarity, fused); tiny
 corpora (<100k vectors — brute-force scan is fast, exact, and index-free); or
@@ -830,7 +830,7 @@ storage engine under many big systems), DuckDB = columnar OLAP (⑥) as a librar
 the most deployed database in existence), local-first apps, CLI tools, test
 fixtures, single-user analytics on files (DuckDB querying Parquet on your laptop
 replaces a Spark cluster embarrassingly often), or as the storage engine inside a
-system you're building.
+system you're building.<br><br>
 **Walk away when:** many *processes/machines* must share mutable state — embedded
 means single-machine, and SQLite specifically serializes writers (one writer at a
 time; fine for an app, fatal for a busy web backend); when you need managed

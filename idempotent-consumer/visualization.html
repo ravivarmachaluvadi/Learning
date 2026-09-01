@@ -1,0 +1,684 @@
+<title>The Second Delivery</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f7f4ee; --surface:#fffdf9; --panel:#fbf8f1; --ink:#262218; --muted:#6f6857;
+  --line:#e3dcce; --line2:#d3cab6;
+  --accent:#0f766e; --accent-ink:#ffffff; --accent-soft:#e2efec;
+  --amber:#b45309; --amber-soft:#fbeddb;
+  --green:#15803d; --green-soft:#e3f0e4;
+  --red:#b91c1c; --red-soft:#f9e4e2;
+  --indigo:#4338ca; --indigo-soft:#e7e7f7;
+  --flash:#fff3c9;
+  --shadow:0 1px 2px rgba(56,48,30,.08),0 4px 14px rgba(56,48,30,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16140e; --surface:#1e1b13; --panel:#232014; --ink:#ece5d4; --muted:#a39a85;
+    --line:#35301f; --line2:#4a432c;
+    --accent:#2dd4bf; --accent-ink:#0c2b27; --accent-soft:#12332e;
+    --amber:#fbbf24; --amber-soft:#3a2c0d;
+    --green:#4ade80; --green-soft:#132c1a;
+    --red:#f87171; --red-soft:#3a1512;
+    --indigo:#a5b4fc; --indigo-soft:#232342;
+    --flash:#3d3313;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16140e; --surface:#1e1b13; --panel:#232014; --ink:#ece5d4; --muted:#a39a85;
+  --line:#35301f; --line2:#4a432c;
+  --accent:#2dd4bf; --accent-ink:#0c2b27; --accent-soft:#12332e;
+  --amber:#fbbf24; --amber-soft:#3a2c0d;
+  --green:#4ade80; --green-soft:#132c1a;
+  --red:#f87171; --red-soft:#3a1512;
+  --indigo:#a5b4fc; --indigo-soft:#232342;
+  --flash:#3d3313;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 "Public Sans",system-ui,sans-serif;
+  margin:0;padding:20px clamp(12px,3vw,36px) 60px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:clamp(25px,4vw,36px);margin:0;letter-spacing:-.01em}
+h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:16px;margin:0 0 8px}
+.sub{color:var(--muted);max-width:74ch;margin:6px 0 0;font-size:14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.92em}
+.wrap{max-width:1300px;margin:0 auto}
+.topgrid{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px}
+
+.verdict{border-radius:12px;padding:12px 18px;min-width:330px;box-shadow:var(--shadow);
+  border:1.5px solid var(--line2);background:var(--surface)}
+.verdict .big{font-family:Fraunces,Georgia,serif;font-weight:700;font-size:21px;line-height:1.25}
+.verdict.good{border-color:var(--green);background:var(--green-soft)}
+.verdict.good .big{color:var(--green)}
+.verdict.bad{border-color:var(--red);background:var(--red-soft)}
+.verdict.bad .big{color:var(--red)}
+.verdict .why{font-size:13px;color:var(--muted);margin-top:2px}
+
+.bar{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  margin-bottom:12px;box-shadow:var(--shadow)}
+.barlabel{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--line2);
+  background:var(--panel);color:var(--ink);cursor:pointer;text-align:left;line-height:1.3}
+.seg button b{display:block;font-size:13.5px}
+.seg button span{display:block;font-size:11.5px;color:var(--muted)}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg button.on span{color:var(--accent-ink);opacity:.85}
+.hint{font-size:13px;color:var(--muted);margin-top:9px;max-width:96ch}
+
+.btn{font:inherit;font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--line2);
+  background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+select{font:inherit;font-size:13px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line2);
+  background:var(--panel);color:var(--ink)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:12px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.led{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.led.run{background:var(--green)}
+.led.dead{background:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  padding:3px 6px 3px 0;border-bottom:1px solid var(--line)}
+td{padding:4px 6px 4px 0;border-bottom:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:12px}
+tr.cur td{background:var(--flash)}
+tr.gone td{opacity:.4;text-decoration:line-through}
+.empty{color:var(--muted);font-size:12.5px;font-style:italic;padding:6px 0}
+.chip{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--line2);
+  background:var(--panel);color:var(--muted);text-transform:none;letter-spacing:0}
+.chip.ok{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+.chip.no{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.chip.warn{border-color:var(--amber);color:var(--amber);background:var(--amber-soft)}
+.subsec{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line2)}
+.status{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:1.4em}
+.next{font-size:13px;padding:7px 10px;border-radius:8px;background:var(--indigo-soft);color:var(--indigo);
+  border:1px solid var(--indigo);margin-bottom:8px;font-weight:600}
+#log{max-height:280px;overflow:auto;font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.6}
+#log div{padding:2px 0;border-bottom:1px solid var(--line)}
+#log .ap{color:var(--green)}
+#log .sup{color:var(--indigo)}
+#log .bad{color:var(--red);font-weight:600}
+#log .op{color:var(--amber)}
+.scen{border:1px solid var(--line2);border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--panel)}
+.scen h3{margin:0 0 5px;font-size:13.5px;font-family:"Public Sans",sans-serif;font-weight:700}
+.scen p{margin:0 0 7px;font-size:12.5px;color:var(--muted)}
+.opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.opts button{font:inherit;font-size:12px;padding:5px 9px;border-radius:7px;border:1.5px solid var(--line2);
+  background:var(--surface);color:var(--ink);cursor:pointer}
+.opts button.sel{border-color:var(--indigo);background:var(--indigo-soft);color:var(--indigo)}
+.res{font-size:12.5px;margin-top:5px;padding:7px 9px;border-radius:7px;display:none}
+.res.show{display:block}
+.res.right{background:var(--green-soft);border:1px solid var(--green)}
+.res.wrong{background:var(--red-soft);border:1px solid var(--red)}
+.legend{font-size:12px;color:var(--muted);margin-top:8px}
+.clock{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--amber);font-weight:600}
+</style>
+
+<div class="wrap">
+<div class="topgrid">
+  <div>
+    <h1>The Second Delivery</h1>
+    <p class="sub">Asha (<span class="mono">M-77</span>) made <b>two</b> payments. The loyalty consumer
+    reads <span class="mono">payments.captured</span> and runs
+    <span class="mono">points = points + N</span> — an <i>accumulative</i> effect, so it remembers every
+    time it runs. She should end with <b>80 points</b>. Pick a dedup design, then inject a redelivery
+    source and see whether the design survives it.</p>
+  </div>
+  <div class="verdict" id="verdict" aria-live="polite">
+    <div class="big" id="vbig">Asha has 0 points</div>
+    <div class="why" id="vwhy">Nothing consumed yet. Press Step.</div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="barlabel">Consumer design — what the handler checks before it adds points</div>
+  <div class="seg" id="designSeg"></div>
+  <div class="hint" id="designHint"></div>
+</div>
+
+<div class="bar">
+  <div class="barlabel">Run</div>
+  <div class="row">
+    <button class="btn primary" id="bStep">Step ▸</button>
+    <button class="btn" id="bBack">◂ Back</button>
+    <button class="btn" id="bPlay">Play</button>
+    <button class="btn" id="bReset">Reset world</button>
+    <span style="margin-left:6px" class="clock" id="clock">day 0</span>
+  </div>
+  <div class="barlabel" style="margin-top:12px">Inject a redelivery source — each is one of the seven from §1 of the lab</div>
+  <div class="row">
+    <button class="btn danger" id="bCrash">Crash before offset commit</button>
+    <button class="btn danger" id="bRebal">Rebalance now (zombie)</button>
+    <button class="btn" id="bRepub">Relay republishes</button>
+    <button class="btn" id="bDlq">DLQ replay (+9 days)</button>
+    <button class="btn" id="bRepro">Reprocess from offset 0</button>
+    <span id="retWrap" style="display:none">
+      &nbsp;inbox retention:
+      <select id="retSel">
+        <option value="1">1 day</option>
+        <option value="7" selected>7 days</option>
+        <option value="-1">forever</option>
+      </select>
+    </span>
+  </div>
+  <div class="hint" id="ctlHint">Crash and Rebalance act on the record currently being handled, so poll something first.</div>
+</div>
+
+<div class="grid">
+
+  <div class="panel">
+    <span class="tag">Kafka · payments.captured · partition 0</span>
+    <div class="next" id="nextAct">next: pod A polls</div>
+    <table><thead><tr><th>off</th><th>event id</th><th>seq</th><th>pts</th><th>why it is here</th></tr></thead>
+    <tbody id="logRows"></tbody></table>
+    <div class="status" id="topicStatus"></div>
+    <div class="legend">Committed offset = where a restarting consumer resumes.
+    A highlighted row is in a consumer's hands right now.</div>
+  </div>
+
+  <div class="panel">
+    <span class="tag">loyalty-v1 · consumer group</span>
+    <div id="consumers"></div>
+  </div>
+
+  <div class="panel">
+    <span class="tag">Dedup store</span>
+    <div id="dedupBody"></div>
+  </div>
+
+  <div class="panel">
+    <span class="tag">Loyalty database · members</span>
+    <table><thead><tr><th>id</th><th>points</th><th>last_seq</th></tr></thead>
+    <tbody id="memberRows"></tbody></table>
+    <div class="subsec">
+      <h2 style="font-size:13.5px">Applications that actually changed state</h2>
+      <table><tbody id="appliedRows"></tbody></table>
+      <div class="empty" id="appliedEmpty">none yet</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="grid" style="margin-top:12px">
+  <div class="panel" style="grid-column:span 2">
+    <span class="tag">Predict, then run</span>
+    <div id="scenList"></div>
+  </div>
+  <div class="panel">
+    <span class="tag">Event log</span>
+    <div id="log" aria-live="polite"></div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var FIRST = 41;
+var EXPECTED = 80;
+
+var DESIGNS = {
+  A: { name:"A · no dedup",       tag:"just add the points",
+       hint:"The handler polls, adds the points, commits the offset. Every redelivery source below produces a double. This is the baseline the other three are measured against." },
+  B: { name:"B · dedup by offset", tag:"processed_offsets(topic,partition,offset)",
+       hint:"Insert (topic, partition, offset) under a primary key, in the same transaction as the UPDATE. Fixes crashes and the rebalance zombie — the two cases where the SAME record is delivered twice. Now try 'Relay republishes': the same fact at a new offset is, to this design, a brand-new record." },
+  C: { name:"C · inbox by event id", tag:"inbox(consumer, message_id) + retention",
+       hint:"Insert (consumer, message_id) under a primary key, in the same transaction as the UPDATE. The id is minted by the producer when the fact was created, so it survives republication. The only thing that can defeat it is forgetting — set retention to 7 days and run 'DLQ replay (+9 days)'." },
+  D: { name:"D · watermark per key", tag:"UPDATE … WHERE last_seq < :seq",
+       hint:"No dedup table at all: one monotone sequence per member, stored on the member row and advanced in the same UPDATE. Never expires, so no retention trap, and it also rejects out-of-order events. Its cost is the last button: 'Reprocess from offset 0' becomes a silent no-op." }
+};
+
+var S, HIST=[], playTimer=null;
+
+function seed(){
+  return {
+    day:0, design:"B", retention:7,
+    topic:[
+      {offset:41, eventId:"evt-9f31", member:"M-77", seq:17, points:50, note:"original · pay-8812"},
+      {offset:42, eventId:"evt-a044", member:"M-77", seq:18, points:30, note:"original · pay-8813"}
+    ],
+    committed:41,
+    consumers:[{id:"A", pos:41, rec:null, phase:"poll", alive:true, fenced:false}],
+    turn:0,
+    members:{"M-77":{points:0, lastSeq:0}},
+    inbox:[], offsets:[], applied:[], events:[],
+    crashArm:false, lastMsg:""
+  };
+}
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function push(){ HIST.push(clone(S)); if(HIST.length>400) HIST.shift(); }
+function say(text, cls){ S.events.unshift({t:text, c:cls||""}); S.lastMsg=text; }
+
+/* ---------- the transaction: dedup decision + effect, atomically ---------- */
+function applyTx(c, r){
+  var d = S.design, m = S.members[r.member];
+  var who = "pod "+c.id;
+
+  if(d==="A"){
+    m.points += r.points;
+    S.applied.push({e:r.eventId, off:r.offset, p:r.points, by:c.id});
+    say(who+" applied "+r.eventId+" (off "+r.offset+") → +"+r.points+" = "+m.points, "ap");
+    return "applied";
+  }
+
+  if(d==="B"){
+    var key = "0/"+r.offset;
+    if(S.offsets.indexOf(key)>=0){
+      say(who+" PK violation on processed_offsets("+key+") → txn rolled back, no points", "sup");
+      return "suppressed";
+    }
+    S.offsets.push(key);
+    m.points += r.points;
+    S.applied.push({e:r.eventId, off:r.offset, p:r.points, by:c.id});
+    say(who+" INSERT processed_offsets "+key+" + UPDATE → +"+r.points+" = "+m.points, "ap");
+    return "applied";
+  }
+
+  if(d==="C"){
+    var hit=null, i;
+    for(i=0;i<S.inbox.length;i++){ if(S.inbox[i].id===r.eventId) hit=S.inbox[i]; }
+    if(hit){
+      say(who+" PK violation on inbox("+r.eventId+") → txn rolled back, no points", "sup");
+      return "suppressed";
+    }
+    S.inbox.push({id:r.eventId, day:S.day});
+    m.points += r.points;
+    S.applied.push({e:r.eventId, off:r.offset, p:r.points, by:c.id});
+    say(who+" INSERT inbox "+r.eventId+" + UPDATE → +"+r.points+" = "+m.points, "ap");
+    return "applied";
+  }
+
+  /* D — watermark */
+  if(r.seq > m.lastSeq){
+    m.points += r.points;
+    m.lastSeq = r.seq;
+    S.applied.push({e:r.eventId, off:r.offset, p:r.points, by:c.id});
+    say(who+" UPDATE … WHERE last_seq < "+r.seq+" → 1 row, +"+r.points+" = "+m.points+", watermark "+r.seq, "ap");
+    return "applied";
+  }
+  say(who+" UPDATE … WHERE last_seq < "+r.seq+" → 0 rows (watermark is "+m.lastSeq+"), no points", "sup");
+  return "suppressed";
+}
+
+/* ---------- one micro-step for one consumer ---------- */
+function stepConsumer(c){
+  if(!c.alive) return false;
+
+  if(c.phase==="poll"){
+    var rec=null, i;
+    for(i=0;i<S.topic.length;i++){ if(S.topic[i].offset>=c.pos){ rec=S.topic[i]; break; } }
+    if(!rec){ say("pod "+c.id+" polled — no records beyond offset "+c.pos+", idle"); return false; }
+    c.rec = rec.offset; c.pos = rec.offset; c.phase="apply";
+    say("pod "+c.id+" polled offset "+rec.offset+" ("+rec.eventId+")");
+    return true;
+  }
+
+  if(c.phase==="apply"){
+    var r=null, j;
+    for(j=0;j<S.topic.length;j++){ if(S.topic[j].offset===c.rec) r=S.topic[j]; }
+    applyTx(c, r);
+    c.phase="commit";
+    return true;
+  }
+
+  /* commit the offset */
+  if(S.crashArm){
+    S.crashArm=false;
+    c.pos = S.committed; c.rec=null; c.phase="poll";
+    say("✖ pod "+c.id+" DIED before committing the offset — restarts at committed offset "+S.committed, "bad");
+    return true;
+  }
+  if(c.fenced){
+    c.alive=false; c.rec=null;
+    say("pod "+c.id+" tried to commit and was fenced (CommitFailedException) — its partition was reassigned. "+
+        "Note the damage was already done at apply time.", "bad");
+    return true;
+  }
+  var rr=null, k;
+  for(k=0;k<S.topic.length;k++){ if(S.topic[k].offset===c.rec) rr=S.topic[k]; }
+  S.committed = Math.max(S.committed, rr.offset+1);
+  c.pos = rr.offset+1; c.rec=null; c.phase="poll";
+  say("pod "+c.id+" committed offset → group position "+S.committed);
+  return true;
+}
+
+function anyWork(){
+  var i, c;
+  for(i=0;i<S.consumers.length;i++){
+    c=S.consumers[i];
+    if(!c.alive) continue;
+    if(c.phase!=="poll") return true;
+    var j; for(j=0;j<S.topic.length;j++){ if(S.topic[j].offset>=c.pos) return true; }
+  }
+  return false;
+}
+
+function step(){
+  if(!anyWork()){ say("nothing left to do — every consumer is idle at the end of the log"); render(); return; }
+  push();
+  var n=S.consumers.length, tries=0, moved=false;
+  while(tries<n*2 && !moved){
+    var c = S.consumers[S.turn % n];
+    S.turn = (S.turn+1) % n;
+    if(c.alive) moved = stepConsumer(c);
+    tries++;
+  }
+  render();
+}
+
+/* ---------- fault injection ---------- */
+function armCrash(){
+  push();
+  S.crashArm = true;
+  say("⚡ armed: the next offset commit will be interrupted by a pod eviction", "op");
+  render();
+}
+
+function rebalance(){
+  var a=null,i;
+  for(i=0;i<S.consumers.length;i++){ if(S.consumers[i].alive && S.consumers[i].rec!==null) a=S.consumers[i]; }
+  if(!a){ S.lastMsg="Poll a record first — a rebalance only creates a zombie if a handler is mid-flight."; render(); return; }
+  if(S.consumers.length>1){ S.lastMsg="Already rebalanced once; reset the world to do it again."; render(); return; }
+  push();
+  a.fenced = true;
+  S.consumers.push({id:"B", pos:S.committed, rec:null, phase:"poll", alive:true, fenced:false});
+  say("⚡ REBALANCE: the coordinator gave partition 0 to pod B. Pod A is still running its handler — "+
+      "it is now a zombie. Both will process offset "+a.rec+".", "op");
+  render();
+}
+
+function republish(){
+  push();
+  var max=S.topic[S.topic.length-1].offset;
+  var src=S.topic[0];
+  S.topic.push({offset:max+1, eventId:src.eventId, member:src.member, seq:src.seq, points:src.points,
+                note:"relay republish · same fact"});
+  say("⚡ the outbox relay crashed after send() and republished its row: "+src.eventId+
+      " is now ALSO at offset "+(max+1)+". Same fact, new delivery identity.", "op");
+  render();
+}
+
+function pruneInbox(){
+  if(S.retention<0) return 0;
+  var keep=[], dropped=0, i;
+  for(i=0;i<S.inbox.length;i++){
+    if(S.day - S.inbox[i].day <= S.retention) keep.push(S.inbox[i]); else dropped++;
+  }
+  S.inbox=keep;
+  return dropped;
+}
+
+function dlqReplay(){
+  push();
+  S.day += 9;
+  var dropped = pruneInbox();
+  if(dropped>0) say("the retention job deleted "+dropped+" inbox row(s) older than "+S.retention+" days", "op");
+  var max=S.topic[S.topic.length-1].offset, i, base=[];
+  for(i=0;i<S.topic.length;i++){ if(S.topic[i].note.indexOf("original")===0) base.push(S.topic[i]); }
+  for(i=0;i<base.length;i++){
+    S.topic.push({offset:max+1+i, eventId:base[i].eventId, member:base[i].member, seq:base[i].seq,
+                  points:base[i].points, note:"DLQ replay · day "+S.day});
+  }
+  say("⚡ day "+S.day+": an engineer replayed the dead-letter queue. "+base.length+
+      " records re-injected with fresh offsets.", "op");
+  render();
+}
+
+function reprocess(){
+  push();
+  S.committed = FIRST;
+  var i;
+  for(i=0;i<S.consumers.length;i++){ S.consumers[i].pos=FIRST; S.consumers[i].rec=null; S.consumers[i].phase="poll"; }
+  say("⚡ group reset to offset "+FIRST+" — a deliberate reprocess after fixing a bug. "+
+      "The question is whether your dedup lets it happen.", "op");
+  render();
+}
+
+/* ---------- rendering ---------- */
+function el(id){ return document.getElementById(id); }
+
+function renderDesignSeg(){
+  var host=el("designSeg"), html="", k;
+  for(k in DESIGNS){
+    html += '<button data-d="'+k+'" class="'+(S.design===k?"on":"")+'"><b>'+DESIGNS[k].name+
+            '</b><span class="mono">'+DESIGNS[k].tag+'</span></button>';
+  }
+  host.innerHTML=html;
+  var bs=host.getElementsByTagName("button"), i;
+  for(i=0;i<bs.length;i++){
+    bs[i].onclick=function(){ var d=this.getAttribute("data-d"); reset(); S.design=d; render(); };
+  }
+  el("designHint").textContent = DESIGNS[S.design].hint;
+  el("retWrap").style.display = (S.design==="C") ? "" : "none";
+}
+
+function renderTopic(){
+  var html="", i, held={}, c;
+  for(i=0;i<S.consumers.length;i++){ c=S.consumers[i]; if(c.rec!==null && c.alive) held[c.rec]=true; }
+  for(i=0;i<S.topic.length;i++){
+    var r=S.topic[i];
+    var mark = (r.offset===S.committed) ? ' ◄ committed' : '';
+    html += '<tr class="'+(held[r.offset]?"cur":"")+'"><td>'+r.offset+mark+'</td><td>'+r.eventId+
+            '</td><td>'+r.seq+'</td><td>+'+r.points+'</td><td style="font-family:inherit;font-size:11.5px;color:var(--muted)">'+
+            r.note+'</td></tr>';
+  }
+  el("logRows").innerHTML=html;
+  el("topicStatus").textContent = "group committed offset: "+S.committed+
+    (S.committed>S.topic[S.topic.length-1].offset ? " (past the end of the log)" : "");
+}
+
+function renderConsumers(){
+  var html="", i;
+  for(i=0;i<S.consumers.length;i++){
+    var c=S.consumers[i];
+    var phase = !c.alive ? "dead (fenced)" :
+                c.phase==="poll" ? "waiting to poll from offset "+c.pos :
+                c.phase==="apply" ? "holding offset "+c.rec+" — about to run the transaction" :
+                "transaction committed — about to commit offset "+c.rec;
+    html += '<div class="subsec" style="'+(i===0?"margin-top:0;padding-top:0;border-top:none":"")+'">'+
+      '<h2 style="font-size:14px"><span class="led '+(c.alive?"run":"dead")+'"></span> pod '+c.id+
+      (c.fenced&&c.alive?' <span class="chip warn">zombie</span>':'')+'</h2>'+
+      '<div class="status" style="margin-top:2px">'+phase+'</div></div>';
+  }
+  if(S.crashArm) html += '<div class="status" style="color:var(--red);font-weight:600">⚡ crash armed for the next offset commit</div>';
+  el("consumers").innerHTML=html;
+
+  var nxt="—", n=S.consumers.length, t;
+  for(t=0;t<n;t++){
+    var cc=S.consumers[(S.turn+t)%n];
+    if(cc.alive){
+      nxt = "next: pod "+cc.id+" "+(cc.phase==="poll"?"polls":cc.phase==="apply"?"runs the transaction":"commits the offset");
+      break;
+    }
+  }
+  el("nextAct").textContent = anyWork()? nxt : "next: nothing — all consumers idle";
+}
+
+function renderDedup(){
+  var h="", i;
+  if(S.design==="A"){
+    h = '<h2>Nothing is stored</h2><div class="empty">Design A keeps no memory of what it has processed. '+
+        'Every delivery is a fresh fact to it.</div>';
+  } else if(S.design==="B"){
+    h = '<h2>processed_offsets <span class="chip">delivery identity</span></h2>';
+    if(!S.offsets.length) h += '<div class="empty">empty — nothing consumed yet</div>';
+    else { h+='<table><tbody>'; for(i=0;i<S.offsets.length;i++) h+='<tr><td>payments.captured / '+S.offsets[i]+'</td></tr>'; h+='</tbody></table>'; }
+    h += '<div class="legend">This table knows every <i>address</i> it has read. It knows nothing about which '+
+         '<i>facts</i> it has applied — which is exactly what republication exploits.</div>';
+  } else if(S.design==="C"){
+    h = '<h2>inbox <span class="chip">message identity</span></h2>';
+    if(!S.inbox.length) h += '<div class="empty">empty — nothing consumed yet</div>';
+    else {
+      h+='<table><thead><tr><th>message_id</th><th>applied</th><th>age</th></tr></thead><tbody>';
+      for(i=0;i<S.inbox.length;i++){
+        var age=S.day-S.inbox[i].day;
+        var doomed = (S.retention>=0 && age>S.retention);
+        h+='<tr class="'+(doomed?"gone":"")+'"><td>'+S.inbox[i].id+'</td><td>day '+S.inbox[i].day+
+           '</td><td>'+age+'d</td></tr>';
+      }
+      h+='</tbody></table>';
+    }
+    h += '<div class="legend">Retention is currently <b>'+(S.retention<0?"forever":S.retention+" days")+
+         '</b>. A row that outlives the window is deleted, and the fact it protected becomes new again.</div>';
+  } else {
+    h = '<h2>No table at all <span class="chip ok">retention-free</span></h2>'+
+        '<div class="legend">Design D stores the watermark <span class="mono">last_seq</span> on the member row itself '+
+        '(see the database panel). It is one number per entity that only moves forward, so there is nothing to '+
+        'prune, nothing to expire, and no window to fall outside of. The price shows up under '+
+        '"Reprocess from offset 0".</div>';
+  }
+  el("dedupBody").innerHTML=h;
+}
+
+function renderDb(){
+  var m=S.members["M-77"];
+  el("memberRows").innerHTML = '<tr><td>M-77</td><td><b>'+m.points+'</b></td><td>'+
+    (S.design==="D"? m.lastSeq : '<span style="color:var(--muted)">unused</span>')+'</td></tr>';
+  var h="", i;
+  for(i=0;i<S.applied.length;i++){
+    var a=S.applied[i];
+    h+='<tr><td>'+a.e+'</td><td>off '+a.off+'</td><td>+'+a.p+'</td><td>pod '+a.by+'</td></tr>';
+  }
+  el("appliedRows").innerHTML=h;
+  el("appliedEmpty").style.display = S.applied.length? "none":"";
+}
+
+function renderVerdict(){
+  var m=S.members["M-77"], v=el("verdict");
+  var facts={}, i;
+  for(i=0;i<S.applied.length;i++) facts[S.applied[i].e]=(facts[S.applied[i].e]||0)+1;
+  var dupes=0, k;
+  for(k in facts) if(facts[k]>1) dupes += facts[k]-1;
+
+  el("vbig").textContent = "Asha has "+m.points+" points";
+  if(m.points===EXPECTED && dupes===0){
+    v.className="verdict good";
+    el("vwhy").textContent = "Correct — 50 + 30 for two payments, each applied exactly once.";
+  } else if(m.points>EXPECTED || dupes>0){
+    v.className="verdict bad";
+    el("vwhy").textContent = dupes+" fact(s) were applied more than once. She should have "+EXPECTED+".";
+  } else {
+    v.className="verdict";
+    el("vwhy").textContent = S.lastMsg || "In progress — she should end with "+EXPECTED+".";
+  }
+}
+
+function renderLog(){
+  var h="", i;
+  for(i=0;i<S.events.length && i<90;i++) h+='<div class="'+S.events[i].c+'">'+S.events[i].t+'</div>';
+  el("log").innerHTML=h;
+}
+
+function render(){
+  renderDesignSeg(); renderTopic(); renderConsumers(); renderDedup(); renderDb(); renderVerdict(); renderLog();
+  el("clock").textContent = "day "+S.day;
+  el("bBack").disabled = HIST.length===0;
+  el("ctlHint").textContent = S.lastMsg ? S.lastMsg :
+    "Crash and Rebalance act on the record currently being handled, so poll something first.";
+}
+
+function reset(){
+  HIST=[]; stopPlay();
+  var keepDesign=S.design, keepRet=S.retention;
+  S=seed(); S.design=keepDesign; S.retention=keepRet;
+}
+
+function stopPlay(){ if(playTimer){ clearInterval(playTimer); playTimer=null; el("bPlay").textContent="Play"; } }
+
+/* ---------- scenarios ---------- */
+var SCEN=[
+ { t:"1 · The pod dies before it commits the offset",
+   p:"Design B (dedup by offset). Poll and apply offset 41, then crash the pod before the offset commit, then let it restart and re-read 41.",
+   opts:["evt-9f31 is applied twice → 130 points","The duplicate is suppressed → 80 points","The event is lost → 30 points"],
+   ans:1,
+   why:"The redelivery is the SAME record at the SAME offset, so (0/41) is already in processed_offsets and the whole transaction — insert and UPDATE together — rolls back. This is the case dedup-by-offset was built for, and it handles it perfectly. Which is exactly why it lulls teams into stopping here.",
+   run:function(){ reset(); S.design="B"; step(); step(); armCrash(); var i; for(i=0;i<10;i++) step(); } },
+
+ { t:"2 · The relay republishes the same fact",
+   p:"Design B again. Consume offset 41 cleanly. Then the outbox relay crashes after send() and publishes the same outbox row again — evt-9f31 appears at a new offset.",
+   opts:["Suppressed — it is the same event id","evt-9f31 is applied twice → 130 points","The consumer throws an error"],
+   ans:1,
+   why:"The new offset has genuinely never been seen, so the primary key accepts it and the UPDATE runs. The table was answering 'which addresses have I read?' when the question was 'which facts have I applied?'. Offsets are DELIVERY identity; deduplication needs MESSAGE identity, and only the producer can supply that.",
+   run:function(){ reset(); S.design="B"; step(); step(); step(); republish(); step(); step(); step(); step(); step(); step(); } },
+
+ { t:"3 · The dead-letter replay, nine days later",
+   p:"Design C (inbox by event id) with 7-day retention. Consume both events on day 0. Then an engineer replays the DLQ on day 9.",
+   opts:["Suppressed — the inbox remembers","Both facts applied twice → 160 points","Only the second event is duplicated"],
+   ans:1,
+   why:"Both inbox rows were deleted on day 7 by the retention job. To the consumer these are brand-new facts. Nothing errors and the replay tool reports success. The rule this teaches: the inbox's retention must exceed the maximum REDELIVERY AGE — and redelivery age is set by human operational behaviour, not by any config in your repo. Set retention to 'forever' and run it again to see the difference.",
+   run:function(){ reset(); S.design="C"; S.retention=7; var i; for(i=0;i<6;i++) step(); dlqReplay(); for(i=0;i<8;i++) step(); } },
+
+ { t:"4 · A deliberate reprocess, under a watermark",
+   p:"Design D (watermark). Consume both events normally. Then you fix a bug in the points formula and reset the group to offset 0 to recompute everyone.",
+   opts:["Everything is recomputed with the new formula","Nothing happens at all — 80 points, unchanged","Points are doubled → 160"],
+   ans:1,
+   why:"Every event's sequence is at or below the watermark already on the member row, so every UPDATE matches zero rows. The consumer runs through the whole log at full speed, logs nothing unusual, commits offsets, and changes no state. Suppression is not the same as safety: the same property that makes a watermark retention-free makes a deliberate replay a silent no-op. A well-run system ships a documented reprocess procedure precisely because of this.",
+   run:function(){ reset(); S.design="D"; var i; for(i=0;i<6;i++) step(); reprocess(); for(i=0;i<8;i++) step(); } }
+];
+
+function renderScen(){
+  var h="", i;
+  for(i=0;i<SCEN.length;i++){
+    var s=SCEN[i], o="", j;
+    for(j=0;j<s.opts.length;j++) o+='<button data-s="'+i+'" data-o="'+j+'">'+s.opts[j]+'</button>';
+    h+='<div class="scen"><h3>'+s.t+'</h3><p>'+s.p+'</p><div class="opts" id="opts'+i+'">'+o+'</div>'+
+       '<button class="btn" data-run="'+i+'">Run this scenario for me ▸</button>'+
+       '<div class="res" id="res'+i+'"></div></div>';
+  }
+  el("scenList").innerHTML=h;
+  var bs=el("scenList").getElementsByTagName("button"), k;
+  for(k=0;k<bs.length;k++){
+    bs[k].onclick=function(){
+      var run=this.getAttribute("data-run");
+      if(run!==null){
+        var idx=parseInt(run,10);
+        SCEN[idx].run(); render();
+        var rr=el("res"+idx);
+        if(rr.className.indexOf("right")<0 && rr.className.indexOf("wrong")<0){
+          rr.className="res show";
+          rr.innerHTML="<b>What happened:</b> "+SCEN[idx].why;
+        }
+        return;
+      }
+      var si=parseInt(this.getAttribute("data-s"),10), oi=parseInt(this.getAttribute("data-o"),10);
+      var sibs=el("opts"+si).getElementsByTagName("button"), q;
+      for(q=0;q<sibs.length;q++) sibs[q].className="";
+      this.className="sel";
+      var res=el("res"+si), ok=(oi===SCEN[si].ans);
+      res.className="res show "+(ok?"right":"wrong");
+      res.innerHTML="<b>"+(ok?"Correct.":"Not quite.")+"</b> "+SCEN[si].why+
+        "<br><br>Now press <i>Run this scenario for me</i> and watch the dedup store while it happens.";
+    };
+  }
+}
+
+/* ---------- wiring ---------- */
+el("bStep").onclick=function(){ stopPlay(); step(); };
+el("bBack").onclick=function(){ stopPlay(); if(HIST.length){ S=HIST.pop(); render(); } };
+el("bPlay").onclick=function(){
+  if(playTimer){ stopPlay(); return; }
+  el("bPlay").textContent="Pause";
+  playTimer=setInterval(function(){ if(!anyWork()){ stopPlay(); render(); return; } step(); }, 750);
+};
+el("bReset").onclick=function(){ reset(); render(); };
+el("bCrash").onclick=function(){ stopPlay(); armCrash(); };
+el("bRebal").onclick=function(){ stopPlay(); rebalance(); };
+el("bRepub").onclick=function(){ stopPlay(); republish(); };
+el("bDlq").onclick=function(){ stopPlay(); dlqReplay(); };
+el("bRepro").onclick=function(){ stopPlay(); reprocess(); };
+el("retSel").onchange=function(){ S.retention=parseInt(this.value,10); pruneInbox(); render(); };
+
+S=seed();
+renderScen();
+render();
+})();
+</script>
