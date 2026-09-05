@@ -105,9 +105,10 @@ Capstones. Each one is every earlier stage at once, with the tradeoffs already m
 
 1. [`google-spanner`](google-spanner/README.md) ↳2 — Did not build a more accurate clock — built one that admits how wrong it might be.
 2. [`cockroachdb`](cockroachdb/README.md) ↳0 — Spanner made writers pay for clock error by waiting. CockroachDB declares a bound and pays elsewhere.
-3. [`whatsapp-system-design`](whatsapp-system-design/README.md) ↳2 — Hard for one invisible reason: the person you are messaging is usually not there.
-4. [`uber-system-design`](uber-system-design/README.md) ↳2 — Moving supply, moving demand, milliseconds — and never the same car promised twice.
-5. [`google-docs-system-design`](google-docs-system-design/README.md) ↳2 — One product decision — your keystroke appears before any server agrees — and everything else is the bill.
+3. [`mongodb`](mongodb/README.md) ↳0 — The document is the unit of everything; the majority commit point is the line between an opinion and a fact. **← read after `raft`, `split-brain`, `causal-consistency`, `isolation-levels` and `partitioning-and-rebalancing`; it assembles all of them and re-teaches none.**
+4. [`whatsapp-system-design`](whatsapp-system-design/README.md) ↳2 — Hard for one invisible reason: the person you are messaging is usually not there.
+5. [`uber-system-design`](uber-system-design/README.md) ↳2 — Moving supply, moving demand, milliseconds — and never the same car promised twice.
+6. [`google-docs-system-design`](google-docs-system-design/README.md) ↳2 — One product decision — your keystroke appears before any server agrees — and everything else is the bill.
 
 ## Parallel track — The JVM Underneath
 
@@ -157,11 +158,20 @@ in `KNOWLEDGE-MAP.md`, recounted 2026-08-31.
 
 Generated 2026-08-30 from KNOWLEDGE-MAP.md. `kafka`, `jepsen`,
 `mvcc-and-vacuum`, `clock-synchronization`, `load-shedding`, `load-balancing`,
-`idempotent-consumer` and `kafka-exactly-once` were added by hand afterwards;
-their `↳N` prerequisite counts and the stage ordering have **not** been
-recomputed, and `LEARNING-PATH.html` is now **eight labs behind**. Regenerate both from
-KNOWLEDGE-MAP.md's `Builds on` links after adding
-labs.
+`idempotent-consumer`, `kafka-exactly-once` and `mongodb` were added by hand
+afterwards; their `↳N` prerequisite counts and the stage ordering have **not**
+been recomputed, and `LEARNING-PATH.html` is now **nine labs behind**. Regenerate
+both from KNOWLEDGE-MAP.md's `Builds on` links after adding labs.
+
+`mongodb` is placed at Stage 7 item 3 on a curriculum judgement that its `Builds
+on` links support: it names sixteen earlier labs and adds no new mechanism of its
+own — it is `raft` (pull-based), `split-brain` (the stale-primary window as three
+read concerns), `causal-consistency` + `hybrid-logical-clocks` (cluster time and
+sessions), `isolation-levels` (snapshot-isolated transactions) and
+`partitioning-and-rebalancing` (shard keys, ranges, the balancer) assembled into
+one product, so it sits with the other capstones, directly after `cockroachdb`,
+which shows the same "proceed and detect" storage posture at the other end of the
+consistency dial.
 
 `load-shedding` and `load-balancing` are placed at Stage 6 items 3 and 4 on their
 `Builds on` links, which are unambiguous: both build on `queueing-theory`

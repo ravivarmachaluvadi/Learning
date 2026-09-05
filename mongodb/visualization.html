@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Order Book</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c1f24; --muted: #5d6572; --line: #d9dde3;
+    --primary: #1f7a3f; --primary-bg: #e3f3e8; --secondary: #2a5fb0; --secondary-bg: #e4ecfa;
+    --down: #7a7a7a; --down-bg: #ececec; --rollback: #b3261e; --rollback-bg: #fbe4e2;
+    --arbiter: #7a5d00; --arbiter-bg: #fff3c4; --commit: #1f7a3f; --warn: #a15c00; --warn-bg: #fff1dc;
+    --ok: #1f7a3f; --bad: #b3261e; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 22px 8px; }
+  header h1 { margin: 0 0 4px; font-size: 21px; }
+  header p { margin: 0; color: var(--muted); max-width: 900px; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; padding: 8px 22px 30px; }
+  @media (max-width: 1050px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .panel h2 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; padding: 6px 11px; border-radius: 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  button:hover { background: #f0f2f5; }
+  button.accent { background: var(--ink); color: #fff; border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  select { font: inherit; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line); background: #fff; }
+  label { font-size: 13px; color: var(--muted); }
+  .nodes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 760px) { .nodes { grid-template-columns: 1fr; } }
+  .node { border: 2px solid var(--line); border-radius: 10px; padding: 10px; background: #fff; min-height: 220px; }
+  .node.PRIMARY { border-color: var(--primary); }
+  .node.SECONDARY { border-color: var(--secondary); }
+  .node.DOWN { border-color: var(--down); background: var(--down-bg); }
+  .node.ROLLBACK { border-color: var(--rollback); background: var(--rollback-bg); }
+  .node.ARBITER { border-color: var(--arbiter); background: var(--arbiter-bg); }
+  .node .title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .node .title b { font-size: 16px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; letter-spacing: .03em; }
+  .badge.PRIMARY { background: var(--primary-bg); color: var(--primary); }
+  .badge.SECONDARY { background: var(--secondary-bg); color: var(--secondary); }
+  .badge.DOWN { background: #ddd; color: var(--down); }
+  .badge.ROLLBACK { background: #f6c9c5; color: var(--rollback); }
+  .badge.ARBITER { background: #f4e2a0; color: var(--arbiter); }
+  .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .oplog { font-family: var(--mono); font-size: 12px; border-top: 1px dashed var(--line); padding-top: 6px; }
+  .oplog .e { display: flex; gap: 6px; padding: 1px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oplog .e.committed { background: #e3f3e8; }
+  .oplog .e.new { background: #fff3c4; }
+  .oplog .e .ts { color: var(--muted); min-width: 68px; }
+  .oplog .cp { color: var(--commit); font-weight: 700; margin-top: 4px; }
+  .oplog .rb { color: var(--rollback); margin-top: 4px; }
+  .docs { font-family: var(--mono); font-size: 12px; margin-top: 6px; color: #333; }
+  .cut { color: var(--rollback); font-weight: 600; }
+  .narr { min-height: 120px; }
+  .narr .tick { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .narr p { margin: 4px 0; }
+  .narr .why { background: var(--warn-bg); border-left: 3px solid var(--warn); padding: 6px 10px; border-radius: 4px; }
+  .req { font-family: var(--mono); font-size: 12px; padding: 4px 6px; border-radius: 5px; margin: 3px 0; border: 1px solid var(--line); }
+  .req.ok { border-color: var(--ok); background: #e3f3e8; }
+  .req.bad { border-color: var(--bad); background: #fbe4e2; }
+  .req.wait { border-color: var(--warn); background: var(--warn-bg); }
+  .predict { border: 2px solid var(--warn); border-radius: 10px; padding: 10px 12px; background: var(--warn-bg); margin-bottom: 10px; }
+  .predict h3 { margin: 0 0 6px; font-size: 14px; }
+  .predict .opt { display: block; width: 100%; text-align: left; margin: 4px 0; }
+  .predict .opt.chosen { outline: 2px solid var(--ink); }
+  .verdict { margin-top: 8px; font-weight: 600; }
+  .legend { font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-block; margin-right: 12px; }
+  .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; border: 1px solid #0002; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .kv { font-family: var(--mono); font-size: 12px; }
+  .small { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Order Book — what happens to an acknowledged write</h1>
+  <p>Three MongoDB replica-set members keep the same <b>oplog</b>. Every write becomes an oplog entry stamped
+    <code>ts</code> (time) and <code>t</code> (term). The green line is the <b>majority commit point</b>: everything
+    at or below it is on a majority and can never be rolled back; everything above it is one machine's opinion.
+    One tick = one heartbeat = 2 seconds. Election timeout = 10 s (5 ticks), as in the defaults.</p>
+</header>
+<main>
+  <section>
+    <div class="panel" style="margin-bottom:12px">
+      <h2>Scenario</h2>
+      <div class="row">
+        <select id="scenario"></select>
+        <button id="btnStep" class="accent">Step ▸</button>
+        <button id="btnBack">◂ Back</button>
+        <button id="btnPlay">Play</button>
+        <button id="btnReset">Reset</button>
+        <span class="kv" id="clock"></span>
+      </div>
+      <p class="small" id="scenarioBlurb"></p>
+    </div>
+
+    <div id="predictBox" class="predict" hidden></div>
+
+    <div class="panel" style="margin-bottom:12px">
+      <h2>Replica set <span class="small" id="topoLabel"></span></h2>
+      <div class="nodes" id="nodes"></div>
+      <div class="legend" style="margin-top:8px">
+        <span><i class="sw" style="background:#e3f3e8"></i>majority-committed entry</span>
+        <span><i class="sw" style="background:#fff3c4"></i>entry above the commit point (can still be rolled back)</span>
+        <span><i class="sw" style="background:#fbe4e2"></i>rolled back</span>
+      </div>
+      <div class="small" id="netLabel" style="margin-top:6px"></div>
+    </div>
+
+    <div class="panel narr" style="margin-bottom:12px">
+      <h2>What just happened</h2>
+      <div id="narration"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Free play <span class="small">(any scenario; acts on the current state)</span></h2>
+      <div class="row" style="margin-bottom:6px">
+        <label>write concern <select id="fpWc"><option value="1">w:1</option><option value="majority" selected>w:"majority"</option></select></label>
+        <button id="fpWrite">Write next order</button>
+        <label>read concern <select id="fpRc"><option value="local" selected>local</option><option value="majority">majority</option><option value="linearizable">linearizable</option></select></label>
+        <label>read preference <select id="fpRp"><option value="primary" selected>primary</option><option value="secondary">secondary</option></select></label>
+        <label><input type="checkbox" id="fpCausal"> causal session</label>
+        <button id="fpRead">Read order</button>
+      </div>
+      <div class="row">
+        <button id="fpCutM1">Cut m1 off (partition)</button>
+        <button id="fpHeal">Heal network</button>
+        <button id="fpKill">Kill m2</button>
+        <button id="fpRestart">Restart m2</button>
+        <button id="fpTick">Advance one tick</button>
+      </div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="panel" style="margin-bottom:12px">
+      <h2>Client (order-service)</h2>
+      <div class="small" id="clientView"></div>
+      <div id="requests"></div>
+    </div>
+    <div class="panel">
+      <h2>Rules the simulator follows</h2>
+      <details><summary>show</summary>
+        <ul class="small">
+          <li>A secondary <b>pulls</b> missing entries from a reachable node that is ahead (the primary if it can see it; otherwise another secondary — chained replication). One tick of delay per hop.</li>
+          <li><b>w:1</b> acknowledges as soon as the primary has applied the write. <b>w:"majority"</b> acknowledges only when the commit point reaches the write. Default <code>wtimeout</code> here: 5 ticks; timing out does <i>not</i> undo the write.</li>
+          <li>The <b>commit point</b> is the highest optime that the primary can see on a calculated majority of voting, data-bearing members (itself included), and only advances over entries from its own term.</li>
+          <li>A member that has not heard from a primary for <b>5 ticks</b> and can reach a majority of voters and has the highest optime it can see calls an election (term + 1). A primary that cannot see a majority steps down after 6 ticks (its own timer fires one heartbeat later — a deliberate simplification so the stale-primary window is visible).</li>
+          <li>A member whose oplog diverges from its sync source truncates its extra entries into a <b>rollback file</b> and rebuilds.</li>
+          <li>Read concern <b>local</b> returns the member's latest state; <b>majority</b> returns the state at that member's known commit point; <b>linearizable</b> works only on a primary and only if it can confirm a majority right now.</li>
+          <li>A <b>causal session</b> carries <code>afterClusterTime</code>; a member waits until it has applied up to that time before answering.</li>
+          <li>A <b>retryable write</b> carries <code>(lsid, txnNumber)</code>; a primary that already has that pair in its replicated transaction table returns the stored result instead of applying again.</li>
+        </ul>
+      </details>
+    </div>
+  </aside>
+</main>
+
+<script>
+//=== ENGINE START ===
+// ---------------------------------------------------------------------------
+// The Order Book: a deliberately small model of a MongoDB replica set.
+// DOM-free so it can be tested headlessly. Every rule is listed in the page.
+// ---------------------------------------------------------------------------
+var ELECTION_TIMEOUT_TICKS = 5;   // 10 s at one heartbeat per 2 s
+var PRIMARY_STEPDOWN_TICKS = 6;   // simplification: primary's own timer fires one beat later
+var DEFAULT_WTIMEOUT_TICKS = 5;
+
+function optimeKey(o) { return o ? (o.t * 1000000 + o.ts.s * 10 + o.ts.i) : -1; }
+function optimeStr(o) { return o ? ("ts " + o.ts.s + ":" + o.ts.i + " t" + o.t) : "none"; }
+function sameOptime(a, b) { return !!a && !!b && a.t === b.t && a.ts.s === b.ts.s && a.ts.i === b.ts.i; }
+function cmpTs(a, b) { return (a.s - b.s) || (a.i - b.i); }
+
+function createSim(opts) {
+  opts = opts || {};
+  var topology = opts.topology || "PSS";
+  var sim = {
+    tick: 0, topology: topology, nodes: {}, order: ["m1", "m2", "m3"],
+    cuts: {}, clientCuts: {}, delays: {}, requests: [], narration: [], history: [],
+    nextOrder: 1, nextTxn: 1, session: { afterClusterTime: null }, tsCounter: 0, lastTsSec: -1,
+    retryable: true
+  };
+  ["m1", "m2", "m3"].forEach(function (id, i) {
+    var arbiter = topology === "PSA" && id === "m3";
+    sim.nodes[id] = {
+      id: id, arbiter: arbiter, up: true, role: arbiter ? "ARBITER" : (i === 0 ? "PRIMARY" : "SECONDARY"),
+      term: 1, votedFor: {}, oplog: [], commitPoint: null, sinceHeard: 0, noMajorityTicks: 0,
+      docs: {}, rollbackFile: [], txnTable: {}, priority: 1
+    };
+  });
+  return sim;
+}
+
+function say(sim, text, why) { sim.narration.push({ tick: sim.tick, text: text, why: !!why }); }
+function key(a, b) { return a < b ? a + "|" + b : b + "|" + a; }
+function canReach(sim, a, b) {
+  if (a === b) return true;
+  var na = sim.nodes[a], nb = sim.nodes[b];
+  return na.up && nb.up && !sim.cuts[key(a, b)];
+}
+function clientCanReach(sim, id) { return sim.nodes[id].up && !sim.clientCuts[id]; }
+function voters(sim) { return sim.order.filter(function (id) { return true; }); } // all three vote in both topologies
+function dataVoters(sim) { return sim.order.filter(function (id) { return !sim.nodes[id].arbiter; }); }
+function majorityOf(n) { return Math.floor(n / 2) + 1; }
+function calculatedMajority(sim) { return Math.min(majorityOf(voters(sim).length), dataVoters(sim).length); }
+function implicitDefaultWriteConcern(sim) {
+  var arbiters = sim.order.filter(function (id) { return sim.nodes[id].arbiter; }).length;
+  var nonArb = dataVoters(sim).length;
+  if (arbiters > 0 && nonArb <= majorityOf(voters(sim).length)) return "1";
+  return "majority";
+}
+function lastOptime(node) { return node.oplog.length ? node.oplog[node.oplog.length - 1].optime : null; }
+function reachableVoterCount(sim, id) {
+  return voters(sim).filter(function (v) { return canReach(sim, id, v); }).length;
+}
+function currentPrimaries(sim) {
+  return sim.order.filter(function (id) { return sim.nodes[id].up && sim.nodes[id].role === "PRIMARY"; });
+}
+function visiblePrimary(sim, id) {
+  var best = null;
+  currentPrimaries(sim).forEach(function (p) {
+    if (canReach(sim, id, p) && (!best || sim.nodes[p].term > sim.nodes[best].term)) best = p;
+  });
+  return best;
+}
+function newTs(sim) {
+  var s = 100 + 2 * sim.tick;
+  if (s !== sim.lastTsSec) { sim.lastTsSec = s; sim.tsCounter = 0; }
+  sim.tsCounter += 1;
+  return { s: s, i: sim.tsCounter };
+}
+function applyEntry(node, e) {
+  if (e.op.kind !== "noop") {
+    var d = node.docs[e.op.id] || {};
+    Object.keys(e.op.set).forEach(function (k) { d[k] = e.op.set[k]; });
+    node.docs[e.op.id] = d;
+  }
+  if (e.lsid) node.txnTable[e.lsid + ":" + e.txn] = { optime: e.optime, result: e.op.kind + " " + e.op.id };
+}
+function rebuildDocs(node) {
+  node.docs = {}; node.txnTable = {};
+  node.oplog.forEach(function (e) { applyEntry(node, e); });
+}
+function docsAt(node, optime) {
+  var tmp = { docs: {}, txnTable: {} };
+  node.oplog.forEach(function (e) { if (optime && optimeKey(e.optime) <= optimeKey(optime)) applyEntry(tmp, e); });
+  return tmp.docs;
+}
+function commonPointIndex(a, b) { // index of last common entry in a's oplog vs b's oplog, or -1
+  var i = 0;
+  while (i < a.oplog.length && i < b.oplog.length && sameOptime(a.oplog[i].optime, b.oplog[i].optime)) i++;
+  return i - 1;
+}
+
+// ------------------------------ client actions ------------------------------
+function issueWrite(sim, wc, label, options) {
+  options = options || {};
+  var id = options.orderId || ("ord-" + sim.nextOrder++);
+  var txn = options.txn || sim.nextTxn++;
+  var req = {
+    id: "W" + txn, kind: "write", wc: wc, orderId: id, set: options.set || { status: "placed" },
+    lsid: "s1", txn: txn, status: "pending", issuedTick: sim.tick, ackTick: null, node: null,
+    optime: null, label: label || "", wtimeout: options.wtimeout || DEFAULT_WTIMEOUT_TICKS, note: ""
+  };
+  sim.requests.push(req);
+  // driver picks a reachable node that calls itself PRIMARY (highest term it can see)
+  var target = null;
+  sim.order.forEach(function (n) {
+    if (clientCanReach(sim, n) && sim.nodes[n].role === "PRIMARY" && (!target || sim.nodes[n].term > sim.nodes[target].term)) target = n;
+  });
+  if (!target) {
+    req.status = "failed"; req.note = "no primary reachable (server selection timeout)";
+    say(sim, "Write " + req.id + " (" + id + ", w:" + wc + "): the driver finds no reachable primary — " + "it fails with a retryable error.");
+    return req;
+  }
+  var node = sim.nodes[target];
+  req.node = target;
+  var stored = node.txnTable[req.lsid + ":" + req.txn];
+  if (sim.retryable && stored) {
+    req.status = "acked"; req.ackTick = sim.tick; req.optime = stored.optime;
+    req.note = "already applied — stored result returned, not re-applied";
+    say(sim, "Write " + req.id + " retried on " + target + ": the primary already has (lsid s1, txnNumber " + req.txn + ") in its replicated transaction table, so it returns the stored result. No second order.", true);
+    return req;
+  }
+  var e = { optime: { ts: newTs(sim), t: node.term }, op: { kind: "insert", id: id, set: req.set }, lsid: req.lsid, txn: req.txn, wc: wc, writtenTick: sim.tick, label: req.label };
+  node.oplog.push(e); applyEntry(node, e);
+  req.optime = e.optime;
+  sim.session.afterClusterTime = e.optime;
+  say(sim, "Write " + req.id + " (" + id + " " + JSON.stringify(req.set) + ", w:" + wc + ") applied on " + target + " as oplog entry " + optimeStr(e.optime) + ".");
+  if (wc === "1") {
+    req.status = "acked"; req.ackTick = sim.tick;
+    say(sim, "w:1 → acknowledged immediately. Only " + target + " has it.", true);
+  }
+  return req;
+}
+
+function issueRead(sim, rc, rp, causal, orderId) {
+  orderId = orderId || ("ord-" + (sim.nextOrder - 1));
+  var req = { id: "R" + (sim.requests.length + 1), kind: "read", rc: rc, rp: rp, causal: !!causal, orderId: orderId, status: "pending", issuedTick: sim.tick, node: null, note: "", afterClusterTime: causal ? sim.session.afterClusterTime : null };
+  sim.requests.push(req);
+  var target = null;
+  if (rp === "primary" || rc === "linearizable") {
+    sim.order.forEach(function (n) { if (clientCanReach(sim, n) && sim.nodes[n].role === "PRIMARY" && (!target || sim.nodes[n].term > sim.nodes[target].term)) target = n; });
+  } else {
+    sim.order.forEach(function (n) { if (!target && clientCanReach(sim, n) && sim.nodes[n].role === "SECONDARY") target = n; });
+  }
+  if (!target) { req.status = "failed"; req.note = "no eligible member reachable"; say(sim, "Read " + req.id + ": no eligible member reachable for read preference " + rp + "."); return req; }
+  req.node = target;
+  resolveRead(sim, req);
+  return req;
+}
+
+function resolveRead(sim, req) {
+  var node = sim.nodes[req.node];
+  if (!node.up) { req.status = "failed"; req.note = req.node + " went down"; return; }
+  if (req.causal && req.afterClusterTime && optimeKey(lastOptime(node)) < optimeKey(req.afterClusterTime)) {
+    if (req.status !== "waiting") say(sim, "Read " + req.id + " on " + req.node + " carries afterClusterTime " + optimeStr(req.afterClusterTime) + "; " + req.node + " has not applied that far yet, so the read WAITS.", true);
+    req.status = "waiting"; return;
+  }
+  var value;
+  if (req.rc === "linearizable") {
+    if (node.role !== "PRIMARY") { req.status = "failed"; req.note = "linearizable needs a primary"; return; }
+    if (reachableVoterCount(sim, req.node) < majorityOf(voters(sim).length)) {
+      req.status = "failed"; req.note = "maxTimeMS expired: " + req.node + " could not confirm a majority";
+      say(sim, "Read " + req.id + " (linearizable) on " + req.node + ": before answering, the primary must confirm with a majority that it is still the primary. It cannot reach one → the read times out instead of answering wrongly.", true);
+      return;
+    }
+    value = node.docs[req.orderId];
+    req.note = "confirmed with majority";
+  } else if (req.rc === "majority") {
+    value = docsAt(node, node.commitPoint)[req.orderId];
+    req.note = "served from " + req.node + "'s commit point (" + optimeStr(node.commitPoint) + ")";
+  } else {
+    value = node.docs[req.orderId];
+    req.note = "served from " + req.node + "'s latest state";
+  }
+  req.status = "done"; req.value = value ? JSON.stringify(value) : "NOT FOUND"; req.doneTick = sim.tick;
+  say(sim, "Read " + req.id + " (" + req.rc + ", " + req.rp + (req.causal ? ", causal" : "") + ") on " + req.node + " → " + req.orderId + " = " + req.value + " (" + req.note + ").");
+}
+
+// ------------------------------ network / faults ------------------------------
+function cut(sim, a, b) { sim.cuts[key(a, b)] = true; }
+function isolate(sim, id, clientToo) {
+  sim.order.forEach(function (o) { if (o !== id) cut(sim, id, o); });
+  if (clientToo === "clientWithIsolated") { sim.order.forEach(function (o) { sim.clientCuts[o] = (o !== id); }); }
+  else if (clientToo === "clientWithMajority") { sim.clientCuts[id] = true; }
+  say(sim, "NETWORK: " + id + " is cut off from the other members" + (clientToo === "clientWithIsolated" ? " — and the client sits on " + id + "'s side" : clientToo === "clientWithMajority" ? " — the client sits on the majority side" : "") + ".");
+}
+function heal(sim) { sim.cuts = {}; sim.clientCuts = {}; say(sim, "NETWORK: partition healed; everyone can talk again."); }
+function kill(sim, id) {
+  var n = sim.nodes[id]; n.up = false; n.role = "DOWN"; n.noMajorityTicks = 0;
+  say(sim, id + " crashes (process gone; its journal on disk survives).");
+}
+function restart(sim, id) {
+  var n = sim.nodes[id]; n.up = true; n.role = n.arbiter ? "ARBITER" : "SECONDARY"; n.sinceHeard = 0;
+  say(sim, id + " restarts as a secondary and looks for a sync source.");
+}
+function setDelay(sim, id, ticks) { sim.delays[id] = ticks; say(sim, id + " is now slow: it needs " + ticks + " ticks to fetch each new entry (a lagging secondary)."); }
+
+// ------------------------------ the tick ------------------------------
+function step(sim) {
+  sim.tick += 1;
+  sim.narration = [];
+  var prim, i;
+
+  // 0. each member reports the position it had at the start of this heartbeat
+  //    (replSetUpdatePosition): the primary learns about a pull one beat after it happened
+  sim.order.forEach(function (id) { var n = sim.nodes[id]; if (n.up) n.reported = lastOptime(n); });
+
+  // 1. primaries that cannot see a majority step down (after their own timer)
+  currentPrimaries(sim).forEach(function (p) {
+    var n = sim.nodes[p];
+    if (reachableVoterCount(sim, p) >= majorityOf(voters(sim).length)) { n.noMajorityTicks = 0; return; }
+    n.noMajorityTicks += 1;
+    if (n.noMajorityTicks >= PRIMARY_STEPDOWN_TICKS) {
+      n.role = "SECONDARY"; n.noMajorityTicks = 0; n.sinceHeard = ELECTION_TIMEOUT_TICKS; // it will not be able to win anyway
+      say(sim, p + " has not seen a majority for " + PRIMARY_STEPDOWN_TICKS + " ticks and STEPS DOWN to secondary. It stops accepting writes.", true);
+    } else {
+      say(sim, p + " still calls itself PRIMARY (no majority seen for " + n.noMajorityTicks + " tick" + (n.noMajorityTicks > 1 ? "s" : "") + "); it keeps accepting writes from whoever can reach it.");
+    }
+  });
+
+  // 2. replication: secondaries pull; divergence triggers rollback
+  sim.order.forEach(function (id) {
+    var n = sim.nodes[id];
+    if (!n.up || n.arbiter || n.role === "PRIMARY") return;
+    if (n.role === "ROLLBACK") { n.role = "SECONDARY"; }
+    // choose sync source: a reachable primary, else a reachable node that is ahead of us
+    var src = visiblePrimary(sim, id);
+    if (!src) {
+      sim.order.forEach(function (o) {
+        if (o === id || !canReach(sim, id, o) || sim.nodes[o].arbiter) return;
+        var on = sim.nodes[o];
+        if (on.oplog.length > n.oplog.length && commonPointIndex(n, on) === n.oplog.length - 1 && (!src || on.oplog.length > sim.nodes[src].oplog.length)) src = o;
+      });
+    }
+    if (!src) return;
+    var s = sim.nodes[src];
+    var cp = commonPointIndex(n, s);
+    if (cp < n.oplog.length - 1 && (s.term > n.term || s.oplog.length > cp + 1)) {
+      // divergence: our extra entries are not in the source, which is in a newer term → roll back
+      var removed = n.oplog.slice(cp + 1);
+      n.oplog = n.oplog.slice(0, cp + 1);
+      removed.forEach(function (e) { n.rollbackFile.push(e); });
+      rebuildDocs(n);
+      n.role = "ROLLBACK"; n.term = Math.max(n.term, s.term);
+      say(sim, id + " syncs from " + src + " and finds its oplog DIVERGES after " + (cp >= 0 ? optimeStr(n.oplog[cp].optime) : "the beginning") + ". It ROLLS BACK " + removed.length + " entr" + (removed.length === 1 ? "y" : "ies") + " (" + removed.map(function (e) { return e.op.id + " " + optimeStr(e.optime); }).join(", ") + ") into a rollback file and rebuilds its data.", true);
+      return;
+    }
+    var pulled = [];
+    for (i = n.oplog.length; i < s.oplog.length; i++) {
+      var e = s.oplog[i];
+      if (e.writtenTick + (sim.delays[id] || 0) + 1 > sim.tick) break; // one tick per hop, plus configured lag
+      n.oplog.push(e); applyEntry(n, e); pulled.push(e);
+    }
+    if (pulled.length) {
+      n.term = Math.max(n.term, s.term);
+      say(sim, id + " pulls " + pulled.length + " entr" + (pulled.length === 1 ? "y" : "ies") + " from " + src + " (" + pulled.map(function (e) { return e.op.id + " " + optimeStr(e.optime); }).join(", ") + ").");
+    }
+  });
+
+  // 3. heartbeats: learn term and commit point from a visible primary
+  sim.order.forEach(function (id) {
+    var n = sim.nodes[id];
+    if (!n.up || n.role === "PRIMARY") return;
+    var p = visiblePrimary(sim, id);
+    if (p) {
+      n.sinceHeard = 0;
+      var pn = sim.nodes[p];
+      if (pn.term > n.term) n.term = pn.term;
+      if (pn.commitPoint && optimeKey(pn.commitPoint) > optimeKey(n.commitPoint) && optimeKey(lastOptime(n)) >= optimeKey(pn.commitPoint)) n.commitPoint = pn.commitPoint;
+    } else {
+      n.sinceHeard += 1;
+    }
+  });
+
+  // 4. commit point on each primary
+  currentPrimaries(sim).forEach(function (p) {
+    var pn = sim.nodes[p];
+    var positions = dataVoters(sim).filter(function (v) { return canReach(sim, p, v); }).map(function (v) { return v === p ? lastOptime(pn) : (sim.nodes[v].reported || null); });
+    positions.sort(function (a, b) { return optimeKey(b) - optimeKey(a); });
+    var need = calculatedMajority(sim);
+    if (positions.length < need) return;
+    var cand = positions[need - 1];
+    if (!cand) return;
+    // the primary must itself have this entry, and (Raft rule) it must be from the current term
+    var idx = -1; pn.oplog.forEach(function (e, j) { if (sameOptime(e.optime, cand)) idx = j; });
+    if (idx < 0 || cand.t !== pn.term) return;
+    if (optimeKey(cand) > optimeKey(pn.commitPoint)) {
+      pn.commitPoint = cand;
+      say(sim, "Commit point on " + p + " advances to " + optimeStr(cand) + " — that entry is now on " + need + " of " + dataVoters(sim).length + " data-bearing voters and can never be rolled back.", true);
+    }
+  });
+
+  // 5. elections
+  var candidates = sim.order.filter(function (id) {
+    var n = sim.nodes[id];
+    return n.up && !n.arbiter && n.role !== "PRIMARY" && n.role !== "ROLLBACK" && n.priority > 0 && n.sinceHeard >= ELECTION_TIMEOUT_TICKS;
+  });
+  candidates.forEach(function (id) {
+    var n = sim.nodes[id];
+    if (n.role === "PRIMARY" || visiblePrimary(sim, id)) return;
+    if (reachableVoterCount(sim, id) < majorityOf(voters(sim).length)) {
+      say(sim, id + " has not heard from a primary for " + n.sinceHeard + " ticks but cannot reach a majority of voters — it cannot call an election.");
+      return;
+    }
+    var mine = optimeKey(lastOptime(n));
+    var behind = sim.order.some(function (o) { return o !== id && canReach(sim, id, o) && !sim.nodes[o].arbiter && optimeKey(lastOptime(sim.nodes[o])) > mine; });
+    if (behind) { say(sim, id + " would call an election but a visible member has a higher optime; it defers."); return; }
+    var maxTerm = 1; sim.order.forEach(function (o) { if (canReach(sim, id, o)) maxTerm = Math.max(maxTerm, sim.nodes[o].term); });
+    var term = maxTerm + 1;
+    var votes = 0, grantedBy = [];
+    voters(sim).forEach(function (v) {
+      if (!canReach(sim, id, v)) return;
+      var vn = sim.nodes[v];
+      var upToDate = vn.arbiter || optimeKey(lastOptime(vn)) <= mine;
+      if (vn.term < term && upToDate) { vn.term = term; vn.votedFor[term] = id; votes++; grantedBy.push(v); }
+      else if (vn.term === term && vn.votedFor[term] === id) { votes++; grantedBy.push(v); }
+    });
+    if (votes >= majorityOf(voters(sim).length)) {
+      n.role = "PRIMARY"; n.term = term; n.sinceHeard = 0; n.noMajorityTicks = 0;
+      say(sim, "ELECTION: " + id + " has not heard from a primary for " + ELECTION_TIMEOUT_TICKS + " ticks (10 s), has the highest optime it can see, and wins term " + term + " with votes from " + grantedBy.join(", ") + ". It is the new PRIMARY.", true);
+      // a new primary writes a no-op entry in its own term; the commit point can only move over current-term entries
+      var noop = { optime: { ts: newTs(sim), t: term }, op: { kind: "noop", id: "new primary", set: {} }, writtenTick: sim.tick, label: "" };
+      n.oplog.push(noop);
+      say(sim, id + " writes a 'new primary' no-op entry " + optimeStr(noop.optime) + " so that its commit point can advance once a majority has an entry from term " + term + ".");
+      // any reachable older primary steps down at once
+      currentPrimaries(sim).forEach(function (p) { if (p !== id && canReach(sim, id, p) && sim.nodes[p].term < term) { sim.nodes[p].role = "SECONDARY"; sim.nodes[p].term = term; say(sim, p + " hears about term " + term + " and steps down immediately."); } });
+    } else {
+      say(sim, id + " calls an election for term " + term + " but gets only " + votes + " vote(s).");
+    }
+  });
+
+  // 6. pending client requests
+  sim.requests.forEach(function (r) {
+    if (r.kind === "write" && r.status === "pending") {
+      var n = sim.nodes[r.node];
+      if (!n.up || n.role !== "PRIMARY") { r.status = "failed"; r.note = r.node + " is no longer primary — result UNKNOWN to the client"; say(sim, "Write " + r.id + " (w:" + r.wc + ") was waiting on " + r.node + ", which is no longer primary. The client gets an error, not an ack. Whether the write survives is decided by the replica set, not by the client.", true); return; }
+      if (r.wc === "majority" && optimeKey(n.commitPoint) >= optimeKey(r.optime)) { r.status = "acked"; r.ackTick = sim.tick; say(sim, "Write " + r.id + " (w:majority) is ACKNOWLEDGED: the commit point passed " + optimeStr(r.optime) + ".", true); return; }
+      if (sim.tick - r.issuedTick >= r.wtimeout) { r.status = "failed"; r.note = "wtimeout after " + r.wtimeout + " ticks; the write is NOT undone"; say(sim, "Write " + r.id + " (w:majority) hits wtimeout: the client gets an error, but the write stays in " + r.node + "'s oplog. wtimeout never undoes anything.", true); }
+    }
+    if (r.kind === "read" && r.status === "waiting") resolveRead(sim, r);
+  });
+
+  // 7. invariants (checked every tick; violations are bugs in the model)
+  checkInvariants(sim);
+  sim.history.push(snapshot(sim));
+  return sim.narration;
+}
+
+function checkInvariants(sim) {
+  var byTerm = {};
+  currentPrimaries(sim).forEach(function (p) { var t = sim.nodes[p].term; if (byTerm[t]) throw new Error("two primaries in term " + t); byTerm[t] = p; });
+  sim.order.forEach(function (id) {
+    var n = sim.nodes[id];
+    for (var i = 1; i < n.oplog.length; i++) if (optimeKey(n.oplog[i].optime) <= optimeKey(n.oplog[i - 1].optime)) throw new Error("oplog not increasing on " + id);
+    // an entry at or below any node's commit point must never sit in a rollback file
+    n.rollbackFile.forEach(function (e) {
+      sim.order.forEach(function (o) { var c = sim.nodes[o].commitPoint; if (c && optimeKey(e.optime) <= optimeKey(c) && sim.nodes[o].oplog.some(function (x) { return sameOptime(x.optime, e.optime); })) throw new Error("majority-committed entry rolled back: " + optimeStr(e.optime)); });
+    });
+  });
+}
+
+function snapshot(sim) {
+  return JSON.parse(JSON.stringify({ tick: sim.tick, nodes: sim.nodes, cuts: sim.cuts, clientCuts: sim.clientCuts, delays: sim.delays, requests: sim.requests, narration: sim.narration, nextOrder: sim.nextOrder, nextTxn: sim.nextTxn, session: sim.session, tsCounter: sim.tsCounter, lastTsSec: sim.lastTsSec }));
+}
+
+// ------------------------------ scenarios ------------------------------
+// Each scenario is a list of steps. A step may act on the sim and/or advance one tick.
+function T(label) { return { tick: true, label: label }; }
+var SCENARIOS = [
+  {
+    id: "s1", title: "1 · Two writes, two write concerns", topology: "PSS",
+    blurb: "The happy path. Watch when each write is acknowledged and where the commit point is at that moment.",
+    steps: [
+      { label: "order-service writes ord-1 with w:1.", act: function (s) { issueWrite(s, "1"); } },
+      { label: "Same tick: it writes ord-2 with w:\"majority\".", act: function (s) { issueWrite(s, "majority"); } },
+      T("One heartbeat later: the secondaries pull."),
+      T("Another heartbeat: the commit point catches up and the majority write is acknowledged."),
+      T("Steady state.")
+    ]
+  },
+  {
+    id: "s2", title: "2 · The acknowledgement that lied (w:1 + partition)", topology: "PSS",
+    blurb: "A w:1 write is acknowledged, then the primary is cut off before anyone else has the entry.",
+    predict: { q: "The client was told 'order placed' for ord-2. After the partition heals, where is ord-2?", options: ["On all three members — an acknowledged write is durable", "Only on m1, which serves it until someone notices", "Nowhere in the collection — it is in a rollback file on m1"], answer: 2, why: "The ack meant 'm1 has it'. m2 and m3 elect a new primary in a higher term; when m1 rejoins it finds its last entry is not in the new primary's log, so it truncates it into a rollback file. The customer still has the confirmation e-mail." },
+    steps: [
+      { label: "Earlier: ord-1 was placed with w:\"majority\" and is on every member.", act: function (s) { issueWrite(s, "majority"); } },
+      T("Secondaries pull ord-1."), T("Positions reported; commit point covers ord-1; acknowledged."),
+      { label: "Now order-service writes ord-2 with w:1 — acknowledged at once.", act: function (s) { issueWrite(s, "1"); } },
+      { label: "Before the next heartbeat, m1 is cut off. The client is on the majority side.", act: function (s) { isolate(s, "m1", "clientWithMajority"); } },
+      T("Tick 1: m2 and m3 hear nothing from m1."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: the election timeout (10 s) expires on m2 and m3."),
+      T("Tick 6: m1's own timer fires; it steps down."),
+      { label: "The partition heals.", act: function (s) { heal(s); } },
+      T("m1 syncs from the new primary and discovers the divergence."),
+      T("m1 is a secondary again, with a rollback file; it pulls the new primary's no-op."),
+      { label: "The client reads ord-2 from the primary.", act: function (s) { issueRead(s, "local", "primary", false, "ord-2"); } },
+      T("Positions reported; the new term's commit point advances.")
+    ]
+  },
+  {
+    id: "s3", title: "3 · The same partition with w:\"majority\" — and a retry", topology: "PSS",
+    blurb: "Two majority writes, cut at two different moments. One is lost without ever being acknowledged; the other survives and the driver's retry does not duplicate it.",
+    predict: { q: "ord-1 is written with w:\"majority\" and m1 is cut off before any secondary pulls it. What does the client see?", options: ["An acknowledgement — majority writes are always safe", "An error or timeout; the write may or may not survive", "Nothing: the write is silently dropped"], answer: 1, why: "w:majority never lies, but it can refuse to answer. The client gets an error whose meaning is 'unknown'. The entry will in fact be rolled back, because m1 was alone with it." },
+    steps: [
+      { label: "order-service writes ord-1 with w:\"majority\".", act: function (s) { issueWrite(s, "majority"); } },
+      { label: "Before any secondary pulls it, m1 is cut off. The client is on the majority side.", act: function (s) { isolate(s, "m1", "clientWithMajority"); } },
+      T("Tick 1: no ack yet — the commit point cannot move."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: wtimeout on the client; election on the majority side."),
+      T("Tick 6: m1 steps down."),
+      { label: "The partition heals; m1 will roll back ord-1. The client never saw an ack for it.", act: function (s) { heal(s); } },
+      T("m1 rolls back."),
+      T("m1 catches up."),
+      { label: "Now the second case: the client writes ord-2 with w:\"majority\" to the new primary m2.", act: function (s) { issueWrite(s, "majority"); } },
+      T("m1 and m3 pull ord-2 — it is now on a majority."),
+      { label: "Before the ack reaches the client, m2 crashes.", act: function (s) { kill(s, "m2"); } },
+      T("The client's write fails with 'result unknown'. The driver retries once, with the same (lsid, txnNumber)."),
+      T("Tick 2 of the outage."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: election."),
+      { label: "The driver's retry lands on the new primary.", act: function (s) { var last = s.requests.filter(function (r) { return r.kind === "write"; }).pop(); issueWrite(s, "majority", "retry", { orderId: last.orderId, txn: last.txn }); } },
+      T("The retry is acknowledged from the stored result; no duplicate order."),
+      T("m3 reports its position; the term-3 commit point advances.")
+    ]
+  },
+  {
+    id: "s4", title: "4 · Reading from a primary that no longer is one", topology: "PSS",
+    blurb: "The client and m1 are on the same side of a partition. m1 still says PRIMARY. Three read concerns give three different answers.",
+    predict: { q: "During the window where m1 still calls itself primary but m2 has been elected and applied a newer write, what does a read on m1 with read concern \"majority\" return?", options: ["The newest value — majority means fresh", "An old value that is nevertheless durable", "An error"], answer: 1, why: "\"majority\" is served from m1's own commit point, which stopped moving when the partition began. It can never show something that will be rolled back — but it can be stale. Only \"linearizable\" refuses." },
+    steps: [
+      { label: "ord-1 is placed with w:\"majority\" and replicates everywhere.", act: function (s) { issueWrite(s, "majority"); } },
+      T("Secondaries pull."), T("Commit point advances; ack."),
+      { label: "m1 is cut off — with the client on m1's side (same availability zone).", act: function (s) { isolate(s, "m1", "clientWithIsolated"); } },
+      T("Tick 1."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: m2/m3 elect a new primary. m1 does not know."),
+      { label: "A courier app (on the majority side, modelled here as a direct write on m2) marks ord-1 delivered.", act: function (s) { var e = { optime: { ts: newTs(s), t: s.nodes.m2.term }, op: { kind: "update", id: "ord-1", set: { status: "delivered" } }, wc: "majority", writtenTick: s.tick, label: "courier" }; s.nodes.m2.oplog.push(e); applyEntry(s.nodes.m2, e); say(s, "Courier update applied on m2 (the real primary): ord-1.status = delivered, " + optimeStr(e.optime) + "."); } },
+      { label: "The client reads ord-1 on m1 with read concern local.", act: function (s) { issueRead(s, "local", "primary", false, "ord-1"); } },
+      { label: "…and with read concern majority.", act: function (s) { issueRead(s, "majority", "primary", false, "ord-1"); } },
+      { label: "…and with read concern linearizable.", act: function (s) { issueRead(s, "linearizable", "primary", false, "ord-1"); } },
+      T("Tick 6: m1's timer fires; it steps down. The stale window closes."),
+      { label: "The partition heals.", act: function (s) { heal(s); } },
+      T("m1 pulls the courier update. No rollback: m1 accepted no writes while stale, so nothing diverged."),
+      T("Everyone learns the new commit point.")
+    ]
+  },
+  {
+    id: "s5", title: "5 · Read your own write from a lagging secondary", topology: "PSS",
+    blurb: "m3 is slow. A majority write is acknowledged by m1 and m2. The client's next read goes to m3.",
+    predict: { q: "The client writes ord-1 with w:\"majority\" and gets the ack. Its next read uses read preference secondary and lands on the slow m3. What does it see?", options: ["The order — the ack proves it is everywhere", "NOT FOUND — majority means two of three, and m3 is the third", "An error"], answer: 1, why: "The ack means m1 and m2 have it. m3 is a legal secondary that has not pulled yet. Without a causal session, the read returns whatever m3 has. With a causal session, m3 waits until it has applied up to the write's cluster time." },
+    steps: [
+      { label: "m3 becomes a slow replica (3 ticks behind).", act: function (s) { setDelay(s, "m3", 3); } },
+      { label: "order-service writes ord-1 with w:\"majority\".", act: function (s) { issueWrite(s, "majority"); } },
+      T("m2 pulls; m3 is still fetching."),
+      T("Commit point reaches ord-1 (m1 + m2); ack."),
+      { label: "The client reads ord-1 with read preference secondary, no session.", act: function (s) { s.clientCuts.m2 = true; issueRead(s, "local", "secondary", false, "ord-1"); s.clientCuts.m2 = false; } },
+      { label: "The client reads again, this time inside a causal session.", act: function (s) { s.clientCuts.m2 = true; issueRead(s, "local", "secondary", true, "ord-1"); s.clientCuts.m2 = false; } },
+      T("m3 still fetching; the causal read waits."),
+      T("m3 finally pulls ord-1; the waiting read completes.")
+    ]
+  },
+  {
+    id: "s6", title: "6 · Primary–Secondary–Arbiter: the cheap third member", topology: "PSA",
+    blurb: "m3 votes but stores nothing. Watch what 'majority' means now, and what the implicit default write concern becomes.",
+    predict: { q: "In a P-S-A set with m2 (the only secondary) down, a write with the implicit default write concern is issued. What happens?", options: ["It hangs: majority needs two data-bearing members", "It is acknowledged immediately — the default silently became w:1", "It is rejected"], answer: 1, why: "With an arbiter, the number of data-bearing voters (2) is not greater than the voting majority (2), so MongoDB's implicit default write concern is w:1. The write is acknowledged by m1 alone and is exactly as safe as scenario 2's write." },
+    steps: [
+      { label: "Note the implicit default write concern shown in the client panel.", act: function (s) { say(s, "Topology P-S-A: voters = 3, data-bearing voters = 2, voting majority = 2. Implicit default write concern = w:" + implicitDefaultWriteConcern(s) + " (docs: if data-bearing voters ≤ voting majority and an arbiter exists, the default is w:1)."); } },
+      { label: "m2 crashes. m1 still sees a majority of voters (itself + the arbiter) and stays primary.", act: function (s) { kill(s, "m2"); } },
+      T("m1 keeps its role: 2 of 3 voters visible."),
+      { label: "order-service writes ord-1 with the implicit default.", act: function (s) { issueWrite(s, implicitDefaultWriteConcern(s)); } },
+      { label: "It also writes ord-2 with an explicit w:\"majority\".", act: function (s) { issueWrite(s, "majority"); } },
+      T("Tick 1: the majority write cannot complete — the calculated majority is 2 data-bearing members and only one is up."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: wtimeout."),
+      { label: "m1 crashes too. Nobody else has ord-1 or ord-2.", act: function (s) { kill(s, "m1"); } },
+      { label: "m2 restarts. Its oplog is empty.", act: function (s) { restart(s, "m2"); } },
+      T("Tick 1."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: m2 wins the election with the arbiter's vote."),
+      { label: "m1 restarts and syncs from m2.", act: function (s) { restart(s, "m1"); } },
+      T("m1 rolls back both orders — including the one that was acknowledged."),
+      T("m1 is a secondary again. The collection is empty on every member.")
+    ]
+  },
+  {
+    id: "s7", title: "7 · The primary crashes: 10 seconds of no writes", topology: "PSS",
+    blurb: "Clean crash, no partition. How long until writes work again, and what a retryable write hides.",
+    steps: [
+      { label: "ord-1 placed with w:\"majority\".", act: function (s) { issueWrite(s, "majority"); } },
+      T("Replicates."), T("Acknowledged."),
+      { label: "m1 crashes.", act: function (s) { kill(s, "m1"); } },
+      { label: "order-service tries to write ord-2.", act: function (s) { issueWrite(s, "majority"); } },
+      T("Tick 1: no primary. The driver holds the retry (server selection)."), T("Tick 2."), T("Tick 3."), T("Tick 4."),
+      T("Tick 5: election timeout; m2 or m3 wins (both have the same optime — lowest id goes first here; in reality, priority and timing decide)."),
+      { label: "The driver's single retry of ord-2 lands on the new primary.", act: function (s) { var last = s.requests.filter(function (r) { return r.kind === "write" && r.status === "failed"; }).pop(); issueWrite(s, "majority", "retry", { orderId: last.orderId, txn: last.txn }); } },
+      T("Replicates to m3 (m1 is down: commit point needs 2 of 3)."),
+      T("Acknowledged. Total outage for writes: about 12 s, matching the documented median."),
+      T("m3 learns the commit point.")
+    ]
+  }
+];
+
+function loadScenario(sim0, sc) {
+  var sim = createSim({ topology: sc.topology });
+  sim.scenario = sc; sim.stepIndex = 0;
+  sim.history.push(snapshot(sim));
+  return sim;
+}
+function runStep(sim) {
+  var sc = sim.scenario;
+  if (sim.stepIndex >= sc.steps.length) return null;
+  var st = sc.steps[sim.stepIndex++];
+  if (st.tick) { step(sim); } else { sim.narration = []; st.act(sim); checkInvariants(sim); sim.history.push(snapshot(sim)); }
+  return st;
+}
+function runScenarioToEnd(sc) {
+  var sim = loadScenario(null, sc);
+  while (sim.stepIndex < sc.steps.length) runStep(sim);
+  return sim;
+}
+//=== ENGINE END ===
+
+//=== TESTS START ===
+function runSelfTests() {
+  var checks = 0, failures = [];
+  function ok(cond, msg) { checks++; if (!cond) failures.push(msg); }
+  function byId(sc) { return SCENARIOS.filter(function (s) { return s.id === sc; })[0]; }
+  var s;
+
+  s = runScenarioToEnd(byId("s1"));
+  var w1 = s.requests[0], wm = s.requests[1];
+  ok(w1.status === "acked" && w1.ackTick === 0, "s1: w:1 acked at tick 0");
+  ok(wm.status === "acked" && wm.ackTick === 2, "s1: majority acked at tick 2, got " + wm.ackTick);
+  ok(s.nodes.m2.oplog.length === 2 && s.nodes.m3.oplog.length === 2, "s1: everyone has both entries");
+  ok(optimeKey(s.nodes.m1.commitPoint) === optimeKey(lastOptime(s.nodes.m1)), "s1: commit point at tail");
+
+  s = runScenarioToEnd(byId("s2"));
+  ok(s.requests[0].status === "acked" && s.requests[0].ackTick === 2, "s2: seed majority write acked at tick 2");
+  ok(s.requests[1].status === "acked" && s.requests[1].wc === "1", "s2: w:1 was acked");
+  ok(s.nodes.m2.role === "PRIMARY" && s.nodes.m2.term === 2, "s2: m2 primary in term 2, got " + s.nodes.m2.role + " t" + s.nodes.m2.term);
+  ok(s.nodes.m1.role === "SECONDARY", "s2: m1 secondary at end");
+  ok(s.nodes.m1.rollbackFile.length === 1 && s.nodes.m1.rollbackFile[0].op.id === "ord-2", "s2: ord-2 in m1's rollback file");
+  ok(!s.nodes.m1.docs["ord-2"] && !s.nodes.m2.docs["ord-2"] && s.nodes.m1.docs["ord-1"] && s.nodes.m2.docs["ord-1"], "s2: ord-2 gone, ord-1 kept");
+  ok(s.nodes.m1.oplog.length === 2 && s.nodes.m1.oplog[1].op.kind === "noop", "s2: m1 rejoined with ord-1 + the new primary's no-op");
+  ok(optimeKey(s.nodes.m2.commitPoint) === optimeKey(lastOptime(s.nodes.m2)) && s.nodes.m2.commitPoint.t === 2, "s2: term-2 commit point advanced over the no-op");
+  var rd = s.requests.filter(function (r) { return r.kind === "read"; })[0];
+  ok(rd && rd.value === "NOT FOUND", "s2: read of ord-2 returns NOT FOUND, got " + (rd && rd.value));
+  // election happened at tick 5, stepdown at tick 6
+  var elTick = null, sdTick = null;
+  s.history.forEach(function (h) { h.narration.forEach(function (n) { if (/ELECTION/.test(n.text) && elTick === null) elTick = h.tick; if (/STEPS DOWN/.test(n.text) && sdTick === null) sdTick = h.tick; }); });
+  ok(elTick === 7, "s2: election 5 ticks after the cut (tick 7), got " + elTick);
+  ok(sdTick === 8, "s2: stepdown 6 ticks after the cut (tick 8), got " + sdTick);
+
+  s = runScenarioToEnd(byId("s3"));
+  var ws = s.requests.filter(function (r) { return r.kind === "write"; });
+  ok(ws[0].status === "failed" && /wtimeout/.test(ws[0].note), "s3: first majority write timed out, got " + ws[0].status + " " + ws[0].note);
+  ok(s.nodes.m1.rollbackFile.length === 1 && s.nodes.m1.rollbackFile[0].op.id === "ord-1", "s3: ord-1 rolled back on m1");
+  ok(ws[1].status === "failed" && /no longer primary/.test(ws[1].note), "s3: second write failed with unknown result, got " + ws[1].note);
+  ok(ws[2].status === "acked" && /already applied/.test(ws[2].note), "s3: retry returned stored result, got " + ws[2].note);
+  var ord2count = ["m1", "m3"].map(function (id) { return s.nodes[id].oplog.filter(function (e) { return e.op.id === "ord-2"; }).length; });
+  ok(ord2count[0] === 1 && ord2count[1] === 1, "s3: exactly one ord-2 entry on survivors, got " + ord2count.join(","));
+  ok(currentPrimaries(s).length === 1 && s.nodes[currentPrimaries(s)[0]].term === 3, "s3: one primary in term 3");
+
+  s = runScenarioToEnd(byId("s4"));
+  var reads = s.requests.filter(function (r) { return r.kind === "read"; });
+  ok(reads[0].rc === "local" && /placed/.test(reads[0].value), "s4: local read on stale primary returns old value, got " + reads[0].value);
+  ok(reads[1].rc === "majority" && /placed/.test(reads[1].value), "s4: majority read on stale primary returns old-but-durable value, got " + reads[1].value);
+  ok(reads[2].rc === "linearizable" && reads[2].status === "failed", "s4: linearizable read fails, got " + reads[2].status);
+  ok(s.nodes.m2.docs["ord-1"].status === "delivered", "s4: real primary has delivered");
+  ok(s.nodes.m1.role === "SECONDARY" && s.nodes.m1.docs["ord-1"].status === "delivered" && s.nodes.m1.rollbackFile.length === 0, "s4: m1 stepped down, caught up, nothing rolled back");
+  // during the stale window both m1 (t1) and m2 (t2) called themselves PRIMARY
+  var both = s.history.some(function (h) { return h.nodes.m1.role === "PRIMARY" && h.nodes.m2.role === "PRIMARY"; });
+  ok(both, "s4: a stale-primary window existed");
+
+  s = runScenarioToEnd(byId("s5"));
+  reads = s.requests.filter(function (r) { return r.kind === "read"; });
+  ok(s.requests[0].status === "acked" && s.requests[0].ackTick === 2, "s5: majority ack at tick 2 without m3");
+  ok(reads[0].node === "m3" && reads[0].value === "NOT FOUND", "s5: plain secondary read misses the write, got " + reads[0].node + " " + reads[0].value);
+  ok(reads[1].causal && reads[1].status === "done" && /placed/.test(reads[1].value) && reads[1].doneTick === 4, "s5: causal read waited and returned at tick 4, got " + reads[1].status + " " + reads[1].doneTick);
+
+  s = runScenarioToEnd(byId("s6"));
+  ok(implicitDefaultWriteConcern(s) === "1", "s6: PSA implicit default is w:1");
+  ws = s.requests.filter(function (r) { return r.kind === "write"; });
+  ok(ws[0].wc === "1" && ws[0].status === "acked", "s6: default-concern write acked");
+  ok(ws[1].wc === "majority" && ws[1].status === "failed" && /wtimeout/.test(ws[1].note), "s6: majority write timed out with one data member, got " + ws[1].status);
+  ok(s.nodes.m2.role === "PRIMARY", "s6: m2 primary after m1 crash");
+  ok(s.nodes.m1.role === "SECONDARY" && s.nodes.m1.rollbackFile.length === 2, "s6: both orders rolled back on m1, got " + s.nodes.m1.role + " " + s.nodes.m1.rollbackFile.length);
+  ok(Object.keys(s.nodes.m2.docs).length === 0 && Object.keys(s.nodes.m1.docs).length === 0, "s6: collection empty everywhere");
+
+  s = runScenarioToEnd(byId("s7"));
+  ws = s.requests.filter(function (r) { return r.kind === "write"; });
+  ok(ws[1].status === "failed" && /no primary/.test(ws[1].note), "s7: write during outage fails, got " + ws[1].note);
+  ok(ws[2].status === "acked" && !/already applied/.test(ws[2].note), "s7: retry applied fresh (first attempt never reached a primary), got " + ws[2].note);
+  var p = currentPrimaries(s)[0];
+  ok(p === "m2" && s.nodes.m2.term === 2, "s7: m2 elected in term 2, got " + p);
+  ok(s.nodes.m3.oplog.filter(function (e) { return e.op.kind !== "noop"; }).length === 2, "s7: m3 has both orders");
+  ok(optimeKey(s.nodes.m3.commitPoint) === optimeKey(lastOptime(s.nodes.m3)), "s7: m3 learned the final commit point");
+
+  // rules: implicit default in PSS is majority; calculated majority values
+  var pss = createSim({ topology: "PSS" }), psa = createSim({ topology: "PSA" });
+  ok(implicitDefaultWriteConcern(pss) === "majority", "PSS implicit default majority");
+  ok(calculatedMajority(pss) === 2 && calculatedMajority(psa) === 2, "calculated majority 2 in both");
+
+  // free play: partition with client on majority, w:majority write hangs then fails; heal restores
+  var f = createSim({});
+  issueWrite(f, "majority"); step(f); step(f);
+  ok(f.requests[0].status === "acked", "freeplay: majority ack");
+  isolate(f, "m1", "clientWithMajority");
+  for (var i = 0; i < 7; i++) step(f);
+  ok(currentPrimaries(f).length === 1 && currentPrimaries(f)[0] !== "m1", "freeplay: new primary elected, old one stepped down");
+  heal(f); step(f); step(f);
+  ok(f.nodes.m1.rollbackFile.length === 0, "freeplay: nothing to roll back when nothing diverged");
+  ok(f.nodes.m1.oplog.length === f.nodes.m2.oplog.length, "freeplay: m1 rejoined in sync");
+
+  // history replay determinism: running s2 twice gives identical final snapshots
+  var a = JSON.stringify(snapshot(runScenarioToEnd(byId("s2")))), b = JSON.stringify(snapshot(runScenarioToEnd(byId("s2"))));
+  ok(a === b, "determinism: s2 replays identically");
+
+  return { checks: checks, failures: failures };
+}
+//=== TESTS END ===
+
+//=== UI START ===
+if (typeof document !== "undefined") {
+  var byId = function (id) { return document.getElementById(id); };
+  var ui = { sim: null, playing: null, predicted: null };
+
+  function fmtEntry(e, cp) {
+    var committed = cp && optimeKey(e.optime) <= optimeKey(cp);
+    var body = e.op.kind === "noop" ? "noop (new primary)" : e.op.kind + " " + e.op.id + " " + JSON.stringify(e.op.set) + (e.wc ? " w:" + e.wc : "");
+    return '<div class="e ' + (committed ? "committed" : "new") + '"><span class="ts">' + e.optime.ts.s + ":" + e.optime.ts.i + " t" + e.optime.t + '</span><span>' + body + '</span></div>';
+  }
+  function renderNodes() {
+    var s = ui.sim, html = "";
+    s.order.forEach(function (id) {
+      var n = s.nodes[id];
+      var cls = !n.up ? "DOWN" : n.role;
+      html += '<div class="node ' + cls + '"><div class="title"><b>' + id + '</b><span class="badge ' + cls + '">' + (n.up ? n.role : "DOWN") + '</span></div>';
+      html += '<div class="meta">term ' + n.term + (n.arbiter ? " · arbiter (votes, stores nothing)" : " · last optime " + optimeStr(lastOptime(n))) + (n.up && n.role !== "PRIMARY" && !n.arbiter ? " · heard from primary " + n.sinceHeard + " tick" + (n.sinceHeard === 1 ? "" : "s") + " ago" : "") + (s.delays[id] ? " · slow (+" + s.delays[id] + " ticks)" : "") + '</div>';
+      if (!n.arbiter) {
+        html += '<div class="oplog">';
+        if (!n.oplog.length) html += '<div class="small">oplog empty</div>';
+        n.oplog.forEach(function (e) { html += fmtEntry(e, n.commitPoint); });
+        html += '<div class="cp">commit point: ' + optimeStr(n.commitPoint) + '</div>';
+        if (n.rollbackFile.length) html += '<div class="rb">rollback file: ' + n.rollbackFile.map(function (e) { return e.op.id + " (" + e.optime.ts.s + ":" + e.optime.ts.i + " t" + e.optime.t + ")"; }).join(", ") + '</div>';
+        html += '</div><div class="docs">orders: ' + (Object.keys(n.docs).length ? Object.keys(n.docs).map(function (k) { return k + "=" + n.docs[k].status; }).join(" · ") : "—") + '</div>';
+      }
+      html += '</div>';
+    });
+    byId("nodes").innerHTML = html;
+    var cuts = Object.keys(s.cuts);
+    var cc = Object.keys(s.clientCuts).filter(function (k) { return s.clientCuts[k]; });
+    byId("netLabel").innerHTML = (cuts.length ? '<span class="cut">Partition:</span> links cut ' + cuts.map(function (k) { return k.replace("|", "↔"); }).join(", ") : "Network: all links up") + (cc.length ? ' · <span class="cut">client cannot reach ' + cc.join(", ") + '</span>' : "");
+    byId("topoLabel").textContent = "· " + (s.topology === "PSA" ? "P-S-A (m3 is an arbiter)" : "P-S-S") + " · voters 3 · calculated majority " + calculatedMajority(s);
+    byId("clock").textContent = "tick " + s.tick + " = " + (2 * s.tick) + " s";
+  }
+  function renderRequests() {
+    var s = ui.sim, html = "";
+    byId("clientView").innerHTML = "implicit default write concern here: <b>w:" + implicitDefaultWriteConcern(s) + "</b>" + (s.session.afterClusterTime ? " · session operationTime " + optimeStr(s.session.afterClusterTime) : "");
+    s.requests.slice().reverse().forEach(function (r) {
+      var cls = r.status === "acked" || r.status === "done" ? "ok" : (r.status === "failed" ? "bad" : "wait");
+      if (r.kind === "write") html += '<div class="req ' + cls + '">' + r.id + (r.label ? " (" + r.label + ")" : "") + " write " + r.orderId + " w:" + r.wc + " → <b>" + r.status.toUpperCase() + "</b>" + (r.ackTick !== null && r.status === "acked" ? " at tick " + r.ackTick : "") + (r.note ? " — " + r.note : "") + '</div>';
+      else html += '<div class="req ' + cls + '">' + r.id + " read " + r.orderId + " rc:" + r.rc + " rp:" + r.rp + (r.causal ? " causal" : "") + " → <b>" + (r.status === "done" ? r.value : r.status.toUpperCase()) + "</b>" + (r.note ? " — " + r.note : "") + '</div>';
+    });
+    byId("requests").innerHTML = html || '<div class="small">no requests yet</div>';
+  }
+  function renderNarration(stepLabel) {
+    var s = ui.sim, html = "";
+    if (stepLabel) html += '<p><b>' + stepLabel + '</b></p>';
+    if (!s.narration.length) html += '<p class="small">Nothing changed this tick.</p>';
+    s.narration.forEach(function (n) { html += '<p class="' + (n.why ? "why" : "") + '"><span class="tick">t=' + n.tick + '</span> ' + n.text + '</p>'; });
+    byId("narration").innerHTML = html;
+  }
+  function renderAll(label) { renderNodes(); renderRequests(); renderNarration(label); byId("btnStep").disabled = ui.sim.stepIndex >= ui.sim.scenario.steps.length; byId("btnBack").disabled = ui.sim.stepIndex === 0; }
+
+  function renderPredict() {
+    var sc = ui.sim.scenario, box = byId("predictBox");
+    if (!sc.predict) { box.hidden = true; return; }
+    box.hidden = false;
+    var html = '<h3>🔮 Predict before you run: ' + sc.predict.q + '</h3>';
+    sc.predict.options.forEach(function (o, i) { html += '<button class="opt' + (ui.predicted === i ? " chosen" : "") + '" data-i="' + i + '">' + String.fromCharCode(65 + i) + ". " + o + '</button>'; });
+    if (ui.predicted !== null && ui.sim.stepIndex >= sc.steps.length) {
+      html += '<div class="verdict">' + (ui.predicted === sc.predict.answer ? "✅ Your prediction held." : "❌ Your prediction did not hold — the answer is " + String.fromCharCode(65 + sc.predict.answer) + ".") + '</div><p>' + sc.predict.why + '</p>';
+    } else if (ui.predicted !== null) {
+      html += '<div class="small">Prediction recorded. Step to the end to see whether it held.</div>';
+    }
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll(".opt"), function (b) { b.addEventListener("click", function () { ui.predicted = parseInt(b.getAttribute("data-i"), 10); renderPredict(); }); });
+  }
+
+  function selectScenario(idx) {
+    stopPlay();
+    ui.sim = loadScenario(null, SCENARIOS[idx]); ui.predicted = null;
+    byId("scenarioBlurb").textContent = SCENARIOS[idx].blurb;
+    renderPredict(); renderAll("Press Step to begin.");
+  }
+  function doStep() {
+    var st = runStep(ui.sim);
+    if (!st) { stopPlay(); return; }
+    renderAll(st.label); renderPredict();
+    if (ui.sim.stepIndex >= ui.sim.scenario.steps.length) stopPlay();
+  }
+  function doBack() {
+    var target = ui.sim.stepIndex - 1; if (target < 0) return;
+    var idx = SCENARIOS.indexOf(ui.sim.scenario);
+    var keep = ui.predicted;
+    ui.sim = loadScenario(null, SCENARIOS[idx]);
+    var label = "Press Step to begin.";
+    for (var i = 0; i < target; i++) { var st = runStep(ui.sim); label = st.label; }
+    ui.predicted = keep; renderAll(label); renderPredict();
+  }
+  function stopPlay() { if (ui.playing) { clearInterval(ui.playing); ui.playing = null; byId("btnPlay").textContent = "Play"; } }
+  function togglePlay() { if (ui.playing) { stopPlay(); return; } byId("btnPlay").textContent = "Pause"; ui.playing = setInterval(doStep, 1400); }
+
+  // free play helpers act on the current sim without touching the scenario script
+  function free(fn, label) { stopPlay(); ui.sim.narration = []; fn(ui.sim); try { checkInvariants(ui.sim); } catch (e) { say(ui.sim, "MODEL BUG: " + e.message); } renderAll(label); }
+
+  var sel = byId("scenario");
+  SCENARIOS.forEach(function (sc, i) { var o = document.createElement("option"); o.value = i; o.textContent = sc.title; sel.appendChild(o); });
+  sel.addEventListener("change", function () { selectScenario(parseInt(sel.value, 10)); });
+  byId("btnStep").addEventListener("click", doStep);
+  byId("btnBack").addEventListener("click", function () { stopPlay(); doBack(); });
+  byId("btnPlay").addEventListener("click", togglePlay);
+  byId("btnReset").addEventListener("click", function () { selectScenario(parseInt(sel.value, 10)); });
+  byId("fpWrite").addEventListener("click", function () { free(function (s) { issueWrite(s, byId("fpWc").value); }, "Free play: write"); });
+  byId("fpRead").addEventListener("click", function () { free(function (s) { issueRead(s, byId("fpRc").value, byId("fpRp").value, byId("fpCausal").checked); }, "Free play: read"); });
+  byId("fpCutM1").addEventListener("click", function () { free(function (s) { isolate(s, "m1", "clientWithMajority"); }, "Free play: partition"); });
+  byId("fpHeal").addEventListener("click", function () { free(heal, "Free play: heal"); });
+  byId("fpKill").addEventListener("click", function () { free(function (s) { if (s.nodes.m2.up) kill(s, "m2"); }, "Free play: kill m2"); });
+  byId("fpRestart").addEventListener("click", function () { free(function (s) { if (!s.nodes.m2.up) restart(s, "m2"); }, "Free play: restart m2"); });
+  byId("fpTick").addEventListener("click", function () { stopPlay(); step(ui.sim); renderAll("Free play: one tick"); });
+
+  selectScenario(0);
+} else {
+  var r = runSelfTests();
+  console.log("self-tests: " + r.checks + " checks, " + r.failures.length + " failures");
+  r.failures.forEach(function (f) { console.log("FAIL: " + f); });
+  if (typeof process !== "undefined" && r.failures.length) process.exit(1);
+}
+//=== UI END ===
+</script>
+</body>
+</html>
