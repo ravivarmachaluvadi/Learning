@@ -319,6 +319,8 @@ facts are identical.
 ```
 python tools/preserve-check.py <old README> <new README>   # nothing lost
 python tools/audit.py <lab folder>                          # sentence, template, front-matter signals
+python tools/xref-check.py <lab folder>                     # exercises still point at real sections
+python tools/mark-rewritten.py                              # after adding the slug to tools/rewritten.txt
 ```
 
 And by eye:
