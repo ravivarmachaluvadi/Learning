@@ -16,3 +16,7 @@ out/
 # Transient
 *.log
 *.pid
+
+# Python
+__pycache__/
+tools/*.json

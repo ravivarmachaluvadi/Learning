@@ -3,6 +3,7 @@
 Usage:
     python tools/audit.py .            # every lab, one row each
     python tools/audit.py <lab-folder> # one lab
+    python tools/audit.py . --json out.json   # also dump the rows
 
 Columns:
   front   lines before the first '## 1' heading (rule 1: story first; target < 25)
@@ -58,4 +59,5 @@ for d in ([os.path.basename(os.path.abspath(ROOT))] if SINGLE else sorted(os.lis
 print(f"{'lab':36}{'front':>6}{'tmpl':>6}{'lbls':>5}{'meas':>5}{'state':>6}{'id_n':>5}{'cont%':>6}{'q-hdr':>6}{'hdrs':>5}{'lines':>6}{'tsv':>5}  story-names")
 for r in sorted(rows,key=lambda r:(-(r['front']>40)-(r['tmpl']>25)-(r['meas']>25)-(r['state']+r['idn']>40)-((r['cont'] or 0)<25), r['lab'])):
     print(f"{r['lab']:36}{r['front']:6d}{r['tmpl']:6d}{r['tmpl_labels']:5d}{r['meas']:5d}{r['state']:6d}{r['idn']:5d}{str(r['cont']):>6}{r['qh']:6d}{r['h']:5d}{r['lines']:6d}{r['tsv']:5d}  {','.join(r['names'])}")
-json.dump(rows,open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"audit2.json"),"w"),indent=1)
+if "--json" in sys.argv:
+    json.dump(rows,open(sys.argv[sys.argv.index("--json")+1],"w"),indent=1)
