@@ -5,12 +5,19 @@ listed here are treated as known vocabulary in future lessons, and takeaways
 here get a one-line refresher instead of a re-teach. `[name?]` = suggested,
 not yet learned.
 
-> **All labs are Java** (converted 2026-08-28; the `/learn` skill now defaults
-> to Java). Most run with no dependencies — `java Foo.java`. The three labs
-> needing a real database use H2, and `database-landscape` also uses DuckDB;
-> both jars are in `lib/`, and each lab's README states its exact command.
-> Each converted lab keeps its original Python under `_python-original/`.
-> Measured numbers in the entries below are the Java figures.
+> **Where things are (2026-09-08).** Lab folders are numbered `NN-slug` in the
+> order given by `LEARNING-PATH.md`; the `lab:` field on each entry below is
+> the folder name. New labs slot in by decimal insertion (`03.5-slug`). Every
+> README follows the voice contract in `STYLE.md`; entries marked *rewritten
+> for delivery* had their README re-told in that voice with no content
+> removed (`tools/preserve-check.py` was run on each).
+>
+> **Historical note.** Labs created before 2026-08-29 carry runnable Java
+> (converted from Python on 2026-08-28; originals under `_python-original/`,
+> and `_java-original/` where a lab was later rebuilt as no-code). Most run
+> with `java Foo.java`; the labs needing a real database use H2 (and
+> `database-landscape` DuckDB) from `lib/`. Labs since 2026-08-29 contain no
+> runnable code. Measured numbers in the entries below are the Java figures.
 
 ## url-shortener-system-design — learned 2026-09-07 — lab: url-shortener-system-design/
 
