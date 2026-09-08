@@ -1,0 +1,10 @@
+# Labs re-delivered in the STYLE.md voice, one slug per line, optional date.
+# Read by tools/mark-rewritten.py, which stamps KNOWLEDGE-MAP.md and rebuilds
+# the backlog table in README.md.
+paxos 2026-09-08
+networking-for-developers 2026-09-08
+communication-protocols 2026-09-08
+quorums-and-replication 2026-09-08
+raft 2026-09-08
+tls 2026-09-08
+isolation-levels 2026-09-08

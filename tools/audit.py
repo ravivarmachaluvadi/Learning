@@ -19,7 +19,10 @@ Columns:
 import re, os, sys, json
 from collections import Counter
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-SINGLE = os.path.isfile(os.path.join(ROOT, "README.md"))
+# A lab folder has a README.md; the workspace root has one too, so tell them
+# apart by LEARNING-PATH.md, which only the root carries.
+SINGLE = (os.path.isfile(os.path.join(ROOT, "README.md"))
+          and not os.path.isfile(os.path.join(ROOT, "LEARNING-PATH.md")))
 SKIP = {"lib", "dino-rescue-adventure", ".git"}
 rows=[]
 for d in ([os.path.basename(os.path.abspath(ROOT))] if SINGLE else sorted(os.listdir(ROOT))):

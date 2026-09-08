@@ -77,4 +77,81 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
+7 rewritten, 40 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+
+Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
+
+| # | Lab | Status | Note |
+|---|---|---|---|
+| 1 | `networking-for-developers` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
+| 2 | `communication-protocols` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
+| 3 | `io-multiplexing` | queued | 10 labels repeated as a template |
+| 4 | `database-landscape` | queued | 9 labels repeated as a template |
+| 5 | `btree-and-lsm` | reads well, left as-is |  |
+| 6 | `software-architecture-patterns` | reads well, left as-is |  |
+| 7 | `acid` | queued | 7 labels repeated as a template |
+| 8 | `isolation-levels` | **rewritten** | re-delivered 2026-09-08 |
+| 9 | `mvcc-and-vacuum` | queued | symbols before words |
+| 10 | `optimistic-vs-pessimistic-locking` | reads well, left as-is |  |
+| 11 | `caching` | reads well, left as-is |  |
+| 12 | `http-caching` | reads well, left as-is |  |
+| 13 | `redis` | queued | 8 labels repeated as a template |
+| 14 | `tls` | **rewritten** | re-delivered 2026-09-08 |
+| 15 | `ssh` | queued | 7 labels repeated as a template; symbols before words |
+| 16 | `java-multithreading` | queued | 76 lines of meta before the story; 12 labels repeated as a template; 28 measurement asides in the prose |
+| 17 | `java-memory-model` | no README yet | visualization and source only; writing it is the top item in the gaps list |
+| 18 | `java-virtual-threads` | reads well, left as-is |  |
+| 19 | `structured-concurrency` | reads well, left as-is |  |
+| 20 | `scoped-values` | reads well, left as-is |  |
+| 21 | `java-version-features` | queued | 69 lines of meta before the story; 13 labels repeated as a template |
+| 22 | `jvm-garbage-collectors` | queued | 89 lines of meta before the story; 11 labels repeated as a template |
+| 23 | `jvm-performance-tuning` | queued | 100 lines of meta before the story; 7 labels repeated as a template |
+| 24 | `cap-theorem` | reads well, left as-is |  |
+| 25 | `pacelc` | reads well, left as-is |  |
+| 26 | `linearizability` | queued | 9 labels repeated as a template |
+| 27 | `linearizability-vs-serializability` | reads well, left as-is |  |
+| 28 | `eventual-consistency` | reads well, left as-is |  |
+| 29 | `causal-consistency` | queued | 52 lines of meta before the story; 8 labels repeated as a template |
+| 30 | `clock-synchronization` | queued | 68 lines of meta before the story |
+| 31 | `hybrid-logical-clocks` | reads well, left as-is |  |
+| 32 | `crdts` | queued | 49 lines of meta before the story |
+| 33 | `flp-impossibility` | queued | 58 lines of meta before the story; 7 labels repeated as a template |
+| 34 | `quorums-and-replication` | **rewritten** | re-delivered 2026-09-08 |
+| 35 | `consistent-hashing` | queued | 8 labels repeated as a template |
+| 36 | `partitioning-and-rebalancing` | reads well, left as-is |  |
+| 37 | `gossip-protocols` | queued | 12 labels repeated as a template |
+| 38 | `anti-entropy` | queued | 57 lines of meta before the story; 33 measurement asides in the prose |
+| 39 | `paxos` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
+| 40 | `raft` | **rewritten** | re-delivered 2026-09-08 |
+| 41 | `zab` | queued | 72 lines of meta before the story; 11 labels repeated as a template |
+| 42 | `split-brain` | queued | 51 lines of meta before the story; 9 labels repeated as a template |
+| 43 | `distributed-locking` | reads well, left as-is |  |
+| 44 | `jepsen` | reads well, left as-is |  |
+| 45 | `two-phase-commit` | reads well, left as-is |  |
+| 46 | `distributed-transactions` | reads well, left as-is |  |
+| 47 | `saga` | reads well, left as-is |  |
+| 48 | `transactional-outbox` | reads well, left as-is |  |
+| 49 | `idempotency` | reads well, left as-is |  |
+| 50 | `event-sourcing` | reads well, left as-is |  |
+| 51 | `cqrs` | queued | 116 lines of meta before the story |
+| 52 | `change-data-capture` | queued | 5 labels repeated as a template; symbols before words |
+| 53 | `kafka` | queued | 57 lines of meta before the story |
+| 54 | `idempotent-consumer` | queued | 67 lines of meta before the story |
+| 55 | `kafka-exactly-once` | queued | 63 lines of meta before the story; 8 labels repeated as a template; symbols before words |
+| 56 | `microservices` | queued | 11 labels repeated as a template |
+| 57 | `queueing-theory` | queued | 83 lines of meta before the story; 11 labels repeated as a template; 42 measurement asides in the prose |
+| 58 | `load-shedding` | queued | 98 lines of meta before the story; 41 measurement asides in the prose |
+| 59 | `load-balancing` | queued | 148 lines of meta before the story; 29 measurement asides in the prose |
+| 60 | `distributed-rate-limiting` | queued | 4 labels repeated as a template |
+| 61 | `work-pressure-and-deadlines` | queued | 8 labels repeated as a template |
+| 62 | `amazon-web-services` | queued | 7 labels repeated as a template |
+| 63 | `terraform` | queued | 7 labels repeated as a template; symbols before words |
+| 64 | `compound-engineering-plugin` | queued | 15 labels repeated as a template |
+| 65 | `url-shortener-system-design` | reads well, left as-is |  |
+| 66 | `google-spanner` | queued | 74 lines of meta before the story; 11 labels repeated as a template |
+| 67 | `cockroachdb` | queued | 78 lines of meta before the story; symbols before words |
+| 68 | `mongodb` | queued | 68 lines of meta before the story |
+| 69 | `whatsapp-system-design` | queued | 10 labels repeated as a template |
+| 70 | `uber-system-design` | queued | 12 labels repeated as a template |
+| 71 | `google-docs-system-design` | queued | 5 labels repeated as a template |
 <!-- BACKLOG:END -->
