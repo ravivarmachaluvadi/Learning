@@ -10,8 +10,8 @@ out/
 *.class
 
 # Generated lab artifacts (recreated by each lab's setup script)
-ssh/lab/
-tls/pki/
+*-ssh/lab/
+*-tls/pki/
 
 # Transient
 *.log

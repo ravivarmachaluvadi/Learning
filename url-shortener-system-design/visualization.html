@@ -1,0 +1,576 @@
+<title>Short Code Minting Race</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#14181a;
+    --ink-soft:#4c5a58;
+    --canvas:#f4f6f4;
+    --panel:#ffffff;
+    --panel-2:#eef1ef;
+    --line:#dde3e0;
+    --accent:#0f6f6a;
+    --accent-ink:#08403d;
+    --accent-soft:#dcefec;
+    --on-accent:#f3fbfa;
+    --retry:#b5730a;
+    --shadow: 0 1px 2px rgba(20,24,26,.06), 0 8px 24px -12px rgba(20,24,26,.18);
+    --radius: 14px;
+    --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e7ecea;
+      --ink-soft:#a9b7b3;
+      --canvas:#0c1211;
+      --panel:#121a18;
+      --panel-2:#17211f;
+      --line:#25332f;
+      --accent:#4fd6c9;
+      --accent-ink:#bdf3ea;
+      --accent-soft:#173230;
+      --on-accent:#04211f;
+      --retry:#f0ab52;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e7ecea;
+    --ink-soft:#a9b7b3;
+    --canvas:#0c1211;
+    --panel:#121a18;
+    --panel-2:#17211f;
+    --line:#25332f;
+    --accent:#4fd6c9;
+    --accent-ink:#bdf3ea;
+    --accent-soft:#173230;
+    --on-accent:#04211f;
+    --retry:#f0ab52;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:var(--font-display);
+    line-height:1.5;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; padding:36px 20px 64px; }
+
+  header.top{ margin-bottom:28px; }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--accent-ink);
+    background:var(--accent-soft);
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:14px;
+  }
+  h1{
+    font-size:clamp(24px,3.4vw,34px);
+    font-weight:800;
+    margin:0 0 10px;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    max-width:66ch;
+    color:var(--ink-soft);
+    font-size:15.5px;
+  }
+  .lede code{ font-family:var(--font-mono); background:var(--panel-2); padding:1px 5px; border-radius:5px; font-size:.92em; }
+
+  .callout{
+    margin-top:18px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    border-left:3px solid var(--retry);
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    max-width:74ch;
+  }
+  .callout strong{ color:var(--ink); }
+
+  /* controls */
+  .controls{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px 22px;
+    margin:26px 0 30px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px 32px;
+  }
+  @media (max-width: 760px){ .controls{ grid-template-columns: 1fr; } }
+
+  .field label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:13px; font-weight:600; color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .field label .val{ font-family:var(--font-mono); color:var(--ink); font-size:13px; }
+  input[type=range]{
+    width:100%; accent-color:var(--accent); height:20px;
+  }
+  .field .hint{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
+
+  .predict-block{ grid-column: 1 / -1; border-top:1px dashed var(--line); padding-top:16px; margin-top:2px; }
+  .predict-block > p{ margin:0 0 10px; font-size:13.5px; color:var(--ink-soft); }
+  .predict-block > p strong{ color:var(--ink); }
+  .predict-options{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .predict-btn{
+    font-family:var(--font-display); font-weight:600; font-size:13px;
+    padding:9px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); cursor:pointer;
+  }
+  .predict-btn[aria-pressed="true"]{
+    border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink);
+  }
+  .predict-btn:focus-visible, .run-btn:focus-visible, .reset-btn:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+  .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .run-btn{
+    font-family:var(--font-display); font-weight:700; font-size:14px;
+    padding:11px 22px; border-radius:10px; border:1px solid var(--accent);
+    background:var(--accent); color:var(--on-accent); cursor:pointer;
+  }
+  .reset-btn{
+    font-family:var(--font-display); font-weight:600; font-size:14px;
+    padding:11px 18px; border-radius:10px; border:1px solid var(--line);
+    background:transparent; color:var(--ink-soft); cursor:pointer;
+  }
+  .predict-result{
+    font-size:13px; font-family:var(--font-mono); color:var(--ink-soft);
+    min-height:1.4em;
+  }
+
+  /* legend */
+  .legend{
+    display:flex; gap:18px; flex-wrap:wrap; align-items:center;
+    font-size:12.5px; color:var(--ink-soft); margin: 4px 0 18px;
+  }
+  .legend .item{ display:flex; align-items:center; gap:6px; }
+  .swatch{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .swatch.call{ background:var(--accent); }
+  .swatch.local{ background:var(--line); }
+  .swatch.retry{ background:var(--retry); }
+
+  /* columns */
+  .columns{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:18px;
+    margin-bottom:28px;
+  }
+  @media (max-width: 860px){ .columns{ grid-template-columns:1fr; } }
+
+  .col{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 18px 16px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .col h2{
+    font-size:14.5px; margin:0; display:flex; align-items:center; gap:8px;
+  }
+  .col .sub{ font-size:12px; color:var(--ink-soft); margin-top:-6px; }
+
+  .metric-row{ display:flex; gap:14px; }
+  .metric{ flex:1; }
+  .metric .n{
+    font-family:var(--font-mono); font-weight:600; font-size:21px;
+    font-variant-numeric:tabular-nums; display:block;
+  }
+  .metric .l{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; }
+
+  .strip{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px;
+    display:flex; flex-wrap:wrap; gap:3px;
+    min-height:64px;
+    align-content:flex-start;
+  }
+  .dot{ width:7px; height:7px; border-radius:2px; background:var(--line); opacity:.25; transition:background .05s, opacity .05s; }
+  .dot.call{ background:var(--accent); opacity:1; }
+  .dot.local{ background:var(--line); opacity:1; }
+  .dot.retry{ background:var(--retry); opacity:1; }
+
+  .routing{
+    font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft);
+    border-top:1px dashed var(--line); padding-top:10px;
+  }
+  .routing b{ color:var(--ink); font-weight:600; }
+  .routing .chip{
+    display:inline-block; background:var(--accent-soft); color:var(--accent-ink);
+    border-radius:5px; padding:1px 5px; margin-left:4px; font-size:11px;
+  }
+
+  /* chart */
+  .chart-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:20px 22px 18px;
+  }
+  .chart-card h2{ font-size:15px; margin:0 0 4px; }
+  .chart-card .note{ font-size:12px; color:var(--ink-soft); margin:0 0 16px; }
+  .bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .bar-row .name{ width:150px; flex-shrink:0; font-size:13px; font-weight:600; }
+  .bar-track{ flex:1; background:var(--panel-2); border-radius:6px; height:26px; position:relative; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent); border-radius:6px; width:0%; transition:width .3s ease; }
+  .bar-value{
+    width:110px; text-align:right; flex-shrink:0;
+    font-family:var(--font-mono); font-size:13px; font-variant-numeric:tabular-nums;
+  }
+
+  footer.foot{
+    margin-top:30px; font-size:12px; color:var(--ink-soft);
+    border-top:1px solid var(--line); padding-top:16px;
+  }
+  footer.foot a{ color:var(--accent-ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot, .bar-fill{ transition:none; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">url-shortener-system-design · §10 walkthrough</span>
+    <h1>Minting unique short codes without a bottleneck</h1>
+    <p class="lede">
+      Three strategies mint the same number of short codes. Watch what each one has to
+      phone home for. <code>Naive Counter</code> asks a shared counter for permission on
+      every single mint. <code>Random + Retry</code> guesses a code and only finds out it
+      collided after asking. <code>Block Allocation</code> asks once, then mints hundreds
+      of codes locally before asking again.
+    </p>
+    <div class="callout">
+      <strong>Scaled down on purpose:</strong> this demo uses a keyspace of just 5,000
+      codes so collisions actually happen on screen. A real 7-character base62 keyspace
+      holds ≈3.52 trillion codes — the README's §8 table works the real collision math at
+      production scale. Only the <em>mechanism</em> here is real; the corpus size is a
+      teaching model.
+    </div>
+  </header>
+
+  <section class="controls" aria-label="Simulation controls">
+    <div class="field">
+      <label for="nInput">Codes to mint <span class="val" id="nVal">800</span></label>
+      <input type="range" id="nInput" min="100" max="4000" step="100" value="800">
+      <div class="hint">Same total workload is applied to all three strategies.</div>
+    </div>
+    <div class="field">
+      <label for="bInput">Block size (Block Allocation only) <span class="val" id="bVal">50</span></label>
+      <input type="range" id="bInput" min="5" max="400" step="5" value="50">
+      <div class="hint">How many codes each block hands out per coordination call.</div>
+    </div>
+
+    <div class="predict-block">
+      <p><strong>🔮 Predict, then run:</strong> for this many codes, which strategy needs the
+        <em>fewest</em> round trips to the shared coordination point?</p>
+      <div class="predict-options" role="group" aria-label="Prediction">
+        <button class="predict-btn" data-pick="naive" aria-pressed="false">Naive Counter</button>
+        <button class="predict-btn" data-pick="random" aria-pressed="false">Random + Retry</button>
+        <button class="predict-btn" data-pick="block" aria-pressed="false">Block Allocation</button>
+      </div>
+      <div class="actions">
+        <button class="run-btn" id="runBtn">▶ Run simulation</button>
+        <button class="reset-btn" id="resetBtn">Reset prediction</button>
+        <span class="predict-result" id="predictResult"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="legend" aria-hidden="false">
+    <span class="item"><span class="swatch call"></span>round trip to the coordination point (succeeded)</span>
+    <span class="item"><span class="swatch retry"></span>round trip that collided — wasted, retrying</span>
+    <span class="item"><span class="swatch local"></span>local mint — no network call at all</span>
+  </div>
+
+  <section class="columns">
+    <div class="col">
+      <h2>🧮 Naive Counter</h2>
+      <div class="sub">one shared DB counter — every mint asks it for the next value</div>
+      <div class="metric-row">
+        <div class="metric"><span class="n" id="naiveCalls">0</span><span class="l">coordination calls</span></div>
+        <div class="metric"><span class="n" id="naiveCollisions">0</span><span class="l">collisions</span></div>
+      </div>
+      <div class="strip" id="naiveStrip"></div>
+    </div>
+
+    <div class="col">
+      <h2>🎲 Random + Retry</h2>
+      <div class="sub">guess a code, insert-or-fail, retry on collision</div>
+      <div class="metric-row">
+        <div class="metric"><span class="n" id="randomCalls">0</span><span class="l">coordination calls</span></div>
+        <div class="metric"><span class="n" id="randomCollisions">0</span><span class="l">collisions</span></div>
+      </div>
+      <div class="strip" id="randomStrip"></div>
+    </div>
+
+    <div class="col">
+      <h2>📦 Block Allocation</h2>
+      <div class="sub">fetch a range once, mint from it locally until exhausted</div>
+      <div class="metric-row">
+        <div class="metric"><span class="n" id="blockCalls">0</span><span class="l">coordination calls</span></div>
+        <div class="metric"><span class="n" id="blockCollisions">0</span><span class="l">collisions</span></div>
+      </div>
+      <div class="strip" id="blockStrip"></div>
+      <div class="routing" id="blockRouting">self-routing: minting…</div>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <h2>Total coordination calls, same workload</h2>
+    <p class="note">Bar length uses a square-root scale so Block Allocation's bar stays
+      visible next to Naive's — read the printed numbers for the real counts.</p>
+    <div id="chart"></div>
+  </section>
+
+  <footer class="foot">
+    Accompanies <strong>url-shortener-system-design/README.md</strong> §9–§10 (block
+    allocation) and §12 (self-routing). See §8 for the exact collision-probability
+    arithmetic at production keyspace size (62⁷ ≈ 3.52 trillion codes).
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var K = 5000;           // deliberately tiny demo keyspace (see callout)
+  var SHARDS = 4;
+  var START_ID = 100000;
+  var STRIP_WINDOW = 140; // how many dots stay visible in a strip
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var nInput = document.getElementById('nInput');
+  var bInput = document.getElementById('bInput');
+  var nVal = document.getElementById('nVal');
+  var bVal = document.getElementById('bVal');
+  var runBtn = document.getElementById('runBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var predictButtons = Array.prototype.slice.call(document.querySelectorAll('.predict-btn'));
+  var predictResult = document.getElementById('predictResult');
+
+  var els = {
+    naive: { calls: document.getElementById('naiveCalls'), collisions: document.getElementById('naiveCollisions'), strip: document.getElementById('naiveStrip') },
+    random: { calls: document.getElementById('randomCalls'), collisions: document.getElementById('randomCollisions'), strip: document.getElementById('randomStrip') },
+    block: { calls: document.getElementById('blockCalls'), collisions: document.getElementById('blockCollisions'), strip: document.getElementById('blockStrip') }
+  };
+  var routingEl = document.getElementById('blockRouting');
+  var chartEl = document.getElementById('chart');
+
+  var predicted = null;
+  var animToken = 0;
+
+  nInput.addEventListener('input', function(){ nVal.textContent = nInput.value; });
+  bInput.addEventListener('input', function(){ bVal.textContent = bInput.value; });
+
+  predictButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      predicted = btn.getAttribute('data-pick');
+      predictButtons.forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+      predictResult.textContent = '';
+    });
+  });
+
+  resetBtn.addEventListener('click', function(){
+    predicted = null;
+    predictButtons.forEach(function(b){ b.setAttribute('aria-pressed', 'false'); });
+    predictResult.textContent = '';
+  });
+
+  // ---- simulation (fully computed instantly; animation only reveals it) ----
+  function simulate(N, B){
+    // naive: every mint is exactly one successful coordination call
+    var naiveEvents = new Array(N).fill('call');
+
+    // block allocation
+    var blockEvents = [];
+    var blockIds = [];
+    var remaining = 0;
+    var nextId = START_ID;
+    for (var i = 0; i < N; i++){
+      if (remaining === 0){ blockEvents.push('call'); remaining = B; }
+      else { blockEvents.push('local'); }
+      remaining--;
+      blockIds.push(nextId++);
+    }
+
+    // random + retry, against the small demo keyspace
+    var used = new Uint8Array(K);
+    var randomEvents = [];
+    var minted = 0;
+    while (minted < N){
+      var attempts = 0;
+      while (true){
+        attempts++;
+        var guess = Math.floor(Math.random() * K);
+        if (!used[guess]){
+          used[guess] = 1;
+          randomEvents.push('call');
+          minted++;
+          break;
+        } else {
+          randomEvents.push('retry');
+          if (attempts > 300) { minted++; break; } // safety valve, not expected to trigger below ~90% fill
+        }
+      }
+    }
+
+    return { naiveEvents: naiveEvents, blockEvents: blockEvents, blockIds: blockIds, randomEvents: randomEvents };
+  }
+
+  function countEvents(events, upTo){
+    var calls = 0, retries = 0, local = 0;
+    for (var i = 0; i < upTo; i++){
+      var e = events[i];
+      if (e === 'call') calls++;
+      else if (e === 'retry') retries++;
+      else local++;
+    }
+    return { calls: calls, retries: retries, local: local };
+  }
+
+  function renderStrip(el, events, upTo){
+    var start = Math.max(0, upTo - STRIP_WINDOW);
+    var frag = document.createDocumentFragment();
+    el.innerHTML = '';
+    for (var i = start; i < upTo; i++){
+      var dot = document.createElement('span');
+      dot.className = 'dot ' + events[i];
+      frag.appendChild(dot);
+    }
+    el.appendChild(frag);
+  }
+
+  function updateColumn(key, events, upTo){
+    var c = countEvents(events, upTo);
+    var callsShown = key === 'random' ? (c.calls + c.retries) : c.calls;
+    els[key].calls.textContent = callsShown.toLocaleString();
+    els[key].collisions.textContent = c.retries.toLocaleString();
+    renderStrip(els[key].strip, events, upTo);
+    return callsShown;
+  }
+
+  function renderRouting(blockIds, upTo){
+    if (upTo < 1){ routingEl.textContent = 'self-routing: minting…'; return; }
+    var last = blockIds.slice(Math.max(0, upTo - 4), upTo);
+    var parts = last.map(function(id){
+      var shard = id % SHARDS;
+      return id + '<span class="chip">shard ' + shard + '</span>';
+    });
+    routingEl.innerHTML = '<b>decoded, no lookup:</b> ' + parts.join(' &nbsp;·&nbsp; ');
+  }
+
+  function renderChart(totals){
+    var maxV = Math.max(totals.naive, totals.random, totals.block, 1);
+    var rows = [
+      { name: 'Naive Counter', value: totals.naive },
+      { name: 'Random + Retry', value: totals.random },
+      { name: 'Block Allocation', value: totals.block }
+    ];
+    chartEl.innerHTML = '';
+    rows.forEach(function(row){
+      var pct = Math.sqrt(row.value) / Math.sqrt(maxV) * 100;
+      pct = Math.max(pct, row.value > 0 ? 2 : 0);
+      var wrap = document.createElement('div');
+      wrap.className = 'bar-row';
+      wrap.innerHTML =
+        '<div class="name">' + row.name + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="bar-value">' + row.value.toLocaleString() + '</div>';
+      chartEl.appendChild(wrap);
+    });
+  }
+
+  function revealPredictResult(totals){
+    if (!predicted){
+      predictResult.textContent = 'Tip: pick a prediction before the next run to test yourself.';
+      return;
+    }
+    var labelOf = { naive: 'Naive Counter', random: 'Random + Retry', block: 'Block Allocation' };
+    var best = 'naive';
+    if (totals.random < totals[best]) best = 'random';
+    if (totals.block < totals[best]) best = 'block';
+    if (predicted === best){
+      predictResult.textContent = '✓ Correct — ' + labelOf[best] + ' needed the fewest coordination calls (' + totals[best].toLocaleString() + ').';
+    } else {
+      predictResult.textContent = '✗ You picked ' + labelOf[predicted] + '. ' + labelOf[best] + ' actually won, with ' + totals[best].toLocaleString() + ' vs ' + totals[predicted].toLocaleString() + '.';
+    }
+  }
+
+  function animate(N, B){
+    var myToken = ++animToken;
+    var sim = simulate(N, B);
+    var lens = { naive: sim.naiveEvents.length, random: sim.randomEvents.length, block: sim.blockEvents.length };
+    var totalFrames = reduceMotion ? 1 : 60;
+    var frame = 0;
+
+    function step(){
+      if (myToken !== animToken) return; // superseded by a newer run
+      frame++;
+      var t = Math.min(1, frame / totalFrames);
+      var upNaive = Math.round(lens.naive * t);
+      var upRandom = Math.round(lens.random * t);
+      var upBlock = Math.round(lens.block * t);
+
+      var naiveTotal = updateColumn('naive', sim.naiveEvents, upNaive);
+      var randomTotal = updateColumn('random', sim.randomEvents, upRandom);
+      var blockTotal = updateColumn('block', sim.blockEvents, upBlock);
+      renderRouting(sim.blockIds, Math.round(N * t));
+
+      if (t < 1){
+        requestAnimationFrame(step);
+      } else {
+        var totals = { naive: naiveTotal, random: randomTotal, block: blockTotal };
+        renderChart(totals);
+        revealPredictResult(totals);
+      }
+    }
+
+    if (reduceMotion){
+      var naiveTotal = updateColumn('naive', sim.naiveEvents, lens.naive);
+      var randomTotal = updateColumn('random', sim.randomEvents, lens.random);
+      var blockTotal = updateColumn('block', sim.blockEvents, lens.block);
+      renderRouting(sim.blockIds, N);
+      var totals = { naive: naiveTotal, random: randomTotal, block: blockTotal };
+      renderChart(totals);
+      revealPredictResult(totals);
+    } else {
+      requestAnimationFrame(step);
+    }
+  }
+
+  runBtn.addEventListener('click', function(){
+    animate(parseInt(nInput.value, 10), parseInt(bInput.value, 10));
+  });
+
+  // show a completed, meaningful state immediately on load (no animation)
+  (function initialRender(){
+    var N = parseInt(nInput.value, 10);
+    var B = parseInt(bInput.value, 10);
+    var sim = simulate(N, B);
+    var naiveTotal = updateColumn('naive', sim.naiveEvents, sim.naiveEvents.length);
+    var randomTotal = updateColumn('random', sim.randomEvents, sim.randomEvents.length);
+    var blockTotal = updateColumn('block', sim.blockEvents, sim.blockEvents.length);
+    renderRouting(sim.blockIds, N);
+    renderChart({ naive: naiveTotal, random: randomTotal, block: blockTotal });
+    predictResult.textContent = 'Pick a prediction above, then Run to test yourself.';
+  })();
+})();
+</script>

@@ -1,198 +1,204 @@
 # Learning Path
 
-The order to re-read the 65 `/learn` labs in this folder. Companion to
-`KNOWLEDGE-MAP.md` (which records *what* was learned) and to
-`LEARNING-PATH.html` (the visual version — open it in a browser; the lab
-links are clickable there).
+The order to read the labs in, numbered 1 to N. This file is the **single source of the order**: every lab folder is named `<number>-<slug>` to match its line here, and `tools/renumber.py` keeps the two in step. Companion to `KNOWLEDGE-MAP.md` (which records *what* was learned) and `STYLE.md` (how a lab is written).
 
-Seven sequential stages plus one parallel track. Stage order is a curriculum
-judgement laid over the 387 `Builds on` links in KNOWLEDGE-MAP.md — those links
-only ever point backwards in time, so sorting by them alone just replays the
-order things were learned in.
+| Key | Value |
+|---|---|
+| Labs | 71, in eight stages |
+| `Builds on` links in `KNOWLEDGE-MAP.md` | 478 |
+| Numbering | one sequence, 1 to N; insert with decimals (3.5), see below |
+| Folder name | `NN-slug` — `01-networking-for-developers`, `39-paxos`, `03.5-multipaxos` |
+| Legend | `↳N` = N other labs name this one as a prerequisite |
+| Regenerated | 2026-09-08, counts recomputed from `KNOWLEDGE-MAP.md` |
 
-Legend: `↳N` = N other labs name this one as a prerequisite.
+## How the numbering works
 
+- Every lab has one number. The number is its position in the reading order, not the date it was learned.
+- **To insert a lab between 3 and 4, give it 3.5.** Between 3 and 3.5, give it 3.25; between 3.5 and 4, give it 3.75. Nothing else moves. The folder is `03.5-<slug>`.
+- The `/learn` skill does this for you: it reads this file, picks the position, creates the numbered folder, and adds the line.
+- `python tools/renumber.py --check` confirms every folder matches its line and every relative link resolves. `--apply` renames folders to match this file and rewrites links. `--renumber` collapses decimals back into a clean 1..N sequence — run it only when you want that; every folder name and link changes.
+- Stages are headings, not numbering resets. The sequence runs straight through them.
 
-## Stage 1 — The Ground Floor
+## The order
+
+### Stage 1 — The Ground Floor
 
 Before anything is distributed, one request travels a wire and lands on one disk. Every later topic is an argument about these two facts.
 
-1. [`networking-for-developers`](networking-for-developers/README.md) ↳5 — One line of code hides six systems, and each fails as the same generic exception.
-2. [`communication-protocols`](communication-protocols/README.md) ↳10 — Every named protocol is one answer to one conversation shape, choosable on five axes.
-3. [`io-multiplexing`](io-multiplexing/README.md) ↳7 — A server's real job is waiting; the only question is what waiting costs.
-4. [`database-landscape`](database-landscape/README.md) ↳6 — Every database is a bet on one access pattern. Seven physical tricks, seven regrets.
-5. [`btree-and-lsm`](btree-and-lsm/README.md) ↳12 — Writes arrive unsorted, reads want sorted. The engine only chooses when to pay.
-6. [`software-architecture-patterns`](software-architecture-patterns/README.md) ↳6 — Patterns are named ways of drawing boundaries, and every boundary sends a bill.
+1. [`networking-for-developers`](01-networking-for-developers/README.md) ↳6 — One line of code hides six systems, and each fails as the same generic exception.
+2. [`communication-protocols`](02-communication-protocols/README.md) ↳11 — Every named protocol is one answer to one conversation shape, choosable on five axes.
+3. [`io-multiplexing`](03-io-multiplexing/README.md) ↳7 — A server's real job is waiting; the only question is what waiting costs.
+4. [`database-landscape`](04-database-landscape/README.md) ↳8 — Every database is a bet on one access pattern. Seven physical tricks, seven regrets.
+5. [`btree-and-lsm`](05-btree-and-lsm/README.md) ↳15 — Writes arrive unsorted, reads want sorted. The engine only chooses when to pay.
+6. [`software-architecture-patterns`](06-software-architecture-patterns/README.md) ↳6 — Patterns are named ways of drawing boundaries, and every boundary sends a bill.
 
-## Stage 2 — One Machine, Done Right
+### Stage 2 — One Machine, Done Right
 
 Almost every distributed bug is a single-machine bug that got a network wrapped around it. Learn correctness and speed where you can still see everything.
 
-1. [`acid`](acid/README.md) ↳1 — A contract, not a mechanism — and its four letters come from three different places. **← re-read: met before its foundations**
-2. [`isolation-levels`](isolation-levels/README.md) ↳10 — BEGIN…COMMIT buys atomicity and durability, not isolation. The default permits silent data loss. **← re-read: met before its foundations**
-3. [`mvcc-and-vacuum`](mvcc-and-vacuum/README.md) ↳0 — Nothing is overwritten and nothing is erased, so the bill arrives later: someone must collect what no live reader could still want.
-4. [`optimistic-vs-pessimistic-locking`](optimistic-vs-pessimistic-locking/README.md) ↳7 — The conflicts that matter span conversations, not transactions — and no isolation level sees those. **← re-read: met before its foundations**
-5. [`caching`](caching/README.md) ↳17 — A bounded copy of answers whose truth lives elsewhere. Delete it and lose only speed.
-6. [`http-caching`](http-caching/README.md) ↳2 — Every response carries its own reuse contract. Caching is correctness before it is speed.
-7. [`redis`](redis/README.md) ↳10 — One thread, one command at a time — its best guarantee and its worst failure, from one sentence.
-8. [`tls`](tls/README.md) ↳3 — Privacy, integrity, identity — and only identity is hard. Strangers can agree a secret; they cannot agree who.
-9. [`ssh`](ssh/README.md) ↳0 — Same cryptography as TLS, opposite answer on identity: your own memory of last time.
+7. [`acid`](07-acid/README.md) ↳5 — A contract, not a mechanism — and its four letters come from three different places.
+8. [`isolation-levels`](08-isolation-levels/README.md) ↳14 — BEGIN…COMMIT buys atomicity and durability, not isolation. The default permits silent data loss.
+9. [`mvcc-and-vacuum`](09-mvcc-and-vacuum/README.md) ↳2 — Nothing is overwritten and nothing is erased, so the bill arrives later: someone must collect what no live reader could still want.
+10. [`optimistic-vs-pessimistic-locking`](10-optimistic-vs-pessimistic-locking/README.md) ↳10 — The conflicts that matter span conversations, not transactions — and no isolation level sees those.
+11. [`caching`](11-caching/README.md) ↳19 — A bounded copy of answers whose truth lives elsewhere. Delete it and lose only speed.
+12. [`http-caching`](12-http-caching/README.md) ↳2 — Every response carries its own reuse contract. Caching is correctness before it is speed.
+13. [`redis`](13-redis/README.md) ↳11 — One thread, one command at a time — its best guarantee and its worst failure, from one sentence.
+14. [`tls`](14-tls/README.md) ↳3 — Privacy, integrity, identity — and only identity is hard. Strangers can agree a secret; they cannot agree who.
+15. [`ssh`](15-ssh/README.md) ↳0 — Same cryptography as TLS, opposite answer on identity: your own memory of last time.
 
-## Stage 3 — Why Distribution Is Hard
+### Stage 3 — The JVM Underneath: One Machine, Many Threads
+
+Still one machine, but now several things happen at once inside it. This is where "can both be in here at once?" and "is either guaranteed to see the other?" are first asked — the same two questions the distributed stages ask across machines. Nothing here depends on the stages after it, and nothing after it depends on this block until production, where tuning and queueing meet.
+
+16. [`java-multithreading`](16-java-multithreading/README.md) ↳2 — Two questions only: can both be in here at once, and is either guaranteed to see the other.
+17. [`java-memory-model`](17-java-memory-model/README.md) ↳8 — Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
+18. [`java-virtual-threads`](18-java-virtual-threads/README.md) ↳8 — A cheap heap-backed thread. Blocking parks the stack and frees the carrier, so waiting is nearly free.
+19. [`structured-concurrency`](19-structured-concurrency/README.md) ↳3 — Confine every subtask's lifetime to a block. Errors flow up, cancellation flows down.
+20. [`scoped-values`](20-scoped-values/README.md) ↳2 — An invisible final parameter for everything below a block — and the cure for ThreadLocal's diseases.
+21. [`java-version-features`](21-java-version-features/README.md) ↳0 — Java nearly froze on 8 because releases were feature-driven. The six-month train is the fix.
+22. [`jvm-garbage-collectors`](22-jvm-garbage-collectors/README.md) ↳3 — A collector never finds the dead. It marks the reachable and declares the rest dead by definition.
+23. [`jvm-performance-tuning`](23-jvm-performance-tuning/README.md) ↳0 — Not flag-picking — bottleneck-finding. Elapsed time splits into seven buckets and exactly one dominates.
+
+### Stage 4 — Why Distribution Is Hard
 
 The vocabulary stage. Six different things are all called "consistent", and two impossibility results say which combinations you may never have.
 
-1. [`cap-theorem`](cap-theorem/README.md) ↳28 — Partitioned, you choose between refusing to answer and answering possibly-stale. The root of the whole field.
-2. [`pacelc`](pacelc/README.md) ↳5 — CAP governs the rare broken moment. PACELC names the tradeoff that governs the other 99.99%. **← re-read: met before its foundations**
-3. [`linearizability`](linearizability/README.md) ↳10 — The precise meaning of "consistent": indistinguishable from one copy handling one request at a time.
-4. [`linearizability-vs-serializability`](linearizability-vs-serializability/README.md) ↳2 — "Is it consistent?" hides two independent questions — scope, and whether the order must respect the clock. **← re-read: met before its foundations**
-5. [`eventual-consistency`](eventual-consistency/README.md) ↳7 — Not a weak consistency — a different kind of claim. A liveness property no finite test can refute. **← re-read: met before its foundations**
-6. [`causal-consistency`](causal-consistency/README.md) ↳4 — One rule: never show a write without everything that happened before it.
-7. [`clock-synchronization`](clock-synchronization/README.md) ↳0 — You cannot measure another machine's clock, only bound it. Where ε comes from, and why it is never zero.
-8. [`hybrid-logical-clocks`](hybrid-logical-clocks/README.md) ↳4 — A timestamp has two jobs ordinary clocks split — ordering cause before effect, and meaning "as of 5 p.m." **← re-read: met before its foundations**
-9. [`crdts`](crdts/README.md) ↳9 — If both sides must accept writes while unable to talk, fix the data type, not the resolver.
-10. [`flp-impossibility`](flp-impossibility/README.md) ↳0 — One crash, no clocks, and no deterministic protocol can guarantee agreement, validity and termination together. **← re-read: met before its foundations**
+24. [`cap-theorem`](24-cap-theorem/README.md) ↳32 — Partitioned, you choose between refusing to answer and answering possibly-stale. The root of the whole field.
+25. [`pacelc`](25-pacelc/README.md) ↳7 — CAP governs the rare broken moment. PACELC names the tradeoff that governs the other 99.99%.
+26. [`linearizability`](26-linearizability/README.md) ↳12 — The precise meaning of "consistent": indistinguishable from one copy handling one request at a time.
+27. [`linearizability-vs-serializability`](27-linearizability-vs-serializability/README.md) ↳3 — "Is it consistent?" hides two independent questions — scope, and whether the order must respect the clock.
+28. [`eventual-consistency`](28-eventual-consistency/README.md) ↳7 — Not a weak consistency — a different kind of claim. A liveness property no finite test can refute.
+29. [`causal-consistency`](29-causal-consistency/README.md) ↳5 — One rule: never show a write without everything that happened before it.
+30. [`clock-synchronization`](30-clock-synchronization/README.md) ↳1 — You cannot measure another machine's clock, only bound it. Where ε comes from, and why it is never zero.
+31. [`hybrid-logical-clocks`](31-hybrid-logical-clocks/README.md) ↳5 — A timestamp has two jobs ordinary clocks split — ordering cause before effect, and meaning "as of 5 p.m."
+32. [`crdts`](32-crdts/README.md) ↳9 — If both sides must accept writes while unable to talk, fix the data type, not the resolver.
+33. [`flp-impossibility`](33-flp-impossibility/README.md) ↳2 — One crash, no clocks, and no deterministic protocol can guarantee agreement, validity and termination together.
 
-## Stage 4 — Copies and Agreement
+### Stage 5 — Copies and Agreement
 
 Now put the same data on many machines. Everything here answers one question: who decides, and what happens when the deciders cannot talk.
 
-1. [`quorums-and-replication`](quorums-and-replication/README.md) ↳14 — Tell W, ask R, and if R+W>N the two sets cannot avoid each other.
-2. [`consistent-hashing`](consistent-hashing/README.md) ↳10 — hash(key) % n makes every key's home depend on a global property. One substitution fixes it.
-3. [`partitioning-and-rebalancing`](partitioning-and-rebalancing/README.md) ↳5 — Splitting data asks three questions replication never did: where, how found, and what on resize.
-4. [`gossip-protocols`](gossip-protocols/README.md) ↳9 — Once a second, tell two random peers everything you know. The informed set multiplies.
-5. [`anti-entropy`](anti-entropy/README.md) ↳1 — W<N creates divergence as a normal by-product of working correctly. Something must go back and repair. **← re-read: met before its foundations**
-6. [`paxos`](paxos/README.md) ↳13 — How machines agree on exactly one value while crashing. Ask a majority first; adopt what you find.
-7. [`raft`](raft/README.md) ↳10 — One leader per numbered term, one ordered log, committed at a majority. Paxos you can implement.
-8. [`zab`](zab/README.md) ↳0 — The engine inside ZooKeeper — and not a replicated state machine at all. It is primary-backup.
-9. [`split-brain`](split-brain/README.md) ↳4 — Two nodes both believing they are in charge. "At most one believes" is impossible; fencing is the answer.
-10. [`distributed-locking`](distributed-locking/README.md) ↳8 — A lock made of messages, held by a process that cannot observe its own delays.
-11. [`jepsen`](jepsen/README.md) ↳0 — The instrument that decides whether any of the last four stages is actually true of a running system. Records a history; searches for an explanation; convicts when none exists.
+34. [`quorums-and-replication`](34-quorums-and-replication/README.md) ↳17 — Tell W, ask R, and if R+W>N the two sets cannot avoid each other.
+35. [`consistent-hashing`](35-consistent-hashing/README.md) ↳14 — hash(key) % n makes every key's home depend on a global property. One substitution fixes it.
+36. [`partitioning-and-rebalancing`](36-partitioning-and-rebalancing/README.md) ↳7 — Splitting data asks three questions replication never did: where, how found, and what on resize.
+37. [`gossip-protocols`](37-gossip-protocols/README.md) ↳9 — Once a second, tell two random peers everything you know. The informed set multiplies.
+38. [`anti-entropy`](38-anti-entropy/README.md) ↳1 — W<N creates divergence as a normal by-product of working correctly. Something must go back and repair.
+39. [`paxos`](39-paxos/README.md) ↳13 — How machines agree on exactly one value while crashing. Ask a majority first; adopt what you find.
+40. [`raft`](40-raft/README.md) ↳13 — One leader per numbered term, one ordered log, committed at a majority. Paxos you can implement.
+41. [`zab`](41-zab/README.md) ↳0 — The engine inside ZooKeeper — and not a replicated state machine at all. It is primary-backup.
+42. [`split-brain`](42-split-brain/README.md) ↳8 — Two nodes both believing they are in charge. "At most one believes" is impossible; fencing is the answer.
+43. [`distributed-locking`](43-distributed-locking/README.md) ↳11 — A lock made of messages, held by a process that cannot observe its own delays.
+44. [`jepsen`](44-jepsen/README.md) ↳1 — The instrument that decides whether any of the last four stages is actually true of a running system. Records a history; searches for an explanation; convicts when none exists.
 
-## Stage 5 — Work That Spans Services
+### Stage 6 — Work That Spans Services
 
 A business action now touches several systems that can each fail alone. These are the patterns that keep it whole without a distributed lock.
 
-1. [`two-phase-commit`](two-phase-commit/README.md) ↳18 — Commit or abort as a unit, via a coordinator. Its defining weakness is blocking.
-2. [`distributed-transactions`](distributed-transactions/README.md) ↳7 — 2PC alone is not one. Commit across shards is a window, not an instant.
-3. [`saga`](saga/README.md) ↳12 — A business transaction as local steps with compensations, run backwards on failure.
-4. [`transactional-outbox`](transactional-outbox/README.md) ↳22 — Saving data and announcing it are two physical acts, and the world can crash between them.
-5. [`idempotency`](idempotency/README.md) ↳13 — Silence carries no information, so retries are mandatory, so duplicates are certain. Only a key distinguishes them.
-6. [`event-sourcing`](event-sourcing/README.md) ↳16 — Store the passbook, compute the balance. State is a fold over an immutable stream.
-7. [`cqrs`](cqrs/README.md) ↳12 — Split the model along the read/write line. The read model is allowed to be stale only because it makes no decisions — and the window it costs you has a measurable width, a formula, and a cliff.
-8. [`change-data-capture`](change-data-capture/README.md) ↳0 — A query captures data; CDC captures change. A poller over updated_at fails five ways, four silently.
-9. [`kafka`](kafka/README.md) ↳0 — Stop deleting the messages, and every other property follows: replay, many audiences, and order only per key.
-10. [`idempotent-consumer`](idempotent-consumer/README.md) ↳0 — The receiving end of every lab above. "Make it idempotent" is three obligations, and the one that fails in production is memory. **← read after `kafka`; it assumes offsets, groups and rebalances.**
-11. [`kafka-exactly-once`](kafka-exactly-once/README.md) ↳0 — The one hop the lab above declines. Kafka has no rollback: records are written before any decision exists, and the abort is a marker appended after them. **← read last in this stage; it assumes `kafka`, `two-phase-commit`, `idempotency` and `idempotent-consumer`.**
+45. [`two-phase-commit`](45-two-phase-commit/README.md) ↳20 — Commit or abort as a unit, via a coordinator. Its defining weakness is blocking.
+46. [`distributed-transactions`](46-distributed-transactions/README.md) ↳7 — 2PC alone is not one. Commit across shards is a window, not an instant.
+47. [`saga`](47-saga/README.md) ↳13 — A business transaction as local steps with compensations, run backwards on failure.
+48. [`transactional-outbox`](48-transactional-outbox/README.md) ↳25 — Saving data and announcing it are two physical acts, and the world can crash between them.
+49. [`idempotency`](49-idempotency/README.md) ↳20 — Silence carries no information, so retries are mandatory, so duplicates are certain. Only a key distinguishes them.
+50. [`event-sourcing`](50-event-sourcing/README.md) ↳16 — Store the passbook, compute the balance. State is a fold over an immutable stream.
+51. [`cqrs`](51-cqrs/README.md) ↳12 — Split the model along the read/write line. The read model is allowed to be stale only because it makes no decisions — and the window it costs you has a measurable width, a formula, and a cliff.
+52. [`change-data-capture`](52-change-data-capture/README.md) ↳1 — A query captures data; CDC captures change. A poller over updated_at fails five ways, four silently.
+53. [`kafka`](53-kafka/README.md) ↳2 — Stop deleting the messages, and every other property follows: replay, many audiences, and order only per key.
+54. [`idempotent-consumer`](54-idempotent-consumer/README.md) ↳1 — The receiving end of every lab above. "Make it idempotent" is three obligations, and the one that fails in production is memory. **← read after `kafka`; it assumes offsets, groups and rebalances.**
+55. [`kafka-exactly-once`](55-kafka-exactly-once/README.md) ↳0 — The one hop the lab above declines. Kafka has no rollback: records are written before any decision exists, and the abort is a marker appended after them. **← read last in this stage; it assumes `kafka`, `two-phase-commit`, `idempotency` and `idempotent-consumer`.**
 
-## Stage 6 — Running It In Production
+### Stage 7 — Running It In Production
 
 Correct is not enough once there is load, money, and a deadline. Queues, limits, cloud, and the human side of shipping.
 
-1. [`microservices`](microservices/README.md) ↳1 — They buy exactly one thing — independent deployability — and only a data boundary delivers it.
-2. [`queueing-theory`](queueing-theory/README.md) ↳1 — Waiting is not proportional to load. Time inside grows as 1/(1−ρ), and the last few percent cost the most.
-3. [`load-shedding`](load-shedding/README.md) ↳1 — Past capacity, requests are lost either way. The only choice is whether you pick which ones, or the queue picks for you.
-4. [`load-balancing`](load-balancing/README.md) ↳0 — It performs no work and adds no capacity. It only decides which queue you wait in — and better information about load can make that decision worse.
-5. [`distributed-rate-limiting`](distributed-rate-limiting/README.md) ↳10 — A limiter correct on one machine stops being correct the instant there are two.
-6. [`work-pressure-and-deadlines`](work-pressure-and-deadlines/README.md) ↳3 — Advice loses to advice. A date is a bet, not a fact — so make the bet quantitative.
-7. [`amazon-web-services`](amazon-web-services/README.md) ↳1 — A shop where you rent other people's distributed systems. Three inventions, stacked.
-8. [`terraform`](terraform/README.md) ↳0 — Not a tool for creating infrastructure — a tool for maintaining a mapping nothing in the cloud knows about.
-9. [`compound-engineering-plugin`](compound-engineering-plugin/README.md) ↳0 — Finishing saves the code and loses the reasoning, so the same discovery gets paid for twice.
+56. [`microservices`](56-microservices/README.md) ↳3 — They buy exactly one thing — independent deployability — and only a data boundary delivers it.
+57. [`queueing-theory`](57-queueing-theory/README.md) ↳6 — Waiting is not proportional to load. Time inside grows as 1/(1−ρ), and the last few percent cost the most.
+58. [`load-shedding`](58-load-shedding/README.md) ↳1 — Past capacity, requests are lost either way. The only choice is whether you pick which ones, or the queue picks for you.
+59. [`load-balancing`](59-load-balancing/README.md) ↳0 — It performs no work and adds no capacity. It only decides which queue you wait in — and better information about load can make that decision worse.
+60. [`distributed-rate-limiting`](60-distributed-rate-limiting/README.md) ↳13 — A limiter correct on one machine stops being correct the instant there are two.
+61. [`work-pressure-and-deadlines`](61-work-pressure-and-deadlines/README.md) ↳4 — Advice loses to advice. A date is a bet, not a fact — so make the bet quantitative.
+62. [`amazon-web-services`](62-amazon-web-services/README.md) ↳1 — A shop where you rent other people's distributed systems. Three inventions, stacked.
+63. [`terraform`](63-terraform/README.md) ↳0 — Not a tool for creating infrastructure — a tool for maintaining a mapping nothing in the cloud knows about.
+64. [`compound-engineering-plugin`](64-compound-engineering-plugin/README.md) ↳0 — Finishing saves the code and loses the reasoning, so the same discovery gets paid for twice.
 
-## Stage 7 — Whole Systems
+### Stage 8 — Whole Systems
 
-Capstones. Each one is every earlier stage at once, with the tradeoffs already made by someone who had to ship it.
+Capstones. Each one is every earlier stage at once, with the tradeoffs already made by someone who had to ship it. The URL shortener comes first because it is the smallest system that still needs everything above.
 
-1. [`google-spanner`](google-spanner/README.md) ↳2 — Did not build a more accurate clock — built one that admits how wrong it might be.
-2. [`cockroachdb`](cockroachdb/README.md) ↳0 — Spanner made writers pay for clock error by waiting. CockroachDB declares a bound and pays elsewhere.
-3. [`mongodb`](mongodb/README.md) ↳0 — The document is the unit of everything; the majority commit point is the line between an opinion and a fact. **← read after `raft`, `split-brain`, `causal-consistency`, `isolation-levels` and `partitioning-and-rebalancing`; it assembles all of them and re-teaches none.**
-4. [`whatsapp-system-design`](whatsapp-system-design/README.md) ↳2 — Hard for one invisible reason: the person you are messaging is usually not there.
-5. [`uber-system-design`](uber-system-design/README.md) ↳2 — Moving supply, moving demand, milliseconds — and never the same car promised twice.
-6. [`google-docs-system-design`](google-docs-system-design/README.md) ↳2 — One product decision — your keystroke appears before any server agrees — and everything else is the bill.
-
-## Parallel track — The JVM Underneath
-
-A parallel track, not a stage. None of it depends on the distributed line, and the distributed line does not depend on it — until production, where tuning and queueing meet.
-
-1. [`java-memory-model`](java-memory-model/README.md) ↳8 — Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
-2. [`java-multithreading`](java-multithreading/README.md) ↳2 — Two questions only: can both be in here at once, and is either guaranteed to see the other.
-3. [`java-virtual-threads`](java-virtual-threads/README.md) ↳8 — A cheap heap-backed thread. Blocking parks the stack and frees the carrier, so waiting is nearly free.
-4. [`structured-concurrency`](structured-concurrency/README.md) ↳3 — Confine every subtask's lifetime to a block. Errors flow up, cancellation flows down.
-5. [`scoped-values`](scoped-values/README.md) ↳2 — An invisible final parameter for everything below a block — and the cure for ThreadLocal's diseases.
-6. [`java-version-features`](java-version-features/README.md) ↳0 — Java nearly froze on 8 because releases were feature-driven. The six-month train is the fix.
-7. [`jvm-garbage-collectors`](jvm-garbage-collectors/README.md) ↳1 — A collector never finds the dead. It marks the reachable and declares the rest dead by definition.
-8. [`jvm-performance-tuning`](jvm-performance-tuning/README.md) ↳0 — Not flag-picking — bottleneck-finding. Elapsed time splits into seven buckets and exactly one dominates.
+65. [`url-shortener-system-design`](65-url-shortener-system-design/README.md) ↳0 — The storage half is trivial (key → value). The whole design is minting globally unique short codes under many concurrent writers without a coordination bottleneck.
+66. [`google-spanner`](66-google-spanner/README.md) ↳2 — Did not build a more accurate clock — built one that admits how wrong it might be.
+67. [`cockroachdb`](67-cockroachdb/README.md) ↳1 — Spanner made writers pay for clock error by waiting. CockroachDB declares a bound and pays elsewhere.
+68. [`mongodb`](68-mongodb/README.md) ↳0 — The document is the unit of everything; the majority commit point is the line between an opinion and a fact. **← read after `raft`, `split-brain`, `causal-consistency`, `isolation-levels` and `partitioning-and-rebalancing`; it assembles all of them and re-teaches none.**
+69. [`whatsapp-system-design`](69-whatsapp-system-design/README.md) ↳2 — Hard for one invisible reason: the person you are messaging is usually not there.
+70. [`uber-system-design`](70-uber-system-design/README.md) ↳2 — Moving supply, moving demand, milliseconds — and never the same car promised twice.
+71. [`google-docs-system-design`](71-google-docs-system-design/README.md) ↳2 — One product decision — your keystroke appears before any server agrees — and everything else is the bill.
 
 ## Load-bearing twelve
 
-The labs the rest lean on, measured from the graph. If time is short, re-read only these.
+The labs the rest lean on, measured from the `Builds on` links. If time is short, re-read only these.
 
-- `cap-theorem` — 28 labs build on it
-- `transactional-outbox` — 22 labs build on it
-- `two-phase-commit` — 18 labs build on it
-- `caching` — 17 labs build on it
-- `event-sourcing` — 16 labs build on it
-- `quorums-and-replication` — 14 labs build on it
-- `idempotency` — 13 labs build on it
-- `paxos` — 13 labs build on it
-- `btree-and-lsm` — 12 labs build on it
-- `cqrs` — 12 labs build on it
-- `saga` — 12 labs build on it
-- `communication-protocols` — 10 labs build on it
+| Lab | Labs that build on it |
+|---|---|
+| `cap-theorem` | 32 |
+| `transactional-outbox` | 25 |
+| `idempotency` | 20 |
+| `two-phase-commit` | 20 |
+| `caching` | 19 |
+| `quorums-and-replication` | 17 |
+| `event-sourcing` | 16 |
+| `btree-and-lsm` | 15 |
+| `consistent-hashing` | 14 |
+| `isolation-levels` | 14 |
+| `distributed-rate-limiting` | 13 |
+| `raft` | 13 |
+
+## Placement notes
+
+Most positions follow the `Builds on` links. These are the judgement calls, and why.
+
+- **The JVM block is Stage 3, between "one machine" and "why distribution is hard".** It used to be a parallel track. In one linear sequence it belongs where it is: still one machine, but with several threads — the first place the two questions of every later stage ("can both be in here at once?", "is either guaranteed to see the other?") are asked. `java-multithreading` goes before `java-memory-model` because the first asks the two questions and the second is the precise contract that answers them. `jvm-garbage-collectors` and `jvm-performance-tuning` stay in the block so it reads as one unit; production tuning re-uses them from Stage 7.
+- **`java-memory-model` has no README** (it is a runnable lab plus `visualization.html`). It keeps its number so the sequence is honest; writing its document is the top item in the gaps list.
+- **`clock-synchronization` sits between `causal-consistency` and `hybrid-logical-clocks`** on a curriculum judgement, not on its links: it is the physical-time half of the pair whose logical half is causal consistency, and HLC is the fusion of the two.
+- **`load-shedding` then `load-balancing`, both after `queueing-theory`**: the cliff, then what to do when you are past it, then how to avoid reaching it on one machine while seven others sit idle. `load-balancing` reuses `load-shedding`'s service as one of its eight backends.
+- **`idempotent-consumer` then `kafka-exactly-once` close Stage 6**: the first covers every redelivery source except the one a Kafka transaction removes; the second covers that single hop and assumes all of `kafka`, `two-phase-commit`, `idempotency` and `idempotent-consumer`.
+- **`mongodb` sits with the capstones**, after `cockroachdb`: it names sixteen earlier labs and adds no new mechanism of its own — it is `raft`, `split-brain`, `causal-consistency`, `hybrid-logical-clocks`, `isolation-levels` and `partitioning-and-rebalancing` assembled into one product.
+- **`url-shortener-system-design` opens Stage 8** because it is the smallest whole system that still needs caching, consistent hashing and the CP/AP split, and it is the classic first system-design question.
 
 ## Gaps — suggested by your labs, never opened
 
-Topics named as `Next` across the labs and never taken up. **load-balancing** —
-asked for by nine labs, more than any other — was at the top of this list and was
-taken up on 2026-08-31, following **mvcc-and-vacuum**, **clock-synchronization**
-and **load-shedding** the day before. Counts below are occurrences of `[topic?]`
-in `KNOWLEDGE-MAP.md`, recounted 2026-08-31.
+Topics named as `Next` across the labs and never taken up. Counts are occurrences of `[topic?]` in `KNOWLEDGE-MAP.md`.
 
-- **database-indexing** — asked for by 5 labs. B-tree and LSM gave you the structures. This is choosing them: selectivity, covering indexes, and why the planner ignored yours.
-- **idempotency-keys** — asked for by 5 labs. Narrower than the `idempotency` lab you have: the key itself — where it comes from, how long it lives, and what it costs at the storage layer.
-- **observability / observability-slos** — asked for by 6 labs across two spellings, and now seven: `load-balancing` found that every failure it teaches is invisible on an ordinary dashboard. Metrics vs logs vs traces, cardinality, and SLOs as a budget.
-- **tail-latency-and-hedging** — asked for by 4 labs, and named by `load-balancing` as its direct sequel. The p99 is a different system from the mean. Hedged requests, and the cost of asking twice.
-- **backpressure** — asked for by 4 labs. Both `load-shedding` and `load-balancing` deferred to it. Reactive streams, TCP windows and Kafka consumer lag as one idea in three places.
+| Topic | Asked for by | Note |
+|---|---|---|
+| **observability** | 12 labs | metrics vs logs vs traces, cardinality, SLOs as a budget; `load-balancing` found its failures invisible on an ordinary dashboard |
+| **database-indexing** | 6 labs | B-tree and LSM gave you the structures; this is choosing them — selectivity, covering indexes, why the planner ignored yours |
+| **tail-latency-and-hedging** | 6 labs | the p99 is a different system from the mean; hedged requests and the cost of asking twice |
+| **backpressure** | 5 labs | both `load-shedding` and `load-balancing` deferred to it — reactive streams, TCP windows and consumer lag as one idea |
+| **deterministic-databases** | 5 labs |  |
+| **idempotency-keys** | 5 labs | narrower than `idempotency`: where the key comes from, how long it lives, what it costs to store |
+| **kafka-streams** | 3 labs |  |
+| **schema-evolution** | 3 labs |  |
+| **zookeeper** | 3 labs |  |
+| **failure-detectors** | 3 labs | the formal half of "silence is the only evidence" from `distributed-locking` and `split-brain` |
+| **kubernetes** | 3 labs |  |
+| **local-first-software** | 3 labs |  |
+| **byzantine-fault-tolerance** | 2 labs |  |
+| **ddd-aggregates** | 2 labs |  |
+| **stream-processing-semantics** | 2 labs |  |
+| **metastable-failures** | 2 labs |  |
+| **wal-replication-and-pitr** | 2 labs |  |
+| **jit-and-escape-analysis** | 2 labs |  |
+| **off-heap-memory** | 2 labs |  |
+| **service-mesh** | 2 labs |  |
+| **api-versioning** | 2 labs |  |
+| **vector-clocks** | 2 labs |  |
+| **geospatial-indexing** | 2 labs |  |
+| **lamport-clocks** | 2 labs |  |
+| **public-key-cryptography** | 2 labs |  |
+| **certificate-management-and-pki** | 2 labs |  |
+| **oauth-and-jwt** | 2 labs |  |
 
----
+And one gap inside the sequence: **a README for `java-memory-model`**, the only numbered lab without a document. The visualization ("Store Buffer Theatre") and the five experiments under `src/` are the source material.
 
-Generated 2026-08-30 from KNOWLEDGE-MAP.md. `kafka`, `jepsen`,
-`mvcc-and-vacuum`, `clock-synchronization`, `load-shedding`, `load-balancing`,
-`idempotent-consumer`, `kafka-exactly-once` and `mongodb` were added by hand
-afterwards; their `↳N` prerequisite counts and the stage ordering have **not**
-been recomputed, and `LEARNING-PATH.html` is now **nine labs behind**. Regenerate
-both from KNOWLEDGE-MAP.md's `Builds on` links after adding labs.
+## Rewrite status
 
-`mongodb` is placed at Stage 7 item 3 on a curriculum judgement that its `Builds
-on` links support: it names sixteen earlier labs and adds no new mechanism of its
-own — it is `raft` (pull-based), `split-brain` (the stale-primary window as three
-read concerns), `causal-consistency` + `hybrid-logical-clocks` (cluster time and
-sessions), `isolation-levels` (snapshot-isolated transactions) and
-`partitioning-and-rebalancing` (shard keys, ranges, the balancer) assembled into
-one product, so it sits with the other capstones, directly after `cockroachdb`,
-which shows the same "proceed and detect" storage posture at the other end of the
-consistency dial.
-
-`load-shedding` and `load-balancing` are placed at Stage 6 items 3 and 4 on their
-`Builds on` links, which are unambiguous: both build on `queueing-theory`
-directly above them, and `load-balancing` builds on `load-shedding` (it reuses
-that lab's service — four workers, 80 ms, 50 requests a second — as *one of its
-eight backends*). Take them in that order: the cliff, then what to do when you
-are past it, then how to avoid reaching it on one machine while seven others sit
-idle.
-
-`kafka-exactly-once` is placed at Stage 5 item 11 on its `Builds on` links,
-which are unambiguous: every one of them — `kafka`, `two-phase-commit`,
-`idempotency`, `idempotent-consumer`, `transactional-outbox`, `saga` — is already
-in Stage 5 above it, and it is the only lab in the map that consumes all six.
-Read it after `idempotent-consumer` rather than instead of it: that lab covers
-every redelivery source except the one a Kafka transaction removes, and this one
-covers the single hop it declines.
-
-`clock-synchronization` is placed at Stage 3 item 7 on a curriculum judgement,
-not on its `Builds on` links: it is the physical-time half of the pair whose
-logical half is `causal-consistency`, and `hybrid-logical-clocks` is the fusion
-of the two, so it belongs between them. Six labs that were learned earlier —
-`hybrid-logical-clocks`, `google-spanner`, `distributed-transactions`,
-`distributed-locking`, `cockroachdb`, `split-brain` — consume ε and now have
-their foundation behind them rather than ahead.
+Labs are being re-delivered in the voice described in `STYLE.md` (story first, ask before telling, words before symbols, never cut). `tools/audit.py .` prints the delivery signals for every lab; `tools/preserve-check.py` proves a rewrite lost nothing. See the *Rewrite backlog* table in `README.md` for which labs are done and which are queued.
