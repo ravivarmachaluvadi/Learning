@@ -60,6 +60,9 @@ audit found wrong with each queued one.
 | `python tools/renumber.py --renumber` | Collapse decimal numbers into 1..N, then apply |
 | `python tools/audit.py .` | Delivery signals for every lab (front-matter, templates, notation, story continuity) |
 | `python tools/preserve-check.py old.md new.md` | Prove a rewrite lost no number, link, table, diagram or glossary term |
+| `python tools/xref-check.py <lab>` | Confirm `EXERCISES.md` and `SOLUTIONS.md` still cite sections that exist |
+| `python tools/mark-rewritten.py` | Stamp the knowledge map and rebuild the backlog below, from `tools/rewritten.txt` |
+| `python tools/gen-atlas.py` | Rebuild `LEARNING-PATH.html` from the path file and the knowledge map |
 
 ## Running the Java labs (historical)
 
