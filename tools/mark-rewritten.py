@@ -92,10 +92,25 @@ def stamp_km(done, check):
         write(KM, s2)
     return changed
 
+def in_new_voice(folder):
+    """Does this README already carry the STYLE.md markers?
+
+    A lab can be rewritten and committed but never added to rewritten.txt, in
+    which case the backlog quietly files it as an untouched lab that happens to
+    read well. These two markers appear in every rewrite and in none of the
+    originals, so they catch that mistake.
+    """
+    p = os.path.join(ROOT, folder, "README.md")
+    if not os.path.isfile(p):
+        return False
+    s = read(p)
+    return "**Tell a friend:**" in s and re.search(r"^##.*About this lab", s, flags=re.M) is not None
+
 def backlog(done, check):
     order = {m.group(2): m.group(1) for m in
              re.finditer(r"^(\d+(?:\.\d+)?)\.\s+\[`([a-z0-9-]+)`\]", read(PATH_MD), flags=re.M)}
     rows = audit_rows()
+    unlisted = []
     lines = ["| # | Lab | Status | Note |", "|---|---|---|---|"]
     n_done = n_queued = n_clean = 0
     for slug in sorted(order, key=lambda s: float(order[s])):
@@ -121,6 +136,8 @@ def backlog(done, check):
             else:
                 status, n_clean = "reads well, left as-is", n_clean + 1
                 note = ""
+                if in_new_voice(r["lab"]):
+                    unlisted.append(slug)
         lines.append(f"| {order[slug]} | `{slug}` | {status} | {note} |")
     head = (f"{n_done} rewritten, {n_queued} queued, {n_clean} left as-is. A lab is left as-is when "
             "`tools/audit.py` finds none of the delivery problems: no wall of meta before the story, "
@@ -135,16 +152,19 @@ def backlog(done, check):
                 lambda _: "<!-- BACKLOG:START -->\n" + table + "\n<!-- BACKLOG:END -->", s, flags=re.S)
     if not check and s2 != s:
         write(README, s2)
-    return n_done, n_queued, n_clean, s2 != s
+    return n_done, n_queued, n_clean, s2 != s, unlisted
 
 def main():
     check = "--check" in sys.argv
     done = done_list()
     n = stamp_km(done, check)
-    d, q, c, changed = backlog(done, check)
+    d, q, c, changed, unlisted = backlog(done, check)
     verb = "would stamp" if check else "stamped"
     print(f"{verb} {n} KNOWLEDGE-MAP header(s); backlog: {d} rewritten, {q} queued, {c} left as-is"
           + ("" if changed or check else " (README unchanged)"))
+    for slug in unlisted:
+        print(f"  WARN {slug} reads as a rewrite (Tell a friend + About this lab) "
+              f"but is not in tools/rewritten.txt — add it, or the backlog undercounts")
 
 if __name__ == "__main__":
     main()
