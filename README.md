@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-29 rewritten, 18 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+32 rewritten, 15 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -119,7 +119,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 30 | `clock-synchronization` | **rewritten** | re-delivered 2026-09-09 |
 | 31 | `hybrid-logical-clocks` | reads well, left as-is |  |
 | 32 | `crdts` | queued | 49 lines of meta before the story |
-| 33 | `flp-impossibility` | queued | 58 lines of meta before the story; 7 labels repeated as a template |
+| 33 | `flp-impossibility` | **rewritten** | re-delivered 2026-09-09 |
 | 34 | `quorums-and-replication` | **rewritten** | re-delivered 2026-09-08 |
 | 35 | `consistent-hashing` | **rewritten** | re-delivered 2026-09-09 |
 | 36 | `partitioning-and-rebalancing` | reads well, left as-is |  |
@@ -140,8 +140,8 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 51 | `cqrs` | **rewritten** | re-delivered 2026-09-09 |
 | 52 | `change-data-capture` | queued | 5 labels repeated as a template; symbols before words |
 | 53 | `kafka` | **rewritten** | re-delivered 2026-09-09 |
-| 54 | `idempotent-consumer` | queued | 67 lines of meta before the story |
-| 55 | `kafka-exactly-once` | queued | 63 lines of meta before the story; 8 labels repeated as a template; symbols before words |
+| 54 | `idempotent-consumer` | **rewritten** | re-delivered 2026-09-09 |
+| 55 | `kafka-exactly-once` | **rewritten** | re-delivered 2026-09-09 |
 | 56 | `microservices` | **rewritten** | re-delivered 2026-09-09 |
 | 57 | `queueing-theory` | **rewritten** | re-delivered 2026-09-09 |
 | 58 | `load-shedding` | **rewritten** | re-delivered 2026-09-09 |

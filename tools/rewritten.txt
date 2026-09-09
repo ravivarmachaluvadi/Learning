@@ -30,3 +30,6 @@ terraform 2026-09-09
 clock-synchronization 2026-09-09
 compound-engineering-plugin 2026-09-09
 mongodb 2026-09-09
+idempotent-consumer 2026-09-09
+flp-impossibility 2026-09-09
+kafka-exactly-once 2026-09-09
