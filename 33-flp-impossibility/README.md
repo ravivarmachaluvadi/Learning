@@ -1,119 +1,94 @@
 # FLP Impossibility — why no protocol can promise to finish
 
-> **The one sentence.** In a system where messages can take *any* amount of time
-> and even one machine might crash, **no protocol that always behaves the same
-> way in the same situation can guarantee all three of these: that everybody
-> agrees, that the answer is a real one, and that the thing always finishes.**
-> You can have any two, always. You cannot have all three, ever.
+> **Tell a friend:** Three lighthouse keepers, Ada, Bo and Cy, must tonight
+> either all light their beacons or all leave them dark, because a half-lit
+> coast wrecks ships. They can only write letters, Omar the ferryman decides how
+> long each crossing takes, nobody owns a clock, and any one keeper might quietly
+> fall ill. In 1985 three researchers proved that no rulebook can survive a world
+> like that. Nothing which always reacts the same way can promise everybody
+> agrees, *and* that the answer is one somebody wanted, *and* that the thing ever
+> finishes. Asha's payments cluster is those three islands with better lighting.
+> That is why nobody can tell her an upper bound on how long her next leader
+> election will take.
 
-> **The sentence people get wrong.** FLP does **not** say that agreeing is
-> impossible. Your Raft cluster elects leaders every day. FLP says nobody can
-> put a *guarantee* on the finishing part — and that every system which appears
-> to have one has quietly changed the world it lives in, in a way you are
-> responsible for maintaining in production.
->
-> *(Stage 5 names those three properties; stage 7 explains why "always behaves
-> the same way" — the technical word is* deterministic *— is one of the four
-> words in the theorem you are allowed to attack.)*
-
-**Lab contents**
-
-| File | What it is |
-|---|---|
-| `README.md` | this document — 16 stages, four depth layers |
-| `visualization.html` | **The Ferryman's Choice** — you play the adversary against a real protocol · <https://claude.ai/code/artifact/59306f2a-8884-4ffa-b06c-81faf73ad1d5> |
-| `EXERCISES.md` | eight rungs, pencil-and-paper plus the visualization |
-| `SOLUTIONS.md` | worked answers |
-
-**Where this sits in your other labs.** You have already met this result twice
-without being told what it was.
-
-- In **`paxos`**, two proposers gazumped each other forever — round 1, round 2,
-  round 3, nothing chosen — and the lab said *"it is not a bug in Paxos; it is a
-  consequence of the FLP result."* This lab is that consequence.
-- In **`split-brain`**, at t=70, S2 declared S1 dead and the lab wrote:
-  *"This verdict is WRONG, and there is no observation available to S2 that
-  would tell it so."* That sentence is FLP's engine room. You found it
-  empirically; here you find out it is a theorem.
-- In **`raft`**, randomised election timeouts were the scar of a measured
-  disaster. This lab explains exactly which word of the theorem they attack —
-  and, uncomfortably, shows they attack a *different* word than most people
-  think.
-
----
-
-## How the numbers in this document were produced
-
-Every measured figure below comes from the simulation engine inside
-`visualization.html`, which runs a real single-decree Paxos with attempt numbers
-handed out in rotation (the `paxos` lab's protocol, with rotating proposers).
-The engine is exercised by a **71-check headless harness** — every scenario's
-stated outcome, both schedulers, the escapes, the commutation audit, and the
-crash argument. Where a claim is a *proof* rather than a measurement, it says so.
-Where something is asserted but not run, it says that too.
+**Play it while you read.** *The Ferryman's Choice* is `visualization.html` in
+this folder, also published at
+<https://claude.ai/code/artifact/59306f2a-8884-4ffa-b06c-81faf73ad1d5>. What this
+lab is made of, where every number came from, and where it sits among your other
+labs, is **section 17, About this lab**.
 
 ---
 
 # BEGINNER MODEL — stages 1 to 9
 
-## 1. WHY — the problem this exists to name
+## 1. Why does this lab exist at all?
 
-You run a payments service across five machines. They have to agree on one
+> **In one breath:** Asha's five machines have to agree on one thing and then
+> actually get on with it. This lab is about the second half of that sentence,
+> which nobody ever promises her.
+
+Asha runs a payments service across five machines. They have to agree on one
 thing: *is this transfer committed, or not?* One answer, the same on every
-machine, and the machines have to actually reach it — not sit there thinking
+machine. And the machines have to actually reach it. Not sit there thinking
 about it while the customer refreshes the page.
 
-You have already built systems that do this. So here is the question nobody
-asked in those labs:
+Asha has already built systems that do this. She has a Raft cluster. It works.
+So here is the question nobody asked in those labs, the one her colleague Meera
+asks over coffee:
 
 > **Is there a protocol that always finishes?**
 
-Not "usually finishes". Not "finishes when the network is fine". *Always* —
-the way a sorting algorithm always terminates.
+Not "usually finishes". Not "finishes when the network is fine". *Always*, the
+way a sorting algorithm always terminates.
 
-In 1985 three researchers proved the answer is **no**, and the proof is so
-robust that thirty-odd years of hardware improvement has not dented it. It is
-not about slow networks or bad code. It holds on a perfect network that loses
-nothing, with fast machines, with as many spare replicas as you like.
+In 1985 three researchers proved the answer is **no**. The proof is so robust
+that thirty-odd years of hardware improvement has not dented it. It is not about
+slow networks. It is not about bad code. It holds on a perfect network that
+loses nothing, with fast machines, and with as many spare replicas as you like.
 
-**What goes wrong if you don't know this.** You spend a career hunting a bug
-that is a theorem. Your cluster stalls for forty seconds during a leader
-election; you write a postmortem calling it a defect; you tune a timeout down;
-next month it stalls again for a different reason and you tune another one.
-Knowing this result tells you which knobs exist, which knobs are lies, and how
+**What goes wrong if Asha does not know this.** She spends a career hunting a
+bug that is a theorem. Her cluster stalls for forty seconds during a leader
+election. She writes a postmortem calling it a defect. She tunes a timeout down.
+Next month it stalls again for a different reason, and she tunes another one.
+
+Knowing this result tells her which knobs exist, which knobs are lies, and how
 to describe the risk honestly to people who need to plan around it.
 
-## 2. PROBLEM — three lighthouses and a ferryman
+## 2. Three lighthouses and a ferryman — what must they agree on?
 
-Three keepers live on three islands: **Ada** on North Rock, **Bo** on Middle
-Sands, **Cy** on South Cape. Tonight they must agree on one thing.
+> **In one breath:** Three keepers on three islands must all light their beacons
+> or all leave them dark. They can only write letters, and a ferryman who takes
+> as long as he likes carries every one.
+
+Three keepers live on three islands. **Ada** on North Rock. **Bo** on Middle
+Sands. **Cy** on South Cape. Tonight they must agree on one thing.
 
 > **Light the beacons, or leave them dark.**
 
-Either is a defensible choice. What is *not* defensible is a half-lit coast:
-a ship that sees one beacon and not the others reads the gap as clear water and
+Either is a defensible choice. What is *not* defensible is a half-lit coast. A
+ship that sees one beacon and not the others reads the gap as clear water, and
 puts itself on the rocks. So whatever they do, **all three must do the same
-thing**, and they must actually get around to doing it before dawn.
+thing**. And they must actually get around to doing it before dawn.
 
-The rules of their world, and every one of them matters later:
+Here are the rules of their world. Every one of them matters later.
 
 1. **They can only write letters.** No island can see another. There is no
    shouting, no flag signal, no shared view of anything.
-2. **A ferryman carries every letter, and never loses one.** Not one letter is
-   ever destroyed, misdelivered, or forged. Every letter written is eventually
-   handed over.
+2. **A ferryman carries every letter, and never loses one.** His name is Omar.
+   Not one letter is ever destroyed, misdelivered, or forged. Every letter
+   written is eventually handed over.
 3. **The sea decides how long he takes.** A crossing might be an hour. It might
    be three weeks. There is no upper limit, and nobody is told which it will be.
-   Letters can also overtake each other — the ferryman is not obliged to
-   deliver in the order they were written.
+   Letters can also overtake each other, because Omar is not obliged to deliver
+   in the order they were written.
 4. **Nobody owns a working clock.** No keeper can measure elapsed time in any
    way another keeper would agree with.
-5. **Any one keeper might fall ill** and simply stop — mid-sentence, without
+5. **Any one keeper might fall ill** and simply stop. Mid-sentence, without
    warning, without a farewell note. At most one, though. The other two will
    definitely stay healthy.
 
-Rule 5 is not pessimism. It is the whole reason a *protocol* is needed at all:
-if nobody could ever stop, "wait until everyone has spoken" would work fine.
+Rule 5 is not pessimism. It is the whole reason a *protocol* is needed at all.
+If nobody could ever stop, "wait until everyone has spoken" would work fine.
 
 > **🔮 Predict:** *One of those five rules is the one that makes this problem
 > unsolvable. If you could repeal exactly one, which would you repeal?*
@@ -132,41 +107,59 @@ if nobody could ever stop, "wait until everyone has spoken" would work fine.
 > is about the bill.
 > </details>
 
-## 3. NAIVE SOLUTION — what any sensible person tries first
+**Where this lab takes you.** Stop at any checkpoint and you still have
+something whole.
+
+| Layer | Stages | After it you can… |
+|---|---|---|
+| Beginner | 1–9 | tell the story, and say why both answers to "is he dead?" are wrong |
+| Intermediate | 10 | rebuild the whole proof from three facts, on paper |
+| Engineering | 11–12 | name the sighting, and say which word of the theorem a fix attacks |
+| Production | 13 | read a cluster's configuration and say what is buying its liveness |
+
+## 3. What does any sensible person try first?
+
+> **In one breath:** Everyone tells everyone what they want, everyone counts,
+> and the majority wins. It is obviously right, and it works perfectly, as long
+> as everybody answers.
 
 Ada writes to Bo and Cy: *"I say dark. What do you say?"* She waits for both
 replies, counts, and takes the majority. Bo and Cy do the same. Three keepers,
 three views, everyone counts the same votes, everyone lands on the same answer.
 
-This is obviously right, and it obviously works — as long as everybody answers.
+This is obviously right, and it obviously works. As long as everybody answers.
 
-## 4. FAILURE — the deeper problem underneath
+## 4. Why can Ada never tell "slow" from "dead"?
+
+> **In one breath:** An empty mailbox looks exactly the same whether Bo is dead
+> or whether Bo's letter is still at sea. The only difference between those two
+> worlds is how long the future takes, and the future has not happened yet.
 
 Ada waits. Nothing comes from Bo.
 
-She has exactly two explanations, and **she cannot tell them apart**:
+She has exactly two explanations, and **she cannot tell them apart**.
 
-- **Bo is alive**, wrote his reply immediately, and the boat is stuck in a storm.
-- **Bo is dead**, and no reply will ever exist.
+- **Bo is alive.** He wrote his reply immediately, and Omar's boat is stuck in
+  a storm.
+- **Bo is dead.** No reply will ever exist.
 
 Ada's evidence in both cases is *identical*: an empty mailbox. There is no
-letter she can write, no question she can ask, no instrument she can build that
-separates the two, because **the only difference between them is how long the
-future is going to take, and the future has not happened yet.**
+letter she can write. There is no question she can ask. There is no instrument
+she can build that separates the two. The only difference between the two worlds
+is how long the future is going to take, and the future has not happened yet.
 
-> **Open tab 1 of the visualization, "Slow, or dead?"** Drag Ada's patience.
-> The page shows both worlds and what Ada sees in each. You are looking for a
-> slider setting that is right in both worlds. There isn't one.
+> **Open tab 1 of the visualization, "Slow, or dead?"** Drag Ada's patience. The
+> page shows both worlds and what Ada sees in each. You are looking for a slider
+> setting that is right in both worlds. There isn't one.
 
-So Ada must pick a deadline. And every deadline is a guess:
+So Ada must pick a deadline. And every deadline is a guess. Read the middle
+column as "what Ada does", and the right column as "what it costs her".
 
-- **Too short** → she writes off a living keeper and carries on without him.
-  Bo, alive and well, is also carrying on. Now two keepers are running the
-  coast, and their reply letters cross in the post. This is precisely the
-  `split-brain` lab, and it is where wrong answers come from.
-- **Too long** → if Bo really is dead, Ada waits past dawn and the coast stays
-  unlit. Nothing wrong happened, and nothing happened at all.
-- **Infinite** → correct in the storm case, catastrophic in the dead case.
+| Ada's deadline | What she does | What it costs |
+|---|---|---|
+| Too short | writes off a living keeper and carries on without him | Bo, alive and well, is also carrying on. Two keepers now run the coast, and their letters cross in the post. This is precisely the `split-brain` lab, and it is where wrong answers come from. |
+| Too long | waits, and waits | if Bo really is dead, Ada waits past dawn and the coast stays unlit. Nothing wrong happened, and nothing happened at all. |
+| Infinite | waits forever | correct in the storm case, catastrophic in the dead case |
 
 > **🔮 Predict:** *Ada has more paper, more ink, five spare islands, and an
 > unlimited budget. Can she buy her way out of this?*
@@ -179,365 +172,559 @@ So Ada must pick a deadline. And every deadline is a guess:
 > stage 13 is about paying for it.
 > </details>
 
-**The naive solution didn't merely fail. It revealed that the thing it needed
-— "know who is dead" — is not obtainable.**
+**The naive solution didn't merely fail. It revealed that the thing it needed,
+"know who is dead", is not obtainable.**
 
-## 5. THE REAL REQUIREMENT — say exactly what we want
+## 5. What exactly are we asking for?
 
-Strip the story away. Each keeper starts with a preference (light or dark) and
-must eventually write one final, unchangeable answer on a slate. Three
-properties, in plain words:
+> **In one breath:** Everybody writes the same answer. The answer is one
+> somebody actually wanted. And everybody healthy writes *something*. Those
+> three together are called consensus.
+
+Strip the story away for one moment. Each keeper starts with a preference,
+light or dark. Each must eventually write one final, unchangeable answer on a
+slate. Three properties, in plain words.
 
 | Property | Plain words | Why you'd want it |
 |---|---|---|
 | **Agreement** | No two keepers write different answers. | A half-lit coast wrecks ships. |
-| **Validity** | The answer is one somebody actually wanted — not invented. | A protocol that always answers "dark" satisfies agreement and is useless. |
+| **Validity** | The answer is one somebody actually wanted, not invented. | A protocol that always answers "dark" satisfies agreement and is useless. |
 | **Termination** | Every healthy keeper eventually writes *something*. | An answer after dawn is not an answer. |
 
-Together these three are called **consensus**. Agreement and Validity are
-*safety* properties — promises that nothing bad ever happens. Termination is a
-*liveness* property — a promise that something good eventually happens. You met
-that distinction in the `paxos` lab; it is about to become the most important
-distinction in this one.
+Together these three are called **consensus**.
 
-And the failure model, stated precisely: **at most one keeper may crash** — stop
-working permanently, at any moment, with no announcement. Not lie, not
-forge letters, not come back. Just stop.
+Agreement and Validity are *safety* properties. They are promises that nothing
+bad ever happens. Termination is a *liveness* property. It is a promise that
+something good eventually happens. You met that distinction in the `paxos` lab.
+It is about to become the most important distinction in this one.
+
+And the failure model, stated precisely: **at most one keeper may crash**. Stop
+working permanently, at any moment, with no announcement. Not lie. Not forge
+letters. Not come back. Just stop.
 
 > **This is the target.** All three properties. Always. With one possible crash.
 > With no clock.
 
 **And it is unachievable.** That is the theorem.
 
+> **🔮 Predict:** *Every real consensus system you have ever used ships without
+> one of these three. Which one did they give up, and did they tell you?*
+> <details><summary>Reveal</summary>
+> They gave up <b>Termination</b> — and mostly they did tell you, in a sentence
+> you skipped. etcd, ZooKeeper and Spanner all keep Agreement and Validity
+> unconditionally, and offer finishing only <i>while the network behaves</i>.
+> If you said Validity, you were thinking of systems that invent a default
+> answer on timeout; those exist, but they are not consensus, they are giving
+> up. If you said Agreement, you were thinking of eventual consistency, which
+> is a different product with a different promise (your <code>cap-theorem</code>
+> and <code>pacelc</code> labs). Stage 12.5 states the trade in one line.
+> </details>
+
 ---
 
-## 6. KEY IDEA — the move that makes the proof possible
+## 6. Why is breaking one protocol worth nothing?
 
-Here is the trap a smart person falls into first, and it is worth naming because
-it is where most people's understanding stops.
+> **In one breath:** Show that a protocol fails and somebody says "then use a
+> better one". So the proof stops talking about protocols altogether and talks
+> about *situations* instead.
 
-**The wrong move (mechanism v1): find a protocol and break it.** Show that
-majority voting fails. Show that Paxos can livelock. Show that Raft can
-split-vote. All true — and all worthless as an argument, because for every
-broken protocol somebody will say *"then use a better one"*, and they might be
-right. Breaking a thousand protocols says nothing about the thousand-and-first.
+Here is the trap a smart person falls into first. It is worth naming, because it
+is where most people's understanding stops.
 
-**The right move: stop talking about protocols and start talking about
+Asha's colleague Ben tries it. **The wrong move: find a protocol and break it.**
+Show that majority voting fails. Show that Paxos can livelock. Show that Raft
+can split-vote. All three are true, and all three are worthless as an argument.
+For every broken protocol somebody will say *"then use a better one"*, and they
+might be right. Breaking a thousand protocols says nothing about the
+thousand-and-first.
+
+**The right move: stop talking about protocols, and start talking about
 situations.** Fischer, Lynch and Paterson's insight is to reason about the
-*state of the whole world* — everything every keeper knows, plus every letter
-currently at sea — and to ask one question of it:
+*state of the whole world*. Everything every keeper knows, plus every letter
+currently at sea. And then to ask one question of it:
 
 > *From here, which final answers are still possible?*
 
 Some situations have both answers still live. Others have already been forced
-one way. And the entire proof is one observation about how these two kinds of
-situation relate:
+one way, even if nobody on the islands knows it yet. The entire proof is one
+observation about how these two kinds of situation relate:
 
 > **From any situation where both answers are still possible, there is always a
 > next event that leaves both answers still possible.**
 
-If that is true, the ferryman never has to let anyone finish. He steps from
-undecided situation to undecided situation forever, and he does it **without
-losing a single letter and without ignoring a single keeper.**
+If that is true, Omar never has to let anyone finish. He steps from undecided
+situation to undecided situation forever. And he does it **without losing a
+single letter and without ignoring a single keeper.**
 
 This works against *any* protocol, because the argument never mentions what the
-protocol does. That is what makes it a theorem rather than a bug report.
+protocol does. That is what makes it a theorem rather than a bug report. Ben's
+objection is answered before he makes it.
 
-## 7. TERMINOLOGY — the vocabulary, now that you have earned it
+## 7. Which words do you need, now that you have earned them?
 
-Nine terms carry this lab. Each gets: plain meaning, technical meaning, why the
-word exists, a concrete example, and how it connects to what you already know.
+> **In one breath:** Nine words carry this lab. You have already felt all nine
+> of them happen to Ada, Bo and Cy. Now they get their real names.
 
-### Asynchronous system
+Each word below is a thing that has already happened in the story. Read the
+paragraph, then the tables at the end of the section, which map every word back
+to the moment you met it.
 
-- **Plain:** a world with no upper limit on how long anything takes.
-- **Technical:** a model in which there is no bound on message delivery delay,
-  no bound on the relative speed of processes, and no synchronised clocks.
-- **Why the word exists:** to separate this from a **synchronous** system, where
-  known bounds exist and a timeout that expires is *proof* of a crash. In an
-  asynchronous system a timeout that expires is proof of nothing at all.
-- **Example:** the ferryman. A crossing may take an hour or three weeks, and no
-  keeper is told which.
-- **Connects to:** this is *not* a claim that real networks are this bad. It is a
-  claim about what you may *assume*. Your production network is asynchronous
-  every time a GC pause, a saturated link, or a busy disk makes a bound you
-  believed in stop holding.
+### What does "asynchronous" actually rule out?
 
-### Crash failure
+An **asynchronous system** is a world with no upper limit on how long anything
+takes. That is Omar exactly. A crossing may take an hour or three weeks, and no
+keeper is told which.
 
-- **Plain:** a machine stops, forever, without warning.
-- **Technical:** a process takes only finitely many steps in an infinite run.
-- **Why the word exists:** to fence off much nastier failure models. A crashed
-  process does not send wrong data, forge messages, or come back with corrupted
-  state. FLP assumes the *mildest possible* failure — which is what makes the
-  impossibility so striking.
-- **Example:** Bo dies in the night. Half a letter on his desk, nothing more.
-- **Connects to:** `gossip-protocols` called the failure detector *a fallible
-  component* and measured a 100-node cluster where every node wrote off every
-  other with zero actual crashes. That was this problem, in the wild.
+Said precisely: there is no bound on message delivery delay, no bound on the
+relative speed of processes, and no synchronised clocks.
 
-### Step, event, and the null step
+The word exists to separate this world from a **synchronous** one, where known
+bounds exist. In a synchronous world, a timeout that expires is *proof* of a
+crash. In an asynchronous world, a timeout that expires is proof of nothing at
+all. That is the whole of stage 4 in one sentence.
 
-- **Plain:** the smallest thing that can happen — one keeper reads their
-  mailbox once and reacts.
-- **Technical:** a step of process *p* is: `receive(p)` returns either a message
-  *m* addressed to *p* or **nothing**; *p* updates its state as a deterministic
-  function of its old state and what it received; *p* sends a finite set of
-  messages. An **event** is the pair *(p, m)* — this process, receiving this
-  message.
-- **Why the word exists — and this one is important:** the "or nothing" branch
-  is called a **null step**, and it is how a *timeout* lives inside the model.
-  There is no clock in this world, so a timeout cannot be "when 5 seconds pass".
-  It can only be "a step in which I looked and there was nothing there, and I
-  decided to act anyway". Timeouts are not outside the theorem. They are a case
-  of it.
-- **Example:** in the visualization, the button *"Let Ada give up waiting"* is a
-  null step. Notice that **you**, the ferryman, decide when it happens — because
-  in a world with no clock, nothing else can.
-- **Connects to:** the `raft` lab's election timeout is exactly this: a null step
-  that promotes a follower to candidate.
+Be careful about what this claims. It is *not* a claim that real networks are
+this bad. It is a claim about what you may safely *assume*. Asha's production
+network becomes asynchronous every time a garbage-collection pause, a saturated
+link, or a busy disk makes a bound she believed in stop holding.
 
-### Configuration (the visualization calls it a *situation*)
+### Why does FLP assume the gentlest failure it can?
 
-- **Plain:** a complete snapshot of the world.
-- **Technical:** the internal state of every process, plus the multiset of all
-  messages that have been sent and not yet delivered.
-- **Why the word exists:** because the proof needs an object it can label. You
-  cannot say "this protocol is undecided"; you can say "*this configuration* is
-  undecided".
-- **Example:** *Ada has promised attempt 4 and accepted (1, dark); Bo has
-  promised 7 and accepted nothing; Cy is idle; four letters are at sea.* That
-  whole sentence is one configuration.
-- **Connects to:** it is a global object no participant can ever see. Every
-  keeper sees a projection of it; the theorem reasons about the whole thing.
+A **crash failure** is a machine stopping, forever, without warning. Bo dies in
+the night. Half a letter on his desk, and nothing more.
 
-### Schedule, run, and *admissible*
+Said precisely: a process takes only finitely many steps in an infinite run.
 
-- **Plain:** the order the ferryman chooses, and whether he is playing fair.
-- **Technical:** a **schedule** is a sequence of events applicable one after
-  another from a configuration. A **run** is that sequence actually executed. A
-  run is **admissible** when (a) at most one process is faulty, and (b) every
-  message sent to a non-faulty process is *eventually* delivered.
-- **Why the word exists:** to close the cheap objection. An adversary who
-  destroys mail or ignores a keeper proves nothing — of course that breaks
-  things. The word *admissible* is the fairness contract, and **the FLP
-  adversary honours it completely.**
-- **Example, measured:** the stalling ferryman run for 5000 steps delivered
-  **4545 letters, lost 0**, never let a letter wait more than **7 steps**, and
-  never left a keeper idle for more than **4 steps**. Every rule kept. Nothing
-  decided.
-- **Connects to:** this is the sharpest line between FLP and `cap-theorem`. CAP's
-  adversary *takes the messages away*. FLP's adversary delivers every one of
-  them and only chooses the order.
+The word exists to fence off much nastier failure models. A crashed process does
+not send wrong data. It does not forge messages. It does not come back with
+corrupted state. FLP assumes the *mildest possible* failure, and that is exactly
+what makes the impossibility so striking.
 
-### Deterministic
+You have seen this in the wild. The `gossip-protocols` lab called the failure
+detector *a fallible component*, and ran a 100-node cluster where every node
+wrote off every other node with zero actual crashes. That was this problem,
+happening to real machines.
 
-- **Plain:** the same machine in the same state, given the same input, always
-  does the same thing.
-- **Technical:** each process's transition function is a function — no coin
-  flips, no randomness, no reading the wall clock.
-- **Why the word exists:** because it is one of the load-bearing words in the
-  theorem, and one of the four you can attack. A protocol that flips a coin is
-  outside FLP's scope entirely.
-- **Example:** Ada, holding two agreements and a preference for dark, always
-  proposes dark. She never sometimes proposes light.
-- **Connects to:** `raft`'s randomised election timeouts *look* like an attack on
-  this word. Stage 12 shows they are mostly not — and measures it.
+### What is the smallest thing that can happen, and where does a timeout hide?
 
-### Valency: bivalent and univalent
+A **step** is the smallest thing that can happen: one keeper reads her mailbox
+once and reacts.
 
-This is the term the proof is built out of, so it gets the most room.
+Said precisely, a step of process *p* is three things in a row. First, `receive`
+returns either a message *m* addressed to *p* or **nothing**. Second, *p* updates
+its state as a function of its old state and what it received. Third, *p* sends
+a finite set of messages. In symbols the first part is written `receive(p)`. The
+pair *(p, m)*, meaning this process receiving this message, is called an
+**event**.
 
-- **Plain:** *"which endings are still on the table from here?"*
-- **Technical:** a configuration is **0-valent** if every reachable decision from
-  it is 0; **1-valent** if every reachable decision is 1; and **bivalent** if
-  both are still reachable. 0-valent and 1-valent are together called
-  **univalent** — the ending is settled even if nobody knows it yet.
-- **Why the word exists:** to separate *"nobody has written an answer yet"* from
-  *"the answer is not yet determined"*. These are different, and the difference
-  is the whole proof. A configuration can have zero decisions written down and
-  still be univalent — the outcome is already sealed, the keepers just haven't
-  caught up. **Bivalent is the strictly stronger statement: the future is
-  genuinely open.**
-- **Example, measured:** starting from *Ada wants dark, Bo wants light, Cy wants
-  light*, the page finds one delivery order ending in **dark** and another ending
-  in **light** — same keepers, same protocol, same preferences, only the
-  ferryman's order differs. That start is bivalent. Starting from *all three want
-  dark*, every order ends in dark: univalent, because Validity forbids inventing
-  an answer nobody wanted.
-- **Connects to:** the visualization draws a not-yet-decided lamp as **half dark,
-  half lit**. That split lamp is bivalence, on screen.
+Now the part that matters most. The "or nothing" branch is called a **null
+step**, and it is how a *timeout* lives inside the model. There is no clock in
+this world, so a timeout cannot be "when 5 seconds pass". It can only be "a step
+in which I looked, there was nothing there, and I decided to act anyway".
 
-### Safety and liveness
+**Timeouts are not outside the theorem. They are a case of it.**
 
-Refresher — you have these from `paxos`. **Safety** = nothing bad ever happens
-(Agreement, Validity). **Liveness** = something good eventually happens
-(Termination). The thing worth re-noticing: safety can be checked by looking at
-any finite prefix of a run; liveness can only ever be violated by an *infinite*
-run. That is why the theorem's counterexample is an infinite run, and why
-"it hasn't finished yet" is never proof that it never will.
+In the visualization, the button *"Let Ada give up waiting"* is a null step.
+Notice who decides when it happens: **you**, playing Omar. In a world with no
+clock, nothing else can. The `raft` lab's election timeout is exactly this, a
+null step that promotes a follower to candidate.
 
-### Partial synchrony
+> **🔮 Predict:** *Asha argues that her election timeout is a real clock, so it
+> sits outside this clockless model. Is she right?*
+> <details><summary>Reveal</summary>
+> No, and the reason is worth holding on to. Her timeout <i>is</i> a real clock
+> reading, but the model does not care what triggered the step — it only cares
+> that a process acted on <b>having received nothing</b>. Any rule of the form
+> "if I have heard nothing, do X" is a null step, however you implement the
+> waiting. If you said "yes, a clock puts her outside FLP", you have found the
+> right idea in the wrong place: a clock helps only when it comes with a
+> <i>bound she can trust</i>, and that is escape 1 in stage 12.4, not an
+> exemption from the theorem.
+> </details>
 
-- **Plain:** the network behaves *most* of the time, and you don't know when.
-- **Technical:** (Dwork, Lynch & Stockmeyer, 1988) bounds on delay and process
-  speed exist but are unknown; or they are known but only start holding after
-  some unknown **Global Stabilization Time (GST)**.
-- **Why the word exists:** because "synchronous" is a lie about real networks and
-  "asynchronous" is too pessimistic to build on. Partial synchrony is the honest
-  middle, and it is what every production consensus system actually assumes.
-- **Example, measured:** give the ferryman a deadline of Δ = 4 steps per letter
-  and he loses — the keepers settle on step 23, on their *first* attempt. Loosen
-  it to Δ = 25 and they still settle, on step 63. Remove it entirely and he holds
-  them off for 5000 steps and counting.
-- **Connects to:** stage 13. Your `raft` cluster is a partially synchronous
-  system, and its Δ is a hope you maintain with monitoring.
+### What is the whole world called, and who is allowed to see it?
+
+A **configuration** is a complete snapshot of the world. Every keeper's internal
+state, plus the multiset of every letter that has been sent and not yet
+delivered. The visualization calls it a *situation*.
+
+Here is one, written out in full: *Ada has promised attempt 4 and accepted
+(1, dark); Bo has promised 7 and accepted nothing; Cy is idle; four letters are
+at sea.* That whole sentence is one configuration.
+
+The word exists because the proof needs an object it can label. You cannot say
+"this protocol is undecided". You can say "*this configuration* is undecided".
+
+And notice the cruelty in it. A configuration is a global object that no
+participant can ever see. Ada sees a projection of it. The theorem reasons about
+the whole thing.
+
+### When is Omar playing fair?
+
+A **schedule** is the order Omar chooses: a sequence of events applicable one
+after another from a configuration. A **run** is that sequence actually executed.
+
+A run is **admissible** when two things hold. At most one process is faulty. And
+every message sent to a non-faulty process is *eventually* delivered.
+
+The word *admissible* exists to close the cheap objection. An adversary who
+destroys mail or ignores a keeper proves nothing, because of course that breaks
+things. Admissibility is the fairness contract. **The FLP adversary honours it
+completely.**
+
+Here is Omar's own scorecard from the long stall you will trace in stage 10.4.
+The right-hand column says what each number is evidence of.
+
+| What the 5000-step stall did | Count | What it proves |
+|---|---|---|
+| letters delivered | 4545 | he was not withholding anything |
+| letters lost or destroyed | 0 | rule 2 of the islands was never broken |
+| longest a letter waited | 7 steps | "eventually delivered" was honoured, and quickly |
+| longest a keeper sat idle | 4 steps | nobody was starved of attention |
+
+This is the sharpest line between FLP and `cap-theorem`. CAP's adversary *takes
+the messages away*. FLP's adversary delivers every one of them, and only chooses
+the order.
+
+### What would it take for Ada to be unpredictable?
+
+**Deterministic** means the same machine in the same state, given the same
+input, always does the same thing. Ada, holding two agreements and a preference
+for dark, always proposes dark. She never sometimes proposes light.
+
+Said precisely: each process's transition function is a function. No coin flips.
+No randomness. No reading the wall clock.
+
+This word is load-bearing, and it is one of the four you are allowed to attack.
+A protocol that flips a coin is outside FLP's scope entirely.
+
+Keep one warning in your pocket. The `raft` lab's randomised election timeouts
+*look* like an attack on this word. Stage 12.4 shows they are mostly not, and
+puts a number on it.
+
+### Which endings are still on the table? (bivalent and univalent)
+
+This is the word the proof is built out of, so it gets the most room. The plain
+question it answers is: *"which endings are still possible from here?"*
+
+A configuration is **0-valent** if every reachable decision from it is 0. It is
+**1-valent** if every reachable decision is 1. It is **bivalent** if both are
+still reachable. 0-valent and 1-valent together are called **univalent**, which
+means the ending is settled even if nobody knows it yet.
+
+The word exists to separate two things that sound the same and are not:
+
+- *"Nobody has decided yet."*
+- *"The outcome is not yet determined."*
+
+A configuration can have zero decisions written down and still be univalent. The
+outcome is already sealed, and the keepers simply have not caught up. **Bivalent
+is the strictly stronger statement: the future is genuinely open.**
+
+Two starting situations, and what the page finds when you ask it to search the
+delivery orders:
+
+| Starting wishes | What the orders end in | What that makes the start |
+|---|---|---|
+| Ada dark, Bo light, Cy light | one order ends in **dark**, another ends in **light** | bivalent, because same keepers, same protocol, same wishes, only Omar's order differs |
+| all three want dark | every order ends in **dark** | univalent, because Validity forbids inventing an answer nobody wanted |
+
+The visualization draws a not-yet-decided lamp as **half dark, half lit**. That
+split lamp is bivalence, on screen.
+
+### Which promise can only ever be broken by a run that never ends?
+
+You have **safety** and **liveness** from `paxos`. Safety means nothing bad ever
+happens, which here is Agreement and Validity. Liveness means something good
+eventually happens, which here is Termination.
+
+The thing worth re-noticing is how you catch each one breaking. Safety can be
+checked by looking at any finite prefix of a run. Liveness can only ever be
+violated by an *infinite* run.
+
+That is why the theorem's counterexample is an infinite run. And it is why "it
+hasn't finished yet" is never proof that it never will.
+
+### What world does Asha's cluster actually live in?
+
+**Partial synchrony** is the honest middle: the network behaves *most* of the
+time, and you don't know when.
+
+Said precisely, and this is Dwork, Lynch and Stockmeyer, 1988: bounds on delay
+and process speed exist, but are unknown. Or they are known, and only start
+holding after some unknown moment. That moment is called the **Global
+Stabilization Time**, usually written GST.
+
+The word exists because "synchronous" is a lie about real networks, and
+"asynchronous" is too pessimistic to build on. Partial synchrony is what every
+production consensus system actually assumes, Asha's included.
+
+Give Omar a deadline and he loses. Here is what tab 4 shows, and the right-hand
+column is the point.
+
+| Omar's delivery deadline | The keepers settle | What it cost |
+|---|---|---|
+| Δ = 4 steps per letter | on step 23, on their **first** attempt | almost nothing |
+| Δ = 25 steps per letter | on step 63, still the first attempt | a looser bound is pure latency |
+| no deadline at all | never: 5000 steps and counting | this is the world the theorem lives in |
+
+Asha's `raft` cluster is a partially synchronous system, and its Δ is a hope she
+maintains with monitoring. Stage 13 is about the bill.
+
+### Where did each of the nine words come from?
+
+Three small maps back to the story. The third column names the moment you felt
+the thing, before it had a name.
+
+**The world the keepers live in.**
+
+| Word | In plain words | Where you felt it |
+|---|---|---|
+| **Asynchronous** | no upper limit on how long anything takes | rule 3 of the islands, stage 2 |
+| **Crash failure** | a keeper stops for good, mid-sentence | rule 5 of the islands, stage 2 |
+| **Deterministic** | same state, same input, same behaviour, always | Ada never changing her mind on a whim, this stage |
+| **Partial synchrony** | the sea behaves most of the time, and you don't know when | the Δ = 4 row above, and every real cluster in stage 13 |
+
+**The moving parts the proof handles.**
+
+| Word | In plain words | Where you felt it |
+|---|---|---|
+| **Step** | one keeper reads her mailbox once and reacts | every numbered line of the traces in stage 10 |
+| **Null step** | she looked, found nothing, and acted anyway | *"Let Ada give up waiting"* in tab 2 |
+| **Configuration** | the whole world right now, including letters at sea | the four-letters-at-sea sentence above |
+| **Schedule** | the order Omar picks | his stalling rule in stage 10.3 |
+| **Admissible** | he lost nothing and ignored nobody | the scorecard above, 4545 letters delivered |
+
+**The words for what is still possible.**
+
+| Word | In plain words | Where you felt it |
+|---|---|---|
+| **Bivalent** | both endings are still reachable | the half-lit lamp in tab 2 |
+| **Univalent** | the ending is sealed, and nobody knows yet | the all-three-want-dark row above |
+| **Safety** | nothing bad ever happens | Agreement and Validity, stage 5 |
+| **Liveness** | something good eventually happens | Termination, stage 5, and everything after |
 
 ---
 
-## 8. MENTAL MODELS — two pictures, and where the friendly one lies
+## 8. Which two pictures should you carry, and where does the friendly one lie?
 
-### The simple model: a patient ferryman
+> **In one breath:** Picture one is a patient ferryman who never cheats. Picture
+> two is a walker on a graph of situations, who always has a bivalent step
+> available. They are the same picture, and one of them is easier to remember.
+
+### What does the friendly picture get right?
 
 Three keepers, letters, and a ferryman who is not malicious but is *unlucky in
-exactly the worst way*. He never destroys mail. He never refuses a crossing. He
-only ever chooses **which letter to hand over next**, and that alone is enough
-to keep the keepers talking forever.
+exactly the worst way*. Omar never destroys mail. He never refuses a crossing.
+He only ever chooses **which letter to hand over next**. That alone is enough to
+keep Ada, Bo and Cy talking forever.
 
-### The engineering model: walking a graph of configurations
+### What does the engineer draw instead?
 
 The world is a directed graph. Nodes are configurations. Edges are events. Each
-node carries a hidden label — 0-valent, 1-valent, or bivalent. The adversary is
-a walker who starts on a bivalent node and, at every move, has *some* edge
-leading to another bivalent node. Since a decided configuration is never
-bivalent, the walker never steps onto one.
+node carries a hidden label: 0-valent, 1-valent, or bivalent.
 
-### Mapping between them
+The adversary is a walker. He starts on a bivalent node. At every move he has
+*some* edge leading to another bivalent node. A decided configuration is never
+bivalent. So the walker never steps onto one.
 
-| Story | Engineering model |
+### How do the two pictures line up?
+
+Three short maps. Read them left to right: the thing in the story, then the
+thing in the model.
+
+**The keepers themselves.**
+
+| In the story | In the engineering model |
 |---|---|
 | a keeper | a process |
 | what a keeper wants (light / dark) | the process's input value, 0 or 1 |
 | what's on a keeper's slate | the process's decision, or ⊥ if none |
+| a keeper falling ill | a **crash failure** |
+
+**The world and the post.**
+
+| In the story | In the engineering model |
+|---|---|
 | the whole world right now | a **configuration** |
 | a letter at sea | a message in the buffer |
 | the ferryman handing over one letter | an **event** *(p, m)* |
-| a keeper giving up waiting | a **null step** — `receive` returns nothing |
+| a keeper giving up waiting | a **null step**, where `receive` returns nothing |
 | the ferryman's chosen order | a **schedule** |
+
+**Fairness, and what is still possible.**
+
+| In the story | In the engineering model |
+|---|---|
 | never losing mail, never ignoring an island | an **admissible** run |
 | both endings still possible | **bivalent** |
 | the ending already sealed | **univalent** |
-| a keeper falling ill | a **crash failure** |
 | the sea's unbounded whim | **asynchrony** |
 
-### Where the analogy breaks — read this before you repeat it to anyone
+### Where does the story lie to you?
 
-1. **The ferryman is not real, and your network is not malicious.** He is a proof
-   device. His job is to demonstrate that a bad run *exists*, not to predict what
-   your Tuesday looks like. In practice the "adversary" is a garbage collector, a
-   saturated NIC, a noisy neighbour on a shared host — indifferent, not hostile.
-   Indifferent is enough, because the theorem only needs the run to be possible.
-2. **The story makes crashing feel central. It isn't.** In the run the proof
-   builds, **nobody actually crashes.** All three keepers work the whole time.
-   What matters is that the protocol must be *willing* to carry on without any
-   one of them — and that willingness is the door the ferryman walks through.
-   (This is the point most summaries of FLP get wrong.)
-3. **"Three keepers" suggests small numbers matter.** They don't. The result
-   holds for any number of processes and only needs *one* possible crash. Adding
-   replicas does not help even slightly.
-4. **The story has a dawn deadline. The model has no time at all.** "Before
-   dawn" is a synchrony assumption smuggled in by the narrative. In the real
-   model there is no dawn, no clock, and no meaning to "too late" — only
-   "eventually" and "never".
-5. **A ferryman "choosing" implies he sees the future.** The FLP adversary is
-   adaptive — it decides each next event knowing the current configuration — but
-   it does not need to see the protocol's source code at runtime. The proof shows
-   a suitable choice always *exists*; it does not require anyone to compute it.
+Read these five before you repeat the lighthouse story to anyone.
+
+**Lie 1. Omar is not real, and your network is not malicious.** He is a proof
+device. His job is to demonstrate that a bad run *exists*, not to predict what
+Asha's Tuesday looks like. In practice the "adversary" is a garbage collector, a
+saturated network card, or a noisy neighbour on a shared host. Indifferent, not
+hostile. Indifferent is enough, because the theorem only needs the run to be
+possible.
+
+**Lie 2. The story makes crashing feel central. It isn't.** In the run the proof
+builds, **nobody actually crashes.** Ada, Bo and Cy all work the whole time. What
+matters is that the protocol must be *willing* to carry on without any one of
+them, and that willingness is the door Omar walks through. This is the point most
+summaries of FLP get wrong.
+
+**Lie 3. "Three keepers" suggests small numbers matter.** They don't. The result
+holds for any number of processes, and only needs *one* possible crash. Adding
+replicas does not help even slightly. Dev suggests it in stage 11, and it does
+not work.
+
+**Lie 4. The story has a dawn deadline. The model has no time at all.** "Before
+dawn" is a synchrony assumption smuggled in by the narrative. In the real model
+there is no dawn, no clock, and no meaning to "too late". There is only
+"eventually" and "never".
+
+**Lie 5. A ferryman "choosing" implies he sees the future.** The FLP adversary is
+adaptive, in that it decides each next event knowing the current configuration.
+But it does not need to read the protocol's source code at runtime. The proof
+shows a suitable choice always *exists*. It does not require anyone to compute
+it.
 
 ---
 
-## 9. VISUALIZATION — what to open, and in what order
+## 9. What should you open, and in what order?
 
-**The Ferryman's Choice** — <https://claude.ai/code/artifact/59306f2a-8884-4ffa-b06c-81faf73ad1d5>
-(also `visualization.html` in this directory, works offline).
+> **In one breath:** Four tabs. The first shows you the ambiguity, the second
+> lets you be the adversary, the third proves he always wins, and the fourth
+> shows you how to beat him and what it costs.
 
-Four tabs, in the order the story needs them:
+*The Ferryman's Choice* lives at
+<https://claude.ai/code/artifact/59306f2a-8884-4ffa-b06c-81faf73ad1d5>, and also
+as `visualization.html` in this directory, which works offline.
 
-1. **Slow, or dead?** — the foundation from stage 4. Move Ada's patience slider
+Four tabs, in the order the story needs them.
+
+1. **Slow, or dead?** is the foundation from stage 4. Move Ada's patience slider
    and hunt for a value that is right in both worlds. Two minutes.
-2. **Play the ferryman** — the main event. Click letters to deliver them; click
+2. **Play the ferryman** is the main event. Click letters to deliver them. Click
    *"Let X give up waiting"* to make a keeper time out. Then press **"Ferryman
-   plays to stall ×40"** a few times and *watch the fairness audit on the right
+   plays to stall ×40"** a few times, and *watch the fairness audit on the right
    while you do it*. That panel is the whole lesson: letters lost 0, longest a
-   letter waited 7 steps, longest any keeper sat idle 4 steps — and nothing
+   letter waited 7 steps, longest any keeper sat idle 4 steps, and nothing
    decided, on attempt 682.
-3. **Why the ferryman always wins** — the proof, computed live on the real
+3. **Why the ferryman always wins** is the proof, computed live on the real
    keepers. Three facts, each checkable on screen.
-4. **The four escapes** — turn on a delivery deadline, random waiting times, or
-   a leadership oracle, and watch the ferryman lose. Press **"Run all nine
+4. **The four escapes** lets you turn on a delivery deadline, random waiting
+   times, or a leadership oracle, and watch Omar lose. Press **"Run all nine
    combinations"** for the summary table.
 
-**Signpost for tab 2, because it is easy to look at the wrong thing:** don't
-watch the lamps — they never change. Watch the **attempt number** climbing in
-the verdict box, and the **fairness audit numbers staying small**. The story is
-that those two things are true *at the same time*.
+**A signpost for tab 2, because it is easy to look at the wrong thing.** Don't
+watch the lamps. They never change. Watch the **attempt number** climbing in the
+verdict box, and the **fairness audit numbers staying small**. The story is that
+those two things are true *at the same time*.
 
 > **✅ CHECKPOINT — end of the beginner model.**
 > You can now explain why "wait for a reply" and "give up after a timeout" are
 > the only two options, why both are wrong, and what it means for a situation to
 > have both endings still open. That is enough to read a postmortem and know
 > what kind of thing you are looking at.
-> **Next:** the actual mechanism — how the ferryman decides what to hand over,
+> **Next:** the actual mechanism, meaning how Omar decides what to hand over,
 > and why the argument covers protocols nobody has written yet.
+
+> **Say it back.** Without using the words *asynchronous*, *timeout* or
+> *bivalent*, explain to Meera why Ada cannot find a waiting time that is right
+> in both worlds.
+> <details><summary>A good answer sounds like</summary>
+> "An empty mailbox means one of two things, and they look identical. Either
+> Bo's letter is still on the boat, or Bo is dead and there is no letter. The
+> only thing that would tell them apart is how long the boat is going to take,
+> and nobody, including the sea, has decided that yet. So any waiting time Ada
+> picks is a bet. If she waits too little, she starts a second, conflicting
+> effort with a keeper who is perfectly alive. If she waits too long and he
+> really is dead, dawn comes and the coast is dark."
+> </details>
 
 ---
 
 # INTERMEDIATE MODEL — stage 10
 
-## 10. ACTUAL MECHANISM — the ferryman's strategy, then the theorem
+## 10. How does Omar stall a real protocol, and why can nobody stop him?
 
-### 10.1 The protocol on the table
+> **In one breath:** First watch him beat one specific protocol by never letting
+> two islands accept the same attempt. Then watch the 1985 proof do the same
+> thing to every protocol at once, without ever naming one.
 
-To watch a stall you need something to stall. The keepers run **single-decree
-Paxos with attempt numbers handed out in rotation** — the `paxos` lab's protocol,
-with one change: attempt numbers are assigned round-robin (Ada owns 1, 4, 7…;
-Bo owns 2, 5, 8…; Cy owns 3, 6, 9…) instead of being picked freely. Refresher
-only, since you know it:
+### 10.1 What protocol are the keepers running?
+
+To watch a stall you need something to stall. Ada, Bo and Cy run
+**single-decree Paxos with attempt numbers handed out in rotation**. That is the
+`paxos` lab's protocol with one change: attempt numbers are assigned round-robin
+instead of being picked freely. Ada owns 1, 4, 7 and so on. Bo owns 2, 5, 8. Cy
+owns 3, 6, 9.
+
+Here it is as five things a keeper does. You know it already, so this is a
+refresher.
 
 1. A keeper who has been waiting decides to try. She picks her next **attempt
-   number** and writes `PREPARE(n)` to all three islands, including herself.
-2. A keeper receiving `PREPARE(n)`: if *n* is higher than any attempt she has
-   promised, she promises *n* and replies `PROMISE(n, …)` reporting the last
-   value she accepted, if any. **If *n* is not higher, she says nothing at all.**
-3. With promises from a majority (2 of 3), the proposer picks the value: if any
-   promise reported an earlier acceptance, she is **forced** to re-propose that
-   value; otherwise she proposes her own preference. She writes `ACCEPT(n, v)`
-   to all.
-4. A keeper receiving `ACCEPT(n, v)` accepts it if *n* is at least her promised
-   attempt, and replies `ACCEPTED(n)`. Otherwise, **silence**.
-5. With acceptances from a majority, the proposer **decides** *v* and writes
-   `DECIDE(v)` to the others.
+   number** and writes a request for a turn to all three islands, including
+   herself.
+2. A keeper receiving that request checks the number. If it is higher than any
+   attempt she has promised, she promises it, and replies with an agreement that
+   reports the last value she accepted, if any. **If it is not higher, she says
+   nothing at all.**
+3. With agreements from a majority, which here means 2 of 3, the proposer picks
+   the value. If any agreement reported an earlier acceptance, she is **forced**
+   to re-propose that value. Otherwise she proposes her own preference. She
+   writes a proposal to all.
+4. A keeper receiving a proposal accepts it if its attempt number is at least
+   her promised attempt, and replies with an acknowledgement. Otherwise,
+   **silence**.
+5. With acknowledgements from a majority, the proposer **decides** the value and
+   writes the verdict to the others.
 
-Two things to notice, because both matter later.
+Five kinds of letter go in Omar's satchel. Read the middle column as what the
+letter actually says out loud, and the right column as the shorthand you will
+see in the traces.
+
+| The letter | What it says in words | Written as |
+|---|---|---|
+| a request for a turn | "I am starting attempt *n*. Promise me you will honour nothing lower, and tell me what you have already written down." | `PREPARE(n)` |
+| an agreement | "Attempt *n* is yours. Here is the last thing I accepted, if there was one." | `PROMISE(n, …)` |
+| a proposal | "Under attempt *n*, write down this value." | `ACCEPT(n, v)` |
+| an acknowledgement | "Done. I have written it down under attempt *n*." | `ACCEPTED(n)` |
+| the verdict | "It is settled. The answer is this value." | `DECIDE(v)` |
+
+Two things are worth noticing, because both matter later.
 
 **Refusal and death look the same.** In steps 2 and 4 a keeper who refuses just
-doesn't reply. That is a simplification in this lab — real Paxos usually sends a
-negative acknowledgement — but it happens to make the lesson louder: from the
+doesn't reply. That is a simplification in this lab, because real Paxos usually
+sends a negative acknowledgement. It happens to make the lesson louder. From the
 proposer's side, *"she refused me"* and *"she is dead"* produce the identical
 observation. An empty mailbox, again.
 
-**Safety here is already proved and does not depend on timing.** The `paxos` lab
-established the quorum-overlap argument: any two majorities share a member, and
-that member's memory forces every later attempt to re-propose an already-chosen
-value. Nothing in that argument mentions delays. This lab measured it again:
-**500 random delivery orders, 1 in 3 of them with a keeper crashed, produced 0
-agreement violations.** So for the rest of this lab, *safety is not in question*.
-Only finishing is.
+**Safety here is already proved, and does not depend on timing.** The `paxos`
+lab established the quorum-overlap argument: any two majorities share a member,
+and that member's memory forces every later attempt to re-propose an
+already-chosen value. Nothing in that argument mentions delays. This lab ran the
+check again anyway, and the right-hand column is why it is worth reporting.
 
-### 10.2 The happy run — a fair ferry, worked step by step
+| The safety soak | Count | What it means |
+|---|---|---|
+| random delivery orders driven through the protocol | 500 | enough shuffling to find an ordering bug if one existed |
+| of those, orders run with a keeper crashed | 1 in 3 | crash and delay together, not one at a time |
+| Agreement violations found | 0 | safety is not what breaks here |
 
-Ada wants **dark**; Bo and Cy want **light**. The ferryman simply delivers the
-oldest letter first. Traced by the simulator, step by step:
+So for the rest of this lab, *safety is not in question*. Only finishing is.
+
+### 10.2 What does a fair crossing look like, step by step?
+
+Ada wants **dark**. Bo and Cy want **light**. Omar behaves himself and simply
+delivers the oldest letter first. Read the trace as one line per step, with the
+letters he creates shown after the arrow.
 
 ```
  1  Ada gives up waiting → PREPARE(1) to Ada, Bo, Cy
@@ -557,18 +744,19 @@ oldest letter first. Traced by the simulator, step by step:
 15  Cy learns DARK and writes it on his slate
 ```
 
-**Settled at step 15. Longest any letter waited: 4 steps.** Note that the answer
-is *dark* even though two of the three keepers wanted light — Validity only
-requires the answer be *somebody's* preference, and Ada got there first. That is
-correct behaviour, not a bug.
+**Settled at step 15. The longest any letter waited was 4 steps.**
 
-### 10.3 The ferryman's first strategy, and why it fails
+Notice that the answer is *dark* even though two of the three keepers wanted
+light. Validity only requires the answer to be *somebody's* preference, and Ada
+got there first. That is correct behaviour, not a bug.
 
-Look at step 11 above. Ada has one acceptance and needs two. **One letter stands
-between this world and a settled answer.**
+### 10.3 Why doesn't Omar simply hide the dangerous letter?
 
-> **🔮 Predict:** *The ferryman wants to stop this. His first idea is simply not
-> to deliver that letter. Does it work?*
+Look at step 11 above. Ada has one acknowledgement and needs two. **One letter
+stands between this world and a settled answer.**
+
+> **🔮 Predict:** *Omar wants to stop this. His first idea is simply not to
+> deliver that letter. Does it work?*
 > <details><summary>Reveal</summary>
 > No — it only postpones. The fairness contract says every letter must be
 > delivered <i>eventually</i>. He can hold it for a thousand steps, but the
@@ -577,26 +765,26 @@ between this world and a settled answer.**
 > <b>harmless</b> when it arrives, not merely late.
 > </details>
 
-**That is the whole refinement.** The ferryman does not need to withhold the
-dangerous letter. He needs to arrange, *before* delivering it, that the keeper
-receiving it will **refuse** it. Then he can hand it over with a clear
-conscience, fairness intact, and nothing happens.
+**That is the whole refinement**, and it is the sentence to carry into the proof.
+Omar does not need to withhold the dangerous letter. He needs to arrange, *before*
+delivering it, that the keeper receiving it will **refuse** it. Then he can hand
+it over with a clear conscience, fairness intact, and nothing happens.
 
-He has exactly one tool for that: attempt numbers. A keeper who has promised a
+He has exactly one tool for that. Attempt numbers. A keeper who has promised a
 higher attempt refuses a lower one. So:
 
-> **The ferryman's rule.** *Never let two islands accept the same attempt.*
-> Whenever an `ACCEPT(n, v)` is about to reach a second island, first deliver
-> that island a `PREPARE` for a higher attempt — and if no such letter exists,
-> let some other keeper give up waiting, which manufactures one.
+> **Omar's rule.** *Never let two islands accept the same attempt.* Whenever a
+> proposal is about to reach a second island, first deliver that island a request
+> for a turn at a higher attempt. If no such letter exists, let some other keeper
+> give up waiting, which manufactures one.
 
-Every attempt therefore collects at most one acceptance, never a majority, and
-nobody ever decides.
+Every attempt therefore collects at most one acknowledgement, never a majority,
+and nobody ever decides.
 
-### 10.4 The stall, worked step by step
+### 10.4 What does the stall look like, step by step?
 
-Same starting preferences. Now the ferryman plays the rule above. The first 22
-steps, traced by the simulator:
+Same starting preferences. Now Omar plays the rule above. Here are the first 22
+steps, with his two decision points marked by the dividing lines.
 
 ```
  1  Ada gives up waiting → PREPARE(1) to all
@@ -625,68 +813,90 @@ steps, traced by the simulator:
 22  Cy  promises 4                        ← attempt 2 is now dead too
 ```
 
-Steps 8–13 and 19–22 are the same move, and it repeats forever. **This is
-precisely the dueling-proposers livelock from your `paxos` lab** — except there
-it looked like bad luck, and here you can see it is a *strategy* that a
+Steps 8 to 13 and steps 19 to 22 are the same move, and it repeats forever.
+**This is precisely the duelling-proposers livelock from your `paxos` lab.**
+There it looked like bad luck. Here you can see it is a *strategy*, one that a
 scheduler with no special powers can execute deliberately, on demand, forever.
 
-**Measured over a long run** (visualization tab 2, or press "Ferryman plays to
-stall" repeatedly):
+Now run it long. Press "Ferryman plays to stall" in tab 2 until the step counter
+reaches five thousand, and read the fairness audit next to the verdict box.
 
-| After 5000 steps of the ferryman stalling | |
-|---|---|
-| Keepers who decided anything | **0** |
-| Attempt number reached | **682** |
-| Letters delivered | **4545** |
-| Letters lost or destroyed | **0** |
-| Longest any letter waited | **7 steps** |
-| Longest any keeper sat idle | **4 steps** |
-| Keepers who fell ill | **0** |
-| Agreement violations | **0** |
+| After 5000 steps of Omar stalling | Count | What the number means |
+|---|---|---|
+| keepers who decided anything | **0** | Termination is dead |
+| attempt number reached | **682** | enormous activity, zero progress |
+| letters delivered | **4545** | he delivered constantly |
+| letters lost or destroyed | **0** | he never broke rule 2 of the islands |
+| longest any letter waited | **7 steps** | "eventually" was honoured, and generously |
+| longest any keeper sat idle | **4 steps** | nobody was ignored |
+| keepers who fell ill | **0** | no crash was needed to do this |
+| Agreement violations | **0** | safety never wobbled |
 
-Read that table twice. Nothing was lost, nobody was ignored, nobody died,
-nothing went wrong — and nothing happened.
+Read that table twice. Nothing was lost. Nobody was ignored. Nobody died.
+Nothing went wrong. And nothing happened.
 
-### 10.5 But that is one protocol. Now the theorem.
+### 10.5 That beat one protocol. How do you beat every protocol at once?
 
-Everything above beats *this* protocol. A reasonable person answers: *"then fix
-the protocol."* The 1985 proof closes that door. It rests on three facts, and
-mentions no protocol at all.
+Everything above beats *this* protocol. Ben's answer is the reasonable one:
+*"then fix the protocol."* The 1985 proof closes that door for good. It rests on
+three facts, and it mentions no protocol at all.
 
-#### Fact A — some starting point has both endings still open
+Read the three facts as three questions Omar might ask on the quayside.
 
-*Claim: there is an initial configuration that is bivalent.*
+- *Is there any morning where the ending is genuinely still open?* Fact A.
+- *Does it matter which island I visit first?* Fact B.
+- *Can I always make a dangerous letter boring before I deliver it?* Fact C.
 
-Suppose there isn't — every starting point is univalent. Validity guarantees at
-least one start where the answer must be dark (everyone prefers dark) and at
-least one where it must be light. Now line up all the starting points so that
-each differs from the next in **exactly one keeper's preference**:
+Yes, no, and yes. Those three answers are the whole theorem.
+
+#### Fact A — is any starting morning genuinely undecided?
+
+Suppose Meera claims the opposite: that every morning is already settled before
+a single letter is written. Try to build her world and watch it break.
+
+Line up the possible mornings so that each one differs from the next in
+**exactly one keeper's wish**. Start with all three wanting dark. End with all
+three wanting light. Change one mind at a time.
 
 ```
  D D D        L D D        L L D        L L L
  only DARK      ?            ?         only LIGHT
 ```
 
-Walking from the left end to the right end, you begin at a dark-only start and
-finish at a light-only start, so **somewhere along the line two neighbours have
-different endings** — call them C₀ (dark-only) and C₁ (light-only), differing
-only in what keeper *p* wants.
+Validity nails down the two ends. If everyone wants dark, dark is the only
+answer allowed. If everyone wants light, light is. So walking from the left end
+to the right end, you begin at a dark-only morning and finish at a light-only
+one. **Somewhere along that line, two neighbours must have different endings.**
+Call them C₀ (dark-only) and C₁ (light-only). They differ only in what one
+keeper *p* wants.
 
-Now use the crash tolerance. From C₀, consider a run in which **p never takes a
-single step** — legal, because the protocol must survive one crash. The other
-keepers must still decide, and by assumption they decide dark. But that exact
-same run is available from C₁: *p* takes no steps in it, and *p*'s preference is
-the only difference between C₀ and C₁, so the other keepers cannot tell which
-world they are in. They behave identically. They decide dark in C₁ too — which
-contradicts C₁ being light-only.
+Now use the one thing every protocol here must survive: a keeper falling ill.
 
-So not every start is univalent. **Some starting point is bivalent.** ∎
+Take the morning C₀, and consider the run in which *p* never gets out of bed.
+Not one step. That run is legal, because the protocol must cope with one crash.
+The other two keepers must still finish. By assumption they finish dark.
 
-> **Verified on the real keepers** (visualization tab 3, Fact 2, or run it
-> yourself): with Ada silent from step 0, the world where Ada wanted **dark** and
-> the world where Ada wanted **light** both end with Bo and Cy settling on
-> **light, at step 10, after the same letters.** Ada's preference made no
-> difference whatsoever, because nobody heard it.
+Now run *the exact same story* from C₁. In C₁, *p* takes no steps either. And
+*p*'s wish is the only difference between the two mornings. The other two never
+heard it. **They cannot tell which morning they are in.** So they behave
+identically, letter for letter, and they finish dark in C₁ too.
+
+But C₁ was supposed to be a morning that can only end light. Contradiction. So
+Meera's world does not exist. **Some starting point is bivalent.** ∎
+
+That is the proof. Written the way papers write it, it goes in four moves. Line
+up the initial configurations in a chain, each differing from the next in one
+input. Use Validity to fix the valency of the two endpoints. Take adjacent C₀
+and C₁ of opposite valency, differing at process *p*. Apply a *p*-free run to
+both: indistinguishability at the surviving processes forces the same decision,
+which contradicts opposite valency.
+
+Tab 3, Fact 2 runs this on the real keepers. Press it and compare the two rows.
+
+| The world you ask for | What Bo and Cy do | Why it matters |
+|---|---|---|
+| Ada silent from step 0, Ada wanted **dark** | settle on **light**, at step 10 | her wish never reached anyone |
+| Ada silent from step 0, Ada wanted **light** | settle on **light**, at step 10, after the same letters | the two worlds are indistinguishable to the survivors |
 
 > **🔮 Predict:** *That argument used a crash. In the infinite run the theorem
 > eventually builds, how many keepers actually fall ill?*
@@ -701,111 +911,140 @@ So not every start is univalent. **Some starting point is bivalent.** ∎
 > a machine rebooted.
 > </details>
 
-#### Fact B — events at different islands can be swapped for free
+#### Fact B — does it matter which island Omar visits first?
 
-*Claim: if event e happens at keeper p and event e′ happens at a different
-keeper q, then applying e then e′ gives exactly the same configuration as
-applying e′ then e.*
+Omar has two letters in his satchel. One is for Ada. One is for Bo. He can
+deliver either first. Does the choice change anything?
 
-The reason is almost embarrassingly simple. A step at *p* changes only *p*'s own
-state and adds letters to the sea. It cannot touch *q*'s state, because nothing
-in this world touches a keeper except a letter arriving *at that keeper*. So the
-two steps never interfere, and their order is invisible.
+No, and the reason is almost embarrassingly simple. Ada opening her post cannot
+change one word in Bo's cottage. **Nothing in this world touches a keeper except
+a letter placed in that keeper's own hand.** Ada's step changes Ada's notebook
+and drops new letters into the sea. Bo's step changes Bo's notebook and drops
+new letters into the sea. Neither reaches across.
 
-> **Verified on the real keepers** (visualization tab 3, Fact 3, "Check every
-> such pair across 30 situations"): **133 of 133** swaps at different islands
-> produced byte-for-byte identical configurations, with **zero** exceptions.
-> Meanwhile, of the pairs landing at the *same* island, 5 produced different
-> configurations — order genuinely matters there, and only there.
->
-> A worked instance the page will show you: at step 6, `PROMISE(1) Bo→Ada` and
-> `ACCEPT(1,DARK) Ada→Bo` are both pending, at Ada and at Bo. Deliver them in
-> either order and every keeper's state and every letter at sea comes out
-> identical.
+So the two visits never interfere. Deliver Ada's letter then Bo's, or Bo's then
+Ada's, and both cottages end up identical, with the same letters still at sea.
+Order is invisible.
 
-*A note on how this was checked, because it is a nice trap.* An earlier version
-of this lab's simulator got Fact B **wrong** — 38 of 142 swaps at different
-islands came out different. The cause: a keeper computing her next attempt
+That paragraph is the proof. Written the way papers write it: let event *e*
+happen at keeper *p*, and event *e′* at a different keeper *q*. Then applying
+*e* then *e′* yields exactly the configuration you get by applying *e′* then
+*e*. The two events **commute**.
+
+Tab 3, Fact 3 has a button labelled "Check every such pair across 30 situations".
+Press it and read the three rows.
+
+| What the checker tried | Result | What it tells you |
+|---|---|---|
+| swaps of two events at **different** islands | 133 of 133 came out byte-for-byte identical | Fact B holds, with zero exceptions |
+| swaps of two events at the **same** island | 5 pairs came out different | order genuinely matters there, and only there |
+| a worked instance, at step 6 | `PROMISE(1) Bo→Ada` and `ACCEPT(1,DARK) Ada→Bo` | deliver in either order, and every keeper's state and every letter at sea come out identical |
+
+**A note on how this was checked, because it is a nice trap.** An earlier version
+of this lab's simulator got Fact B **wrong**: 38 of 142 different-island swaps
+came out different. The cause was one line. A keeper computing her next attempt
 number read a *global* variable holding the highest attempt anyone had ever
 started. A real island cannot read a global variable. Once each keeper computed
 her next attempt from **what she herself had seen**, the exceptions vanished
-completely. The lemma is not just true; it is *diagnostic* — a violation means
-you have accidentally let a process see something nobody sent it.
+completely.
 
-#### Fact C — a bivalent situation always has a bivalent next move
+So the lemma is not just true. It is *diagnostic*. A violation means you have
+accidentally let a process see something nobody sent it.
+
+#### Fact C — can a dangerous letter always be made harmless first?
 
 This is the heart of it, and it is the one worth reading slowly.
 
-*Claim: let C be a bivalent configuration and let e = (p, m) be any single event
-that is pending in it. Then there is a schedule from C, ending with e, whose
-final configuration is still bivalent.*
+In plain words: **you can always let the annoying event happen. Just not yet,
+and not before you have arranged for it to be harmless.** That is exactly Omar's
+refinement from stage 10.3, promoted from a trick against one protocol to a fact
+about all of them.
 
-In plain words: **you can always let the annoying event happen — just not yet,
-and not before you have arranged for it to be harmless.** (That is exactly the
-ferryman's refinement in §10.3, promoted to a general fact.)
+Stated properly: let C be a situation where both endings are still open, and let
+*e* be any single pending event in it. Then there is a schedule from C, ending
+with *e*, whose final situation still has both endings open.
 
-The proof is by contradiction. Suppose the claim is false for some C and e. Let
-𝒞 be all the configurations reachable from C *without* applying e, and let 𝒟 be
-what you get by applying e to each of them. By assumption, **every configuration
-in 𝒟 is univalent** — the moment e lands, the ending is sealed.
+Try to imagine it failing, and watch it break. Suppose Omar is stuck. There is
+some pending letter *e* such that no matter what he arranges first, the moment
+*e* lands the ending is sealed.
 
-*Step 1: 𝒟 contains both a dark-only and a light-only configuration.* C is
-bivalent, so some run from C ends in dark. Either e was never used on that run —
-then applying e at the end gives a dark-only member of 𝒟 — or e was used
-somewhere on it, and the configuration right after e is itself a member of 𝒟
-that leads to dark. Either way 𝒟 has a dark-only member. The same argument gives
-a light-only one.
+Give the two piles names. Let 𝒞 be every situation Omar can reach from C
+*without* delivering *e*. Let 𝒟 be what you get by delivering *e* to each of
+them. Omar being stuck means **every situation in 𝒟 is univalent**.
 
-*Step 2: two of them are one step apart.* 𝒞 is reachable-connected from C, so
-walking between the two witnesses in 𝒞 you must cross a single edge where the
-label flips: there are C₀, C₁ ∈ 𝒞 with **C₁ = e′(C₀)** for one event e′, where
-D₀ = e(C₀) is dark-only and D₁ = e(C₁) is light-only.
+*Step 1: 𝒟 contains both a dark-only and a light-only situation.* C is bivalent,
+so some run from C ends in dark. Either that run never used *e*, in which case
+delivering *e* at the end gives a dark-only member of 𝒟. Or it used *e*
+somewhere, and the situation right after *e* is itself a dark-only member of 𝒟.
+Either way, 𝒟 has a dark-only member. The same argument gives a light-only one.
 
-*Step 3, case one: e′ happens at a different keeper than e.* Then by **Fact B**
-they commute, so
+*Step 2: two of them are only one step apart.* Everything in 𝒞 is reachable from
+C, so you can walk from one witness to the other. Somewhere on that walk the
+label flips across a single edge. That gives you C₀ and C₁ in 𝒞 with
+**C₁ = e′(C₀)** for one event *e′*, where delivering *e* to C₀ gives a dark-only
+D₀, and delivering *e* to C₁ gives a light-only D₁.
+
+Now there are exactly two cases, and Omar's two facts handle one each.
+
+> **🔮 Predict:** *Case one is when e′ lands on a different keeper than e, and
+> Fact B settles it in a line. Case two is when both land on the same keeper, so
+> swapping is not available. Which tool is left?*
+> <details><summary>Reveal</summary>
+> <b>Crash tolerance</b> — the same tool Fact A used, and the only other thing
+> the proof is allowed to assume. If both events land on keeper <i>p</i>, you
+> silence <i>p</i> entirely and let the other two finish, which they must. If
+> you said "a third fact" or "something about attempt numbers", notice that the
+> proof has never mentioned attempt numbers and never will: it does not know
+> what protocol it is arguing about.
+> </details>
+
+*Case one: e′ happens at a different keeper than e.* Then by **Fact B** they
+commute, so
 
 ```
 D₁ = e(e′(C₀)) = e′(e(C₀)) = e′(D₀)
 ```
 
 D₁ is reachable from D₀ in a single step. But D₀ is dark-only, so everything
-reachable from it is dark-only — and D₁ is light-only. Contradiction.
+reachable from it is dark-only. And D₁ is light-only. Contradiction.
 
-*Step 3, case two: e′ happens at the same keeper p as e.* Now use **crash
-tolerance**, exactly as in Fact A. From C₀, let *p* go completely silent. The
-other keepers must still finish, so there is a finite run σ from C₀, containing
-**no steps by p**, that reaches a configuration A in which somebody has decided.
-Because σ contains no steps by *p*, it commutes with both e and e′. So:
+*Case two: e′ happens at the same keeper p as e.* Now use **crash tolerance**,
+exactly as in Fact A. From C₀, let *p* go completely silent. The other keepers
+must still finish, so there is a finite run σ from C₀ containing **no steps by
+p**, which reaches a situation A where somebody has decided. Because σ contains
+no steps by *p*, it commutes with both *e* and *e′*. So:
 
 ```
 e(A)        = e(σ(C₀))        = σ(e(C₀))        = σ(D₀)   → dark-only
 e(e′(A))    = e(e′(σ(C₀)))    = σ(e(e′(C₀)))    = σ(D₁)   → light-only
 ```
 
-From A you can reach a dark-only configuration and a light-only configuration.
-So **A is bivalent** — but A is a configuration in which somebody has already
-decided, which makes it univalent. Contradiction.
+From A you can reach a dark-only situation and a light-only situation. So **A is
+bivalent**. But A is a situation in which somebody has already decided, which
+makes it univalent. Contradiction.
 
 Both cases are impossible, so the assumption was wrong. **A bivalent next move
 always exists.** ∎
 
-#### The theorem
+#### The theorem — what do the three facts add up to?
 
-Start at a bivalent initial configuration (Fact A). Then repeat forever:
+Start at a bivalent initial situation, which Fact A says exists. Then repeat
+forever:
 
 > Take the keeper who has gone longest without a step, and the oldest letter
-> addressed to them (or a null step if their mailbox is empty). Call that event
-> *e*. By **Fact C**, there is a schedule ending in *e* that leaves the world
-> still bivalent. Run it.
+> addressed to them. If their mailbox is empty, take a null step instead. Call
+> that event *e*. By **Fact C**, there is a schedule ending in *e* that leaves
+> the world still bivalent. Run it.
 
-Two things are now simultaneously true:
+Two things are now true at the same time, and their coexistence is the whole
+result.
 
 - **The run is admissible.** Every letter eventually becomes the oldest one
   addressed to the longest-idle keeper, so every letter is delivered. Every
   keeper takes infinitely many steps. Nobody is starved. No letter is lost. No
   keeper crashes.
-- **Every configuration in the run is bivalent**, and a configuration in which
-  somebody has decided is never bivalent. So **nobody ever decides.**
+- **Every situation in the run is bivalent**, and a situation in which somebody
+  has decided is never bivalent. So **nobody ever decides.**
 
 Termination is violated, in an admissible run, by a protocol that was assumed to
 guarantee it. Therefore no such protocol exists. ∎
@@ -822,125 +1061,141 @@ Faulty Process", Journal of the ACM 32(2), 1985. It won the Dijkstra Prize in
 > **Next:** what this looks like on a Tuesday afternoon in production, and
 > exactly which guarantee bends in each case.
 
+> **Say it back.** Without using the words *bivalent*, *commute* or
+> *configuration*, tell Ben why "then fix the protocol" is not an answer.
+> <details><summary>A good answer sounds like</summary>
+> "The argument never looks at the protocol. It only looks at the state of the
+> whole world, and asks whether both endings are still possible from here. Start
+> somewhere both endings are still possible — one such morning always exists,
+> because otherwise silencing one keeper would make two different mornings
+> behave identically and end differently. From any such moment, the ferryman can
+> always pick a next delivery that keeps both endings possible. So he walks from
+> open world to open world forever, delivering everything and ignoring nobody.
+> Whatever rules you write, they are being walked past, not attacked."
+> </details>
+
 ---
 
 # ENGINEERING MODEL — stages 11 and 12
 
-## 11. FAILURE SCENARIOS — where the theorem shows up on a Tuesday
+## 11. Where does the theorem show up on a Tuesday?
 
-The theorem does not have "failure modes" the way a protocol does. What it has
-are **sightings** — situations where a real system briefly re-enters the world
-of tab 2 and stops finishing things. Here are the eight worth recognising on
-sight. For each: how to cause it, where to watch it, what breaks, and what
-survives.
+> **In one breath:** The theorem has no failure modes of its own. It has
+> *sightings*: moments when a real cluster briefly re-enters tab 2 and stops
+> finishing things while every dashboard stays green.
 
-**1 · Duelling proposers (election livelock).**
-*Cause it:* two nodes whose retry timers keep firing just before the other one
-completes. *Watch it:* visualization tab 2, "Ferryman plays to stall" — or the
-trace in §10.4. *What happens:* every attempt reaches one acceptance and dies to
-a higher attempt; the attempt counter climbs without limit (measured: **682
-after 5000 steps**). *Why:* a new, higher attempt invalidates promises made to a
-lower one, and there is no rule saying a proposer must wait for the previous
-attempt to fail first. *Response:* none is possible from inside the protocol —
-this is the FLP run. *Intact:* Agreement, Validity, durability, every safety
-property. *Lost:* Termination, entirely. *In production:* Raft's randomised
-election timeouts and Paxos's stable-leader optimisation exist to make this
-self-correcting rather than to prevent it; your signal is a **leader-election
-rate** or **term/epoch number** climbing when nothing is wrong.
+A protocol has bugs. A theorem does not. What this theorem has are **sightings**,
+which are situations where a real system briefly re-enters the world of tab 2 and
+stops finishing things. Here are the eight worth recognising on sight. Asha and
+her team have hit every one.
 
-**2 · The garbage collector as the adversary.**
-*Cause it:* a stop-the-world pause longer than the failure-detection timeout.
-*Watch it:* the `split-brain` lab measured connection p99 going from **1,011 µs
-to 191,661 µs — a 190× collapse — on a healthy server doing nothing wrong.**
-*What happens:* the leader is frozen; followers see silence; an election starts;
-the old leader wakes up believing it is still leader. *Why:* a frozen process
-and a dead process emit identical evidence — stage 4, in the machine room.
-*Response:* the old leader discovers a higher term/epoch and steps down.
-*Intact:* Agreement, because epoch checks make the zombie's work harmless.
-*Lost:* Termination for the duration, plus whatever the zombie had in flight.
-*In production:* this is why `broadcastTime ≪ electionTimeout ≪ MTBF` is a rule
-and not a suggestion, and why you alarm on **GC pause p99** as a correctness
-signal, not a performance one.
+**Sighting 1 · Duelling proposers, also called election livelock.** Two of Asha's
+nodes have retry timers that keep firing just before the other one completes.
+Every attempt reaches one acceptance and then dies to a higher attempt. The
+attempt counter climbs without limit. This is exactly the trace in stage 10.4,
+and there is no response available from inside the protocol, because this *is*
+the FLP run. Raft's randomised election timeouts and Paxos's stable-leader
+optimisation exist to make it self-correcting, not to prevent it.
 
-**3 · The failure detector that is confidently wrong.**
-*Cause it:* packet loss or CPU starvation that outlasts your timeout. *Watch it:*
-the `gossip-protocols` lab measured **100 nodes with zero actual crashes ending
-with 100% of all beliefs saying DEAD**, and the cluster going permanently silent.
-*What happens:* healthy nodes are evicted; quorum is lost; the cluster stops.
-*Why:* your failure detector is a timeout, and a timeout is a guess (stage 4).
-*Response:* suspicion mechanisms with refutation (that lab's incarnation
-numbers). *Intact:* Agreement. *Lost:* Termination, and possibly availability
-for a long time. *In production:* separate **suspicion** from **eviction**, make
-suspicion appealable, and never let a failure detector remove a majority.
+**Sighting 2 · The garbage collector as the adversary.** Arjun's leader node
+takes a stop-the-world pause longer than the failure-detection timeout. The
+leader is frozen. Followers see silence and start an election. Then the old
+leader wakes up believing it is still leader. A frozen process and a dead process
+emit identical evidence, which is stage 4 happening in a machine room. The old
+leader discovers a higher term and steps down, so Agreement survives. This is why
+`broadcastTime ≪ electionTimeout ≪ MTBF` is a rule and not a suggestion.
 
-**4 · The grey failure — a leader that is alive but useless.**
-*Cause it:* a leader on a host with a dying disk, a saturated NIC, or a noisy
-neighbour: fast enough to heartbeat, too slow to commit. *Watch it:* the
-verdict box in tab 2 — nothing decided, nothing wrong. *What happens:* every
-health check is green, every dashboard is green, and write latency is infinite.
-*Why:* your failure detector answers *"is it responding?"*, but liveness needs
-*"is it making progress?"*, and those are different questions. *Response:*
-usually none automatic — this is the classic pager-at-3am shape. *Intact:*
-everything safety-related. *Lost:* Termination, silently. *In production:* alarm
-on **time-since-last-commit** and **commit-index advance rate**, not just on
-heartbeat success. This is the single most common way the theorem bites people
-who have never heard of it.
+**Sighting 3 · The failure detector that is confidently wrong.** Meera's cluster
+hits packet loss that outlasts her timeout. Healthy nodes are evicted. Quorum is
+lost. The cluster stops. Her failure detector is a timeout, and a timeout is a
+guess. The cure is a suspicion mechanism with refutation, like the incarnation
+numbers in `gossip-protocols`. The design rule underneath it: separate
+**suspicion** from **eviction**, make suspicion appealable, and never let a
+failure detector remove a majority.
 
-**5 · Symmetric timeouts, split votes forever.**
-*Cause it:* give every node the same election timeout. *Watch it:* the `raft`
-lab measured it — **term 40 after 6000 ticks, leader NEVER elected, 0 safety
-violations.** With randomisation: 200/200 cold starts elected a leader, at
-155/174/332 ticks (min/median/max). *Why:* identical timers make everyone a
-candidate simultaneously, every time, forever. *Intact:* Agreement (zero
-violations even in the 6000-tick stall). *Lost:* Termination. *In production:*
-randomised timeouts do not *prevent* split votes; they make each one
+**Sighting 4 · The grey failure, a leader that is alive but useless.** Asha's
+leader sits on a host with a dying disk and a noisy neighbour. It is fast enough
+to heartbeat and too slow to commit. Every health check is green. Every dashboard
+is green. Priya's write latency is infinite. The failure detector answers *"is it
+responding?"*, but liveness needs *"is it making progress?"*, and those are
+different questions. There is usually no automatic response. This is the classic
+pager-at-3am shape, and the single most common way the theorem bites people who
+have never heard of it.
+
+**Sighting 5 · Symmetric timeouts and split votes forever.** Ben gives every node
+the same election timeout, because it is tidier. Identical timers make everyone a
+candidate simultaneously, every time, forever. The `raft` lab has this on record.
+Randomisation does not *prevent* split votes. It makes each one
 **self-correcting**, which is a much cheaper thing to buy.
 
-**6 · Adding replicas, and it not helping.**
-*Cause it:* a stalling cluster; someone suggests scaling from 3 to 5 to 7 nodes.
-*Why it doesn't help:* the theorem needs **one** possible crash and holds for any
-number of processes. More replicas raise the crash count you can survive and
-enlarge the quorum you must assemble; they do nothing whatsoever about the
-ambiguity between slow and dead. *Intact:* Agreement, and your bill. *Lost:*
-Termination, still. *In production:* the fix is always to attack the timing
-assumption (stage 12) — better isolation, tighter tail latency, fewer noisy
-neighbours — never to add votes.
+**Sighting 6 · Adding replicas, and it not helping.** The cluster is stalling, so
+Dev suggests scaling from 3 nodes to 5, and then to 7. It does not help at all.
+The theorem needs **one** possible crash and holds for any number of processes.
+More replicas raise the crash count you can survive, and enlarge the quorum you
+must assemble. They do nothing whatsoever about the ambiguity between slow and
+dead. The fix is always to attack the timing assumption, never to add votes.
 
-**7 · The partition that heals, and the cluster that doesn't.**
-*Cause it:* a network split, then a repair. *Watch it:* `gossip-protocols`
-measured a healed partition where beliefs had already converged on "everyone is
-dead", so nobody would talk to anybody. *Why:* liveness is not automatically
-restored by removing the fault, because the fault left durable state behind.
-*Intact:* Agreement. *Lost:* Termination, even after the cause is gone. *In
-production:* every recovery path needs an explicit way back — refutation,
-re-seeding, or an operator-triggered reset — and it must be tested, because it
-runs approximately never.
+**Sighting 7 · The partition that heals, and the cluster that doesn't.** The
+network splits, and then it is repaired. `gossip-protocols` recorded a healed
+partition where beliefs had already converged on "everyone is dead", so nobody
+would talk to anybody. Liveness is not automatically restored by removing the
+fault, because the fault left durable state behind. Every recovery path needs an
+explicit way back, whether that is refutation, re-seeding, or an
+operator-triggered reset. And it must be tested, because it runs approximately
+never.
 
-**8 · Nobody is even trying to be adversarial.**
-*Cause it:* nothing. Deliver messages in a **uniformly random** order. *Measured
-in this lab, 500-step cap:* **54 of 400** runs with no crash and **18 of 200**
-runs with one crashed keeper had still not settled. *Why:* the stalling schedules
-are not rare or delicate; they are a healthy fraction of all schedules. *Intact:*
-Agreement, in every single one of the 500. *Lost:* Termination, about 13% of the
-time. *In production:* this is why "we've never seen it" is not evidence. You
-have seen it; you called it a slow period.
+**Sighting 8 · Nobody is even trying to be adversarial.** Deliver letters in a
+**uniformly random** order. No malice, no strategy, no crash required. A healthy
+fraction of all schedules stall anyway. This is why "we've never seen it" is not
+evidence. You have seen it. You called it a slow period.
 
-> **The pattern across all eight.** Agreement never broke — not once, in any
-> measurement in this lab or the four labs it cites. What broke, every time, was
+Now the comparison. Read the last column as the thing you would actually put an
+alarm on.
+
+| Sighting | Intact | Lost | Your signal |
+|---|---|---|---|
+| 1 · duelling proposers | Agreement, Validity, durability | Termination, entirely | leader-election rate, or term/epoch climbing when nothing is wrong |
+| 2 · GC as adversary | Agreement, because epoch checks make the zombie harmless | Termination for the pause, plus whatever the zombie had in flight | GC pause p99, treated as a correctness signal |
+| 3 · confident failure detector | Agreement | Termination, and possibly availability for a long time | nodes evicted per hour, and suspicion-to-eviction ratio |
+| 4 · grey failure | everything safety-related | Termination, silently | time-since-last-commit and commit-index advance rate |
+| 5 · symmetric timeouts | Agreement | Termination | election attempts per successful election |
+| 6 · adding replicas | Agreement, and your bill | Termination, still | nothing; this one is a meeting, not a metric |
+| 7 · healed partition, stuck cluster | Agreement | Termination, even after the cause is gone | time without a leader, cumulative |
+| 8 · random schedules | Agreement, in every single run | Termination, some of the time | the same signals as 1 and 4; there is nothing special to see |
+
+Four of those eight carry a number from this lab or from a lab you have already
+done. The right-hand column says what the number counts.
+
+| Sighting | The figure | What it counts |
+|---|---|---|
+| 1 · duelling proposers | attempt **682** after 5000 steps | attempts started, with zero decisions |
+| 2 · GC as adversary | connection p99 from **1,011 µs to 191,661 µs**, a **190×** collapse | tail latency on a healthy server doing nothing wrong (`split-brain`) |
+| 3 · confident failure detector | **100** nodes, zero actual crashes, **100%** of beliefs saying DEAD | how wrong a timeout-based detector can get (`gossip-protocols`) |
+| 5 · symmetric timeouts | term **40** after **6000 ticks**, leader never elected, 0 safety violations | a stall with identical timers (`raft`) |
+| 5 · with randomisation | **200/200** cold starts elected a leader, at **155/174/332** ticks | min, median and max ticks to a leader (`raft`) |
+| 8 · random schedules | **54 of 400** runs with no crash, and **18 of 200** runs with one crashed keeper, still unsettled at a 500-step cap | roughly **13%** of ordinary schedules stall |
+
+> **The pattern across all eight.** Agreement never broke. Not once, in any run
+> in this lab or in the four labs it cites. What broke, every time, was
 > *finishing*. **Safety is a property of the protocol. Liveness is a property of
 > the world your protocol is running in**, and the world is not under your
 > control.
 
-## 12. CORRECTNESS — exactly what is and is not claimed
+## 12. What exactly is claimed, and what is not?
 
-### 12.1 The theorem, word by word
+> **In one breath:** Six words in the theorem are load-bearing. Weaken the right
+> one and consensus becomes solvable. Weaken the wrong one and you get a
+> different impossible problem.
+
+### 12.1 Which words in the theorem are load-bearing?
 
 > In an **asynchronous** system with **reliable** message delivery, where at
 > most **one process may crash**, there is no **deterministic** protocol that
 > guarantees **Agreement**, **Validity**, and **Termination**.
 
-Every bold word is load-bearing, and knowing which is which is the practical
-payoff of this whole lab:
+Every bold word carries weight, and knowing which is which is the practical
+payoff of this whole lab. Read the right-hand column as what happens to the
+theorem when you pull that word out.
 
 | Word | If you weaken it | Result |
 |---|---|---|
@@ -951,7 +1206,10 @@ payoff of this whole lab:
 | **Agreement** | allow disagreement | you have eventual consistency, not consensus |
 | **Termination** | only promise it when the network behaves | this is what every real system actually ships |
 
-### 12.2 Seven things FLP does not say
+### 12.2 What are the seven things FLP does not say?
+
+Arjun has heard all seven of these said out loud in design reviews. Each one is
+wrong, and each one is wrong in an instructive way.
 
 1. **It does not say consensus is impossible.** etcd, ZooKeeper, Spanner and
    Kafka do it continuously. It says you cannot put a *guarantee* on finishing.
@@ -961,16 +1219,20 @@ payoff of this whole lab:
 3. **It is not about crashes.** In the run it constructs, nobody crashes. Only
    the obligation to *tolerate* a crash is used.
 4. **It is not fixed by more replicas.** One possible crash suffices, at any
-   cluster size.
+   cluster size. This is Dev's suggestion from sighting 6.
 5. **It does not say your system will hang.** It says a hanging run exists. In
    practice you get liveness with overwhelming probability, and you pay for that
    probability with timing assumptions you must maintain.
-6. **It is not CAP.** See below — this is the most common confusion.
+6. **It is not CAP.** See the next subsection, because this is the most common
+   confusion of all.
 7. **It does not apply to synchronous systems.** With known bounds on delay and
    processing speed, a timeout that expires is *proof*, and consensus is
    straightforwardly solvable.
 
-### 12.3 The three results people mix up
+### 12.3 Which three results do people mix up?
+
+Three impossibility results, three different adversaries. The difference is
+entirely in what the adversary is allowed to do to a letter.
 
 | | What the adversary does | What is impossible | Fix in practice |
 |---|---|---|---|
@@ -978,30 +1240,30 @@ payoff of this whole lab:
 | **CAP** (2000/2002) | **cuts the network in two**; messages don't arrive at all | staying *available* **and** *consistent* during that cut | choose per-operation; see your `pacelc` lab |
 | **Two Generals** | **destroys** messages | *ever* achieving certainty of agreement over a lossy channel | acknowledge + retry + idempotence; see your `idempotency` lab |
 
-**The one-line separators, worth memorising:**
+The one-line separators, worth memorising:
 
 - **CAP takes the messages away. FLP leaves every message intact and only takes
-  away the clock — and that alone is enough.**
+  away the clock, and that alone is enough.**
 - **Two Generals loses letters. FLP loses the clock.**
 - CAP is a statement about **safety versus availability** during a partition.
   FLP is a statement about **liveness** in the complete absence of a partition.
   FLP is the older, deeper, and quieter result.
 
-One more distinction: FLP assumes **non-Byzantine** failures — processes stop,
-they never lie. Byzantine agreement is a strictly harder problem (and has its
-own impossibility results, such as needing *n* > 3*f*). FLP's power comes from
+One more distinction. FLP assumes **non-Byzantine** failures, meaning processes
+stop and never lie. Byzantine agreement is a strictly harder problem, and has
+its own impossibility results, such as needing *n* > 3*f*. FLP's power comes from
 assuming the *gentlest* possible failure and still finding the wall.
 
-### 12.4 The four escapes, and what each one actually buys
+### 12.4 What does each of the four escapes actually buy?
 
-All four measured in this lab's simulator (visualization tab 4, "Run all nine
-combinations"), against the same protocol, with the ferryman stalling as hard as
-he can. **Agreement was never broken in any row.**
+Four doors out. All four were run in this lab's simulator against the same
+protocol, with Omar stalling as hard as he can. Press "Run all nine combinations"
+in tab 4 to reproduce the table. **Agreement was never broken in any row.**
 
 | World | Outcome | Steps | Attempts used |
 |---|---|---|---|
-| pure asynchrony (nothing on) | **ferryman held it open** | >5000 | 682 and climbing |
-| randomised waiting times only | **ferryman held it open, 60 runs out of 60** | >400 | climbing |
+| pure asynchrony (nothing on) | **Omar held it open** | >5000 | 682 and climbing |
+| randomised waiting times only | **Omar held it open, 60 runs out of 60** | >400 | climbing |
 | delivery deadline Δ = 2 | settled, DARK | 19 | 1 |
 | delivery deadline Δ = 4 | settled, DARK | 23 | 1 |
 | delivery deadline Δ = 10 | settled, DARK | 33 | 1 |
@@ -1009,43 +1271,56 @@ he can. **Agreement was never broken in any row.**
 | Δ = 4 **and** randomised waits | settled, 60 runs out of 60 | 23.0 avg | 1 |
 | leadership oracle, no timing bound | settled | 13 | 1–3 |
 
-**Escape 1 — partial synchrony (breaks "asynchronous").** Assume a bound Δ on
-delivery, even an unknown one, or one that only starts holding after some unknown
-moment (**GST**). Timeouts stop being guesses and start being evidence.
-*Measured:* the ferryman loses at every Δ, and the cost of a loose bound is pure
-latency — Δ = 25 takes 63 steps where Δ = 2 takes 19. This is what Raft, Paxos,
-etcd, ZooKeeper and Spanner all assume. **Dwork, Lynch & Stockmeyer, 1988.**
+> **🔮 Predict:** *Ben says randomised election timeouts are how Raft escapes
+> FLP. Look at row two of that table before you answer. With no delivery bound
+> and randomised waiting times, how many of the 60 runs did the keepers win?*
+> <details><summary>Reveal</summary>
+> <b>None. Omar won all 60.</b> Randomising <i>when</i> a keeper retries does
+> nothing against an adversary who is allowed to wait as long as he likes — he
+> simply delivers other letters until the random pause expires, and then plays
+> his usual move. If you said "most of them", you were thinking of the
+> <code>raft</code> lab's 200/200 cold starts, and that number is real. But that
+> lab already assumes a delivery bound. Randomisation cures <b>collisions</b>,
+> not <b>delay</b>. Row seven is the honest picture: Δ and randomisation
+> together.
+> </details>
 
-**Escape 2 — randomised waiting times (breaks "deterministic", but barely).**
-This is Raft's randomised election timeout. *Measured:* with **no** delivery
-bound, the ferryman won **60 runs out of 60**. Randomising *when* a node retries
-does nothing against an adversary who is allowed to wait as long as he likes —
-he simply delivers other letters until the random pause expires. What it does
-cure is **collisions** between retrying nodes, which is why it works so well in
-`raft` (200/200 cold starts) where a delivery bound is already assumed. **If you
-believe randomised timeouts solve FLP, this row is the correction.**
+**Escape 1 — partial synchrony, which breaks "asynchronous".** Assume a bound Δ
+on delivery, even an unknown one, or one that only starts holding after some
+unknown moment. Timeouts stop being guesses and start being evidence. Omar loses
+at every Δ in the table, and the cost of a loose bound is pure latency: Δ = 25
+takes 63 steps where Δ = 2 takes 19. This is what Raft, Paxos, etcd, ZooKeeper
+and Spanner all assume. **Dwork, Lynch & Stockmeyer, 1988.**
 
-**Escape 3 — randomised *decisions* (breaks "deterministic" properly).** Ben-Or
-(1983) and Rabin (1983): processes flip coins over the **value**, not the timing.
-This terminates with **probability 1** and needs no timing assumption at all. The
-FLP run still exists — it just has probability zero. *Not simulated in this lab;
-it needs a different protocol.* Note what "probability 1" does and does not mean:
-it is not "guaranteed", it is "the exceptions have measure zero", and that is a
-genuinely weaker promise, even though it is the one you would happily ship.
+**Escape 2 — randomised waiting times, which breaks "deterministic", but
+barely.** This is Raft's randomised election timeout. With **no** delivery bound,
+Omar won **60 runs out of 60**. What randomisation does cure is **collisions**
+between retrying nodes, which is why it works so well in `raft`, where a delivery
+bound is already assumed. **If you believe randomised timeouts solve FLP, row two
+of that table is the correction.**
 
-**Escape 4 — failure detectors (breaks "no information about failures").** Give
-processes an oracle that offers hints — possibly wrong ones — about who has
+**Escape 3 — randomised *decisions*, which breaks "deterministic" properly.**
+Ben-Or (1983) and Rabin (1983): processes flip coins over the **value**, not the
+timing. This terminates with **probability 1** and needs no timing assumption at
+all. The FLP run still exists. It just has probability zero. This one is not
+simulated in this lab, because it needs a different protocol. And note what
+"probability 1" does and does not mean. It is not "guaranteed". It is "the
+exceptions have measure zero". That is a genuinely weaker promise, even though it
+is the one you would happily ship.
+
+**Escape 4 — failure detectors, which break "no information about failures".**
+Give processes an oracle that offers hints, possibly wrong ones, about who has
 crashed. Chandra & Toueg (1996) showed consensus becomes solvable with
-surprisingly weak oracles, and Chandra, Hadzilacos & Toueg showed **◇W** (which
+surprisingly weak oracles. Chandra, Hadzilacos & Toueg showed **◇W** is the
+**weakest** oracle that can do it, given a majority of correct processes. ◇W
 eventually stops suspecting some correct process, and eventually suspects every
-crashed one) is the **weakest** oracle that can do it, given a majority of
-correct processes. *Measured:* with an oracle naming one keeper who is never
-wrongly doubted, the ferryman loses in **13 steps**, on attempt 1, with **no
-timing assumption at all**. **The sting:** you cannot build that oracle in a
-truly asynchronous world — if you could, you would have refuted FLP. In practice
+crashed one. In this lab's simulator, an oracle naming one keeper who is never
+wrongly doubted beats Omar in **13 steps**, on attempt 1, with **no timing
+assumption at all**. And here is the sting. You cannot build that oracle in a
+truly asynchronous world. If you could, you would have refuted FLP. In practice
 you build it out of timeouts, which is escape 1 wearing a hat.
 
-### 12.5 What was traded away
+### 12.5 What was traded away?
 
 Every real system makes the same trade, and it is worth being able to state it in
 one breath:
@@ -1053,11 +1328,11 @@ one breath:
 > **Keep safety unconditionally. Buy liveness with a timing assumption you are
 > responsible for maintaining.**
 
-Concretely, in a Raft or Paxos cluster: Agreement and Validity hold under *any*
-pattern of delay, reordering, duplication and crash — no assumption required.
-Termination holds only while the network and the machines behave roughly as you
-assumed. **Your election timeout is the price tag on that assumption, and your
-monitoring is how you find out you were wrong.**
+Concretely, in Asha's Raft or Paxos cluster: Agreement and Validity hold under
+*any* pattern of delay, reordering, duplication and crash. No assumption
+required. Termination holds only while the network and the machines behave
+roughly as she assumed. **Her election timeout is the price tag on that
+assumption, and her monitoring is how she finds out she was wrong.**
 
 > **✅ CHECKPOINT — end of the engineering model.**
 > You can now look at a stalling cluster and say which of the eight sightings it
@@ -1066,30 +1341,44 @@ monitoring is how you find out you were wrong.**
 > **Next:** the named systems, what each one assumes, what to put on a
 > dashboard, and what this lab deliberately left out.
 
+> **Say it back.** Dev asks why going from 3 nodes to 7 will not fix the
+> stalling cluster. Answer him without using the words *quorum*, *bivalent* or
+> *asynchronous*.
+> <details><summary>A good answer sounds like</summary>
+> "More machines change how many can die before we are stuck. They do not change
+> the one thing that is actually hurting us, which is that a silent machine and
+> a slow machine look exactly the same. Every new machine is one more mailbox
+> that can be empty for either reason. The stall does not need anything to be
+> dead — nothing was dead in the 5000-step run. What would actually help is
+> making the slow case rarer: quieter hosts, faster disks, tighter tail latency,
+> and a timeout chosen from what we measured rather than what we hoped."
+> </details>
+
 ---
 
 # PRODUCTION MODEL — stage 13
 
-## 13. PRODUCTION — from three islands to a real cluster
+## 13. What happens when three islands become a real cluster?
 
-### 13.1 The bridge, one link at a time
+> **In one breath:** Every real consensus system buys its liveness with a timing
+> assumption. Stage 13 is where you learn the price, the receipt, and what to
+> watch so you find out before your customers do.
 
-**This lab's model** → three processes, abstract "steps", one value to agree on,
-a scheduler you control by hand.
+### 13.1 What sits between this lab's model and Asha's pager?
 
-**A real implementation** → etcd or ZooKeeper: 3 or 5 processes, real sockets,
-an *unbounded log* of values rather than one, values persisted to disk before
-being acknowledged, membership that changes over time.
+Four layers, each one further from the tidy world of the islands. Read the
+right-hand column as what that layer actually contains.
 
-**Production architecture** → that cluster sits behind a client library that
-retries, in a network you share with other tenants, on hosts with garbage
-collectors and page caches and neighbours, across availability zones with real
-latency.
+| Layer | What it actually is |
+|---|---|
+| This lab's model | three processes, abstract "steps", one value to agree on, and a scheduler you control by hand |
+| A real implementation | etcd or ZooKeeper: 3 or 5 processes, real sockets, an *unbounded log* of values rather than one, values persisted to disk before being acknowledged, membership that changes over time |
+| Production architecture | that cluster sitting behind a client library that retries, in a network shared with other tenants, on hosts with garbage collectors and page caches and neighbours, across availability zones with real latency |
+| Operational reality | every one of those layers can turn Asha's assumed Δ into a lie for a few seconds, and every time it does, she is briefly in tab 2 |
 
-**Operational reality** → every one of those layers can turn your assumed Δ into
-a lie for a few seconds, and every time it does, you are briefly in tab 2.
+### 13.2 What does each real system assume?
 
-### 13.2 What the real systems assume
+Every row buys liveness the same way. Only the knob names differ.
 
 | System | Consensus | The assumption it buys liveness with |
 |---|---|---|
@@ -1100,94 +1389,113 @@ a lie for a few seconds, and every time it does, you are briefly in tab 2.
 | **Spanner** | Paxos per shard | partial synchrony for liveness; **TrueTime is for external consistency, not for finishing** |
 | **CockroachDB** | Raft per range | partial synchrony; HLC uncertainty for reads |
 
-The Spanner row deserves a sentence, because it is a natural place to be
-misled. Your `google-spanner` lab established that TrueTime's ε buys *external
-consistency* by making a writer wait out its uncertainty. It does **not** buy
-liveness and it does not touch FLP: Spanner still runs Paxos, and a Spanner
-Paxos group can still fail to elect a leader. **Atomic clocks do not repeal the
-theorem; they buy a tighter bound on one specific thing, and the bill is paid in
-commit wait, not in termination guarantees.**
+> **🔮 Predict:** *Arjun points at the Spanner row and says atomic clocks solve
+> this: with TrueTime, Google knows how long things take, so FLP does not apply
+> to Spanner. Is he right?*
+> <details><summary>Reveal</summary>
+> No. Your <code>google-spanner</code> lab established what TrueTime's ε
+> actually buys: <b>external consistency</b>, by making a writer wait out its
+> own uncertainty before committing. It does not buy liveness and it does not
+> touch FLP. Spanner still runs Paxos, and a Spanner Paxos group can still fail
+> to elect a leader. If you said "yes, because bounded clock error means bounded
+> delay", notice that those are different quantities: knowing <i>what time it
+> is</i> to within ε tells you nothing about <i>when a packet will arrive</i>.
+> <b>Atomic clocks do not repeal the theorem. They buy a tighter bound on one
+> specific thing, and the bill is paid in commit wait, not in termination
+> guarantees.</b>
+> </details>
 
-### 13.3 What to put on a dashboard
+### 13.3 What belongs on Asha's dashboard?
 
-Split them by what they actually tell you:
+Split the metrics by what they actually tell her. The first group says the
+system is failing right now. The second group says her assumption is eroding,
+which is the one that gives her time to act.
 
-**Liveness is failing right now:**
-- **time since last commit** on each Raft/Paxos group — the single best grey-failure detector, and the one most clusters don't have
-- **commit index advance rate** (should never flatline while writes are arriving)
-- **time without a leader**, cumulative per hour
-- **leader elections per hour** — steady-state should be ≈ 0; anything else is sighting #1
+**Liveness is failing right now.**
 
-**Your Δ assumption is eroding (alarm before it bites):**
-- **GC pause p99 / p999** — a correctness signal, not a performance one. The
-  `split-brain` lab's 190× collapse is the shape to look for.
-- **fsync / disk write p99** on the consensus data directory — Raft cannot
-  acknowledge until the write is durable, so disk tail latency *is* consensus
-  latency
-- **peer-to-peer RTT p99** between members
-- the ratio **election timeout ÷ observed broadcast time** — if it is not
-  comfortably above 10, you are running close to the edge
+| Metric | What it tells Asha |
+|---|---|
+| **time since last commit**, per Raft or Paxos group | the single best grey-failure detector, and the one most clusters don't have |
+| **commit index advance rate** | it should never flatline while writes are arriving |
+| **time without a leader**, cumulative per hour | how much of the hour the cluster spent unable to finish anything |
+| **leader elections per hour** | steady state should be about 0; anything else is sighting 1 |
 
-**Rules of thumb:** `broadcastTime ≪ electionTimeout ≪ MTBF` (from `raft`).
-Alarm on the *ratio*, not the absolute numbers, because the absolute numbers
-change when you move hosts.
+**Her Δ assumption is eroding, so alarm before it bites.**
 
-### 13.4 The tuning knobs, and which word each attacks
+| Metric | What it tells Asha |
+|---|---|
+| **GC pause p99 / p999** | a correctness signal, not a performance one; the 190× collapse in `split-brain` is the shape to look for |
+| **fsync / disk write p99** on the consensus data directory | Raft cannot acknowledge until the write is durable, so disk tail latency *is* consensus latency |
+| **peer-to-peer RTT p99** between members | the raw material her Δ is made of |
+| **election timeout ÷ observed broadcast time** | if this ratio is not comfortably above 10, she is running close to the edge |
+
+The rule of thumb from `raft` is `broadcastTime ≪ electionTimeout ≪ MTBF`. Alarm
+on the *ratio*, not on the absolute numbers, because the absolute numbers change
+the day she moves hosts.
+
+### 13.4 Which knob attacks which word?
+
+Six knobs. The middle column names the word of the theorem each one is aimed at,
+which is the fastest way to tell a real fix from theatre.
 
 | Knob | Attacks | What it really does |
 |---|---|---|
-| election timeout / heartbeat interval | **asynchronous** | sets your assumed Δ. Lower = faster failover, more false positives. |
-| randomised timeout range | **deterministic** (weakly) | makes collisions self-correcting; does nothing about delay (§12.4) |
-| Raft **pre-vote** | — | stops a partitioned node disrupting a healthy cluster with a bumped term when it returns |
+| election timeout / heartbeat interval | **asynchronous** | sets your assumed Δ. Lower means faster failover and more false positives. |
+| randomised timeout range | **deterministic** (weakly) | makes collisions self-correcting; does nothing about delay (stage 12.4) |
+| Raft **pre-vote** | nothing in the theorem | stops a partitioned node disrupting a healthy cluster with a bumped term when it returns |
 | **check-quorum** / leader leases | **asynchronous** | a leader that cannot reach a majority steps down instead of pretending |
 | CPU pinning, dedicated disks, no co-tenancy | **asynchronous** | the honest way to tighten Δ: make the tail latency actually smaller |
-| adding replicas | *nothing* | raises crash tolerance, does not help liveness at all (§11, sighting 6) |
+| adding replicas | nothing at all | raises crash tolerance, does not help liveness in the slightest (stage 11, sighting 6) |
 
-The last row is the one to remember in a meeting.
+The last row is the one to remember in a meeting with Dev.
 
-### 13.5 What this lab deliberately leaves out
+### 13.5 What did this lab deliberately leave out?
 
-Named, so you know what you have *not* yet learned:
+Named, so you know what you have *not* yet learned.
 
 - **Persistence.** The keepers never forget. Real acceptors must flush their
-  promise and acceptance to disk before replying — the `paxos` lab measured what
-  amnesia does (two different values chosen, every node obeying the protocol).
-- **Replicated logs.** This is single-decree: one value, once. Real systems agree
-  on an unbounded sequence, which brings log matching, compaction and snapshots
-  (`raft`).
+  promise and acceptance to disk before replying. The `paxos` lab shows what
+  amnesia does: two different values chosen, with every node obeying the
+  protocol.
+- **Replicated logs.** This is single-decree, meaning one value, once. Real
+  systems agree on an unbounded sequence, which brings log matching, compaction
+  and snapshots (`raft`).
 - **Membership changes.** Adding and removing nodes safely is its own hard
   problem.
-- **Message loss and duplication.** The ferryman is *reliable* on purpose — that
-  is what makes the result strong. Real networks lose and duplicate, which is
+- **Message loss and duplication.** Omar is *reliable* on purpose, and that is
+  what makes the result strong. Real networks lose and duplicate, which is
   strictly worse, and is why `idempotency` exists.
 - **Network partitions.** Also on purpose, and also strictly worse. That is
   `cap-theorem` and `split-brain`.
 - **Byzantine failures.** Processes here stop; they never lie. PBFT and friends
   are a different and harder world.
-- **Ben-Or's randomised protocol.** Described in §12.4, not simulated — it needs
-  a different protocol from the one in the visualization, and the lab says so
-  rather than pretending.
+- **Ben-Or's randomised protocol.** Described in stage 12.4 and not simulated,
+  because it needs a different protocol from the one in the visualization. The
+  lab says so rather than pretending.
 - **More than three processes**, batching, pipelining, flow control, and real
-  wall-clock time. Steps here are abstract; a "step" is not a millisecond.
+  wall-clock time. Steps here are abstract. A "step" is not a millisecond.
 
-### 13.6 How to say this to another human
+### 13.6 How do you say this to another human?
 
-In a postmortem: *"The cluster went 40 seconds without a leader. That is not a
-bug we can close — no consensus protocol can guarantee an upper bound on that,
-and ours doesn't claim to. What we can do is make it rarer and shorter: the
-trigger was a 400 ms GC pause exceeding our 300 ms election timeout, so we are
-raising the timeout to 1 s and alarming on GC p99."*
+Three scripts. The words matter, because the failure mode here is being heard as
+making excuses.
 
-In a design review: *"Agreement is unconditional; it holds no matter what the
-network does. Termination is conditional on our timing assumptions. If we need a
-hard latency bound on writes, consensus cannot give us one, and we should be
-designing a fallback rather than tuning."*
+**Asha, writing the postmortem.** *"The cluster went 40 seconds without a
+leader. That is not a bug we can close. No consensus protocol can guarantee an
+upper bound on that, and ours doesn't claim to. What we can do is make it rarer
+and shorter. The trigger was a 400 ms GC pause exceeding our 300 ms election
+timeout. So we are raising the timeout to 1 s and alarming on GC p99."*
 
-In an interview, the compressed version: *"FLP says no deterministic protocol in
-an asynchronous system with one possible crash can guarantee safety and
-termination together, because you cannot distinguish a slow process from a dead
-one. Real systems keep safety unconditionally and buy liveness with partial
-synchrony — which is what an election timeout is."*
+**Asha, in a design review with Priya.** *"Agreement is unconditional; it holds
+no matter what the network does. Termination is conditional on our timing
+assumptions. If we need a hard latency bound on writes, consensus cannot give us
+one, and we should be designing a fallback rather than tuning."*
+
+**You, in an interview, compressed.** *"FLP says no deterministic protocol in an
+asynchronous system with one possible crash can guarantee safety and termination
+together, because you cannot distinguish a slow process from a dead one. Real
+systems keep safety unconditionally and buy liveness with partial synchrony,
+which is what an election timeout is."*
 
 > **✅ CHECKPOINT — end of the production model.**
 > You can now read a consensus system's configuration and say which assumption
@@ -1195,33 +1503,56 @@ synchrony — which is what an election timeout is."*
 > what you would see on a dashboard when it does, and which of the proposed
 > fixes are real and which are theatre.
 
+> **Say it back.** Priya asks for a guaranteed 500 ms upper bound on transfer
+> confirmation. Answer her in your own words, without the word *consensus*.
+> <details><summary>A good answer sounds like</summary>
+> "I can promise you that we will never confirm a transfer twice and never
+> confirm one that did not happen. That promise holds no matter how badly the
+> network behaves. What I cannot promise is a hard ceiling on how long
+> confirmation takes, because the machines have to agree with each other first,
+> and there is no way to tell a machine that is slow from one that is dead
+> without waiting — and waiting is the thing you want me to bound. What I can
+> give you is a number we hit almost all the time, an alarm when we stop hitting
+> it, and a defined behaviour for the rare case: we hold the transfer and tell
+> the customer it is pending, rather than guessing."
+> </details>
+
 ---
 
-## 14. EXERCISES
+## 14. Where are the exercises?
 
-`EXERCISES.md` — eight rungs, from "explain it in your own words" to a
-production design prompt. All pencil-and-paper or visualization work; no code.
-Answers in `SOLUTIONS.md`. Start with rung 3 (Predict) if you are short on time —
-it is the one that reveals whether the model actually landed.
+> **In one breath:** Eight rungs, from "explain it in your own words" to a
+> production design prompt. No code, only pencil, paper and the visualization.
 
-## 15. KNOWLEDGE MAP & NEXT STEPS
+`EXERCISES.md` has eight rungs, from "explain it in your own words" up to a
+production design prompt. All of it is pencil-and-paper or visualization work,
+and there is no code to write. Answers are in `SOLUTIONS.md`.
+
+Short on time? Start with rung 3, the Predict rung. It is the one that reveals
+whether the model actually landed.
+
+## 15. What connects to this, and what should you learn next?
+
+> **In one breath:** Five labs led here. Five more lead out. And three famous
+> results get confused with this one, so it is worth being able to separate them
+> in one sentence each.
 
 ```mermaid
-graph TD
-  CAP["cap-theorem<br/>learned — the partition tradeoff"] --> FLP
-  PAX["paxos<br/>learned — livelock, safety vs liveness"] --> FLP
-  RAFT["raft<br/>learned — randomised timeouts"] --> FLP
-  SB["split-brain<br/>learned — 'no observation would tell S2'"] --> FLP
-  GOS["gossip-protocols<br/>learned — the fallible failure detector"] --> FLP
-  FLP["<b>FLP IMPOSSIBILITY</b><br/>this lab<br/>why liveness cannot be promised"]
-  FLP --> DLS["partial-synchrony (DLS 1988)<br/>the model your cluster really uses"]
-  FLP --> FD["failure-detectors<br/>Chandra–Toueg, ◇W"]
-  FLP --> BENOR["randomised-consensus<br/>Ben-Or, probability-1 termination"]
-  FLP --> PBFT["byzantine-fault-tolerance<br/>when processes lie"]
-  FLP --> ATOMIC["atomic-broadcast<br/>equivalent to consensus"]
+flowchart TD
+  CAP["cap-theorem<br>learned — the partition tradeoff"] --> FLP
+  PAX["paxos<br>learned — livelock, safety vs liveness"] --> FLP
+  RAFT["raft<br>learned — randomised timeouts"] --> FLP
+  SB["split-brain<br>learned — 'no observation would tell S2'"] --> FLP
+  GOS["gossip-protocols<br>learned — the fallible failure detector"] --> FLP
+  FLP["<b>FLP IMPOSSIBILITY</b><br>this lab<br>why liveness cannot be promised"]
+  FLP --> DLS["partial-synchrony (DLS 1988)<br>the model your cluster really uses"]
+  FLP --> FD["failure-detectors<br>Chandra–Toueg, ◇W"]
+  FLP --> BENOR["randomised-consensus<br>Ben-Or, probability-1 termination"]
+  FLP --> PBFT["byzantine-fault-tolerance<br>when processes lie"]
+  FLP --> ATOMIC["atomic-broadcast<br>equivalent to consensus"]
 ```
 
-**Commonly confused with — one sentence each:**
+**Commonly confused with, one sentence each.**
 
 - **CAP theorem** — CAP is about staying available when the network *cuts*; FLP
   is about finishing when the network is *whole but untimed*.
@@ -1232,11 +1563,11 @@ graph TD
 - **CAP's "P"** — a partition is a fault you survive; asynchrony is a property of
   the model you live in permanently.
 
-**Real technologies where this shows up:** etcd, ZooKeeper, Consul, Kafka's
+**Real technologies where this shows up.** etcd, ZooKeeper, Consul, Kafka's
 KRaft controller, CockroachDB, Spanner, Cassandra's lightweight transactions,
-every leader-elected service you have ever paged for.
+and every leader-elected service you have ever paged for.
 
-**Suggested next:**
+**Suggested next.**
 
 ```
 /learn partial-synchrony        # the DLS 1988 model your cluster actually assumes
@@ -1246,12 +1577,15 @@ every leader-elected service you have ever paged for.
 /learn multipaxos               # still open from the paxos lab
 ```
 
-`partial-synchrony` is the natural next one: this lab tells you the escape
-exists, and that lab is where the escape is built.
+`partial-synchrony` is the natural next one. This lab tells you the escape
+exists. That lab is where the escape is built.
 
-## 16. GLOSSARY
+## 16. GLOSSARY — what does each word mean, precisely?
 
-In order of first appearance.
+> **In one breath:** Seven small tables instead of one long one, grouped by the
+> question each set of words answers.
+
+#### What are we asking the keepers for?
 
 | Term | One line |
 |---|---|
@@ -1261,31 +1595,128 @@ In order of first appearance.
 | **Consensus** | Agreement + Validity + Termination together. |
 | **Safety** | A promise that nothing bad ever happens; violated by a finite prefix of a run. |
 | **Liveness** | A promise that something good eventually happens; only ever violated by an infinite run. |
+
+#### What kind of world are they living in?
+
+| Term | One line |
+|---|---|
 | **Asynchronous system** | No bound on message delay, no bound on relative process speed, no synchronised clocks. |
 | **Synchronous system** | Known bounds exist, so an expired timeout is proof of a crash. |
+| **Partial synchrony** | Bounds on delay and speed exist but are unknown, or only begin to hold after some unknown moment. (Dwork, Lynch & Stockmeyer, 1988.) |
+| **GST (Global Stabilization Time)** | The unknown moment after which the timing bounds start holding. |
+
+#### How is a keeper allowed to fail, and who notices?
+
+| Term | One line |
+|---|---|
 | **Crash failure** | A process stops permanently, without warning, and never lies or comes back. |
 | **Non-Byzantine** | The failure model in which processes may stop but never behave maliciously. |
+| **Failure detector** | A component that offers hints — possibly wrong — about which processes have crashed. |
+| **◇W** | "Eventually weak": eventually stops suspecting some correct process and eventually suspects every crashed one. The weakest failure detector that solves consensus with a correct majority. (Chandra, Hadzilacos & Toueg, 1996.) |
+| **Grey failure** | A component alive enough to pass health checks but too degraded to make progress. |
+
+#### What are the proof's moving parts?
+
+| Term | One line |
+|---|---|
 | **Step** | One process reading its mailbox once and reacting; the atom of execution. |
 | **Event** | A step described as the pair *(process, message received)*. |
 | **Null step** | A step in which `receive` returns nothing — the only thing a timeout can be in a clockless model. |
 | **Configuration** | A complete snapshot: every process's state plus every message in flight. |
+
+#### What does the adversary control?
+
+| Term | One line |
+|---|---|
 | **Schedule** | A sequence of events applied one after another from a configuration. |
 | **Run** | A schedule actually executed. |
 | **Admissible run** | A run in which at most one process is faulty and every message to a correct process is eventually delivered — the adversary's fairness contract. |
 | **Deterministic** | Same state plus same input always produces the same behaviour; no coin flips, no clock reads. |
+
+#### Which endings can still happen?
+
+| Term | One line |
+|---|---|
 | **Valency** | Which decisions are still reachable from a configuration. |
 | **Bivalent** | Both 0 and 1 are still reachable — the future is genuinely open. |
 | **Univalent** | Only one value is still reachable; the outcome is sealed even if nobody knows it. **0-valent** / **1-valent** name which. |
+
+#### What does the protocol, and the production system, use?
+
+| Term | One line |
+|---|---|
 | **Attempt number** | This lab's word for a Paxos proposal number / Raft term; a totally ordered ballot identifier. |
 | **Quorum** | A majority; any two quorums share at least one member. (From `quorums-and-replication`.) |
 | **Livelock** | Continuous activity that never makes progress — the everyday face of an FLP run. |
-| **Partial synchrony** | Bounds on delay and speed exist but are unknown, or only begin to hold after some unknown moment. (Dwork, Lynch & Stockmeyer, 1988.) |
-| **GST (Global Stabilization Time)** | The unknown moment after which the timing bounds start holding. |
-| **Failure detector** | A component that offers hints — possibly wrong — about which processes have crashed. |
-| **◇W** | "Eventually weak": eventually stops suspecting some correct process and eventually suspects every crashed one. The weakest failure detector that solves consensus with a correct majority. (Chandra, Hadzilacos & Toueg, 1996.) |
-| **Grey failure** | A component alive enough to pass health checks but too degraded to make progress. |
 | **Pre-vote** | A Raft extension in which a candidate checks it could win before raising the term, preventing a returning partitioned node from disrupting a healthy cluster. |
 | **Check-quorum** | A leader that cannot reach a majority steps down instead of continuing to act as leader. |
+
+---
+
+## 17. About this lab
+
+**What it is made of.** Four files, and nothing to install.
+
+| File | What it is |
+|---|---|
+| `README.md` | this document — 16 stages plus this appendix, four depth layers |
+| `visualization.html` | **The Ferryman's Choice** — you play the adversary against a real protocol · <https://claude.ai/code/artifact/59306f2a-8884-4ffa-b06c-81faf73ad1d5> |
+| `EXERCISES.md` | eight rungs, pencil-and-paper plus the visualization |
+| `SOLUTIONS.md` | worked answers |
+
+**How the numbers in this document were produced.** Every measured figure above
+comes from the simulation engine inside `visualization.html`. That engine runs a
+real single-decree Paxos with attempt numbers handed out in rotation, which is
+the `paxos` lab's protocol with rotating proposers. It is exercised by a
+**71-check headless harness** covering every scenario's stated outcome, both
+schedulers, the escapes, the commutation audit, and the crash argument. Where a
+claim is a *proof* rather than a measurement, the text says so. Where something
+is asserted but not run, such as Ben-Or's protocol in stage 12.4, the text says
+that too.
+
+**What the measurements are and are not.** A run of the simulator is evidence
+that this lab's model behaves the way the proof says it must. It is not a proof,
+and it is not a statement about any production implementation. The proof in
+stage 10.5 is the reason to believe the result. The runs are the reason to
+believe this lab is not lying to you about the proof. The Fact B commutation
+audit is the clearest case: an earlier version of the engine was verified
+against it and *failed*, which is how the global-variable bug in stage 10.5 was
+found.
+
+**Where this sits among your other labs.** You have already met this result
+twice without being told what it was.
+
+- In **`paxos`**, two proposers gazumped each other forever. Round 1, round 2,
+  round 3, nothing chosen. That lab said *"it is not a bug in Paxos; it is a
+  consequence of the FLP result."* This lab is that consequence.
+- In **`split-brain`**, at t=70, S2 declared S1 dead. The lab wrote: *"This
+  verdict is WRONG, and there is no observation available to S2 that would tell
+  it so."* That sentence is FLP's engine room. You found it empirically; here you
+  find out it is a theorem.
+- In **`raft`**, randomised election timeouts were the scar of a real stall.
+  This lab explains exactly which word of the theorem they attack. And,
+  uncomfortably, it shows they attack a *different* word than most people think.
+
+**The sentence people get wrong.** FLP does **not** say that agreeing is
+impossible. Your Raft cluster elects leaders every day. FLP says nobody can put
+a *guarantee* on the finishing part. Every system which appears to have one has
+quietly changed the world it lives in, and you are responsible for maintaining
+that change in production. Stage 5 names the three properties. Stage 7 explains
+why "always behaves the same way", whose technical word is *deterministic*, is
+one of the four words in the theorem you are allowed to attack.
+
+**The cast, and where else you meet them.** Ada, Bo and Cy keep the three
+lighthouses. Omar rows the boat and plays the adversary. The rest are the
+workspace's recurring engineers, and you will meet them in the neighbouring
+labs.
+
+| Who | What they do here | Where they turn up |
+|---|---|---|
+| **Asha** | runs the five-machine payments cluster | stages 1, 4, 7, 11, 12, 13 |
+| **Meera** | on call with Asha; asks the question the lab exists to answer | stages 1, 9, 11 |
+| **Ben** | says "then use a better protocol", and later "randomised timeouts fix it" | stages 6, 10.5, 11, 12.4 |
+| **Dev** | wants to add replicas | stages 8, 11, 12.2, 13.4 |
+| **Arjun**, **Priya** | Arjun tunes the timeouts and defends TrueTime; Priya asks for the guarantee nobody can give her | stages 11, 12.2, 13 |
 
 ---
 
