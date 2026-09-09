@@ -78,7 +78,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-10 rewritten, 37 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+13 rewritten, 34 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -99,7 +99,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 13 | `redis` | queued | 8 labels repeated as a template |
 | 14 | `tls` | **rewritten** | re-delivered 2026-09-08 |
 | 15 | `ssh` | queued | 7 labels repeated as a template; symbols before words |
-| 16 | `java-multithreading` | queued | 76 lines of meta before the story; 12 labels repeated as a template; 28 measurement asides in the prose |
+| 16 | `java-multithreading` | **rewritten** | re-delivered 2026-09-09 |
 | 17 | `java-memory-model` | no README yet | visualization and source only; writing it is the top item in the gaps list |
 | 18 | `java-virtual-threads` | reads well, left as-is |  |
 | 19 | `structured-concurrency` | reads well, left as-is |  |
@@ -124,7 +124,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 38 | `anti-entropy` | queued | 57 lines of meta before the story; 33 measurement asides in the prose |
 | 39 | `paxos` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
 | 40 | `raft` | **rewritten** | re-delivered 2026-09-08 |
-| 41 | `zab` | queued | 72 lines of meta before the story; 11 labels repeated as a template |
+| 41 | `zab` | **rewritten** | re-delivered 2026-09-09 |
 | 42 | `split-brain` | **rewritten** | re-delivered 2026-09-09 |
 | 43 | `distributed-locking` | reads well, left as-is |  |
 | 44 | `jepsen` | reads well, left as-is |  |
@@ -134,7 +134,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 48 | `transactional-outbox` | reads well, left as-is |  |
 | 49 | `idempotency` | reads well, left as-is |  |
 | 50 | `event-sourcing` | reads well, left as-is |  |
-| 51 | `cqrs` | queued | 116 lines of meta before the story |
+| 51 | `cqrs` | **rewritten** | re-delivered 2026-09-09 |
 | 52 | `change-data-capture` | queued | 5 labels repeated as a template; symbols before words |
 | 53 | `kafka` | queued | 57 lines of meta before the story |
 | 54 | `idempotent-consumer` | queued | 67 lines of meta before the story |
