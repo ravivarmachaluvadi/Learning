@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-32 rewritten, 15 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+35 rewritten, 12 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -115,15 +115,15 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 26 | `linearizability` | **rewritten** | re-delivered 2026-09-09 |
 | 27 | `linearizability-vs-serializability` | reads well, left as-is |  |
 | 28 | `eventual-consistency` | reads well, left as-is |  |
-| 29 | `causal-consistency` | queued | 52 lines of meta before the story; 8 labels repeated as a template |
+| 29 | `causal-consistency` | **rewritten** | re-delivered 2026-09-09 |
 | 30 | `clock-synchronization` | **rewritten** | re-delivered 2026-09-09 |
 | 31 | `hybrid-logical-clocks` | reads well, left as-is |  |
-| 32 | `crdts` | queued | 49 lines of meta before the story |
+| 32 | `crdts` | **rewritten** | re-delivered 2026-09-09 |
 | 33 | `flp-impossibility` | **rewritten** | re-delivered 2026-09-09 |
 | 34 | `quorums-and-replication` | **rewritten** | re-delivered 2026-09-08 |
 | 35 | `consistent-hashing` | **rewritten** | re-delivered 2026-09-09 |
 | 36 | `partitioning-and-rebalancing` | reads well, left as-is |  |
-| 37 | `gossip-protocols` | queued | 12 labels repeated as a template |
+| 37 | `gossip-protocols` | **rewritten** | re-delivered 2026-09-09 |
 | 38 | `anti-entropy` | **rewritten** | re-delivered 2026-09-09 |
 | 39 | `paxos` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
 | 40 | `raft` | **rewritten** | re-delivered 2026-09-08 |

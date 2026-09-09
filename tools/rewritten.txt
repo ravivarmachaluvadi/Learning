@@ -33,3 +33,6 @@ mongodb 2026-09-09
 idempotent-consumer 2026-09-09
 flp-impossibility 2026-09-09
 kafka-exactly-once 2026-09-09
+causal-consistency 2026-09-09
+crdts 2026-09-09
+gossip-protocols 2026-09-09
