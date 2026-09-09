@@ -139,7 +139,7 @@ one grey tick.
 ## Rung 6 — Debug
 
 Three bugs are planted behind flags. Each one disables exactly one invariant
-from stage 12 of the [README](README.md#12--correctness--what-is-promised-what-is-not-what-was-sold-to-get-it).
+from stage 12 of the [README](README.md#12-what-is-promised-what-is-not-and-what-was-sold-to-get-it).
 
 ```bash
 java src/Tests.java bug=delete-on-push
