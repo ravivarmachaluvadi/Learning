@@ -42,3 +42,6 @@ database-landscape 2026-09-09
 whatsapp-system-design 2026-09-09
 uber-system-design 2026-09-09
 google-docs-system-design 2026-09-09
+redis 2026-09-09
+ssh 2026-09-09
+change-data-capture 2026-09-09

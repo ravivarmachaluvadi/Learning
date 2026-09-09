@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-41 rewritten, 6 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+44 rewritten, 3 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -99,9 +99,9 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 10 | `optimistic-vs-pessimistic-locking` | reads well, left as-is |  |
 | 11 | `caching` | reads well, left as-is |  |
 | 12 | `http-caching` | reads well, left as-is |  |
-| 13 | `redis` | queued | 8 labels repeated as a template |
+| 13 | `redis` | **rewritten** | re-delivered 2026-09-09 |
 | 14 | `tls` | **rewritten** | re-delivered 2026-09-08 |
-| 15 | `ssh` | queued | 7 labels repeated as a template; symbols before words |
+| 15 | `ssh` | **rewritten** | re-delivered 2026-09-09 |
 | 16 | `java-multithreading` | **rewritten** | re-delivered 2026-09-09 |
 | 17 | `java-memory-model` | no README yet | visualization and source only; writing it is the top item in the gaps list |
 | 18 | `java-virtual-threads` | reads well, left as-is |  |
@@ -138,7 +138,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 49 | `idempotency` | reads well, left as-is |  |
 | 50 | `event-sourcing` | reads well, left as-is |  |
 | 51 | `cqrs` | **rewritten** | re-delivered 2026-09-09 |
-| 52 | `change-data-capture` | queued | 5 labels repeated as a template; symbols before words |
+| 52 | `change-data-capture` | **rewritten** | re-delivered 2026-09-09 |
 | 53 | `kafka` | **rewritten** | re-delivered 2026-09-09 |
 | 54 | `idempotent-consumer` | **rewritten** | re-delivered 2026-09-09 |
 | 55 | `kafka-exactly-once` | **rewritten** | re-delivered 2026-09-09 |
