@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-38 rewritten, 9 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+41 rewritten, 6 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -155,7 +155,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 66 | `google-spanner` | **rewritten** | re-delivered 2026-09-09 |
 | 67 | `cockroachdb` | **rewritten** | re-delivered 2026-09-09 |
 | 68 | `mongodb` | **rewritten** | re-delivered 2026-09-09 |
-| 69 | `whatsapp-system-design` | queued | 10 labels repeated as a template |
-| 70 | `uber-system-design` | queued | 12 labels repeated as a template |
-| 71 | `google-docs-system-design` | queued | 5 labels repeated as a template |
+| 69 | `whatsapp-system-design` | **rewritten** | re-delivered 2026-09-09 |
+| 70 | `uber-system-design` | **rewritten** | re-delivered 2026-09-09 |
+| 71 | `google-docs-system-design` | **rewritten** | re-delivered 2026-09-09 |
 <!-- BACKLOG:END -->
