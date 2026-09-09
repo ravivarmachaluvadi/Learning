@@ -11,7 +11,8 @@ Columns:
   lbls    how many distinct labels repeat
   meas    epistemic asides: "measured", "verified", "headless"… (rule 8: target < 5)
   state   compact state strings like A[p=2 wrote=Zoo@1] (rule 4: target 0 in narrative)
-  id_n    snake_case identifiers (rule 4: fine if each was introduced in words first)
+  id_n    DISTINCT snake_case identifiers left in prose, outside tables and code
+          fences (rule 4: each should have been introduced in words first)
   cont%   share of later sections that still mention the story's characters (rule 2: target > 60)
   q-hdr   headings containing a question mark (rule 3)
   tsv     words in the opening "three-sentence version" blockquote
@@ -40,8 +41,17 @@ for d in ([os.path.basename(os.path.abspath(ROOT))] if SINGLE else sorted(os.lis
     # 3. epistemic asides
     meas=len(re.findall(r"\b(measured|on this machine|headless|verified|reproduc|simulator'?s? (?:own )?engine)\w*",raw,flags=re.I))
     # 4. compact state notation / symbols
-    state=len(re.findall(r"\b[A-Z]\[[a-z]+=",raw))+len(re.findall(r"\(\s*n\s*[,=]",raw))
-    idn=len(re.findall(r"\b[a-zA-Z]+_[a-zA-Z0-9]+\b",raw))
+    # The rule is "no bare symbol in narrative prose" — a symbol sitting in a
+    # table with an "in words" column, or inside a code fence, is exactly where
+    # the style contract wants it. So count notation in the prose only.
+    prose=re.sub(r"```.*?```"," ",raw,flags=re.S)          # code fences
+    prose=re.sub(r"^\s*\|.*$"," ",prose,flags=re.M)         # table rows
+    # Count DISTINCT identifiers, not occurrences. The rule is about how many
+    # different symbols get dumped on the reader before their words; a symbol
+    # that was properly introduced and is then used thirty times is correct
+    # writing, not a violation.
+    state=len(re.findall(r"\b[A-Z]\[[a-z]+=",prose))+len(re.findall(r"\(\s*n\s*[,=]",prose))
+    idn=len(set(re.findall(r"\b[a-zA-Z]+_[a-zA-Z0-9]+\b",prose)))
     # 5. story continuity: capitalised words that appear >=3 times within the first 4 sections, then which % of later H2 sections mention any
     secs=re.split(r"^## ",raw,flags=re.M)
     story="\n".join(secs[1:6]); later=secs[9:] if len(secs)>10 else secs[6:]
