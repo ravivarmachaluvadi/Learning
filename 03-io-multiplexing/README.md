@@ -752,8 +752,19 @@ Same idea, three generations. **`epoll` is Linux; `kqueue` is BSD and macOS.**
 Java hides the difference behind one portable façade, `Selector`. You can ask
 your own machine which one it picked:
 
+Save these four lines as `Probe.java` and run `java Probe.java`:
+
+```java
+import java.nio.channels.Selector;
+public class Probe {
+  public static void main(String[] a) throws Exception {
+    System.out.println("Selector impl on this OS : "
+        + Selector.open().getClass().getName());
+  }
+}
 ```
-$ java Probe.java
+
+```
 Selector impl on this OS : sun.nio.ch.KQueueSelectorImpl
 ```
 
@@ -1286,8 +1297,16 @@ the [java-virtual-threads](../18-java-virtual-threads/README.md) lab.
 You do not have to take that on trust. Ask your own JVM whether the poller
 classes are there:
 
+Extend the same `Probe.java` with a loop that asks for each class by name:
+
+```java
+for (String n : new String[]{"sun.nio.ch.Poller", "sun.nio.ch.KQueuePoller"}) {
+  try { Class.forName(n); System.out.println("present : " + n); }
+  catch (ClassNotFoundException e) { System.out.println("absent  : " + n); }
+}
 ```
-$ java Probe.java
+
+```
 present : sun.nio.ch.Poller
 present : sun.nio.ch.KQueuePoller     ← macOS; on Linux this is EPollPoller
 ```
