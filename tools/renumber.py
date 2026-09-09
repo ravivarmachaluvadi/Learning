@@ -159,9 +159,14 @@ def main():
                 os.rename(src, dst)
         n = rewrite_links(renames)
         # LEARNING-PATH.md link targets
-        text = read(PATH_MD)
-        text = LINE_RE.sub(lambda m: f"{m.group(1)}. [`{m.group(2)}`]({folder_for(m.group(1), m.group(2))}/README.md)", text)
-        write(PATH_MD, text)
+        # Rewrite only the folder part of each link, so a lab that points at
+        # something other than README.md (java-memory-model has no README, only
+        # a visualization) keeps pointing at the file it actually has.
+        def fix(m):
+            number, slug, target = m.group(1), m.group(2), m.group(3)
+            tail = target.split("/", 1)[1] if "/" in target else "README.md"
+            return f"{number}. [`{slug}`]({folder_for(number, slug)}/{tail})"
+        write(PATH_MD, LINE_RE.sub(fix, read(PATH_MD)))
         bad = check_links()
         print(f"renamed {len(renames)} folders, rewrote links in {n} files, {len(bad)} broken links remain")
         for f, t in bad[:50]:

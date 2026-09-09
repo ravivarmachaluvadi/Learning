@@ -51,7 +51,7 @@ Almost every distributed bug is a single-machine bug that got a network wrapped 
 Still one machine, but now several things happen at once inside it. This is where "can both be in here at once?" and "is either guaranteed to see the other?" are first asked — the same two questions the distributed stages ask across machines. Nothing here depends on the stages after it, and nothing after it depends on this block until production, where tuning and queueing meet.
 
 16. [`java-multithreading`](16-java-multithreading/README.md) ↳2 — Two questions only: can both be in here at once, and is either guaranteed to see the other.
-17. [`java-memory-model`](17-java-memory-model/README.md) ↳8 — Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
+17. [`java-memory-model`](17-java-memory-model/visualization.html) ↳8 — **no README yet; the link opens the visualization.** Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
 18. [`java-virtual-threads`](18-java-virtual-threads/README.md) ↳8 — A cheap heap-backed thread. Blocking parks the stack and frees the carrier, so waiting is nearly free.
 19. [`structured-concurrency`](19-structured-concurrency/README.md) ↳3 — Confine every subtask's lifetime to a block. Errors flow up, cancellation flows down.
 20. [`scoped-values`](20-scoped-values/README.md) ↳2 — An invisible final parameter for everything below a block — and the cure for ThreadLocal's diseases.
