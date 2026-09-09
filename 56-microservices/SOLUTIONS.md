@@ -108,7 +108,7 @@ normal latency**, because 100 threads are free.
 That is exactly the right outcome, and it is worth saying out loud why: the
 timeout did not fix checkout and was never going to — `payments` is broken.
 What it did was **convert a total service outage into a single broken feature**.
-That is what all of stage 10f buys: not success, but containment.
+That is what all of section 10f buys: not success, but containment.
 
 **3.4** Fan-out 6, p = 0.01: `1 − 0.99^6 = 1 − 0.9415 = 5.85%`. Fan-out 40:
 `1 − 0.99^40 = 1 − 0.6690 = 33.1%`. So a dependency's p99 becomes roughly the
