@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-13 rewritten, 34 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+16 rewritten, 31 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -109,7 +109,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 20 | `scoped-values` | reads well, left as-is |  |
 | 21 | `java-version-features` | queued | 69 lines of meta before the story; 13 labels repeated as a template |
 | 22 | `jvm-garbage-collectors` | queued | 89 lines of meta before the story; 11 labels repeated as a template |
-| 23 | `jvm-performance-tuning` | queued | 100 lines of meta before the story; 7 labels repeated as a template |
+| 23 | `jvm-performance-tuning` | **rewritten** | re-delivered 2026-09-09 |
 | 24 | `cap-theorem` | reads well, left as-is |  |
 | 25 | `pacelc` | reads well, left as-is |  |
 | 26 | `linearizability` | **rewritten** | re-delivered 2026-09-09 |
@@ -143,9 +143,9 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 54 | `idempotent-consumer` | queued | 67 lines of meta before the story |
 | 55 | `kafka-exactly-once` | queued | 63 lines of meta before the story; 8 labels repeated as a template; symbols before words |
 | 56 | `microservices` | queued | 11 labels repeated as a template |
-| 57 | `queueing-theory` | queued | 83 lines of meta before the story; 11 labels repeated as a template; 42 measurement asides in the prose |
+| 57 | `queueing-theory` | **rewritten** | re-delivered 2026-09-09 |
 | 58 | `load-shedding` | queued | 98 lines of meta before the story; 41 measurement asides in the prose |
-| 59 | `load-balancing` | queued | 148 lines of meta before the story; 29 measurement asides in the prose |
+| 59 | `load-balancing` | **rewritten** | re-delivered 2026-09-09 |
 | 60 | `distributed-rate-limiting` | queued | 4 labels repeated as a template |
 | 61 | `work-pressure-and-deadlines` | queued | 8 labels repeated as a template |
 | 62 | `amazon-web-services` | queued | 7 labels repeated as a template |
