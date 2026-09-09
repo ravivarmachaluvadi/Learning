@@ -27,3 +27,6 @@ microservices 2026-09-09
 anti-entropy 2026-09-09
 java-version-features 2026-09-09
 terraform 2026-09-09
+clock-synchronization 2026-09-09
+compound-engineering-plugin 2026-09-09
+mongodb 2026-09-09

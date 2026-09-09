@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-26 rewritten, 21 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+29 rewritten, 18 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -116,7 +116,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 27 | `linearizability-vs-serializability` | reads well, left as-is |  |
 | 28 | `eventual-consistency` | reads well, left as-is |  |
 | 29 | `causal-consistency` | queued | 52 lines of meta before the story; 8 labels repeated as a template |
-| 30 | `clock-synchronization` | queued | 68 lines of meta before the story |
+| 30 | `clock-synchronization` | **rewritten** | re-delivered 2026-09-09 |
 | 31 | `hybrid-logical-clocks` | reads well, left as-is |  |
 | 32 | `crdts` | queued | 49 lines of meta before the story |
 | 33 | `flp-impossibility` | queued | 58 lines of meta before the story; 7 labels repeated as a template |
@@ -150,11 +150,11 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 61 | `work-pressure-and-deadlines` | queued | 8 labels repeated as a template |
 | 62 | `amazon-web-services` | queued | 7 labels repeated as a template |
 | 63 | `terraform` | **rewritten** | re-delivered 2026-09-09 |
-| 64 | `compound-engineering-plugin` | queued | 15 labels repeated as a template |
+| 64 | `compound-engineering-plugin` | **rewritten** | re-delivered 2026-09-09 |
 | 65 | `url-shortener-system-design` | reads well, left as-is |  |
 | 66 | `google-spanner` | **rewritten** | re-delivered 2026-09-09 |
 | 67 | `cockroachdb` | **rewritten** | re-delivered 2026-09-09 |
-| 68 | `mongodb` | queued | 68 lines of meta before the story |
+| 68 | `mongodb` | **rewritten** | re-delivered 2026-09-09 |
 | 69 | `whatsapp-system-design` | queued | 10 labels repeated as a template |
 | 70 | `uber-system-design` | queued | 12 labels repeated as a template |
 | 71 | `google-docs-system-design` | queued | 5 labels repeated as a template |
