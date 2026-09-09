@@ -1,655 +1,948 @@
-# CockroachDB
+# CockroachDB — the database that refused to buy a clock
 
-### The database that refused to buy a clock
+> **Tell a friend:** Asha pays a bill in Mumbai and is told it went through. She
+> telephones Ben in Ohio, whose clerk looks in his own copy of the same ledger and
+> says no such payment exists. Nobody lied and no page was missing: the two
+> wristwatches that dated the entries disagree, and one of them called the payment
+> "the future". Google's Spanner cured this by buying clocks good enough that a
+> writer could sit out their error before answering. CockroachDB cannot buy those
+> clocks, so instead it *declares* how far apart the watches may be, acknowledges
+> every write immediately, and hands the leftover doubt to whoever reads next.
 
----
-
-**What this lab is.** A teaching document, an interactive simulator
-(`visualization.html`, also hosted as
-**[The Reader Pays](https://claude.ai/code/artifact/2119fede-4cbd-44ca-9e82-b4583323640b)**),
-and a set of pencil-and-paper exercises. There is no code to run and nothing to install.
-
-Every number in this document comes from one of exactly two places, and I say which,
-every time:
-
-- **the simulator on this page**, whose rules are printed at the bottom of it. Its engine
-  was checked headlessly before publication — **71 checks** covering all eight scenario
-  traces value by value, plus property sweeps over its clock settings (1,344 combinations
-  for the stale-read condition alone), and **25 further checks** driving the page's DOM,
-  every dial to both extremes and every switch to both positions;
-- **Cockroach Labs' own documentation and engineering blog** for CockroachDB v26.2, the
-  current stable release as this is written (August 2026). Every page I used is listed in
-  [Sources](#sources) at the end. Where I state something I did *not* verify against those
-  pages, I say so in the same sentence.
-
-**Where you are in the sequence.** You have already built almost all of this, in pieces.
-This lab does not reteach any of it:
-
-- [raft](../40-raft/) and [paxos](../39-paxos/) gave you a replicated group that agrees on an
-  ordered log. CockroachDB puts one under every shard, and this lab treats it as a black box.
-- [two-phase-commit](../45-two-phase-commit/) gave you all-or-nothing across shards, and a
-  coordinator that can block everyone forever.
-- [distributed-transactions](../46-distributed-transactions/) proved that two-phase commit
-  alone is not a distributed transaction — you measured **16 fractured audits in 40 runs**
-  with a perfect 2PC and zero crashes — and taught you Percolator, whose staged locks and
-  relocated commit point are the direct ancestor of everything in stage 10 here.
-- [hybrid-logical-clocks](../31-hybrid-logical-clocks/) built the timestamp CockroachDB
-  stamps on every version, measured the **86 out of 86 stale reads** a fast-clocked writer
-  inflicts on a slow-clocked reader with no causal path between them, and named the three
-  places that bill can be sent: the writer, the reader, or the client.
-- [google-spanner](../66-google-spanner/) is **the writer-pays design**, and it ended with a
-  four-row table whose second row said: *CockroachDB — reader pays, HLC plus uncertainty
-  restarts, ε ≈ 500 ms on commodity clocks*. **This lab is that row, opened up.**
-- [isolation-levels](../08-isolation-levels/), [linearizability-vs-serializability](../27-linearizability-vs-serializability/),
-  [split-brain](../42-split-brain/), [partitioning-and-rebalancing](../36-partitioning-and-rebalancing/),
-  [quorums-and-replication](../34-quorums-and-replication/), [btree-and-lsm](../05-btree-and-lsm/),
-  [idempotency](../49-idempotency/), [pacelc](../25-pacelc/) and [cap-theorem](../24-cap-theorem/)
-  supply the rest.
-
-So this lab teaches **one new idea**: a database that never tries to be sure what time it
-is, and instead makes its *readers* carry the doubt — and then shows you how the same
-refusal to be sure, applied to commits and to conflicts, generates the rest of the design.
+The trainer for this lab is [`visualization.html`](visualization.html), also
+published as [The Reader Pays](https://claude.ai/code/artifact/2119fede-4cbd-44ca-9e82-b4583323640b).
+Nothing to install, no code to run. What the lab is made of, where its numbers
+come from and where it sits among your other labs are in
+[section 17](#17-about-this-lab) at the end.
 
 ---
 
-## Table of contents
+## 1. Why can't a database survive, hold money and speak SQL all at once?
 
-| | Stage | Depth layer |
+> **In one breath:** You want a database that keeps working when a machine dies,
+> never loses track of money, and understands ordinary SQL. Any two of those have
+> been easy for decades. All three, on more data than one machine holds, was an
+> open problem until about 2012.
+
+You are running a business on a database. Three things have to be true at once.
+They fight each other.
+
+The first is **survival**. Not graceful degradation. Not a failover in four
+minutes with a page to a human. The database keeps answering while a machine is
+on fire.
+
+The second is **money held correctly**. When two things must both happen or
+neither, that is what happens — even when the two things live on different
+machines.
+
+The third is **SQL**. Your application speaks it. Your reporting stack speaks it.
+Every engineer you will hire already speaks it.
+
+Pick any two of the three and the answer has existed for decades. Here is what
+each pair costs you.
+
+| Pick these two | What you give up | The shipped product that does it |
 |---|---|---|
-| 1 | [Why this exists](#1-why-this-exists) | Beginner |
-| 2 | [The problem, as a story](#2-the-problem-as-a-story) | Beginner |
-| 3 | [What a reasonable person tries first](#3-what-a-reasonable-person-tries-first) | Beginner |
-| 4 | [Where all four break](#4-where-all-four-break) | Beginner |
-| 5 | [What we actually need to guarantee](#5-what-we-actually-need-to-guarantee) | Beginner |
-| 6 | [The key idea](#6-the-key-idea) | Beginner |
-| 7 | [The words you now need](#7-the-words-you-now-need) | Beginner |
-| 8 | [Two mental models, and where the first one lies](#8-two-mental-models-and-where-the-first-one-lies) | Beginner |
-| 9 | [The simulator](#9-the-simulator) | Beginner |
-| 10 | [The actual mechanism](#10-the-actual-mechanism) | **Intermediate** |
-| 11 | [Failure scenarios](#11-failure-scenarios) | **Engineering** |
-| 12 | [What is guaranteed, and what is not](#12-what-is-guaranteed-and-what-is-not) | **Engineering** |
-| 13 | [Production](#13-production) | **Production** |
-| 14 | [Exercises](#14-exercises) | — |
-| 15 | [Knowledge map and next steps](#15-knowledge-map-and-next-steps) | — |
-| 16 | [Glossary](#16-glossary) | — |
-| | [Sources](#sources) | — |
+| Money and SQL | survival | one PostgreSQL box, backed up nightly |
+| Survival and SQL | money across machines | shard it yourself, reconcile later |
+| Survival and money | SQL | a key-value store with no joins |
 
----
+Now pick all three, at more data and more traffic than one machine can hold.
+Until about 2012 the honest answer was: *you can't. Shard it yourself and give up
+transactions across the shards.*
 
-## 1. Why this exists
+Then Google's Spanner proved you could have all three. The price of admission was
+**hardware you cannot buy**: GPS antennas and atomic clocks in every datacentre.
+They feed a time service that tells you not what time it is, but how wrong it
+might be. That design is the [google-spanner](../66-google-spanner/) lab, and
+this lab assumes you have read it.
 
-You are running a business on a database. Three things are true at once, and they fight
-each other.
+CockroachDB answers a narrower question. **Can you have all three on ordinary
+machines with ordinary clocks, in somebody else's cloud, where you are not
+allowed to install an antenna on the roof?**
 
-The database has to **survive a machine dying** — not gracefully degrade, not fail over
-in four minutes with a page to a human, but keep answering while a machine is on fire.
-It has to **hold money correctly**, which means that when two things must both happen or
-neither, that is what happens, even across machines. And it has to **speak SQL**, because
-your application, your reporting stack and every engineer you will hire already do.
+Suppose nobody solves it. The consequence is the one every large system ends up
+living with. A payments ledger sharded by customer ID. An application-level
+"distributed transaction" made of retries and reconciliation jobs. And a monthly
+meeting about the seventeen accounts that do not balance.
 
-Pick any two and the answer has existed for decades. Pick all three, at more data and
-more traffic than one machine can hold, and until about 2012 the honest answer was
-"you can't; shard it yourself and give up transactions across the shards."
+Asha's bill is one line in that ledger, and Ben is waiting to hear about it. The
+next section is what goes wrong for the two of them.
 
-Google's Spanner proved you *could* have all three — and the price of admission was
-**hardware you cannot buy**: GPS antennas and atomic clocks in every datacentre, feeding
-a time service that tells you not what time it is, but how wrong it might be.
+## 2. What goes wrong when one ledger book becomes three?
 
-CockroachDB is the answer to a narrower question: **can you have all three on ordinary
-machines with ordinary clocks, in somebody else's cloud, where you are not allowed to
-install an antenna on the roof?**
+> **In one breath:** One clerk with one book gets order and time for free, because
+> one wristwatch dated everything. Split the book across three towns and both
+> gifts vanish. A payment can be real, acknowledged, and invisible.
 
-If nobody solves this, the concrete consequence is the one every large system eventually
-lives with: a payments ledger sharded by customer ID, an application-level "distributed
-transaction" made of retries and reconciliation jobs, and a monthly meeting about the
-seventeen accounts that do not balance.
+A town has one ledger book and one clerk. Every purchase, payment and transfer is
+a line in the book. Every line is dated and timed by the clerk as it is written.
 
----
+Because there is one book and one clerk, two things are automatically true.
+Nobody ever thinks about them.
 
-## 2. The problem, as a story
+Everything is written in **one order** — the order the clerk wrote it. And every
+line's **time is comparable to every other line's**, because one wristwatch
+produced all of them.
 
-A town has one ledger book and one clerk. Every purchase, every payment, every transfer
-is a line in the book, and every line is dated and timed by the clerk as it is written.
+Then the clerk goes home with influenza. The town stops.
 
-Because there is one book and one clerk, two things are automatically true and nobody
-ever thinks about them. Everything that happens is written in **one order** — the order
-the clerk wrote it. And every line's **time is comparable to every other line's**,
-because one wristwatch produced all of them.
+So the town hires three clerks in three towns. **Meera** works in Mumbai.
+**Arjun** works in Frankfurt. **Dev** works in Ohio. Each gets a copy of the
+book, so no single illness can stop anything.
 
-The clerk goes home with influenza. The town stops.
+And now both of the free gifts are gone.
 
-So the town hires three clerks in three towns — one in Mumbai, one in Frankfurt, one in
-Ohio — and gives each of them a copy of the book, so no single illness can stop anything.
+Three clerks write in three books, so there is no single order. And this next
+fact generates everything else in the lab. **Each clerk dates entries by their
+own wristwatch, and no two watches agree.**
 
-And now the two things nobody ever thought about are both false.
+They are not broken watches. They are ordinary ones, checked against the radio
+now and then, drifting a little between checks. Meera's runs a fifth of a second
+fast. Dev's runs a tenth of a second slow. Nobody can tell. To know your watch is
+fast you would need a watch you already trusted.
 
-The three clerks write in three books, so there is no single order. And — this is the
-part that generates everything in this lab — **each clerk dates entries by their own
-wristwatch, and no two watches agree.** They are not broken watches. They are ordinary
-watches, checked against the radio every so often, drifting a little between checks. Mumbai's
-runs a fifth of a second fast. Ohio's runs a tenth of a second slow. Nobody can tell,
-because to know your watch is fast you would need a watch you already trusted.
+Now the damage, in milliseconds, exactly as the simulator runs it. **Asha** pays
+a bill in Mumbai. **Ben** is her supplier in Ohio, waiting to hear. Call the true
+instant of Asha's payment **1000**.
 
-Here is the concrete damage, in milliseconds, exactly as the simulator runs it. Call the
-true instant of Asha's payment **1000**.
+Read the last column. It is the whole lab.
 
-1. At true time **1000**, Asha pays a bill in Mumbai. Mumbai's watch is 180 ms fast, so
-   the clerk dates the entry **1180**.
-2. At true time **1060**, Asha is told the payment has gone through.
-3. At true time **1070**, Asha telephones Ben in Ohio: *"it's gone through."*
-4. At true time **1080**, Ben asks the Ohio clerk to look. Ohio's watch is 120 ms slow,
-   so it reads **960**. The clerk therefore examines the book *as of 960*.
-5. Asha's entry is dated **1180**. That is **later** than 960, so as far as the Ohio clerk
-   can tell it has not happened yet. The clerk tells Ben: *"no payment here."*
+| True moment | Who acts | What happens | The stamp on it | What the Ohio book says |
+|---|---|---|---|---|
+| 1000 | Asha, with Meera in Mumbai | the payment is written | **1180** — Meera's watch is 180 ms fast | it exists, dated 1180 |
+| 1060 | the system, to Asha | "your payment has gone through" | — | it exists |
+| 1070 | Asha, by telephone | *"Ben, it's gone through."* | — | it exists |
+| 1080 | Ben, with Dev in Ohio | Dev reads the book "as of now" | his watch says **960** — 120 ms slow | **nothing here** |
 
-Nobody lied. Nobody's watch is broken. No message was lost. And Ben has been told
+Step through the last row slowly. Asha's entry is dated 1180. Dev is reading the
+book as of 960. 1180 is *later* than 960. So as far as Dev can tell, the payment
+has not happened yet. He tells Ben: *"no payment here."*
+
+Nobody lied. Nobody's watch is broken. No message was lost. Ben has been told
 something false about money, twenty milliseconds after Asha was told it was true.
 
-> **🔮 Predict:** Ohio's clerk has a *copy* of Mumbai's page — replication is not the
-> problem here; assume the page arrived instantly. Why does having the data not help?
+That is the failure this lab is about. **Not lost data, not late data, but data
+that is present, acknowledged, and invisible.**
+
+> **🔮 Predict:** Dev has a *copy* of Meera's page. Replication is not the problem
+> here — assume the page arrived instantly. Why does having the data not help?
+>
 > <details><summary>Reveal</summary>
-> Because the question the clerk asks is not "do you have the page?" but "what did the
-> book look like **at my time**?" — and the entry is dated later than the clerk's time,
-> so it is filed as *not yet having happened*. The data is right there and is deliberately
-> ignored. **Every problem in this lab is a problem of interpretation, not of delivery.**
-> That is worth holding onto: you already have labs about delivery
-> ([quorums-and-replication](../34-quorums-and-replication/), [anti-entropy](../38-anti-entropy/)),
-> and none of them touch this.
+>
+> Because the question Dev asks is not "do you have the page?" It is "what did
+> the book look like **at my time**?" The entry is dated later than his time, so
+> it is filed as *not yet having happened*. The data is right there and is
+> deliberately ignored.
+>
+> **Every problem in this lab is a problem of interpretation, not of delivery.**
+> That is worth holding onto. You already have two labs about delivery,
+> [quorums-and-replication](../34-quorums-and-replication/) and
+> [anti-entropy](../38-anti-entropy/). Neither of them touches this.
+>
+> If you guessed "the copy must be stale", you are debugging the wrong layer.
+> Make replication instant and the bug is unchanged.
+>
 > </details>
 
----
+**How far this lab goes.** Stop at any layer and you still have something whole.
 
-## 3. What a reasonable person tries first
+| Layer | Sections | After it you can… |
+|---|---|---|
+| Beginner | 1–9 | tell Asha's story and say why all four obvious fixes fail |
+| Intermediate | 10 | trace a two-region transaction, refinement by refinement |
+| Engineering | 11–12 | reason about nine failures and name the one assumption |
+| Production | 13 | operate it, design a schema, and read Priya's dashboard |
 
-Four fixes, in the order a sensible engineer reaches for them. Three you have already
-killed in earlier labs, so they get one line each; the fourth is the interesting one.
+## 3. What does a reasonable person try first?
+
+> **In one breath:** Four fixes, in the order a sensible engineer reaches for
+> them. Three of them you have already killed in earlier labs. The fourth is not
+> wrong at all — it is simply unavailable to you.
+
+Here are the four, with the three quick ones first.
 
 | # | The fix | Where it dies | Already covered in |
 |---|---|---|---|
 | 1 | **One bigger machine.** No second clock, no second order. | Works beautifully until the machine dies or the data outgrows it. This is not a distributed-systems failure; it is the absence of the property you paid for. | [cap-theorem](../24-cap-theorem/) |
 | 2 | **One writer, several read replicas.** One clock stamps everything, so order is safe. | The single writer is the ceiling and the outage. Promoting a replica loses whatever had not shipped. | [quorums-and-replication](../34-quorums-and-replication/), [split-brain](../42-split-brain/) |
-| 3 | **Shard by customer, transactions within a shard only.** | Any invariant spanning two shards — a transfer, a uniqueness constraint, a ledger that must balance — has no home. You measured what happens when you bolt two-phase commit on anyway: **16 fractured audits in 40 runs**, with no crashes at all. | [distributed-transactions](../46-distributed-transactions/) |
-| 4 | **Do what Spanner does: buy a clock that admits its own error, and make every writer wait out that error before acknowledging.** | This one is *correct*. It is the design you already studied, and it closes the problem completely. | [google-spanner](../66-google-spanner/) |
+| 3 | **Shard by customer, transactions within a shard only.** | Any invariant spanning two shards — a transfer, a uniqueness constraint, a ledger that must balance — has no home. You counted what happens when you bolt two-phase commit on anyway: **16 fractured audits in 40 runs**, with no crashes at all. | [distributed-transactions](../46-distributed-transactions/) |
+| 4 | **Do what Spanner does: buy a clock that admits its own error, and make every writer wait out that error before answering.** | This one is *correct*. It closes the problem completely. It is also the one you cannot have. | [google-spanner](../66-google-spanner/) |
 
-Fix 4 deserves more than a line, because it is not wrong — it is unavailable.
+Fix 4 deserves more than a row, because it is not wrong. It is unavailable.
 
-Spanner's `TT.now()` does not return a time. It returns an *interval*
-`[earliest, latest]` that is guaranteed to contain the true instant, and ε is half its
-width. A writer stamps its transaction with `latest`, then **refuses to acknowledge the
-client until `TT.after(s)`** — until the interval has moved entirely past its own stamp.
-The write is provably in the past of everything that starts afterwards. You measured the
-bill in that lab: about **5 ms added to every write**, and hardware in every datacentre to
-keep ε down to single-digit milliseconds.
+### Why is fix 4 correct and still out of reach?
 
-The reason you cannot copy it is not intellectual. It is a loading dock. ε is small only
-because there is a GPS receiver on the roof and an atomic clock in the rack, and you
-cannot install either in a cloud region you rent by the hour. Without them, ε on ordinary
-NTP-disciplined machines is measured in **hundreds** of milliseconds, and a design that
-sleeps for 2ε on every write becomes a design that sleeps for most of a second on every
-write.
+Start with the thing in the story. Imagine Meera's wall clock has a *band* painted
+on its face rather than a single hand. The band is a promise: the true moment is
+somewhere inside it. Half the width of that band is how wrong the clock might be,
+right now, at worst.
 
----
+That is the whole of Spanner's clock. Three names, in the order you should meet
+them.
 
-## 4. Where all four break
+| The thing in the story | Said in words | The engineer's name |
+|---|---|---|
+| the band painted on the clock face | an earliest and a latest, with the truth guaranteed to be between them | `TT.now()`, returning `[earliest, latest]` |
+| half the width of that band | how wrong this clock might be, at worst, right now | **ε**, said "epsilon" |
+| "has that moment definitely gone past?" | true only when the whole band has moved past the stamp | `TT.after(s)` |
 
-Take fix 4 and simply run it on ordinary hardware. This is the most instructive failure
-in the lab, because nothing about the *protocol* breaks — only the number.
+Now the protocol, in one sentence. A writer stamps its transaction with the
+*latest* edge of the band. Then it **refuses to acknowledge the client** until
+the band has moved entirely past its own stamp. By the time anybody hears the
+write is done, its stamp is provably in the past for every machine everywhere.
 
-Set ε to a realistic commodity value of 250 ms. Commit-wait now holds every write's
-acknowledgement for roughly 2ε ≈ 500 ms. A payments API that used to answer in 15 ms now
-answers in 515 ms. You have bought a perfectly correct database that nobody can use.
+The Spanner lab put the bill at about **5 ms** added to every write. It also
+listed the hardware in every datacentre that keeps ε down to single-digit
+milliseconds.
 
-And you cannot simply declare ε small and carry on. ε is not a preference. If you claim
-ε = 5 ms while your clocks actually disagree by 200 ms, commit-wait sleeps for the wrong
-duration and **external consistency dies with commit wait switched on**, silently — the
-exact failure the Spanner lab's fourth scenario demonstrates.
+The reason you cannot copy this is not intellectual. It is a loading dock. ε is
+small only because there is a GPS receiver on the roof and an atomic clock in the
+rack. You cannot install either in a cloud region you rent by the hour.
 
-So the four fixes leave us here:
+Without them, ε on ordinary machines disciplined by network time is **hundreds**
+of milliseconds. And a design that sleeps for twice ε on every write becomes a
+design that sleeps for most of a second on every write.
 
-- Fixes 1–3 give up one of the three requirements outright.
-- Fix 4 keeps all three, and charges the **writer** an amount proportional to how bad
-  your clocks are. On good hardware that is a few milliseconds. On rented hardware it is
-  a business-ending latency.
+## 4. Where do all four fixes break?
 
-What the failure reveals is not "clocks are hard". It is something sharper:
+> **In one breath:** Take Spanner's design, change nothing, and run it on rented
+> machines. The protocol still works perfectly. Only the number moves — and the
+> number is the product.
 
-> The cost of clock uncertainty has to be paid by *somebody*. Spanner charges the writer,
-> on every single write, whether or not anyone was ever going to read it. That is a
-> **fixed premium on all traffic**, and on commodity hardware the premium is unaffordable.
+This is the most instructive failure in the lab. Nothing about the *protocol*
+breaks. One constant does.
 
-Which raises the question this whole lab turns on: **is the writer the right payer?**
+Set ε to a realistic commodity value of 250 ms. The writer's wait is twice ε, so
+every acknowledgement is held for roughly 500 ms.
 
----
+| What you changed | ε | The wait on every write | What a payments API answers in |
+|---|---|---|---|
+| nothing — Google's hardware | ~4 ms | ~8 ms | about **15 ms** |
+| the same code, on rented machines | **250 ms** | **≈ 500 ms** | **515 ms** |
 
-## 5. What we actually need to guarantee
+You have bought a perfectly correct database that nobody can use. Asha's payment
+is now correct and half a second late, every single time, whether or not Ben was
+ever going to ask about it.
 
-Strip away the mechanism and there are three separate promises, and they are worth
-separating because CockroachDB keeps two of them and deliberately declines the third.
+And you cannot simply declare ε small and carry on. ε is not a preference. Claim
+5 ms while your clocks actually disagree by 200 ms, and the writer's wait is too
+short. External consistency then dies **with commit wait switched on**, silently.
+That is exactly the fourth scenario in the Spanner lab.
 
-**Promise A — no stale reads.** Once a write has been acknowledged to its client, every
-transaction that *begins after that acknowledgement* sees it. This is the promise Ben's
-dashboard broke in stage 2. It is the one users notice, because it is the one that makes
-a database feel like a single machine.
+So the four fixes leave us here. Fixes 1 to 3 give up one of the three
+requirements outright. Fix 4 keeps all three and charges the **writer** an amount
+proportional to how bad your clocks are. On Google's hardware that is a few
+milliseconds. On rented hardware it ends the business.
 
-**Promise B — serializable.** However many transactions run concurrently, the outcome is
-the same as *some* one-at-a-time order of them. No fractured reads, no write skew, no lost
-updates. You have the full anomaly taxonomy already from [isolation-levels](../08-isolation-levels/).
+What the failure reveals is not "clocks are hard". It is sharper than that.
 
-**Promise C — that order matches real time, for everybody.** Not just "some serial order
-exists" but "the serial order never contradicts the wall clock, even for two transactions
-that share no data and never met." This is **strict serializability** — Spanner calls it
-external consistency, and you named it precisely in
-[linearizability-vs-serializability](../27-linearizability-vs-serializability/).
+> The cost of clock uncertainty has to be paid by *somebody*. Spanner charges the
+> writer, on every single write, whether or not anyone was ever going to read it.
+> That is a **fixed premium on all traffic**, and on commodity hardware the
+> premium is unaffordable.
 
-Here is the honest statement of what this lab builds, made now rather than sprung on you
-in stage 12:
+Which raises the question this whole lab turns on. **Is the writer the right
+payer?**
 
-> **CockroachDB guarantees A and B. It does not guarantee C, and does not claim to.**
-> Cockroach Labs' own writing puts it plainly: *"CockroachDB doesn't quite offer strict
-> serializability, but we're fairly close to it."*
-
-Stage 12 shows you exactly what falls through the gap between B and C, stage 8 of the
-simulator lets you watch it happen with every clock inside its budget, and stage 13 shows
-you the one table type where CockroachDB buys C back — by doing exactly what Spanner does.
-
----
-
-## 6. The key idea
-
-Two sentences.
-
-> **Do not try to know the time. Know how wrong your clock is allowed to be — a number
-> you declare, not one you measure — and put the cost of that doubt on the reader.**
+> **🔮 Predict:** Suppose you move the bill to the reader instead. Reads are
+> usually the *majority* of traffic — often 95% of it. Does that make the total
+> bill bigger or smaller?
 >
-> Then apply the same posture everywhere else: never coordinate to *prevent* a conflict;
-> proceed optimistically, *detect* the conflict, and retry.
+> <details><summary>Reveal</summary>
+>
+> **Smaller, by a lot, and the reason is not the ratio.** It is that the reader's
+> bill is *conditional*. A writer's wait is charged on every write, always,
+> whether or not a reader was ever going to look.
+>
+> A reader only pays when it happens to meet a value stamped inside its own
+> window of doubt. On most workloads that is rare. Ninety-five reads that touch
+> nothing recent cost nothing at all.
+>
+> If you guessed "bigger, because there are more readers", you were pricing a
+> premium per operation. This is not a premium. It is an excess, paid only on
+> claims.
+>
+> </details>
 
-The first sentence is the clock story, and it inverts Spanner exactly. Cockroach Labs
-states the inversion in one line: *"While Spanner always waits after writes, CockroachDB
-sometimes retries reads."*
+## 5. What exactly must the ledger promise?
 
-Look at what that trade actually is. Spanner pays a **certain, small, universal** cost:
-every write waits, always. CockroachDB pays an **uncertain, occasionally large, rare**
-cost: a read that happens to encounter a value in an awkward timestamp range does its work
-twice. Writes are acknowledged immediately. Reads that touch nothing recent cost nothing.
-The bill only arrives when a reader and a recent writer nearly collide in time — which,
-on most workloads, is seldom.
+> **In one breath:** Three separate promises hide inside "the database is
+> correct". CockroachDB keeps two of them and declines the third on purpose, and
+> knowing which is which is most of what a senior engineer knows about it.
 
-The second sentence is why CockroachDB looks so unlike a lock-based database from the
-outside. Almost nothing waits for anything. Writes do not wait for a commit record.
-Readers do not wait for writers. Writers do not wait for readers. Instead the system
-detects, afterwards, that something incompatible happened — and throws work away. That is
-why **`SQLSTATE 40001` is part of the API contract, not an error path**: an ordinary,
-healthy CockroachDB application has a retry loop around every transaction, because the
-database is entitled to refuse a perfectly reasonable transaction and ask for it again.
+Strip away the mechanism. There are three promises, and they are worth separating.
 
----
+**Promise A — no stale reads.** Once a write has been acknowledged to its client,
+every transaction that *begins after that acknowledgement* sees it. This is the
+promise Ben's telephone call broke in section 2. It is the one users notice,
+because it is the one that makes a database feel like a single machine.
 
-## 7. The words you now need
+**Promise B — serializable.** However many transactions run at once, the outcome
+matches *some* one-at-a-time order of them. No fractured reads, no write skew, no
+lost updates. You have the full anomaly taxonomy already from
+[isolation-levels](../08-isolation-levels/).
 
-Five terms, each earned by the problem it names. The rest arrive in stage 10, where they
-are needed.
+**Promise C — that order matches real time, for everybody.** Not merely "some
+serial order exists". The stronger claim is that the serial order never
+contradicts the wall clock — even for two transactions that share no data and
+never met.
 
-### range
+Promise C has three names in this curriculum. They are the same property.
 
-**Plain meaning.** A chapter of the book: all the rows whose keys fall between two
-bookmarks.
+| Where you met it | What it was called there | Applied to |
+|---|---|---|
+| [linearizability-vs-serializability](../27-linearizability-vs-serializability/) | **strict serializability** | whole transactions |
+| [google-spanner](../66-google-spanner/) | **external consistency** | whole transactions |
+| this lab, from section 12 onward | strict serializability | the one thing declined |
 
-**Technical meaning.** CockroachDB stores the entire cluster — every table, every index,
-every internal record — as **one sorted key-value map**, and cuts that map into contiguous
-chunks called ranges. A range splits in two when it grows past `range_max_bytes`
-(**512 MiB** by default) and merges with its right-hand neighbour when it shrinks below
-`range_min_bytes` (**128 MiB**). Each range is replicated — three copies by default — and
-each range's copies form their own independent Raft group.
+Here is the honest statement of what this lab builds. It is made now, rather than
+sprung on you in section 12.
 
-**Why the word exists.** To distinguish this from the *hash* partitioning you learned in
-[consistent-hashing](../35-consistent-hashing/). A hash bucket holds keys that have nothing
-to do with each other. A range holds keys that are **adjacent in sort order**, which is
-what makes `WHERE id BETWEEN 100 AND 200` a single seek plus a scan rather than a
-question asked of every machine in the cluster. That choice buys ordered scans and costs
-you hot spots on sequential keys — a trade stage 11 makes concrete.
+> **CockroachDB guarantees A and B. It does not guarantee C, and does not claim
+> to.** Cockroach Labs' own writing puts it plainly: *"CockroachDB doesn't quite
+> offer strict serializability, but we're fairly close to it."*
 
-**Example.** `/accounts/a–m` is one range; `/accounts/n–z` is the next. Asha's row is in
-the first, Raj's in the second, and a transfer between them is therefore a two-range
-transaction.
+Three places pay that off. Section 12 shows you exactly what falls through the
+gap between B and C. Scenario 8 of the simulator lets you watch it happen with
+every clock inside its budget. And section 13 shows you the one table type where
+CockroachDB buys C back — by doing exactly what Spanner does.
 
-**Connects to.** [partitioning-and-rebalancing](../36-partitioning-and-rebalancing/) (this
-is range partitioning, with automatic splits); [raft](../40-raft/) (one group per range, not
-one per cluster).
+## 6. What is the key idea, in two sentences?
 
-### leaseholder
+> **In one breath:** Stop trying to know the time. Declare how wrong your clock
+> is allowed to be, and make the reader carry that doubt. Then apply the same
+> refusal to be sure everywhere else: never prevent a conflict, just detect it
+> afterwards and redo the work.
 
-**Plain meaning.** For each chapter, one of the three clerks is on duty. Only the duty
-clerk may answer questions about that chapter without consulting the others.
+Two sentences. Read them slowly. The whole lab is inside them.
 
-**Technical meaning.** One replica of each range holds the **range lease**: the exclusive
-right, for a bounded time, to serve reads from its local copy and to sequence writes.
-Reads at the leaseholder need no consensus round at all — which is the difference between
-a read costing 1 ms and a read costing a cross-region round trip.
+> **Sentence one: do not try to know the time.** Know instead how wrong your
+> clock is allowed to be. That number is one you *declare*, not one you measure.
+> Then put the cost of that doubt on the reader.
+>
+> **Sentence two: never coordinate to *prevent* a conflict.** Proceed
+> optimistically, *detect* the conflict afterwards, and retry.
 
-**Why the word exists.** Because it is *not* the same thing as the Raft leader, and the
-distinction cost CockroachDB real production incidents before it was eliminated. Raft
-leadership is about who appends to the log. The lease is about who may answer without
-appending. Historically these could drift apart — a "leader-leaseholder split" — and a
-leaseholder whose Raft log had fallen behind could render a range unavailable during a
-partition. Since **v25.2 the default is leader leases**, which structurally fuse the two:
-the Raft leader is always the leaseholder, except briefly during a transfer.
+The first sentence inverts Spanner exactly. Cockroach Labs state the inversion in
+one line: *"While Spanner always waits after writes, CockroachDB sometimes
+retries reads."*
 
-**Example.** In the simulator, Frankfurt holds the lease for `/accounts/a–m`. A client
-connected to Frankfurt reads Asha's balance in 1 ms; the same client reads Raj's balance
-in 60 ms, because Ohio holds that lease.
+Look at what that trade actually is.
 
-**Connects to.** [split-brain](../42-split-brain/) — a lease is a **fencing token**, and its
-entire job is to make it impossible for two machines to believe they are in charge at once.
+| | Spanner | CockroachDB |
+|---|---|---|
+| Shape of the cost | certain, small, universal | uncertain, occasionally large, rare |
+| Who is billed | the writer | the reader |
+| When | every write, always | only when a read meets a recent value |
+| What a quiet read costs | nothing | nothing |
+| What an unlucky read costs | nothing | its work, done twice |
 
-### write intent
+Writes are acknowledged immediately. Reads that touch nothing recent cost
+nothing. The bill only arrives when a reader and a recent writer nearly collide
+in time — which, on most workloads, is seldom.
 
-**Plain meaning.** A pencil mark. A value written into the book provisionally, with a note
-saying which transaction it belongs to, so anyone who finds it knows where to ask whether
-it counts.
+The second sentence is why CockroachDB looks so unlike a lock-based database from
+the outside. Almost nothing waits for anything. Writes do not wait for a commit
+record. Readers do not wait for writers. Writers do not wait for readers.
 
-**Technical meaning.** The docs describe it precisely: a write intent is *"a combination
-of a replicated lock and a replicated provisional value"* — an ordinary MVCC record
-carrying a pointer to a **transaction record**. It is replicated through Raft like any
-other write, so it survives machine death; and it blocks nobody outright, because a reader
-that meets one can go and resolve it.
+Instead the system detects, afterwards, that something incompatible happened.
+Then it throws work away.
 
-**Why the word exists.** To keep two ideas that a lock fuses apart from each other. A
-lock says *"you may not proceed."* An intent says *"here is the value, and here is where
-to find out whether it is real."* The second is strictly more useful, because a reader
-holding an intent can finish the writer's transaction on its behalf.
+Meet **Omar**. He writes the application that talks to this cluster, and he is
+the third person the bill can be sent to. His code must wrap every transaction in
+a retry loop, because the database is entitled to refuse a perfectly reasonable
+transaction and ask for it again.
 
-**Example.** Simulator, scenario 1: `/accounts/asha` briefly carries an intent
-`₹1,500 @ ts 1000` pointing at transaction T1's record, before anything says COMMITTED.
+The refusal has a name he will see in his logs. In words it is "I could not
+commit this without breaking serializability, so please run it again." The SQL
+standard calls that a serialization failure, and the code for it is
+**`SQLSTATE 40001`**.
 
-**Connects to.** [distributed-transactions](../46-distributed-transactions/) — this is
-Percolator's staged lock, with one change stage 10.3 makes much of.
+That code is **part of the API contract, not an error path**. An ordinary,
+healthy CockroachDB application retries on it several times an hour and nothing
+is wrong.
 
-### transaction record
+> **Say it back.** Without using the words *timestamp*, *uncertainty* or
+> *commit wait*, explain to Omar why Spanner's writes are slow and CockroachDB's
+> reads are sometimes done twice.
+>
+> <details><summary>A good answer sounds like</summary>
+>
+> "Both systems know their clocks might disagree, and somebody has to absorb
+> that. Spanner makes the person filing the document sit still for a moment
+> before anyone is told, so by the time a reader turns up there is nothing left
+> to absorb. CockroachDB cannot afford that pause, because its clocks disagree by
+> too much. So it hands the document over straight away, and occasionally a
+> reader finds an entry it cannot place in time and has to start its work again."
+>
+> </details>
+>
+> Next: the five words you now need, each one naming something you have already
+> watched happen to Asha, Meera, Arjun, Dev or Ben.
 
-**Plain meaning.** The master card for one transaction, filed in one place, saying whether
-it counts.
+## 7. What are these five things called, now that you have earned the words?
 
-**Technical meaning.** A single key-value pair, living on the range that contains the
-transaction's first written key (its *anchor*), whose value is the transaction's status:
-`PENDING`, `STAGING`, `COMMITTED` or `ABORTED` — plus a fifth case, *the record does not
-exist*, which is resolved by comparing the intent's timestamp against a liveness threshold.
+> **In one breath:** Five terms, and every one of them names something you have
+> already watched happen in the ledger office. The rest of the vocabulary arrives
+> in section 10, at the moment it is needed.
+
+### What is a chapter of the book really called?
+
+The book is too big for one town, so cut it up. Not into random handfuls — into
+**chapters**, each holding all the entries whose names fall between two
+bookmarks. `/accounts/a–m` is one chapter. `/accounts/n–z` is the next. Asha's
+row is in the first, Raj's in the second.
+
+Engineers call a chapter a **range**.
+
+Here is the precise version. CockroachDB stores the entire cluster as **one
+sorted key-value map**. That means every table, every index and every internal
+record, all in one map. It cuts that map into contiguous chunks. Each chunk is a range, and each range is
+replicated three times by default. Each range's copies form their own independent
+Raft group ([raft](../40-raft/)).
+
+A range is not a fixed size. It grows and shrinks with the data, and two numbers
+govern that. Say them in words first: *split when a chapter gets too fat, merge
+when it gets too thin.*
+
+| The rule in words | The setting | Its default |
+|---|---|---|
+| split this chapter in two when it grows past this size | `range_max_bytes` | **512 MiB** |
+| merge this chapter into its right-hand neighbour below this size | `range_min_bytes` | **128 MiB** |
+
+Why does the word *range* exist at all, when you already have partitions? To
+distinguish this from the **hash** partitioning of
+[consistent-hashing](../35-consistent-hashing/). A hash bucket holds keys that
+have nothing to do with each other. A range holds keys that are **adjacent in
+sort order**.
+
+That is what makes `WHERE id BETWEEN 100 AND 200` a single seek plus a scan,
+rather than a question asked of every machine in the cluster. The trade buys you
+ordered scans and costs you hot spots on sequential keys. Section 11 makes the
+cost concrete.
+
+This is range partitioning with automatic splits, the shape you studied in
+[partitioning-and-rebalancing](../36-partitioning-and-rebalancing/). One
+consequence to hold onto: a transfer from Asha to Raj crosses two chapters, so it
+is a **two-range transaction**.
+
+### Who is allowed to answer, and why is it only one of them?
+
+For each chapter, one of the three clerks is **on duty**. Only the duty clerk may
+answer questions about that chapter without consulting the others. The other two
+hold copies and stay quiet.
+
+Engineers call that duty the **range lease**, and the clerk holding it the
+**leaseholder**.
+
+One replica of each range holds the exclusive right, for a bounded time, to serve
+reads from its local copy and to sequence writes. Reads at the leaseholder need
+no consensus round at all. That is the difference between a read costing 1 ms and
+a read costing a cross-region round trip.
+
+In the simulator, Arjun in Frankfurt holds the lease for `/accounts/a–m`. A
+client connected to Frankfurt reads Asha's balance in **1 ms**. The same client
+reads Raj's balance in **60 ms**, because Dev in Ohio holds that lease.
+
+Why does the word need to exist next to "Raft leader", which sounds like the same
+job? Because it is not the same job, and the difference cost CockroachDB real
+production incidents.
+
+Raft leadership is about who appends to the log. The lease is about who may
+answer *without* appending. Historically these could drift apart onto different
+replicas — a **leader-leaseholder split**. A leaseholder whose Raft log had
+fallen behind could render a range unavailable during a partition.
+
+Since **v25.2 the default is leader leases**, which structurally fuse the two.
+The Raft leader is always the leaseholder, except briefly during a transfer.
+
+A lease is also a **fencing token**, in exactly the sense of
+[split-brain](../42-split-brain/). Its entire job is to make it impossible for two
+machines to believe they are in charge at once.
+
+### What is a pencil mark in the ledger?
+
+Asha's transfer touches two chapters. The clerks do not lock them. They write the
+new value into the book **in pencil**, with a note beside it saying which
+transaction it belongs to. Anyone who finds it then knows where to go and ask
+whether it counts.
+
+Engineers call that pencil mark a **write intent**.
+
+The documentation describes it precisely: a write intent is *"a combination of a
+replicated lock and a replicated provisional value"*. It is an ordinary MVCC
+record carrying a pointer to a **transaction record**. It travels through Raft
+like any other write, so it survives machine death.
+
+And it blocks nobody outright, because a reader that meets one can go and resolve
+it.
+
+Why keep this idea separate from a lock? Because a lock fuses two things that are
+better apart. A lock says *"you may not proceed."* An intent says *"here is the
+value, and here is where to find out whether it is real."*
+
+The second is strictly more useful. A reader holding an intent can finish the
+writer's transaction on its behalf. You met the ancestor of this idea as
+Percolator's staged lock in
+[distributed-transactions](../46-distributed-transactions/); section 10.3 makes
+one change to it that matters enormously.
+
+In scenario 1 of the simulator, `/accounts/asha` briefly carries an intent
+reading `₹1,500 @ ts 1000`, pointing at transaction T1's record, before anything
+anywhere says COMMITTED.
+
+### Where is it written down whether a transaction counts?
+
+Every pencil mark says *"see master card #714."* Card #714 lives in one place,
+and it is the only thing that decides whether the whole transaction counts. Fill
+it in and every pencil mark in the book counts at once — even before anyone has
+gone back to ink them in.
+
+Engineers call the card a **transaction record**.
+
+It is a single key-value pair. It lives on the range that contains the
+transaction's first written key, and that key has its own name: the **anchor**.
+The record's value is the transaction's status.
+
+Read this table as the five states of card #714. The fifth is the one people
+forget.
+
+| The card says | In words | How it is decided |
+|---|---|---|
+| `PENDING` | started, not yet finished | the coordinator is still working |
+| `STAGING` | finished, if everything it listed got written | section 10.3 — this is the clever one |
+| `COMMITTED` | it counts, permanently | written down, or inferred from `STAGING` |
+| `ABORTED` | it does not count, permanently | the coordinator gave up, or recovery killed it |
+| *no card at all* | nobody knows yet | compare the intent's timestamp with a liveness threshold |
+
 Every intent in the transaction, on every range, points at this one record.
 
-**Why the word exists.** Because it is the thing that makes a multi-range commit **atomic
-by construction rather than by protocol**. There is no vote and no agreement about the
-outcome; there is one shard-local write that a hundred intents all defer to. This is the
-"relocated commit point" from the distributed-transactions lab, and it is what deletes
-two-phase commit's blocking problem.
+Why does the word need to exist? Because the record is what makes a multi-range
+commit **atomic by construction rather than by protocol**. There is no vote. There
+is no agreement about the outcome. There is one shard-local write that a hundred
+intents all defer to.
 
-**Example.** In scenario 2, Frankfurt dies with the record stuck in `STAGING`. The record
-outlives its author, on a different machine, and a stranger reads the outcome off it.
+This is the "relocated commit point" from the distributed-transactions lab, and
+it is what deletes two-phase commit's blocking problem. Compare it with
+[two-phase-commit](../45-two-phase-commit/), where the decision lived in a
+coordinator process's memory. Here it is replicated data, and Percolator's
+primary key is its direct ancestor.
 
-**Connects to.** [two-phase-commit](../45-two-phase-commit/) (the coordinator's decision,
-turned into replicated data instead of a process's memory);
-[distributed-transactions](../46-distributed-transactions/) (Percolator's primary key).
+In scenario 2, Frankfurt dies with the record stuck in `STAGING`. The record
+outlives its author, on a different machine, and a stranger reads the outcome off
+it.
 
-### uncertainty interval
+### What is a reader's window of doubt?
 
-**Plain meaning.** A reader's window of doubt: *"anything stamped in the next half second
-might secretly have happened before I started."*
+Everyone knows the watches disagree. So everyone agrees on one number in advance:
+**no watch is more than half a second away from any other.**
 
-**Technical meaning.** A transaction reading at timestamp `t` treats every committed value
-stamped in the half-open range `(t, t + max_offset]` as **ambiguous** — not visible, not
-invisible, but unresolvable. `max_offset` is the `--max-offset` cluster-wide promise about
-clock skew; **its default is 500 ms**. Meeting an ambiguous value raises
-`ReadWithinUncertaintyIntervalError`, and the transaction restarts at a higher timestamp.
+That number is a promise, not a measurement. And it hands the reader a rule. A
+clerk reading the book "as of 960" must treat every entry dated between 960 and
+1460 as *"I cannot tell whether this is in my past"*, and go and check.
 
-**Why the word exists.** To name the thing Spanner's ε names, but relocated. In Spanner ε
-is a *measured* property of the hardware and the writer pays it. In CockroachDB
-`max_offset` is a *declared* budget and the reader pays it. Same quantity, opposite ends
-of the transaction, and — crucially — one is a fact and the other is an assumption.
-Stage 12 is largely about that difference.
+Engineers call that band the **uncertainty interval**.
 
-**Example.** Simulator, scenario 3, at the default settings: Ben reads at **960** with a
-window ending at **1460**. Asha's payment is stamped **1180**, which is inside the window,
-so the read restarts at **1180⁺** and returns SETTLED. Drag the max-offset slider to 0 and
-the same read returns PENDING — a wrong answer about money, with no error raised.
+Said as a rule: a transaction reading at some timestamp treats every committed
+value stamped in the next half-second as **ambiguous**. Not visible. Not
+invisible. Unresolvable.
 
-**Connects to.** [hybrid-logical-clocks](../31-hybrid-logical-clocks/) — this is the
-"uncertainty restart" that lab named and did not build; [google-spanner](../66-google-spanner/)
-— same ε, opposite payer.
+Written as notation, and only now that you have the picture:
 
----
+| The band in words | The band written down | The number it uses |
+|---|---|---|
+| from just after my read time, up to and including half a second later | `(t, t + max_offset]` | `max_offset`, default **500 ms** |
+| the cluster-wide promise about how far two clocks may differ | the `--max-offset` startup flag | **500 ms** by default |
 
-## 8. Two mental models, and where the first one lies
+Meeting an ambiguous value raises an error inside the database. In words it says
+"I read something I cannot place in time." Its name is
+`ReadWithinUncertaintyIntervalError`, and the transaction restarts at a higher
+timestamp.
 
-### The simple model: three clerks and a book in chapters
+Why does this word have to exist, when Spanner already has ε? Because it names the
+same quantity, **relocated**.
 
-The book is cut into chapters. Every chapter is photocopied to all three towns, so no
-town's fire destroys anything. For each chapter, one clerk is **on duty** and may answer
-questions about it alone; the others hold copies and stay quiet.
+| | Spanner's ε | CockroachDB's `max_offset` |
+|---|---|---|
+| Where the number comes from | measured by the hardware | declared by you |
+| Which end of the transaction pays | the writer, before answering | the reader, on collision |
+| What kind of statement it is | a fact | an assumption |
+| What happens when it is wrong | the wait is too short | the window is too narrow |
 
-To write a transaction, you first go round and put **pencil marks** in every chapter you
-are changing, each mark saying *"see master card #714"*. Then you fill in card #714. Once
-card #714 says the transaction counts, every pencil mark counts, everywhere, at once —
-even before anyone has gone back to ink them in.
+Same quantity, opposite ends, and one is a fact while the other is an assumption.
+Section 12 is largely about that difference.
 
-And every entry is dated by the duty clerk's own watch. Everyone knows the watches
-disagree, and everyone has agreed on one number: **no watch is more than half a second
-from any other**. So a clerk reading the book "as of 960" treats every entry dated between
-960 and 1460 as *"I cannot tell whether this is in my past"* and goes back to check.
+Watch it work in scenario 3 at the default settings. Ben's read starts at **960**
+with a window ending at **1460**. Asha's payment is stamped **1180**, which is
+inside the window. So the read restarts at **1180⁺** and returns SETTLED.
 
-### The engineering model
+Now drag the max-offset slider to 0. The same read returns PENDING — a wrong
+answer about money, with no error raised.
 
-| The story | The machinery |
-|---|---|
-| The book | One monolithic sorted key-value map holding the whole cluster |
-| A chapter | A **range** — a contiguous key span, 512 MiB max by default |
-| Three photocopies of a chapter | Three **replicas**, forming that range's own Raft group |
-| The duty clerk for a chapter | The **leaseholder**; since v25.2 always also the Raft leader |
-| A pencil mark | A **write intent**: an MVCC value plus a pointer to a transaction record |
-| Master card #714 | The **transaction record**, `PENDING` / `STAGING` / `COMMITTED` / `ABORTED` |
-| The date on an entry | A **hybrid logical clock** timestamp — 64-bit wall clock plus a 32-bit logical counter |
-| "No watch is more than half a second out" | `--max-offset`, default **500 ms** |
-| "I cannot tell whether this is in my past" | The **uncertainty interval** `(read_ts, read_ts + max_offset]` |
-| Going back to check | An **uncertainty restart** — `ReadWithinUncertaintyIntervalError` |
-| A note that someone already read this line | The **timestamp cache** |
-| Proving your earlier reading still stands | A **read refresh** |
+This is the "uncertainty restart" that
+[hybrid-logical-clocks](../31-hybrid-logical-clocks/) named and did not build. It
+is the same ε as [google-spanner](../66-google-spanner/), with the opposite payer.
 
-### Where the analogy breaks
+### The five words, in one place
+
+| Word | The thing in the ledger office | Where you first met the problem |
+|---|---|---|
+| **range** | a chapter, cut at two bookmarks | section 2 — one book had to become many |
+| **leaseholder** | the clerk on duty for that chapter | section 3, fix 2 — one writer was the outage |
+| **write intent** | a pencil mark saying "see card #714" | section 3, fix 3 — 16 fractured audits in 40 runs |
+| **transaction record** | card #714 itself | section 3, fix 3 — nowhere to put the decision |
+| **uncertainty interval** | the band of dates a clerk cannot place | section 2 — Ben was told "no payment here" |
+
+## 8. Which two pictures should you carry, and where does the nice one lie?
+
+> **In one breath:** Carry a simple picture and a precise one. The simple picture
+> is three clerks, a book in chapters, pencil marks and master cards. It is
+> accurate enough to reason with, and it lies to you in exactly four places.
+
+### The simple picture: three clerks and a book in chapters
+
+The book is cut into chapters. Every chapter is photocopied to all three towns,
+so no town's fire destroys anything. For each chapter one clerk is on duty and
+may answer questions about it alone. The others hold copies and stay quiet.
+
+To write a transaction you go round and put **pencil marks** in every chapter you
+are changing. Each mark says *"see master card #714."* Then you fill in card
+#714. Once card #714 says the transaction counts, every pencil mark counts,
+everywhere, at once — even before anyone has inked them in.
+
+And every entry is dated by the duty clerk's own watch. Everyone knows the
+watches disagree, and everyone has agreed on one number: **no watch is more than
+half a second from any other**. So a clerk reading the book as of 960 treats
+every entry dated between 960 and 1460 as *"I cannot tell whether this is in my
+past"*, and goes back to check.
+
+### The precise picture: what each part of the office really is
+
+Three small tables rather than one long one, so you can find the row you want.
+The right-hand column says where in this lab the thing does its work.
+
+The places and the people:
+
+| In the office | In the machine | Where it works |
+|---|---|---|
+| the book | one monolithic sorted key-value map holding the whole cluster | 10.1 |
+| a chapter | a **range** — a contiguous key span, 512 MiB max by default | 10.1 |
+| three photocopies of a chapter | three **replicas**, forming that range's own Raft group | 10.2 |
+| the duty clerk for a chapter | the **leaseholder**; since v25.2 always also the Raft leader | 10.2 |
+
+The marks and the card:
+
+| In the office | In the machine | Where it works |
+|---|---|---|
+| a pencil mark | a **write intent**: an MVCC value plus a pointer to a transaction record | 10.3 |
+| master card #714 | the **transaction record**: `PENDING` / `STAGING` / `COMMITTED` / `ABORTED` | 10.3 |
+| a note that someone already read this line | the **timestamp cache** | 10.5 |
+| proving your earlier reading still stands | a **read refresh** | 10.5 |
+
+Time and doubt:
+
+| In the office | In the machine | Where it works |
+|---|---|---|
+| the date on an entry | a **hybrid logical clock** stamp — 64-bit wall clock plus a 32-bit counter | 10.4 |
+| "no watch is more than half a second out" | the `--max-offset` promise, default **500 ms** | 10.4 |
+| "I cannot tell whether this is in my past" | the **uncertainty interval** `(read_ts, read_ts + max_offset]` | 10.4 |
+| going back to check | an **uncertainty restart**, raised as `ReadWithinUncertaintyIntervalError` | 10.4 |
+
+### Where the story lies to you
 
 Four places, and each one is load-bearing.
 
-**1. The duty clerk is not elected by a show of hands about the data.** A lease is not
-consensus about content; it is a bounded, fenced grant of authority. The reason this
-matters is [split-brain](../42-split-brain/)'s whole argument: a machine that has been
-partitioned away can still *believe* it is the duty clerk, and the design has to make that
-belief harmless. Leader leases do it by refusing to let leadership and duty ever be held
-by different machines.
+**Lie one: that the duty clerk is elected by a show of hands about the data.** A
+lease is not consensus about content. It is a bounded, fenced grant of authority.
 
-**2. "Pencil first, then ink" implies the ink is what makes it real. It is not.** In the
-real design, filling in the master card is not even the commit — the transaction is
-committed the instant the card says `STAGING` *and* every mark it lists has been agreed
-by a majority. The inking is bookkeeping done afterwards, by whoever happens to pass. Stage
-10.3 builds this and it is the least intuitive idea in the lab.
+Why that matters is [split-brain](../42-split-brain/)'s whole argument. A machine
+partitioned away from the others can still *believe* it is the duty clerk, and
+the design has to make that belief harmless. Leader leases do it by refusing to
+let leadership and duty ever be held by different machines.
 
-**3. Chapters are not fixed.** Ranges split and merge continuously as data grows and
-shrinks, and the boundaries move under load. There is no moment at which the shape of
-the book is settled.
+**Lie two: that the ink is what makes it real.** "Pencil first, then ink" implies
+so. It is false.
 
-**4. There is no clerk who knows the true time — including the reader.** The analogy
-tempts you to imagine a narrator who knows it is "really" 1000. The simulator has such a
-narrator, drawn as the top lane of its timeline, and **no component of the real system
-does**. Every mechanism in this lab is built out of *relative* comparisons between numbers
-that are all individually wrong.
+In the real design, filling in the master card is not even the commit. The
+transaction is committed the instant the card says `STAGING` *and* every mark it
+lists has been agreed by a majority. The inking is bookkeeping done afterwards,
+by whoever happens to pass. Section 10.3 builds this, and it is the least
+intuitive idea in the lab.
 
----
+**Lie three: that chapters are fixed.** Ranges split and merge continuously as
+data grows and shrinks, and the boundaries move under load. There is no moment at
+which the shape of the book is settled.
 
-## 9. The simulator
+**Lie four: that somebody knows the true time.** The story tempts you to imagine
+a narrator who knows it is "really" 1000 when Asha pays.
 
-Open **[The Reader Pays](https://claude.ai/code/artifact/2119fede-4cbd-44ca-9e82-b4583323640b)**
-(or `visualization.html` in this directory — it works offline).
+The simulator has exactly such a narrator, drawn as the top lane of its timeline.
+**No component of the real system does.** Every mechanism in this lab is built
+out of *relative* comparisons between numbers that are all individually wrong.
 
-**What you are looking at.** The timeline has two lanes on a single shared millisecond
-scale, and reading it correctly is most of the lesson:
+## 9. Where can you break it yourself?
 
-- **The top lane is real time** — when each transaction actually began and was
-  acknowledged. Nothing inside the database can see this lane. It exists so *you* can.
-- **The bottom lane is what the cluster believes**: each key as a row, each committed
-  version as a dot at its timestamp, each write intent as a hollow diamond.
-- **The dashed line between them** connects a transaction's real beginning to the
-  timestamp it was given. Its slant is that machine's clock error, drawn to scale, with
-  the millisecond figure on it. A right-leaning line is a fast clock inventing the future;
-  a left-leaning line is a slow clock backdating the present.
-- **The amber band** is the reading transaction's window of doubt. Version dots are
-  coloured by where they fall relative to it: green = in the reader's past and visible,
-  amber = ambiguous and about to cause a restart, grey = in the reader's future and
-  skipped.
+> **In one breath:** The simulator draws two lanes — what really happened, and
+> what the cluster believes happened. Reading the gap between them is most of the
+> lesson. Then you drag one slider and watch a payment vanish.
 
-**What to try, in this order.**
+Open **[The Reader Pays](https://claude.ai/code/artifact/2119fede-4cbd-44ca-9e82-b4583323640b)**,
+or `visualization.html` in this directory, which works offline.
+
+### What are you looking at?
+
+The timeline has two lanes on a single shared millisecond scale.
+
+| What you see | What it means |
+|---|---|
+| **the top lane** | real time — when each transaction actually began and was acknowledged; nothing inside the database can see this lane, and it exists so *you* can |
+| **the bottom lane** | what the cluster believes: each key as a row, each committed version as a dot at its timestamp, each write intent as a hollow diamond |
+| **the dashed line between them** | connects a transaction's real beginning to the timestamp it was given; its slant is that machine's clock error, drawn to scale, with the millisecond figure on it |
+| **the amber band** | the reading transaction's window of doubt |
+
+A right-leaning dashed line is a fast clock inventing the future. A left-leaning
+one is a slow clock backdating the present. Meera's line leans right. Dev's leans
+left.
+
+Version dots are coloured by where they fall relative to the amber band.
+
+| Dot colour | Where the value sits | What happens to it |
+|---|---|---|
+| green | in the reader's past | visible |
+| amber | inside the band of doubt | ambiguous — about to cause a restart |
+| grey | in the reader's future | skipped |
+
+### What should you try, and in what order?
 
 1. **Scenario 3, "The stale read"**, with everything at its defaults. Answer the
-   prediction, then press *Run it for me*. Watch the amber band catch the payment, and
-   watch the read line jump right while the band's right-hand edge stays put.
-2. **The same scenario, with the max-offset slider dragged to 0.** This is the single most
-   valuable ten seconds on the page: the verdict banner turns red, a payment that has been
-   acknowledged is reported as not having arrived, and **not one log line says anything is
-   wrong**.
-3. **Scenario 1 with the parallel-commits switch on, then off.** You have not met parallel
-   commits yet — stage 10.3 builds them — but you can see what they buy right now: the
-   client's wait goes from 121 ms to 181 ms for exactly the same guarantee.
-4. **Scenario 5, "Two doctors"**, then turn off *re-check reads when pushed* and run it
-   again — write skew, live.
-5. **Scenario 8, "The causal reverse"** — a name stage 12 will earn. Every clock inside its
-   budget, no failures at all, and the audit still sees an effect without its cause.
+   prediction, then press *Run it for me*. Watch the amber band catch the
+   payment. Watch the read line jump right while the band's right-hand edge stays
+   exactly where it was.
+2. **The same scenario, with the max-offset slider dragged to 0.** This is the
+   single most valuable ten seconds on the page. The verdict banner turns red, a
+   payment that has been acknowledged is reported as not having arrived, and
+   **not one log line says anything is wrong**.
+3. **Scenario 1 with the parallel-commits switch on, then off.** You have not met
+   parallel commits yet, because section 10.3 builds them. You can still see what
+   they buy right now. The client's wait goes from 121 ms to 181 ms for exactly
+   the same guarantee.
+4. **Scenario 5, "Two doctors"**, then turn off *re-check reads when pushed* and
+   run it again. That is write skew, live.
+5. **Scenario 8, "The causal reverse"** — a name section 12 will earn. Every
+   clock inside its budget, no failures at all, and the audit still sees an
+   effect without its cause.
 
-Two habits make the page much more useful. **Predict before you run** — the buttons are
-there so you commit to an answer while being wrong is still cheap. And **step backwards**:
-the whole simulation is a pure function of the dials, so ← and → move freely, and nothing
-is remembered between steps that the screen does not show you.
+Two habits make the page much more useful.
+
+**Predict before you run.** The buttons are there so that you commit to an answer
+while being wrong is still cheap.
+
+**Step backwards.** The whole simulation is a pure function of the dials, so the
+arrow keys move freely. Nothing is remembered between steps that the screen does
+not show you.
 
 ---
 
 **CHECKPOINT — end of the beginner model.**
-You can now say why this database exists, what breaks without it, and what its one big
-idea is: never be sure what time it is, declare how unsure you are, and make readers carry
-the doubt. **What the next layer adds:** how a row becomes a key, who is allowed to answer
-a read, how a two-continent commit takes one round trip instead of two, and how
-serializability is enforced without a single lock on a reader.
 
----
+You can now say why this database exists, what breaks without it, and what its
+one big idea is. Never be sure what time it is; declare how unsure you are; make
+readers carry the doubt.
 
-## 10. The actual mechanism
+**What the next layer adds:** how a row becomes a key, and who is allowed to
+answer a read. Then how a two-continent commit takes one round trip instead of
+two, and how serializability is enforced without a single lock on a reader.
 
-Five parts. Each one starts with the version a sensible engineer would build, breaks it,
-and repairs it — because every odd detail of the real design is the scar of one of these
-breakages.
+> **Say it back.** Without using the words *timestamp*, *interval* or *offset*,
+> explain to a friend why Ben was told the payment had not arrived, and what
+> CockroachDB makes Dev do instead.
+>
+> <details><summary>A good answer sounds like</summary>
+>
+> "The entry was dated by a watch that runs fast, so it carried a date slightly
+> in the future. Dev's watch runs slow, so when he looked at the book 'as of
+> now', his now was earlier than the date on the entry, and he filed it as not
+> having happened yet. CockroachDB fixes it by making Dev distrust a slice of
+> dates just ahead of his own. Anything in that slice he cannot rule out — so he
+> starts his search again from a later moment, at which point the entry is
+> plainly in his past."
+>
+> </details>
 
-### 10.1 Where a row actually lives
+## 10. How is the mechanism built, one failure at a time?
 
-**v1: hash the primary key and send it to a machine.** This is
-[consistent-hashing](../35-consistent-hashing/), it spreads load perfectly, and it is what
-Cassandra and DynamoDB do.
+> **In one breath:** Five parts. Each one starts with the version a sensible
+> engineer would build, breaks it, and repairs it. Every odd detail of the real
+> design is the scar of one of these breakages.
 
-**It breaks on the second query you will ever write.** `SELECT … WHERE id BETWEEN 100 AND
-200` has to be sent to every machine, because a hash scatters adjacent keys deliberately.
-So does `ORDER BY id LIMIT 10`. So does any range scan on any index. You have made
-single-key lookups perfect and everything else a fan-out.
+### 10.1 Where does a row actually live?
 
-**The repair: keep the keys in order.** CockroachDB stores the whole cluster as **one
-sorted key-value map** and cuts it into contiguous ranges. Adjacent keys are adjacent
-bytes, in the same range, on the same machine, in the same LSM tree
+Asha (a row in the ledger) has to live on some machine. Which one?
+
+The first design anybody writes hashes the primary key and sends the row to
+whichever machine the hash points at. That is
+[consistent-hashing](../35-consistent-hashing/). It spreads load perfectly, and
+it is what Cassandra and DynamoDB do.
+
+It breaks on the second query you will ever write. `SELECT … WHERE id BETWEEN 100
+AND 200` has to be sent to every machine, because a hash scatters adjacent keys
+deliberately. So does `ORDER BY id LIMIT 10`. So does any range scan on any
+index. You have made single-key lookups perfect and everything else a fan-out.
+
+The repair is to keep the keys in order. CockroachDB stores the whole cluster as
+**one sorted key-value map** and cuts it into contiguous ranges. Adjacent keys
+are adjacent bytes, in the same range, on the same machine, in the same LSM tree
 ([btree-and-lsm](../05-btree-and-lsm/)).
 
-A SQL row becomes key-value pairs by an encoding worth seeing once, because two production
-problems fall straight out of it:
+A SQL row becomes key-value pairs by an encoding worth seeing once, because two
+production problems fall straight out of it. In words: *the table's number, then
+the index's number, then the indexed values — and the rest of the row is what
+that points at.*
 
 ```
    /<table_id>/<index_id>/<indexed column values>  →  <the remaining column values>
 ```
 
-The primary key uses `index_id = 1`. So a row of `accounts` (say table 106) with primary
-key `'asha'` and columns `(balance, tier)` is roughly:
+The primary key always uses index number 1, written in the encoding as
+`index_id = 1`. Take a row of `accounts`, which is table 106 here. Its primary
+key is `'asha'` and its columns are `(balance, tier)`. It comes out roughly like
+this:
 
 ```
    /106/1/"asha"   →   (2000, "gold")
 ```
 
-and a secondary index on `tier` (index 2) is another entry in the same map:
+A secondary index on `tier`, which is index number 2, is another entry in the
+same map:
 
 ```
    /106/2/"gold"/"asha"   →   —
 ```
 
-Three consequences follow immediately, and you should be able to derive each one from
-that single line of encoding:
+Three consequences follow immediately. You should be able to derive each one from
+that single line of encoding.
 
-- **A range scan is a sequential read.** Every row of `accounts` between `'a'` and `'m'`
-  is contiguous bytes.
-- **A secondary index is just more rows in the same map, usually in a different range** —
-  which is why inserting one row with two indexes is a *multi-range* transaction, and why
-  stage 10.3's saved round trip matters so much.
-- **A monotonically increasing primary key is a design fault**, not a preference. Every
-  new row sorts to the end of the map, so every insert in the cluster hits the same range,
-  and therefore one leaseholder, on one machine. Stage 11 makes this concrete.
+| What follows from the encoding | Why | Where it bites |
+|---|---|---|
+| a range scan is a sequential read | every row of `accounts` between `'a'` and `'m'` is contiguous bytes | makes ordered SQL cheap |
+| a secondary index is just more rows in the same map, usually in a different range | it is a separate entry with its own sort position | one insert with two indexes is a *multi-range* transaction, so 10.3's saved round trip matters |
+| a monotonically increasing primary key is a design fault, not a preference | every new row sorts to the end of the map | every insert hits the same range, one leaseholder, one machine — section 11.6 |
 
-**How does a client find the range?** A two-level index, held in the map itself:
-**`meta1`** addresses `meta2`, and `meta2` addresses every user range. The location of
-`meta1` is spread to every node by gossip ([gossip-protocols](../37-gossip-protocols/)), and
-every node caches range descriptors it has used. Two levels addresses up to 4 EiB, so in
-practice a lookup is at most two hops and usually zero.
+**How does a client find the range it wants?** With a two-level index, held
+inside the map itself. The first level, **`meta1`**, tells you which second-level
+record to consult. The second, **`meta2`**, addresses every user range.
 
-### 10.2 Who is allowed to answer a read
+The location of `meta1` is spread to every node by gossip
+([gossip-protocols](../37-gossip-protocols/)), and every node caches the range
+descriptors it has used. Two levels address up to 4 EiB, so a lookup is at most
+two hops and usually zero.
 
-**v1: read through Raft.** Every read is proposed to the range's Raft group and answered
-once a majority has agreed. This is obviously correct and it is what a first implementation
-does.
-
-**It breaks on cost.** Every read — including the 95% of your traffic that is reads —
-now costs a consensus round, which across regions is tens of milliseconds. You have built
-a correct database with the read latency of a write.
-
-**The repair: the range lease.** One replica holds the exclusive right to serve reads
-locally for a bounded period. Reads become a local lookup. The leaseholder also sequences
-writes, which is what makes the timestamp cache in 10.5 possible at all.
-
-**And that repair broke, in production, for years.** The lease and the Raft leadership were
-separate grants and could land on different replicas — a **leader-leaseholder split**.
-A leaseholder whose Raft log had fallen behind the others would keep answering reads while
-being unable to make progress on writes, and under a network partition this could leave a
-range unavailable indefinitely.
-
-**The second repair: leader leases**, the default since **v25.2**. The Raft leader is
-always the leaseholder, except briefly during a deliberate transfer. This also removed a
-structural single point of failure: epoch-based leases depended on a single **node
-liveness range** that every node in the cluster heartbeated, and leader leases replaced
-that with store-wide failure detection. (Heartbeating still exists for cluster membership,
-death detection and replica placement — it is no longer on the critical path of holding a
-lease.) A third kind, **expiration-based leases**, still covers system ranges; they expire
-after a few seconds and are renewed by continued Raft activity.
-
-> **🔮 Predict:** The leaseholder answers reads from its own copy without asking anybody.
-> A stale or partitioned leaseholder could therefore serve an old value forever. What
-> stops it?
+> **🔮 Predict:** Ranges split when they grow past 512 MiB and merge when they
+> shrink below 128 MiB. Why are those two numbers so far apart, rather than both
+> being, say, 256 MiB?
+>
 > <details><summary>Reveal</summary>
-> The lease is <b>time-bounded</b>, and this is exactly the fencing argument from
-> <a href="../42-split-brain/">split-brain</a>. A leaseholder may only answer reads while its
-> lease is valid; a partitioned one runs out and stops. A new leaseholder cannot be granted
-> until the old lease has provably expired, so two machines can never both believe they are
-> on duty at once. The safety property does not come from the leaseholder being
-> well-behaved — it comes from time bounding what a misbehaving one can do. Which is the
-> same trick as the uncertainty interval, applied to authority instead of to data.
+>
+> Because a single threshold would make the system **oscillate**. A range sitting
+> right on the line would split, and each half would immediately be under the
+> line, so they would merge, and the merged range would be over the line again.
+>
+> The gap between 128 MiB and 512 MiB is deliberate slack — engineers call it
+> hysteresis. A range has to lose three quarters of its data before a merge is
+> even considered.
+>
+> If you guessed "512 is for performance and 128 is for storage", you are
+> thinking about the absolute values rather than the distance between them. The
+> distance is the point.
+>
 > </details>
 
-### 10.3 How a transaction writes — and why the commit is not an event
+### 10.2 Who is allowed to answer a read?
 
-Take the transfer from scenario 1: move ₹500 from Asha (range `/accounts/a–m`, leaseholder
-Frankfurt) to Raj (range `/accounts/n–z`, leaseholder Ohio). Two ranges, two leaseholders,
+The obvious first design is to read through Raft. Every read is proposed to the
+range's Raft group and answered once a majority has agreed. This is obviously
+correct, and it is what a first implementation does.
+
+It breaks on cost. Every read now costs a consensus round — including the 95% of
+your traffic that is reads. Across regions that is tens of milliseconds. You have
+built a correct database with the read latency of a write.
+
+The repair is the **range lease**. One replica holds the exclusive right to serve
+reads locally for a bounded period. Reads become a local lookup. Arjun in
+Frankfurt answers about `/accounts/a–m` without telephoning anybody.
+
+The leaseholder also sequences writes, which is what makes the timestamp cache in
+10.5 possible at all.
+
+**And that repair broke, in production, for years.** The lease and the Raft
+leadership were separate grants and could land on different replicas — the
+**leader-leaseholder split** from section 7. A leaseholder whose Raft log had
+fallen behind the others would keep answering reads while being unable to make
+progress on writes. Under a network partition this could leave a range
+unavailable indefinitely.
+
+The second repair is **leader leases**, the default since **v25.2**. The Raft
+leader is always the leaseholder, except briefly during a deliberate transfer.
+
+That change also removed a structural single point of failure. The older
+**epoch-based leases** depended on one cluster-wide **node liveness range** that
+every node heartbeated. Leader leases replaced it with store-wide failure
+detection. Heartbeating still exists for cluster membership, death detection and
+replica placement — it is simply no longer on the critical path of holding a
+lease.
+
+A third kind, **expiration-based leases**, still covers system ranges. They
+expire after a few seconds and are renewed by continued Raft activity.
+
+Three kinds of lease, then, and it is worth keeping them apart.
+
+| Kind of lease | How it stays alive | Where it is used now |
+|---|---|---|
+| **leader lease** | held by whoever is Raft leader, by construction | the default since v25.2, for user ranges |
+| **epoch-based lease** | a cluster-wide node liveness range, heartbeated | legacy; the previous default |
+| **expiration-based lease** | a few seconds, renewed by Raft activity | system ranges |
+
+> **🔮 Predict:** The leaseholder answers reads from its own copy without asking
+> anybody. A stale or partitioned leaseholder could therefore serve an old value
+> forever. What stops it?
+>
+> <details><summary>Reveal</summary>
+>
+> The lease is <b>time-bounded</b>, and this is exactly the fencing argument from
+> <a href="../42-split-brain/">split-brain</a>. A leaseholder may only answer
+> reads while its lease is valid; a partitioned one runs out and stops. A new
+> leaseholder cannot be granted until the old lease has provably expired, so two
+> machines can never both believe they are on duty at once.
+> <br><br>
+> The safety property does not come from the leaseholder being well-behaved. It
+> comes from time bounding what a misbehaving one can do. Which is the same trick
+> as the uncertainty interval, applied to authority instead of to data.
+> <br><br>
+> If you guessed "the other replicas would correct it", you have imagined a
+> conversation that never happens. The whole point of a lease is that no
+> conversation is needed.
+>
+> </details>
+
+### 10.3 How does a transaction write — and why is the commit not an event?
+
+Take the transfer from scenario 1. Move ₹500 from Asha to Raj. Asha's row is in
+`/accounts/a–m`, whose leaseholder is Arjun in Frankfurt. Raj's row is in
+`/accounts/n–z`, whose leaseholder is Dev in Ohio. Two ranges, two leaseholders,
 60 ms apart.
 
-**v1: Percolator, which you already know.** Stage the writes as intents; then flip one
-designated record from pending to committed; secondaries clean up lazily. That is the
-design from [distributed-transactions](../46-distributed-transactions/), and CockroachDB's
-intents and transaction record are exactly its lock and primary, generalised — the record
-is its own key rather than one of the data keys.
+The design you already know is **Percolator**, from
+[distributed-transactions](../46-distributed-transactions/). Stage the writes as
+intents. Then flip one designated record from pending to committed. Let
+secondaries clean up lazily.
 
-Here is the trace, from the simulator with parallel commits **off**:
+CockroachDB's intents and transaction record are exactly Percolator's lock and
+primary, generalised — the record is its own key rather than one of the data
+keys.
+
+Here is the trace, from the simulator with parallel commits **off**. Read the
+last line first.
 
 ```
 t=1000   BEGIN on Frankfurt · read_ts = HLC(Frankfurt) = 1000
@@ -662,24 +955,29 @@ t=1181   PUT txn record PENDING → COMMITTED              ← round 2 of consen
          client acknowledged.  Elapsed: 181 ms
 ```
 
-**It breaks on the second round.** The outcome was already determined at t=1121 — both
-values are durable on majorities, nothing can undo them, no participant can change its
-mind. The client then waits another full cross-region round trip while the coordinator
-writes down a conclusion that was already forced. And it gets worse with schema: every
-secondary index entry is another key, often on another range, so a wide table's insert
-pays this on more ranges.
+It breaks on the second round. Look at what was already true at t=1121. Both
+values are durable on majorities. Nothing can undo them. No participant can
+change its mind.
 
-**The repair: parallel commits.** Redefine what "committed" means. The docs put it
-exactly:
+The outcome was already forced. And yet the client waits another full
+cross-region round trip while the coordinator writes down a conclusion nobody
+could have contradicted.
 
-> *"A transaction is considered committed if its record is in the STAGING state and an
-> observer can prove that all of the writes listed in its transaction record have
-> successfully achieved consensus."*
+It gets worse with schema. Every secondary index entry is another key, often on
+another range. A wide table's insert pays this on more ranges.
 
-Read that twice, because it is the whole trick. Committed stops being an **event someone
-performs** and becomes a **condition anyone can check**. The coordinator therefore writes
-the record — as `STAGING`, listing the keys it is waiting on — *at the same time* as the
-intents, not after them:
+**The repair is parallel commits, and it works by redefining what "committed"
+means.** The documentation puts it exactly:
+
+> *"A transaction is considered committed if its record is in the STAGING state
+> and an observer can prove that all of the writes listed in its transaction
+> record have successfully achieved consensus."*
+
+Read that twice, because it is the whole trick. Committed stops being an **event
+someone performs** and becomes a **condition anyone can check**.
+
+So the coordinator writes the record *at the same time* as the intents, not after
+them. The record goes in as `STAGING`, and it lists the keys it is waiting on:
 
 ```
    TransactionRecord{ Status: STAGING, Writes: []Key{"/accounts/asha", "/accounts/raj"} }
@@ -698,54 +996,78 @@ t=1121   every one of them agreed → the commit condition holds → transaction
 t=1126   record STAGING → COMMITTED; intents resolved to values   ← off the critical path
 ```
 
-**121 ms instead of 181** — exactly one cross-region round trip saved, and the simulator
-asserts that identity across its configurations. Cockroach Labs' own measurement is the
-qualitative version of the same claim: without parallel commits, client-perceived latency
-grows at *twice* the rate of the round-trip time; with them, at exactly the rate of the
-round-trip time.
+**121 ms instead of 181** — exactly one cross-region round trip saved. The
+simulator asserts that identity across its configurations.
 
-> **🔮 Predict:** At t=1122 — after the acknowledgement, before anything says COMMITTED,
-> before either pencil mark is inked — the coordinator machine catches fire. Is the money
-> moved?
+Cockroach Labs' own claim is the qualitative version of the same thing. Without
+parallel commits, client-perceived latency grows at *twice* the rate of the
+round-trip time. With them, at exactly the rate of the round-trip time.
+
+| Parallel commits | Rounds of consensus on the critical path | The client's wait | How latency grows with round-trip time |
+|---|---|---|---|
+| off | 2 | **181 ms** | at twice the rate |
+| on | 1 | **121 ms** | at exactly the rate |
+
+> **🔮 Predict:** Pick the moment t=1122. The client has been acknowledged.
+> Nothing anywhere says COMMITTED. Neither pencil mark has been inked. At exactly
+> that moment the coordinator machine catches fire. Is the money moved?
+>
 > <details><summary>Reveal</summary>
-> <b>Yes, definitively.</b> Not "probably", not "a human must decide" — the commit
-> condition was satisfied at t=1121 and it is a property of data that is replicated on
-> majorities. Nothing about the coordinator's continued existence was ever part of it.
-> The next reader to touch either key finds an intent, follows it to a <code>STAGING</code>
-> record, checks the keys the record lists, finds them all present, and concludes the
-> transaction committed — then does the tidying itself. Run scenario 2 to watch a stranger
-> finish someone else's transaction.
+>
+> <b>Yes, definitively.</b> Not "probably", not "a human must decide". The commit
+> condition was satisfied at t=1121, and it is a property of data replicated on
+> majorities. Nothing about the coordinator's continued existence was ever part
+> of it.
 > <br><br>
-> Compare this with <a href="../45-two-phase-commit/">two-phase-commit</a>, where a
-> coordinator dying between prepare and commit leaves participants holding locks with no
-> way to learn the outcome, and with XA in the JVM, where the resolution is a human being
-> inventing a <i>heuristic outcome</i> for an <i>in-doubt</i> transaction. The blocking
-> problem is not solved here. It is <b>deleted</b>, by making the outcome a fact in the
-> data rather than a message from a process.
+> The next reader to touch either key finds an intent and follows it to a
+> <code>STAGING</code> record. It checks the keys that record lists, finds them
+> all present, and concludes the transaction committed. Then it does the tidying
+> itself. Run scenario 2 to watch a stranger finish someone else's transaction.
+> <br><br>
+> Compare this with <a href="../45-two-phase-commit/">two-phase-commit</a>, where
+> a coordinator dying between prepare and commit leaves participants holding
+> locks with no way to learn the outcome. And with XA in the JVM, where the
+> resolution is a human being inventing a <i>heuristic outcome</i> for an
+> <i>in-doubt</i> transaction.
+> <br><br>
+> The blocking problem is not solved here. It is <b>deleted</b>, by making the
+> outcome a fact in the data rather than a message from a process. If you guessed
+> "it depends whether the coordinator logged anything", you are still imagining
+> the decision living in a process.
+>
 > </details>
 
-**And what if a write is missing?** The recovery procedure must not guess, and must not
-be able to reach a different conclusion than someone else running it a moment later. So
-when it finds a listed key without an agreed intent, it does not simply abort — it first
-**makes that write impossible forever**, by raising the barrier on that key (the timestamp
-cache, 10.5) above the transaction's timestamp, and only then marks the record `ABORTED`.
-Any straggling attempt to complete that write now fails. The same procedure produces both
-outcomes and both are atomic; scenario 2's final step walks the abort branch.
+**And what if one of the listed writes is missing?** Then somebody has to decide,
+and the decision must be permanent. Two readers running recovery a moment apart
+must not reach different conclusions.
 
-### 10.4 How a reader avoids a stale answer
+So when recovery finds a listed key without an agreed intent, it does not simply
+abort. It first **makes that write impossible forever**. It does that by raising the
+barrier on that key, which is the timestamp cache of 10.5, above the
+transaction's timestamp. Only then does it mark the record `ABORTED`.
 
-This is the part that is unique to CockroachDB, and it is stage 3 of the simulator.
+Any straggling attempt to complete that write now fails. The same procedure
+produces both outcomes and both are atomic. Scenario 2's final step walks the
+abort branch.
 
-Every version in the store is stamped with a **hybrid logical clock** value — the
-timestamp you built in [hybrid-logical-clocks](../31-hybrid-logical-clocks/), a wall-clock
-reading plus a logical counter, in CockroachDB an `int64` of nanoseconds plus an `int32`.
-A transaction takes its read timestamp from the clock of the node its client connected to.
+### 10.4 How does a reader avoid a stale answer?
 
-**v1: read at your own now.** Show every version stamped at or below your read timestamp.
-This is textbook MVCC, and on one machine it is exactly right.
+This is the part that is unique to CockroachDB, and it is stage 3 of the
+simulator. It is also Asha and Ben's problem from section 2, finally solved.
 
-**It breaks on the story in stage 2.** Here is the trace, from the simulator, defaults,
-with the doubt set to zero:
+Every version in the store is stamped with a **hybrid logical clock** value. That
+is the timestamp you built in
+[hybrid-logical-clocks](../31-hybrid-logical-clocks/): a wall-clock reading plus
+a logical counter. In CockroachDB the pair is an `int64` of nanoseconds plus an
+`int32`. A transaction takes its read timestamp from the clock of the node its
+client connected to.
+
+The obvious first design is to read at your own now. Show every version stamped
+at or below your read timestamp. This is textbook MVCC, and on one machine it is
+exactly right.
+
+It breaks on the story in section 2. Here is the trace, from the simulator, at
+the defaults, with the doubt set to zero. Meera is Mumbai, Dev is Ohio.
 
 ```
 t=1000  Mumbai (clock +180) commits Asha's payment.  commit_ts = 1180
@@ -756,11 +1078,14 @@ t=1141  value ts 1180 > read_ts 960  →  "in my future"  →  invisible
         Ben is told: PENDING                                  ← STALE READ
 ```
 
-**The repair: refuse to answer when you cannot tell.** Give the reader an
-**uncertainty interval** `(read_ts, read_ts + max_offset]`. A value in it is neither
-visible nor invisible; it is *unresolvable*, and returning either answer might be a lie.
-So the read raises `ReadWithinUncertaintyIntervalError` and restarts at a timestamp just
-above the offending value. Same trace, doubt at its default of 500 ms:
+**The repair is to refuse to answer when you cannot tell.** Give the reader an
+**uncertainty interval**: from just after its read timestamp, up to half a second
+later. A value inside it is neither visible nor invisible. It is *unresolvable*,
+and returning either answer might be a lie.
+
+So the read raises `ReadWithinUncertaintyIntervalError` and restarts at a
+timestamp just above the offending value. Same trace, with the doubt at its
+default of 500 ms:
 
 ```
 t=1080  read_ts = 960 · uncertainty interval = (960, 1460]
@@ -770,83 +1095,115 @@ t=1142  value ts 1180 ≤ read_ts 1180⁺  →  visible
         Ben is told: SETTLED                    ← correct, and it cost one round trip
 ```
 
-**And that repair looks like it might never terminate.** A busy cluster is writing all the
-time; if every value in the window costs a restart, a long report could restart forever.
+**And that repair looks like it might never terminate.** A busy cluster is
+writing all the time. If every value in the window costs a restart, a long report
+could restart forever.
+
 Two brakes stop it, and they are independent.
 
-**Brake one: the ceiling never rises.** On restart the read timestamp moves up but
-`read_ts + max_offset` — the value computed when the transaction *began* — does not. So
-every restart strictly shrinks the remaining doubt. The docs state this directly: *"the
-upper bound of the uncertainty interval does not change on restart, so the window of
-uncertainty shrinks."*
+**Brake one: the ceiling never rises.** On restart the read timestamp moves up.
+The ceiling does not. It was computed once, when the transaction *began*. So every
+restart strictly shrinks the remaining doubt. The documentation states it
+directly: *"the upper bound of the uncertainty interval does not change on
+restart, so the window of uncertainty shrinks."*
 
-**Brake two: observed timestamps.** When a transaction first contacts a node, it records
-what that node's clock read at that moment. Any value on that node stamped **above** that
-reading must have been written *after* the transaction spoke to it — so it is provably in
-the transaction's future, not merely possibly. No restart. The consequence is a hard bound:
-a transaction can be forced to restart **at most once per node**, and never by more than
-the width of its uncertainty interval.
+Watch it in the trace above. The window went from 500 ms wide to 280 ms wide,
+because its left edge moved and its right edge did not.
 
-Scenario 4 is this bound, made visible. Same report, same four rows, one switch:
+**Brake two: observed timestamps.** When a transaction first contacts a node, it
+writes down what that node's clock read at that moment. Any value on that node
+stamped **above** that reading must have been written *after* the transaction
+spoke to it. So it is provably in the transaction's future, not merely possibly.
+No restart.
 
-| | restarts | what the report saw for `/payments/p2` |
+The consequence is a hard bound. A transaction can be forced to restart **at most
+once per node**, and never by more than the width of its uncertainty interval.
+
+Scenario 4 is that bound, made visible. Same report, same four rows, one switch.
+
+| Observed timestamps | Restarts | What the report saw for `/payments/p2` |
 |---|---|---|
-| with observed timestamps (default) | **1** | the older version, `PENDING @ 580` |
-| without them | **2** | the newer version, `REFUNDED @ 1285` |
+| on, the default | **1** | the older version, `PENDING @ 580` |
+| off | **2** | the newer version, `REFUNDED @ 1285` |
 
-Note the second column carefully, because it is a subtlety people miss: the optimisation
-does not only make things faster, it changes **which snapshot you get**. Both answers are
-serializable; they are different, equally valid, points in the transaction order. Nothing
-about correctness depends on which one you get, and that is precisely why the optimisation
-is allowed to exist.
+Read the second column carefully, because it is a subtlety people miss. The
+optimisation does not only make things faster. It changes **which snapshot you
+get**.
 
-> **🔮 Predict:** Ohio's clock is slow, so writes made in Ohio carry small timestamps and
-> look older than they are. Does that hurt Ohio's *own* readers?
+Both answers are serializable. They are different, equally valid points in the
+transaction order. Nothing about correctness depends on which one you get — and
+that is precisely why the optimisation is allowed to exist.
+
+> **🔮 Predict:** Dev's clock in Ohio is slow, so writes made in Ohio carry small
+> timestamps and look older than they are. Does that hurt Ohio's *own* readers?
+>
 > <details><summary>Reveal</summary>
-> No — and working out why is the best test of whether the mechanism has landed. A slow
-> clock backdates its writes, so they fall <i>below</i> other readers' read timestamps and
-> are plainly visible. Doubt only arises when a value is stamped <b>above</b> the reader's
-> timestamp, which needs the <i>writer's</i> clock to be ahead of the <i>reader's</i>.
-> Scenario 4 has a row exactly like this — Raj's, written on Ohio at true time 900 and
-> stamped 780 — and it causes no drama at all.
+>
+> No — and working out why is the best test of whether the mechanism has landed.
+> A slow clock backdates its writes, so they fall <i>below</i> other readers'
+> read timestamps and are plainly visible. Doubt only arises when a value is
+> stamped <b>above</b> the reader's timestamp, which needs the <i>writer's</i>
+> clock to be ahead of the <i>reader's</i>.
 > <br><br>
-> The direction matters enormously for a different reason. A fast clock is the dangerous
-> one: it invents timestamps in the future, and future timestamps are what hide from
-> readers. This is why the failure in stage 11.3 is asymmetric, and why the derived
-> condition there involves <i>off_writer − off_reader</i> and not the absolute error of
-> either.
+> Scenario 4 has a row exactly like this. It is Raj's, written on Ohio at true
+> time 900 and stamped 780, and it causes no drama at all.
+> <br><br>
+> The direction matters enormously for a different reason. A fast clock is the
+> dangerous one: it invents timestamps in the future, and future timestamps are
+> what hide from readers. This is why the failure in 11.3 is asymmetric, and why
+> the condition derived there involves the <i>difference</i> between the writer's
+> and the reader's offsets, not the absolute error of either.
+> <br><br>
+> If you guessed "yes, a slow clock hides its own writes", you have the direction
+> reversed. A slow clock over-shares; a fast clock hides.
+>
 > </details>
 
-### 10.5 Serializable, without ever blocking a reader
+### 10.5 How is it serializable without ever blocking a reader?
 
-Snapshot isolation comes free with MVCC and is not enough — [isolation-levels](../08-isolation-levels/)
-measured exactly what it lets through, and
-[distributed-transactions](../46-distributed-transactions/) showed **write skew survives
-distribution completely untouched**. So something has to close it.
+Snapshot isolation comes free with MVCC, and it is not enough.
+[isolation-levels](../08-isolation-levels/) counted exactly what it lets through.
+[distributed-transactions](../46-distributed-transactions/) showed that **write
+skew survives distribution completely untouched**. So something has to close it.
 
-**v1: lock what you read** (distributed strict two-phase locking). Correct, and it means
-readers queue behind writers and writers behind readers, across regions, and inherit 2PC's
-blocking. Rejected for the same reason as everything else in this lab: it makes an
-ordinary operation wait for a remote machine.
+The textbook answer is to lock what you read — distributed strict two-phase
+locking. It is correct. It also means readers queue behind writers and writers
+behind readers, across regions, and it inherits two-phase commit's blocking.
 
-**The repair, in three moving parts.**
+Rejected for the same reason as everything else in this lab: it makes an ordinary
+operation wait for a remote machine.
 
-**Part one — reads leave a mark.** Each leaseholder keeps a **timestamp cache** in memory:
-for each key span, the highest timestamp at which anybody has read it. When a write
-arrives, its timestamp is checked against this mark, and a write is never allowed to slip
-in underneath a read that already happened. If it would, the write's whole transaction is
-**pushed**: its commit timestamp moves up above the mark. Nobody waits; the write simply
-gets a later position in time than it asked for.
+The real repair has three moving parts.
 
-**Part two — being pushed creates a debt.** A transaction that read at 890 and now claims
-to commit at 1000⁺ is claiming its reads were valid at 1000⁺ too. Under `SERIALIZABLE`
-that has to be proved, by a **read refresh**: re-check every span the transaction read for
-changes in the gap `(old_ts, new_ts]`. Clean → the push was free. Dirty → the transaction
-cannot be salvaged, and the client gets **`RETRY_SERIALIZABLE`, SQLSTATE 40001**.
+**Part one — reads leave a mark.** Each leaseholder keeps a **timestamp cache**
+in memory. For each span of keys it records the highest timestamp at which
+anybody has read it.
 
-**Part three — the client retries.** This is not an error path. It is the contract.
+When a write arrives, its timestamp is checked against that mark. A write is
+never allowed to slip in underneath a read that already happened. If it would,
+the write's whole transaction is **pushed**: its commit timestamp moves up above
+the mark. Nobody waits. The write simply gets a later position in time than it
+asked for.
 
-Scenario 5 is the canonical case, traced by the simulator:
+**Part two — being pushed creates a debt.** A transaction that read at 890 and
+now claims to commit at 1000⁺ is claiming its reads were valid at 1000⁺ too.
+
+Under `SERIALIZABLE` that has to be proved, by a **read refresh**: re-check every
+span the transaction read for changes in the gap it was pushed across.
+
+| The gap in words | The gap written down |
+|---|---|
+| from the timestamp the transaction read at, up to and including the one it was pushed to | `(old_ts, new_ts]` |
+
+Clean means the push was free. Dirty means the transaction cannot be salvaged,
+and the client gets `RETRY_SERIALIZABLE`, which is Omar's `SQLSTATE 40001` from
+section 6.
+
+**Part three — Omar's code retries.** This is not an error path. It is the
+contract.
+
+Scenario 5 is the canonical case, traced by the simulator. Two doctors, and a
+rule that at least one must stay on call.
 
 ```
 t=1000  T_A on Frankfurt reads both doctors at 1000 · both ON CALL
@@ -861,57 +1218,108 @@ t=1265  T_B was pushed → refresh its reads over (890, 1000⁺]
 t=1330  T_B retried at 1000⁺ → reads dr_mehta = OFF → the application refuses
 ```
 
-One doctor stays on call, and **not one lock was taken on a reader**. Turn off the
-*re-check reads when pushed* switch and the same trace ends with both doctors off call —
-which is snapshot isolation, and is why `READ COMMITTED` transactions in CockroachDB (GA
-since v24.1, but not the default) explicitly *do not* perform read refreshing.
+One doctor stays on call, and **not one lock was taken on a reader**.
 
-Two more pieces complete the concurrency picture, named here because you will meet them in
-error messages:
+Turn off the *re-check reads when pushed* switch and the same trace ends with
+both doctors off call. That is snapshot isolation. It is also why `READ
+COMMITTED` transactions in CockroachDB explicitly *do not* perform read
+refreshing. That isolation level has been generally available since v24.1, but it
+is not the default.
 
-- The **latch manager** sequences requests inside a single replica so that two operations
-  on the same key do not interleave: many read latches may coexist; a write latch excludes.
-  Latches are held for the duration of one request, not one transaction — they are not locks.
-- The **lock table** is the per-node, in-memory structure holding locks that in-progress
-  transactions have actually acquired (`SELECT … FOR UPDATE`, and the discovered locks
-  behind write intents), each with a wait-queue. The **`TxnWaitQueue`**, kept on the
-  range's Raft leader, tracks transactions that tried to push another transaction and
-  could not — and it is where distributed deadlocks are broken.
+Two more pieces complete the concurrency picture. They are named here because you
+will meet them in error messages.
 
-Notice the timestamp cache is doing **two unrelated jobs** with one structure: it enforces
-serializability by pushing writes above reads, and it is the barrier that parallel-commit
-recovery raises to kill a missing write for good. That economy is worth remembering,
-because it also explains a failure in stage 11: the structure is in memory only, and never
-replicated.
+| The piece | What it does | How long it is held |
+|---|---|---|
+| **latch manager** | sequences requests inside one replica so two operations on the same key do not interleave; many read latches coexist, a write latch excludes | one request — these are not locks |
+| **lock table** | the per-node, in-memory structure holding locks in-progress transactions actually acquired: `SELECT … FOR UPDATE`, and the locks discovered behind write intents | one transaction, each with a wait queue |
+| **`TxnWaitQueue`** | kept on the range's Raft leader; tracks transactions that tried to push another and could not | until the push resolves — and it is where distributed deadlocks are broken |
+
+Notice that the timestamp cache is doing **two unrelated jobs** with one
+structure. It enforces serializability by pushing writes above reads. And it is
+the barrier that parallel-commit recovery raises to kill a missing write for
+good.
+
+That economy is worth remembering, because it also explains a failure in section
+11. The structure is in memory only, and never replicated.
+
+> **🔮 Predict:** Both T_A and T_B did their work honestly, and each wrote a row
+> the other never wrote. Why is refusing one of them *necessary*, rather than an
+> over-cautious database being unhelpful?
+>
+> <details><summary>Reveal</summary>
+>
+> Because the conflict is not between two writes. It is between one
+> transaction's <b>write</b> and another transaction's <b>read</b>.
+> <br><br>
+> T_B decided it was safe to take Dr Qureshi off call <i>because</i> it had read
+> that Dr Mehta was on call. T_A then changed exactly that fact. So T_B's
+> decision rests on a reading that is no longer true at the moment T_B wants to
+> commit. Serializability says a transaction's whole set of reads must be valid
+> at one single point in the order — and T_B's are not.
+> <br><br>
+> This is write skew, and it is the anomaly snapshot isolation cannot see. The
+> two rows never collide; the reasoning does.
+> <br><br>
+> If you guessed "the database should merge them, since they wrote different
+> rows", you are treating serializability as a property of writes. It is a
+> property of whole transactions, reads included.
+>
+> </details>
 
 ---
 
 **CHECKPOINT — end of the intermediate model.**
-You can now trace a two-region transaction end to end: how its rows are addressed, who
-serves its reads, how its commit becomes a fact rather than a message, when its reads
-restart and why they stop, and how it is refused if committing would break serializability.
-**What the next layer adds:** what happens when machines and clocks misbehave, and exactly
-which promises bend.
 
----
+You can now trace a two-region transaction end to end. How its rows are
+addressed. Who serves its reads. How its commit becomes a fact rather than a
+message. When its reads restart, and why they stop. And how it is refused if
+committing would break serializability.
 
-## 11. Failure scenarios
+**What sections 11 and 12 add:** what happens when machines and clocks misbehave,
+and exactly which promises bend.
 
-Nine ways this design gets hurt. For each: how to create it, where to watch it, what
-happens, why, how the system responds, which promise survives, which bends, and what it
-looks like to somebody on call.
+> **Say it back.** Without using the words *STAGING*, *consensus* or *intent*,
+> explain to Omar why the money is definitely moved even though the coordinator
+> died before writing "committed" anywhere.
+>
+> <details><summary>A good answer sounds like</summary>
+>
+> "The coordinator had already put a note in the book listing exactly which
+> pencil marks this transaction was making, and every one of those marks was
+> agreed by a majority of clerks before it died. Anybody who comes along later
+> can read the note, check the list, find every mark present, and conclude that
+> it counted. Nothing was left in one person's head, so there was nothing to lose
+> when that person died."
+>
+> </details>
 
-### 11.1 The leaseholder dies
+## 11. What are the nine ways it fails, and what survives each one?
 
-**Create it:** simulator scenario 6, or `kill -9` a node in a real cluster.
+> **In one breath:** Nine ways this design gets hurt. Eight of them are loud —
+> something errors, something is slow, a dashboard turns red. One of them is
+> silent, and that is the one to be frightened of.
 
-The range itself is barely inconvenienced — three replicas, two survivors, still a
-majority. What dies with the machine is the **timestamp cache**, which lives only in the
-leaseholder's memory and is never replicated. The surviving replicas elect a new leader,
-which under leader leases immediately becomes the new leaseholder; and that new leaseholder
-has no idea what anybody read before its lease began. It cannot afford to assume nothing
-was read, so it assumes everything was: it installs a **low-water mark** at the moment its
-lease started and refuses any write from a transaction older than that.
+Meet **Priya**. She is the on-call engineer for this cluster, and she is the one
+who gets telephoned. For each failure below, the last thing said is what Priya
+actually sees.
+
+### 11.1 What happens when the leaseholder dies?
+
+Create it with scenario 6, or by killing a node in a real cluster with `kill -9`.
+
+The range itself is barely inconvenienced. Three replicas, two survivors, still a
+majority. What dies with the machine is the **timestamp cache** — the record of
+who read what, which lives only in the leaseholder's memory and is never
+replicated.
+
+The surviving replicas elect a new leader, which under leader leases immediately
+becomes the new leaseholder. And that new leaseholder has no idea what anybody
+read before its lease began.
+
+It cannot afford to assume nothing was read. So it assumes everything was. It
+installs a **low-water mark** at the moment its lease started, and refuses any
+write from a transaction older than that.
 
 ```
 t=1000  T_X reads /oncall/dr_mehta at 1000 from Frankfurt (mark recorded in RAM only)
@@ -921,35 +1329,47 @@ t=1470  T_X tries to write → 1590 > 1000 → ABORT_REASON_NEW_LEASE_PREVENTS_T
 t=1550  T_X retried from BEGIN → COMMITTED
 ```
 
-**Guarantee kept:** serializability, and no incorrect answer was ever returned.
-**Guarantee bent:** none — but liveness for that range pauses for the length of the lease
-handover, and in-flight transactions touching it are destroyed. **On call:** a brief spike
-in 40001s correlated with a node restart, and a range-unavailability blip that resolves
-itself. This is the single best argument for why a retry loop is mandatory: *the most
-ordinary event in cluster operation — a rolling restart — throws away healthy transactions.*
+Serializability holds throughout, and no incorrect answer was ever returned.
+Nothing bends — but liveness for that range pauses for the length of the lease
+handover, and in-flight transactions touching it are destroyed.
 
-### 11.2 The coordinator dies mid-commit
+Priya sees a brief spike in 40001s correlated with a node restart, plus a
+range-unavailability blip that resolves itself.
 
-**Create it:** scenario 2.
+This is the single best argument for why Omar's retry loop is mandatory. *A
+rolling restart is the most ordinary event in cluster operation, and it throws
+away healthy transactions.*
 
-Covered fully in 10.3. The important property to name here is that the recovery procedure
-is **idempotent and convergent**: two different readers running it concurrently on the same
-`STAGING` record reach the same conclusion, because whichever one gets there first makes
-its conclusion permanent before anyone can contradict it. **Guarantee kept:** atomicity
-and durability, both branches. **Guarantee bent:** none. **On call:** invisible; there is
-nothing to page about. Contrast with XA/JTA in the JVM tier, where the same event produces
-an *in-doubt* transaction and a human inventing a *heuristic outcome*.
+### 11.2 What happens when the coordinator dies mid-commit?
 
-### 11.3 A clock drifts past the budget
+Create it with scenario 2. The mechanism is covered fully in 10.3.
 
-**Create it:** scenario 7 (selecting it moves Mumbai's clock to +600 ms and Ohio's to
-−150 ms), then toggle *machines shut themselves down*.
+The property worth naming here is that the recovery procedure is **idempotent and
+convergent**. Two different readers running it at the same moment on the same
+`STAGING` record reach the same conclusion. Whichever gets there first makes its
+conclusion permanent before anyone can contradict it.
 
-This is the failure that matters most, because it is the one the whole design is
-conditional on. With the self-check **on**, Mumbai finds it disagrees with its peers by
-more than 80% of the 500 ms budget and **terminates itself**; its leases move; the payment
-is stamped by an honest clock; Ben's read restarts and returns SETTLED. With the self-check
-**off**:
+Atomicity and durability both survive, on both branches. Nothing bends.
+
+Priya sees nothing at all. There is nothing to page about.
+
+Contrast that with XA and JTA in the JVM tier. The same event there produces an
+*in-doubt* transaction and a human being inventing a *heuristic outcome*.
+
+### 11.3 What happens when a clock drifts past the budget?
+
+Create it with scenario 7. Selecting it moves Meera's clock in Mumbai to +600 ms
+and Dev's in Ohio to −150 ms. Then toggle *machines shut themselves down*.
+
+**This is the failure that matters most**, because it is the one the whole design
+is conditional on.
+
+With the self-check **on**, Meera's node finds it disagrees with its peers by
+more than 80% of the 500 ms budget, and **terminates itself**. Its leases move.
+The payment is stamped by an honest clock. Ben's read restarts and returns
+SETTLED.
+
+With the self-check **off**:
 
 ```
 t=1000  Mumbai (clock +600) commits Asha's payment.  commit_ts = 1600
@@ -959,167 +1379,297 @@ t=1080  Ohio (clock −150) reads.  read_ts = 930 · uncertainty limit = 1430
         Ben is told: PENDING     ← wrong, with no error, no warning, no log line
 ```
 
-The condition for this, which the simulator verifies exhaustively over **1,344**
-combinations of the two clock offsets, the budget and the network latency:
+The condition for this is worth stating in words before you meet it as symbols.
+*A stale read is possible exactly when the writer's clock is ahead of the
+reader's by more than the declared budget plus however much real time passed
+between them.*
 
-> A stale read is possible exactly when
-> **`off_writer − off_reader > max_offset + Δ`**, where Δ is the real time between the
-> writer taking its timestamp and the reader taking its own.
+The simulator verifies that exhaustively over **1,344** combinations of the two
+clock offsets, the budget and the network latency.
 
-Three things fall out of that inequality, and they are worth more than the mechanism:
+| The condition in words | Written down |
+|---|---|
+| the writer's clock error, minus the reader's clock error, exceeds the declared budget plus the real time between the two stampings | `off_writer − off_reader > max_offset + Δ` |
+| the two clock errors, which are the only terms that matter | `off_writer` and `off_reader` |
+| the real time between the writer taking its timestamp and the reader taking its own | `Δ` |
 
-1. **Only the *difference* between two clocks matters.** Every clock in the cluster being
-   an hour fast is completely harmless. This is the same shape as the Spanner lab's derived
-   condition `g < ε₁ − ε₂ − P`, which also depended on the difference of two admissions
-   rather than on any clock being right.
-2. **Δ helps you, so a *faster* system is a *more exposed* one.** Slow networks and slow
-   readers give the inequality more slack. Improve your latency and you shrink your own
-   safety margin. This is the third time you have met that inversion — the Spanner lab's
-   version was "making Paxos faster makes the bug more likely."
-3. **Lowering `--max-offset` to reduce restart latency is buying performance with
-   correctness margin.** Cockroach Labs recommend 250 ms for clusters using the
-   multi-region SQL abstractions; that recommendation is a statement about how good you
-   believe your clocks are, and nothing in the database will check it for you.
+Three things fall out of that inequality, and they are worth more than the
+mechanism itself.
 
-**Guarantee kept:** serializability — the history is still equivalent to *some* serial
-order. **Guarantee lost:** promise A, no stale reads. **On call:** and this is the point —
-*nothing*. There is no error, no metric that moves, no log line. The only thing that moved
-was the clock-offset gauge, which is why it must be treated as a **correctness alarm rather
-than a performance one**. A latency incident with flat CPU, flat disk, flat network and a
-raised clock-offset gauge is a *time* incident. This is the third sighting of the same
-conditional bound in this curriculum: [hybrid-logical-clocks](../31-hybrid-logical-clocks/)
-measured one +60 ms node dragging a ±8 ms cluster's bound from 16 to 67; the
-[google-spanner](../66-google-spanner/) lab watched external consistency die *with commit wait
-switched on*.
+**One: only the *difference* between two clocks matters.** Every clock in the
+cluster being an hour fast is completely harmless.
 
-### 11.4 A network partition
+This is the same shape as the condition derived in the Spanner lab, which also
+depended on the difference of two admissions rather than on any clock being
+right.
 
-**Create it:** cut one region off.
+| The Spanner condition in words | Written down |
+|---|---|
+| the gap between the two events is smaller than the first clock's admitted error, minus the second's, minus the pause | `g < ε₁ − ε₂ − P` |
 
-A range makes progress only on the side holding a majority of its replicas. The minority
-side cannot elect a leader, cannot acquire a lease and therefore cannot serve reads or
-writes for ranges whose majority is elsewhere — it does not serve stale data, it serves
-nothing. Clients on that side see requests hang, and after
-`kv.replica_circuit_breaker.slow_replication_threshold` (default **`1m0s`**) the
-**per-replica circuit breaker** trips and returns `ReplicaUnavailableError` instead of
-hanging indefinitely. **Guarantee kept:** everything. **Guarantee lost:** availability on
-the minority side. **On call:** unavailable ranges on the minority, normal service on the
-majority. This is textbook CP by [cap-theorem](../24-cap-theorem/) and PC/EC by
-[pacelc](../25-pacelc/) — no surprises, and the good news is that the failure is loud.
+**Two: Δ helps you, so a *faster* system is a *more exposed* one.** Slow networks
+and slow readers give the inequality more slack. Improve your latency and you
+shrink your own safety margin.
 
-### 11.5 A contended row
+This is the third time you have met that inversion. The Spanner lab's version was
+"making Paxos faster makes the bug more likely."
 
-**Create it:** many transactions writing one row — a counter, a merchant's balance, a
-sequence.
+**Three: lowering `--max-offset` to reduce restart latency is buying performance
+with correctness margin.** Cockroach Labs recommend 250 ms for clusters using the
+multi-region SQL abstractions. That recommendation is a statement about how good
+you believe your clocks are, and nothing in the database will check it for you.
 
-Every writer's read leaves a mark; every writer's write is pushed above someone else's
-mark; every push forces a refresh; refreshes that meet a change fail with 40001. Throughput
-does not degrade gracefully — it collapses, because the work is being done and then thrown
-away. **Guarantee kept:** correctness, entirely. **Guarantee lost:** throughput, and it is
-the optimistic-versus-pessimistic trade you priced in
-[optimistic-vs-pessimistic-locking](../10-optimistic-vs-pessimistic-locking/) and measured
-in [distributed-transactions](../46-distributed-transactions/) (255 conflict aborts under
-Percolator versus 632 timeout aborts under 2PL). **On call:** a rising
-`RETRY_SERIALIZABLE` rate and `crdb_internal.cluster_contention_events` pointing at one
-index. **Fixes**, in order of preference: send the statements in one batch so the whole
-transaction is one round trip; take the conflict pessimistically up front with
-`SELECT … FOR UPDATE`, which converts a late refusal into an early wait; split the hot row
-into per-shard rows and sum them; or stop writing it that often.
+Serializability survives — the history is still equivalent to *some* serial
+order. Promise A, no stale reads, is lost.
 
-### 11.6 A sequential primary key
+And what Priya sees is the point: **nothing**. There is no error, no metric that
+moves, no log line. The only thing that moved was the clock-offset gauge.
 
-**Create it:** `id SERIAL PRIMARY KEY`, or a primary key beginning with `created_at`.
+That is why the gauge must be treated as a **correctness alarm rather than a
+performance one**. A latency incident with flat CPU, flat disk, flat network and
+a raised clock-offset gauge is a *time* incident.
 
-Straight out of the encoding in 10.1: every new row sorts to the end of the map, so every
-insert in the cluster lands in the last range, which has one leaseholder, on one machine.
-You have bought a distributed database and are using one node of it. Load-based splitting
-will split the range, but the *new* last range immediately becomes the new hot spot — the
-problem regenerates itself. **Guarantee kept:** all. **Guarantee lost:** the entire point
-of the cluster. **On call:** one node at 90% CPU while the others idle; the Hot Ranges page
-naming a single range. **Fixes:** a random primary key (`UUID`); a **hash-sharded index**
-(`USING HASH`), which prefixes the key with a hash bucket so the sequence is spread across
-buckets while remaining scannable; reordering a composite key so the high-cardinality
-column comes first; or `ALTER … SPLIT AT` to pre-split. This is the same lesson as the
-Spanner lab's `bit_reversed_positive` sequences — the identical failure, in a different
-database, with the same cause.
+This is the third sighting of the same conditional bound in this curriculum.
+[hybrid-logical-clocks](../31-hybrid-logical-clocks/) clocked one +60 ms node
+dragging a ±8 ms cluster's bound from 16 to 67. The
+[google-spanner](../66-google-spanner/) lab watched external consistency die
+*with commit wait switched on*.
 
-### 11.7 The ambiguous commit
+> **🔮 Predict:** The self-check evicts a node at 80% of the budget rather than at
+> 100%. Why leave 20% on the table, when the guarantee is only broken at 100%?
+>
+> <details><summary>Reveal</summary>
+>
+> Because eviction is not instantaneous, and drift does not stop while it
+> happens. The node has to notice, decide, shut down, and have its leases moved
+> elsewhere. Every one of those steps takes time, and the clock keeps running
+> away during all of them.
+>
+> The 20% margin is the budget for that removal. It exists so that removal
+> happens **before** the promise breaks rather than after. A check at 100% would
+> fire at the exact moment the first wrong answer became possible, which is
+> already too late.
+>
+> If you guessed "to reduce false positives", you have it backwards — a tighter
+> threshold means *more* evictions, not fewer. The margin costs availability to
+> buy correctness.
+>
+> </details>
 
-**Create it:** kill the client's connection at the exact moment of acknowledgement, or
-have a lease transfer interrupt a write in flight (`RETRY_ASYNC_WRITE_FAILURE`).
+### 11.4 What happens during a network partition?
 
-The transaction may or may not have committed and the client cannot tell. This is not a
-CockroachDB defect; it is a property of every network. **Guarantee kept:** all of them —
-the database knows the answer perfectly well; the *client* does not. **On call:** duplicate
-charges, if the application is careless. **Fix:** the application must be able to ask
-"did this already happen?" and get a definitive answer — which is exactly
-[idempotency](../49-idempotency/)'s idempotency key, and exactly the discipline the retry loop
-already demands. Note how these two requirements coincide: a transaction body that is safe
-to retry after a 40001 is very nearly a transaction body that is safe to retry after an
-ambiguous result.
+Create it by cutting one region off from the others.
 
-### 11.8 A long report versus garbage collection
+A range makes progress only on the side holding a majority of its replicas. The
+minority side cannot elect a leader, cannot acquire a lease, and therefore cannot
+serve reads or writes for ranges whose majority is elsewhere.
 
-**Create it:** an analytical query, or an `AS OF SYSTEM TIME` read, older than the
-retention window.
+It does not serve stale data. It serves nothing.
 
-Old MVCC versions are garbage-collected after `gc.ttlseconds`, whose default is
-**14400 seconds — four hours**. A read below that horizon fails: the versions it needs are
-gone. **Guarantee kept:** all. **Guarantee lost:** the ability to read the past that far
-back. **On call:** `batch timestamp … must be after replica GC threshold`. **Fixes:** raise
-`gc.ttlseconds` for the tables in question and pay for the storage; or use protected
-timestamps, which is what backups and changefeeds
-([change-data-capture](../52-change-data-capture/)) use to pin the horizon while they work.
-Note the related ceiling from the other end: `RETRY_COMMIT_DEADLINE_EXCEEDED` is what a
-transaction gets when it has been pushed forward by other transactions for so long that it
-would outlive the closed-timestamp horizon.
+Clients on that side see requests hang. Then a **per-replica circuit breaker**
+trips and returns `ReplicaUnavailableError` instead of hanging indefinitely.
 
-### 11.9 The transaction that spans three continents
+| The setting in words | The setting | Its default |
+|---|---|---|
+| how long a replica may be stuck before it starts refusing instead of hanging | `kv.replica_circuit_breaker.slow_replication_threshold` | **`1m0s`** |
 
-**Create it:** a single transaction writing rows whose leaseholders are in three regions.
+Every guarantee survives. What is lost is availability on the minority side.
 
-Nothing is wrong; it is simply expensive. Every range involved needs its own round of
-consensus, and consensus needs a majority, which crosses an ocean. The Spanner lab
-measured its version of this curve — 2PC mean latency **17.0 ms** with one participant,
-**42.7 ms** with fifty, **150.5 ms** with two hundred — and the shape is the same here.
-Parallel commits halve the constant; they do not change the geography. **Guarantee kept:**
-all. **Guarantee lost:** latency. **On call:** slow transactions with no CPU or disk
-pressure anywhere. **Fixes:** make the transaction touch fewer regions —
-`REGIONAL BY ROW` tables so a customer's rows live where the customer is; fewer secondary
-indexes on the hot write path; and `GLOBAL` tables for read-mostly reference data, whose
-mechanism is in 13.3.
+Priya sees unavailable ranges on the minority and normal service on the majority.
+This is textbook CP by [cap-theorem](../24-cap-theorem/) and PC/EC by
+[pacelc](../25-pacelc/) — no surprises, and the good news is that the failure is
+loud.
 
----
+### 11.5 What happens to a contended row?
 
-## 12. What is guaranteed, and what is not
+Create it with many transactions writing one row: a counter, a merchant's
+balance, a sequence.
 
-### What you get
+Follow the chain. Every writer's read leaves a mark. Every writer's write is
+pushed above someone else's mark. Every push forces a refresh. Refreshes that
+meet a change fail with 40001.
 
-**Serializability, and only serializability, by default.** Every history is equivalent to
-some serial order of its transactions. `READ COMMITTED` exists (generally available since
-v24.1, gated by `sql.txn.read_committed_isolation.enabled`) but must be asked for
-explicitly; `SERIALIZABLE` remains the default, which is unusual among SQL databases and
-is a deliberate position.
+Throughput does not degrade gracefully. It collapses, because the work is being
+done and then thrown away.
 
-**No stale reads.** Once a write transaction has committed, every read transaction
-*starting afterwards* sees it. This is the promise the uncertainty interval exists to buy,
-and it is the one that makes the cluster feel like one machine.
+Correctness survives entirely. What is lost is throughput — and it is exactly the
+optimistic-versus-pessimistic trade you priced in
+[optimistic-vs-pessimistic-locking](../10-optimistic-vs-pessimistic-locking/) and
+counted in [distributed-transactions](../46-distributed-transactions/).
 
-**Atomicity across any number of ranges**, at one round of consensus, with no blocking
-window in which a coordinator's death leaves anybody stuck.
+| Approach | Aborts, in that lab's run | What the aborts were |
+|---|---|---|
+| Percolator, optimistic | **255** | conflict aborts |
+| two-phase locking, pessimistic | **632** | timeout aborts |
 
-**Durability against the loss of a minority of replicas**, from Raft, with no special
-casing anywhere in the layers above.
+Priya sees a rising `RETRY_SERIALIZABLE` rate, and
+`crdb_internal.cluster_contention_events` pointing at one index.
 
-### What you do not get
+Four fixes, in order of preference.
 
-**Strict serializability.** Cockroach Labs say so plainly: *"CockroachDB doesn't quite
-offer strict serializability, but we're fairly close to it"*, and *"even though CRDB
-guarantees 'no stale reads', it still can produce transaction histories that are not
-linearizable."*
+1. Send the statements in one batch, so the whole transaction is one round trip.
+2. Take the conflict pessimistically up front with `SELECT … FOR UPDATE`, which
+   converts a late refusal into an early wait.
+3. Split the hot row into per-shard rows and sum them.
+4. Stop writing it that often.
 
-The specific hole is the **causal reverse**, and it is scenario 8. Here is the trace, at
-default clock settings with nothing faulty:
+### 11.6 What happens with a sequential primary key?
+
+Create it with `id SERIAL PRIMARY KEY`, or with a primary key beginning with
+`created_at`.
+
+This falls straight out of the encoding in 10.1. Every new row sorts to the end
+of the map. So every insert in the cluster lands in the last range, which has one
+leaseholder, on one machine. You have bought a distributed database and are using
+one node of it.
+
+Load-based splitting will split the range. But the *new* last range immediately
+becomes the new hot spot. The problem regenerates itself.
+
+Every guarantee survives. What is lost is the entire point of the cluster.
+
+Priya sees one node at 90% CPU while the others idle, and the Hot Ranges page
+naming a single range.
+
+Four fixes, and they cost different things.
+
+| Fix | What it does | What it costs you |
+|---|---|---|
+| a random primary key, `UUID` | scatters inserts across the whole map | no ordered scan on the key |
+| a **hash-sharded index**, `USING HASH` | prefixes the key with a hash bucket | the sequence spreads across buckets while staying scannable |
+| reorder a composite key | puts the high-cardinality column first | you must have such a column |
+| `ALTER … SPLIT AT` | pre-splits the range before the load arrives | you have to know where |
+
+This is the same lesson as the Spanner lab's `bit_reversed_positive` sequences.
+The identical failure, in a different database, with the same cause.
+
+### 11.7 What happens when a commit is ambiguous?
+
+Create it by killing the client's connection at the exact moment of
+acknowledgement. Or have a lease transfer interrupt a write in flight, which
+surfaces as `RETRY_ASYNC_WRITE_FAILURE`.
+
+The transaction may or may not have committed, and the client cannot tell. This
+is not a CockroachDB defect. It is a property of every network.
+
+Every guarantee survives — the database knows the answer perfectly well. Omar's
+*client* does not.
+
+Priya sees duplicate charges, if the application is careless.
+
+The fix is Omar's. His application must be able to ask "did this already happen?"
+and get a definitive answer. That is exactly [idempotency](../49-idempotency/)'s
+idempotency key, and exactly the discipline the retry loop already demands.
+
+Notice how the two requirements coincide. A transaction body that is safe to
+retry after a 40001 is very nearly a transaction body that is safe to retry after
+an ambiguous result.
+
+### 11.8 What happens to a long report versus garbage collection?
+
+Create it with an analytical query, or an `AS OF SYSTEM TIME` read, older than
+the retention window.
+
+Old MVCC versions are garbage-collected after a configured age. A read below that
+horizon fails, because the versions it needs are gone.
+
+| The setting in words | The setting | Its default |
+|---|---|---|
+| how long an overwritten version is kept before collection | `gc.ttlseconds` | **14400 seconds — four hours** |
+
+Every guarantee survives. What is lost is the ability to read the past that far
+back.
+
+Priya sees `batch timestamp … must be after replica GC threshold`.
+
+Two fixes. Raise `gc.ttlseconds` for the tables in question and pay for the
+storage. Or use protected timestamps, which is what backups and changefeeds
+([change-data-capture](../52-change-data-capture/)) use to pin the horizon while
+they work.
+
+Note the related ceiling from the other end. `RETRY_COMMIT_DEADLINE_EXCEEDED` is
+what a transaction gets when it has been pushed forward by other transactions for
+so long that it would outlive the closed-timestamp horizon.
+
+### 11.9 What happens to a transaction that spans three continents?
+
+Create it with a single transaction writing rows whose leaseholders are in three
+regions.
+
+Nothing is wrong. It is simply expensive. Every range involved needs its own
+round of consensus, and consensus needs a majority, which crosses an ocean.
+
+The Spanner lab timed its version of this curve, and the shape is the same here.
+
+| Participants in one two-phase commit | Mean latency |
+|---|---|
+| 1 | **17.0 ms** |
+| 50 | **42.7 ms** |
+| 200 | **150.5 ms** |
+
+Parallel commits halve the constant. They do not change the geography.
+
+Every guarantee survives. What is lost is latency.
+
+Priya sees slow transactions with no CPU or disk pressure anywhere.
+
+Three fixes, all of them about touching fewer regions. Use `REGIONAL BY ROW`
+tables, so a customer's rows live where the customer is. Carry fewer secondary
+indexes on the hot write path. And use `GLOBAL` tables for read-mostly reference
+data, whose mechanism is in 13.3.
+
+### The nine, side by side
+
+Read the last column as Priya's dashboard. Row 3 is the one with nothing in it.
+
+| # | The failure | What survives | What bends or is lost | What Priya sees |
+|---|---|---|---|---|
+| 11.1 | the leaseholder dies | serializability | liveness during handover | 40001 spike at a restart |
+| 11.2 | the coordinator dies mid-commit | atomicity, durability | nothing | nothing |
+| 11.3 | a clock drifts past the budget | serializability | **no stale reads** | **nothing** |
+| 11.4 | a network partition | everything | availability on the minority | unavailable ranges |
+| 11.5 | a contended row | correctness | throughput | rising `RETRY_SERIALIZABLE` |
+| 11.6 | a sequential primary key | everything | the point of the cluster | one node at 90% CPU |
+| 11.7 | an ambiguous commit | everything | the client's certainty | duplicate charges |
+| 11.8 | a report older than the horizon | everything | reads of the far past | a GC threshold error |
+| 11.9 | a three-continent transaction | everything | latency | slow, with flat hardware |
+
+## 12. What is guaranteed, what is not, and who paid?
+
+> **In one breath:** Three promises kept, one declined on purpose, and a bill.
+> Everything on the list is conditional on one number that you declared and
+> nobody checks.
+
+### What do you get?
+
+**Serializability, and only serializability, by default.** Every history is
+equivalent to some serial order of its transactions.
+
+`READ COMMITTED` exists, and must be asked for explicitly. It has been generally
+available since v24.1, gated by `sql.txn.read_committed_isolation.enabled`.
+`SERIALIZABLE` remains the default, which is unusual among SQL databases and is a
+deliberate position.
+
+**No stale reads.** Once a write transaction has committed, every read
+transaction *starting afterwards* sees it. This is the promise the uncertainty
+interval exists to buy, and it is the one that makes the cluster feel like one
+machine. It is Asha's payment being visible to Ben.
+
+**Atomicity across any number of ranges**, at one round of consensus, with no
+blocking window in which a coordinator's death leaves anybody stuck.
+
+**Durability against the loss of a minority of replicas**, from Raft, with no
+special casing anywhere in the layers above.
+
+### What do you not get?
+
+**Strict serializability.** Cockroach Labs say so plainly: *"CockroachDB doesn't
+quite offer strict serializability, but we're fairly close to it"*. They also say
+this: *"even though CRDB guarantees 'no stale reads', it still can produce
+transaction histories that are not linearizable."*
+
+The specific hole is the **causal reverse**, and it is scenario 8. Here is the
+trace, at default clock settings, with nothing faulty. Ben is running the audit.
 
 ```
 t=600   an audit begins on Frankfurt.  read_ts = 600 · ceiling = 1100  (fixed, for life)
@@ -1134,100 +1684,145 @@ t=1260  audit re-reads invoice 88 → ts 1180 > ceiling 1100 → "in my future" 
         The audit reports: invoice UNPAID, credit limit ₹5,000
 ```
 
-The audit has observed an effect without its cause. Marking the invoice paid was
-**acknowledged at real time 1060**; raising the limit did not **begin until 1080**. Real
-time says one strictly preceded the other. The database's order says the opposite, and the
-audit reports it.
+Ben's audit has observed an effect without its cause. Marking the invoice paid
+was **acknowledged at real time 1060**. Raising the limit did not **begin until
+1080**. Real time says one strictly preceded the other. The database's order says
+the opposite, and the audit reports it.
 
-Three things about this deserve emphasis, because it is easy to over- or under-react to it.
+Three things about this deserve emphasis, because it is easy to over-react and
+easy to under-react.
 
-- **Nothing is broken.** Every clock is inside its budget. There is a perfectly valid
-  serial order — raise the limit, run the audit, mark the invoice paid — and every
-  transaction's reads are consistent with it. Serializability holds exactly.
-- **It takes three transactions, and two of them must share no data.** Had the Ohio
-  transaction so much as *read* the invoice row, its own uncertainty interval would have
-  caught the PAID write and pushed it above. The anomaly needs a pair of transactions with
-  disjoint read and write sets, plus a third that overlaps both — and it is impossible when
-  the transactions touch common data or run on the same node.
-- **No stale read occurred.** The audit *started* at real time 600, long before the invoice
-  write was acknowledged at 1060. Promise A only ever covered transactions that begin after
-  an acknowledgement, and this one did not.
+**Nothing is broken.** Every clock is inside its budget. There is a perfectly
+valid serial order for these three: raise the limit, run the audit, mark the
+invoice paid. Every transaction's reads are consistent with that order.
+Serializability holds exactly.
 
-**Everything above is conditional on `--max-offset` being true.** This is the honest
-boundary and it is worth stating as bluntly as possible: the correctness argument contains
-no term for how accurate your clocks actually are. It contains a term for how accurate you
-*declared* them to be. Exceed the declaration and the guarantee ends silently, with a wrong
-answer and no error — scenario 7 with the self-check off. The 80%-of-budget self-termination
-rule is what makes the assumption self-enforcing rather than merely hopeful, and the 20%
-margin exists so that removal happens *before* the promise breaks rather than after.
+**It takes three transactions, and two of them must share no data.** Had the Ohio
+transaction so much as *read* the invoice row, its own uncertainty interval would
+have caught the PAID write and pushed it above. The anomaly needs a pair of
+transactions with disjoint read and write sets, plus a third that overlaps both.
+It is impossible when the transactions touch common data, or when they run on the
+same node.
 
-### What was traded away, and to whom the bill went
+**No stale read occurred.** The audit *started* at real time 600, long before the
+invoice write was acknowledged at 1060. Promise A only ever covered transactions
+that begin after an acknowledgement, and this one did not.
+
+**Everything above is conditional on `--max-offset` being true.** This is the
+honest boundary, and it is worth stating as bluntly as possible.
+
+The correctness argument contains no term for how accurate your clocks actually
+are. It contains a term for how accurate you *declared* them to be. Exceed the
+declaration and the guarantee ends silently, with a wrong answer and no error —
+scenario 7 with the self-check off.
+
+The 80%-of-budget self-termination rule is what makes the assumption
+self-enforcing rather than merely hopeful. The 20% margin exists so that removal
+happens *before* the promise breaks rather than after.
+
+### What was traded away, and to whom did the bill go?
 
 | Cost | Who pays it | When |
 |---|---|---|
 | Uncertainty restarts | the **reader** | only when it meets a value in its window |
 | Pushes and read refreshes | the **writer** | only under contention |
-| `SQLSTATE 40001` retry loops | the **application developer** | always, as a design constraint |
+| `SQLSTATE 40001` retry loops | **Omar**, the application developer | always, as a design constraint |
 | Cross-region consensus | **latency** | on every write to a range whose majority is remote |
-| Strict serializability | **given up** | except for `GLOBAL` tables (13.3) |
+| Strict serializability | **given up** | except for `GLOBAL` tables, in 13.3 |
 
-That third row is the one people underestimate. Spanner's read-write transactions are
-pessimistic and use wound-wait, so aborts are normal there too — but in CockroachDB the
-retry loop is load-bearing in a wider set of ordinary situations, including a rolling
-restart (11.1). **The transaction body must be re-runnable.** That is a constraint the
-database imposes on your application code, and it is the real price of the optimistic
-posture in stage 6.
+That third row is the one people underestimate.
+
+Spanner's read-write transactions are pessimistic and use wound-wait, so aborts
+are normal there too. But in CockroachDB the retry loop is load-bearing in a
+wider set of ordinary situations, including a rolling restart from 11.1.
+
+**The transaction body must be re-runnable.** That is a constraint the database
+imposes on Omar's code, and it is the real price of the optimistic posture in
+section 6.
 
 ### Safety and liveness, separated
 
-**Safety** (nothing wrong is ever observed) rests on: Raft majorities for durability; the
-lease as a fencing token so two machines never both answer for a range; the timestamp cache
-plus read refreshes for serializability; and the uncertainty interval — *conditional on the
-clock budget* — for no-stale-reads. Only the last of these has a hardware assumption in it.
+Two different kinds of promise, and it pays to know which one you are relying on.
 
-**Liveness** (progress eventually happens) rests on: a majority of each range being
-reachable; clocks staying inside the budget so nodes do not evict themselves; and
-contention being low enough that retries converge. Under a partition, liveness is what is
-sacrificed, loudly, on the minority side.
+| | What it means | What it rests on here |
+|---|---|---|
+| **Safety** | nothing wrong is ever observed | Raft majorities for durability; the lease as a fencing token; the timestamp cache plus read refreshes for serializability; and the uncertainty interval for no-stale-reads |
+| **Liveness** | progress eventually happens | a majority of each range being reachable; clocks staying inside the budget so nodes do not evict themselves; contention low enough that retries converge |
+
+Only one item in that whole table has a hardware assumption inside it: the
+uncertainty interval, which is conditional on the clock budget. Everything else
+is a property of software.
+
+Under a partition, liveness is what is sacrificed — loudly, on the minority side.
 
 ---
 
 **CHECKPOINT — end of the engineering model.**
-You can now state exactly what CockroachDB promises, construct the specific history it
-does not promise, and name the one assumption every promise rests on. **What the next layer
-adds:** what the real thing is made of, what an operator watches, and where the toy in this
-lab stops.
 
----
+You can now state exactly what CockroachDB promises, construct the specific
+history it does not promise, and name the one assumption every promise rests on.
 
-## 13. Production
+**What the production layer adds:** what the real thing is made of, what Priya watches,
+and where the toy in this lab stops.
 
-### 13.1 From the toy to the real thing
+> **Say it back.** Without using the words *serializable*, *linearizable* or
+> *causal*, explain to Priya why Ben's audit is allowed to report an unpaid
+> invoice next to a credit limit that was only raised because the invoice was
+> paid.
+>
+> <details><summary>A good answer sounds like</summary>
+>
+> "The audit picked a moment to look at, and stuck to it for its whole run. The
+> payment was dated by a fast watch, so it landed past the far edge of what the
+> audit was willing to consider, and the audit skipped it. The credit limit was
+> dated by a slow watch, so it landed inside what the audit could see. The two
+> entries were never in the same conversation with each other, so nothing forced
+> their dates into the right order. The audit's answer is a consistent picture of
+> some possible moment — just not the moment that actually happened."
+>
+> </details>
 
-The simulator has three nodes, five ranges, a fake network and no storage. The real thing
-is five layers, and every one of them is a place this lab stopped short.
+## 13. What would you actually operate?
+
+> **In one breath:** The simulator has three nodes and a fake network. The real
+> thing is five layers deep. This section is what Priya types, what she watches,
+> and the one table type where the whole bill flips from the reader back to the
+> writer.
+
+### 13.1 How far is the toy from the real thing?
+
+The simulator has three nodes, five ranges, a fake network and no storage. The
+real thing is five layers, and every one of them is a place this lab stopped
+short.
 
 | Layer | What it does | What this lab showed | What it omits |
 |---|---|---|---|
 | **SQL** | Parses, plans, and turns rows into keys | the key encoding, 10.1 | the optimiser, distributed execution (DistSQL), vectorised execution, schema changes |
-| **Transaction** | Intents, transaction records, timestamp cache, refreshes, uncertainty | most of stage 10 | the lock table's full contention handling, transaction priorities, buffered writes |
+| **Transaction** | Intents, transaction records, timestamp cache, refreshes, uncertainty | most of section 10 | the lock table's full contention handling, transaction priorities, buffered writes |
 | **Distribution** | The monolithic sorted map, ranges, `meta1`/`meta2`, splits and merges | 10.1 | load-based splitting and merging, the allocator, rebalancing |
 | **Replication** | Raft per range, leases, snapshots, and the closed timestamps of 13.4 | 10.2 | real Raft, snapshot delivery, non-voting replicas, membership changes |
 | **Storage** | The on-disk LSM tree (Pebble) and MVCC garbage collection | nothing at all | everything — see [btree-and-lsm](../05-btree-and-lsm/) |
 
-Deliberately faked in the simulator: consensus is a fixed 60 ms rather than a real Raft
-round; there is no persistence, no log, no snapshotting; the lock table and latch manager
-do not exist; the SQL layer does not exist; and node failure is instant and perfectly
-detected. Every claim in this document that depends on those is labelled as coming from
-the documentation rather than from the simulator.
+Five things are deliberately faked in the simulator. Consensus is a fixed 60 ms
+rather than a real Raft round. There is no persistence, no log and no
+snapshotting. The lock table and latch manager do not exist. The SQL layer does
+not exist. And node failure is instant and perfectly detected.
 
-### 13.2 The shape of a real deployment
+Every claim in this document that depends on those is labelled as coming from the
+documentation rather than from the simulator.
 
-Three nodes minimum, because three is the smallest number that can form a majority of
-three. Replication factor 3 by default (`num_replicas = 3`); system ranges get 5. Tolerated
-failures are `(replication factor − 1) / 2`, so 3 replicas survive 1 loss and 5 survive 2.
-Default zone configuration, worth memorising because three of its numbers explain a great
-deal of behaviour:
+### 13.2 What shape is a real deployment?
+
+Three nodes minimum, because three is the smallest number that can form a
+majority of three.
+
+The replication factor is 3 by default, written `num_replicas = 3`, and system
+ranges get 5. Tolerated failures are one less than the replication factor, halved
+and rounded down: `(replication factor − 1) / 2`. So 3 replicas survive 1 loss
+and 5 survive 2.
+
+Here is the default zone configuration. Three of its four numbers explain a great
+deal of behaviour, and it is worth memorising.
 
 ```sql
 ALTER RANGE default CONFIGURE ZONE USING
@@ -1237,99 +1832,136 @@ ALTER RANGE default CONFIGURE ZONE USING
     num_replicas    = 3;
 ```
 
-**Non-voting replicas** (since v21.1, configured by `num_voters` alongside `num_replicas`)
-follow the Raft log without participating in the majority. They give a distant region
-local read capacity without enlarging the write quorum — the same idea as Spanner's
-read-only replicas, under a different name.
+Read those four names as four questions Priya is answering.
 
-### 13.3 Multi-region, and the row where the bill flips
+| The setting | The question it answers |
+|---|---|
+| `range_min_bytes` | when is a chapter too thin to keep on its own? |
+| `range_max_bytes` | when is a chapter too fat to leave whole? |
+| `gc.ttlseconds` | how far into the past may anyone read? |
+| `num_replicas` | how many copies of each chapter? |
 
-CockroachDB exposes three table localities, and they are worth understanding as three
-different answers to "where should the leaseholder be?"
+**Non-voting replicas** are a fifth idea, available since v21.1 and configured by
+`num_voters` alongside `num_replicas`. They follow the Raft log without
+participating in the majority.
 
-- **`REGIONAL BY TABLE`** — the whole table's leaseholders live in one named region.
-  Fast there, a round trip away everywhere else. The default.
-- **`REGIONAL BY ROW`** — each row carries a hidden region column, and its replicas and
-  lease follow it. A customer's rows live where the customer is, so their transactions are
-  local. This is the main tool against 11.9.
-- **`GLOBAL`** — and this one inverts the entire lab.
+That gives a distant region local read capacity without enlarging the write
+quorum. It is the same idea as Spanner's read-only replicas, under a different
+name.
 
-A `GLOBAL` table is optimised so that **reads never leave the region and never block**, at
-the cost of much slower writes. The mechanism is worth spelling out, because it is
-CockroachDB doing precisely what Spanner does, in one table:
+### 13.3 Where does the bill flip back to the writer?
 
-> The leaseholder closes timestamps a few hundred milliseconds **in the future**. A writer
-> arriving at a `GLOBAL` table is told the present is already set in stone and its only
-> option is to write *above* the present. Having done so, it must **commit-wait** — hold
-> its acknowledgement until real time has caught up with the timestamp it used — so that
-> once the client is told the write succeeded, any subsequent read is guaranteed to have a
-> high enough timestamp to see it. Because timestamps are closed far enough ahead, readers
-> never block on a contending writer at all.
+CockroachDB exposes three table localities. They are worth understanding as three
+different answers to one question: *where should the leaseholder be?*
 
-That is commit-wait, in CockroachDB, on commodity clocks. The four-row table from the
-[google-spanner](../66-google-spanner/) lab — writer pays, reader pays, network pays, client
-pays — turns out **not to be a fixed property of a database at all. It is a per-table
-dial.** CockroachDB's default is reader-pays; `GLOBAL` is writer-pays; and you choose per
-table according to your read/write ratio. That is the single most useful idea to carry out
-of this lab.
+| Locality | Where the leaseholders live | Best for |
+|---|---|---|
+| `REGIONAL BY TABLE` | one named region, for the whole table | the default; fast there, a round trip away everywhere else |
+| `REGIONAL BY ROW` | wherever each row's hidden region column says | a customer's rows living where the customer is — the main tool against 11.9 |
+| `GLOBAL` | everywhere, effectively | read-mostly reference data — and it inverts the entire lab |
 
-The tuning knob to know: for clusters whose round-trip times exceed 150 ms,
-`kv.closed_timestamp.lead_for_global_reads_override` should be raised above **800 ms**, in
-100 ms steps, with **1500 ms** the point at which you should be talking to support instead.
+That third row needs spelling out, because it is CockroachDB doing precisely what
+Spanner does, in one table.
 
-**Survival goals** are the orthogonal axis: `SURVIVE ZONE FAILURE` (the default, cheaper)
-versus `SURVIVE REGION FAILURE`, which requires at least three regions and places voting
-replicas so that an entire region can vanish.
+> The leaseholder closes timestamps a few hundred milliseconds **in the future**.
+> A writer arriving at a `GLOBAL` table is told the present is already set in
+> stone, and its only option is to write *above* the present. Having done so, it
+> must **commit-wait** — hold its acknowledgement until real time has caught up
+> with the timestamp it used. So once the client is told the write succeeded, any
+> subsequent read is guaranteed to have a high enough timestamp to see it.
+> Because timestamps are closed far enough ahead, readers never block on a
+> contending writer at all.
 
-### 13.4 Reading the past on purpose
+That is commit-wait, in CockroachDB, on commodity clocks.
 
-The same closed-timestamp machinery gives you cheap historical reads. Each range tracks a
-**closed timestamp** below which no new write can ever appear; once a follower replica has
-applied everything up to it, that follower can serve reads at or below it **without holding
-the lease**. Defaults: `kv.closed_timestamp.target_duration` = **3s**, and
-`kv.closed_timestamp.side_transport_interval` = **200ms**, which is how idle ranges keep
-their closed timestamps moving without traffic.
+Now look back at the four-row table from the
+[google-spanner](../66-google-spanner/) lab — writer pays, reader pays, network
+pays, client pays. It turns out **not to be a fixed property of a database at
+all. It is a per-table dial.**
 
-Three ways to ask:
+CockroachDB's default is reader-pays. `GLOBAL` is writer-pays. You choose per
+table, according to your read/write ratio. **That is the single most useful idea
+to carry out of this lab.**
 
-- `AS OF SYSTEM TIME follower_read_timestamp()` — far enough back to be very likely served
-  by a local follower. The docs recommend at least **4.2 seconds** in the past for exact-
-  staleness reads, to reduce the chance of blocking on a conflicting write.
-- `AS OF SYSTEM TIME '-1h'` — exact staleness, subject to the four-hour GC horizon.
-- **Bounded staleness**: `with_max_staleness(INTERVAL)` or `with_min_timestamp(TIMESTAMPTZ)`,
-  where the database picks the freshest timestamp it can serve locally within your bound.
+One tuning knob to know. For clusters whose round-trip times exceed 150 ms, the
+setting that controls how far ahead timestamps are closed should be raised.
 
-This is the same job as Spanner's `t_safe` and `MinNextTS`, under different names — and
-the same trade: reads that cost nothing and cannot block, in exchange for being a few
-seconds behind.
+| The knob in words | The setting | What to do |
+|---|---|---|
+| how far in the future a `GLOBAL` table closes its timestamps | `kv.closed_timestamp.lead_for_global_reads_override` | raise above **800 ms**, in **100 ms** steps |
+| the point at which you stop tuning and ask for help | the same setting | **1500 ms** — talk to support instead |
 
-### 13.5 What an on-call engineer actually watches
+**Survival goals** are the orthogonal axis. `SURVIVE ZONE FAILURE` is the
+default and the cheaper one. `SURVIVE REGION FAILURE` requires at least three
+regions, and places voting replicas so that an entire region can vanish.
 
-- **Clock offset per node.** Alert on it as a **correctness** signal, not a performance one.
-  A node is evicted at 80% of `--max-offset`; anything approaching that is an emergency,
-  and a latency incident with a raised offset and flat everything-else is a time incident.
-- **Transaction retries**, broken down by reason. `RETRY_SERIALIZABLE` means contention;
-  `ReadWithinUncertaintyIntervalError` means clock skew has become visible to your
-  workload; `ABORT_REASON_NEW_LEASE_PREVENTS_TXN` means leases have been moving.
-- **Hot ranges.** One range with far more QPS than the rest is 11.5 or 11.6.
-- **Contention events** — `crdb_internal.cluster_contention_events` names the index and
-  key range where transactions are colliding.
-- **Unavailable ranges**, and per-replica circuit breakers tripping
-  (`kv.replica_circuit_breaker.slow_replication_threshold`, default `1m0s`).
-- **Admission control** queueing, which is how the cluster sheds load rather than falling
-  over — and which this lab does not cover at all.
+### 13.4 How do you read the past on purpose?
 
-Two settings you will meet at scale and should recognise rather than guess at:
-leaseholder rebalancing runs periodically (about every ten minutes in large clusters) under
-`kv.allocator.load_based_lease_rebalancing.enabled`; and **buffered writes** — on by
-default for explicit `SERIALIZABLE` transactions in current versions — keep a
-transaction's writes on the gateway node until commit, reducing round trips, toggled with
-`kv_transaction_buffered_writes_enabled`.
+The same closed-timestamp machinery gives you cheap historical reads.
 
-### 13.6 Where it sits among its peers
+Each range tracks a **closed timestamp**: a moment below which no new write can
+ever appear. Once a follower replica has applied everything up to it, that
+follower can serve reads at or below it **without holding the lease**.
 
-Everything below is a placement, not a recommendation; the details for each come from that
-system's own lab or documentation, and I have not benchmarked any of them here.
+| The setting in words | The setting | Its default |
+|---|---|---|
+| how far behind the present the closed timestamp aims to sit | `kv.closed_timestamp.target_duration` | **3s** |
+| how often an idle range publishes a fresh closed timestamp with no traffic | `kv.closed_timestamp.side_transport_interval` | **200ms** |
+
+Three ways to ask for the past.
+
+| How you ask | What it means | The catch |
+|---|---|---|
+| `AS OF SYSTEM TIME follower_read_timestamp()` | far enough back to be very likely served by a local follower | the docs recommend at least **4.2 seconds** in the past, to reduce the chance of blocking on a conflicting write |
+| `AS OF SYSTEM TIME '-1h'` | exact staleness — you name the moment | subject to the four-hour garbage-collection horizon |
+| `with_max_staleness(INTERVAL)` or `with_min_timestamp(TIMESTAMPTZ)` | bounded staleness — the database picks the freshest timestamp it can serve locally within your bound | you get a moment, not the moment |
+
+This is the same job as Spanner's `t_safe` and `MinNextTS`, under different
+names. And it is the same trade: reads that cost nothing and cannot block, in
+exchange for being a few seconds behind.
+
+### 13.5 What does Priya actually watch?
+
+Six signals, and the first one is not like the others.
+
+**Clock offset per node.** Alert on it as a **correctness** signal, not a
+performance one. A node is evicted at 80% of `--max-offset`, so anything
+approaching that is an emergency. A latency incident with a raised offset and
+flat everything-else is a time incident.
+
+**Transaction retries**, broken down by reason. The reason is the diagnosis.
+
+| The error Priya sees | What it actually means |
+|---|---|
+| `RETRY_SERIALIZABLE` | contention — section 11.5 |
+| `ReadWithinUncertaintyIntervalError` | clock skew has become visible to your workload |
+| `ABORT_REASON_NEW_LEASE_PREVENTS_TXN` | leases have been moving — section 11.1 |
+
+**Hot ranges.** One range with far more queries per second than the rest is 11.5
+or 11.6.
+
+**Contention events.** `crdb_internal.cluster_contention_events` names the index
+and key range where transactions are colliding.
+
+**Unavailable ranges**, and per-replica circuit breakers tripping — the
+`kv.replica_circuit_breaker.slow_replication_threshold` setting from 11.4,
+default `1m0s`.
+
+**Admission control queueing**, which is how the cluster sheds load rather than
+falling over. This lab does not cover it at all.
+
+Two settings Priya will meet at scale and should recognise rather than guess at.
+
+| What it does | The setting | When it runs |
+|---|---|---|
+| moves leases around to balance load | `kv.allocator.load_based_lease_rebalancing.enabled` | periodically — about every ten minutes in large clusters |
+| keeps a transaction's writes on the gateway node until commit, reducing round trips | `kv_transaction_buffered_writes_enabled` | on by default for explicit `SERIALIZABLE` transactions in current versions |
+
+### 13.6 Where does it sit among its peers?
+
+Everything below is a placement, not a recommendation. The details for each come
+from that system's own lab or documentation, and none of them were benchmarked
+here.
 
 | System | How it handles clock uncertainty | Consequence |
 |---|---|---|
@@ -1339,31 +1971,65 @@ system's own lab or documentation, and I have not benchmarked any of them here.
 | **MongoDB** | Signed `clusterTime` tokens; the **client** carries causality | Cheap; gives nothing to two clients who never met |
 | **YugabyteDB** | HLC plus leader leases | Closest architectural relative to CockroachDB |
 
-And within CockroachDB itself, the same axis appears again: default tables charge the
-reader, `GLOBAL` tables charge the writer. The question is never "which database has
-solved time" — it is "for this table, who should pay?"
+And within CockroachDB itself, the same axis appears again. Default tables charge
+the reader. `GLOBAL` tables charge the writer.
+
+The question is never "which database has solved time". It is "for this table,
+who should pay?"
 
 ---
 
-## 14. Exercises
+**CHECKPOINT — end of the production model.**
 
-Work through **[EXERCISES.md](EXERCISES.md)** — 24 exercises on the eight-rung ladder,
-from "explain it in your own words" to "design a three-region payments ledger and say what
-you monitor". Answers, including worked design discussions for the last two rungs, are in
-**[SOLUTIONS.md](SOLUTIONS.md)**. Attempt first; the rungs are ordered so that each one
-uses the previous one's answer.
+You can now choose a locality per table, choose a survival goal, read the
+retry-reason breakdown as a diagnosis, and say why the clock-offset gauge belongs
+on the correctness page rather than the latency page.
 
-The three worth doing even if you do nothing else: **E3.2** (predict the exact restart
-behaviour from a table of clock offsets), **E6.1** (a plausible variant of the design with
-one rule removed — construct the run that breaks it), and **E8.1** (the three-region
-ledger).
+> **Say it back.** Without using the words *commit wait*, *closed timestamp* or
+> *locality*, explain to Omar what changes about his product catalogue table if
+> he marks it `GLOBAL`.
+>
+> <details><summary>A good answer sounds like</summary>
+>
+> "Reads of that table stop travelling. Every region answers from its own copy,
+> immediately, and never waits behind somebody who is writing. The price lands on
+> the merchandising team instead. When they change a price, the database holds
+> their confirmation back for a fraction of a second. That way everyone's copy is
+> guaranteed to be able to see it afterwards. He has moved the cost from the
+> million people reading to the handful of people writing, which is the right way
+> round for a catalogue."
+>
+> </details>
 
----
+## 14. Where are the exercises?
 
-## 15. Knowledge map and next steps
+> **In one breath:** Twenty-four exercises on an eight-rung ladder, from "explain
+> it in your own words" to "design a three-region payments ledger". Attempt them
+> before reading the answers.
+
+Work through **[EXERCISES.md](EXERCISES.md)** — 24 exercises on the eight-rung
+ladder, from "explain it in your own words" to "design a three-region payments
+ledger and say what you monitor".
+
+Answers, including worked design discussions for the last two rungs, are in
+**[SOLUTIONS.md](SOLUTIONS.md)**. Attempt first. The rungs are ordered so that
+each one uses the previous one's answer.
+
+Three are worth doing even if you do nothing else.
+
+| Exercise | What it makes you do |
+|---|---|
+| **E3.2** | predict the exact restart behaviour from a table of clock offsets |
+| **E6.1** | take a plausible variant of the design with one rule removed, and construct the run that breaks it |
+| **E8.1** | design the three-region ledger |
+
+## 15. Where does this sit, and what comes next?
+
+> **In one breath:** This lab is where eleven earlier labs collect. Its obvious
+> sibling is Spanner. Its obvious successor throws timestamps away entirely.
 
 ```mermaid
-graph TD
+flowchart TD
   subgraph prereq["Already learned"]
     RAFT[raft] ; PAX[paxos] ; TPC[two-phase-commit] ; DT[distributed-transactions]
     HLC[hybrid-logical-clocks] ; ISO[isolation-levels] ; LVS[linearizability-vs-serializability]
@@ -1380,56 +2046,63 @@ graph TD
   CRDB --> REAL["real systems:<br/>CockroachDB · YugabyteDB · TiDB · Aurora DSQL"]
 ```
 
-**Prerequisites, and what each contributed.** [raft](../40-raft/) and [paxos](../39-paxos/): the
-replicated log under every range. [two-phase-commit](../45-two-phase-commit/): the blocking
-problem, deleted here a second, different way from Spanner's. [distributed-transactions](../46-distributed-transactions/):
-Percolator, whose staged locks became write intents and whose primary became the
-transaction record. [hybrid-logical-clocks](../31-hybrid-logical-clocks/): the timestamp, and
-the naming of the reader-pays option that this lab builds.
-[google-spanner](../66-google-spanner/): the writer-pays design this one inverts.
-[isolation-levels](../08-isolation-levels/): write skew, closed here by refreshes rather than
-locks. [split-brain](../42-split-brain/): the lease as a fencing token.
-[partitioning-and-rebalancing](../36-partitioning-and-rebalancing/): range partitioning and
-hot spots. [idempotency](../49-idempotency/): why the retry loop is safe.
+### What did each prerequisite contribute?
 
-**Commonly confused with — one sentence each.**
+[raft](../40-raft/) and [paxos](../39-paxos/) gave you the replicated log under
+every range. [two-phase-commit](../45-two-phase-commit/) gave you the blocking
+problem, deleted here a second and different way from Spanner's.
 
-- **CockroachDB vs Spanner.** Same guarantee family, opposite payer: Spanner's writers
-  wait on measured hardware error, CockroachDB's readers restart on a declared budget —
-  and CockroachDB stops one step short of strict serializability while Spanner does not.
-- **CockroachDB vs TiDB.** Both are Percolator-shaped over Raft; TiDB keeps a central
-  timestamp oracle (a network round trip, no clock assumptions), CockroachDB has none (no
-  round trip, a clock assumption).
-- **CockroachDB vs Vitess or Citus.** Those are sharding layers over MySQL or PostgreSQL;
-  CockroachDB is a single distributed store, so cross-shard serializable transactions are
-  the default rather than an add-on.
-- **A range vs a hash partition.** A range is a contiguous key span, which is what makes
-  ordered scans cheap and sequential keys dangerous; a hash partition is the reverse trade.
-- **A leaseholder vs a Raft leader.** Historically different replicas and a real source of
-  incidents; since v25.2 leader leases make them the same replica by construction.
-- **An uncertainty restart vs a transaction retry.** The first is internal, invisible to
-  your client and bounded at one per node; the second surfaces as 40001 and your code has
-  to handle it.
-- **`max_offset` vs Spanner's ε.** Same quantity, but ε is *measured by hardware* and
-  `max_offset` is *declared by you* — which is the entire difference between a fact and an
-  assumption.
+[distributed-transactions](../46-distributed-transactions/) gave you Percolator,
+whose staged locks became write intents and whose primary became the transaction
+record. [hybrid-logical-clocks](../31-hybrid-logical-clocks/) gave you the
+timestamp, and named the reader-pays option that this lab builds.
 
-**Where to go next**, in order of value:
+[google-spanner](../66-google-spanner/) gave you the writer-pays design this one
+inverts. [isolation-levels](../08-isolation-levels/) gave you write skew, closed
+here by refreshes rather than locks. [split-brain](../42-split-brain/) gave you
+the lease as a fencing token.
+[partitioning-and-rebalancing](../36-partitioning-and-rebalancing/) gave you range
+partitioning and hot spots. [idempotency](../49-idempotency/) gave you the reason
+the retry loop is safe.
 
-- `/learn calvin-deterministic-databases` — the third answer to this problem: decide the
-  order first and delete distributed commit entirely. It is the natural completion of the
-  set now that you have both timestamp-based designs.
-- `/learn jepsen` — how claims like "serializable" actually get falsified, and what the
-  Jepsen analyses of CockroachDB and its peers found. The right follow-up to stage 12.
-- `/learn clock-synchronisation` — NTP, PTP, GPS: what `max_offset` and ε are actually made
-  of, and how you would know whether your declared budget is true.
-- `/learn query-planning-and-distsql` — the one layer of the five this lab did not open.
+### What is this commonly confused with?
 
----
+First, three other databases people put in the same sentence as this one.
 
-## 16. Glossary
+| These two | The difference in one line |
+|---|---|
+| CockroachDB vs Spanner | Same guarantee family, opposite payer: Spanner's writers wait on hardware error their clocks report, CockroachDB's readers restart on a budget you declared. CockroachDB also stops one step short of strict serializability, and Spanner does not |
+| CockroachDB vs TiDB | Both are Percolator-shaped over Raft; TiDB keeps a central timestamp oracle (a network round trip, no clock assumptions), CockroachDB has none (no round trip, a clock assumption) |
+| CockroachDB vs Vitess or Citus | Those are sharding layers over MySQL or PostgreSQL; CockroachDB is a single distributed store, so cross-shard serializable transactions are the default rather than an add-on |
 
-Every term introduced above, in order of first appearance.
+Then four pairs of internal words that sound interchangeable and are not.
+
+| These two | The difference in one line |
+|---|---|
+| a range vs a hash partition | A range is a contiguous key span, which makes ordered scans cheap and sequential keys dangerous; a hash partition is the reverse trade |
+| a leaseholder vs a Raft leader | Historically different replicas and a real source of incidents; since v25.2 leader leases make them the same replica by construction |
+| an uncertainty restart vs a transaction retry | The first is internal, invisible to your client and bounded at one per node; the second surfaces as 40001 and Omar's code has to handle it |
+| `max_offset` vs Spanner's ε | Same quantity, but ε is *measured by hardware* and `max_offset` is *declared by you*, which is the entire difference between a fact and an assumption |
+
+### Where should you go next?
+
+In order of value.
+
+- `/learn calvin-deterministic-databases` — the third answer to this problem:
+  decide the order first and delete distributed commit entirely. It is the
+  natural completion of the set now that you have both timestamp-based designs.
+- `/learn jepsen` — how claims like "serializable" actually get falsified, and
+  what the Jepsen analyses of CockroachDB and its peers found. The right
+  follow-up to section 12.
+- `/learn clock-synchronisation` — NTP, PTP, GPS: what `max_offset` and ε are
+  actually made of, and how you would know whether your declared budget is true.
+- `/learn query-planning-and-distsql` — the one layer of the five this lab did
+  not open.
+
+## 16. Glossary: what does every word mean?
+
+> **In one breath:** Every term introduced above, in order of first appearance,
+> with one line each. Use it as a lookup, not as reading.
 
 | Term | One line |
 |---|---|
@@ -1475,17 +2148,134 @@ Every term introduced above, in order of first appearance.
 | **causal reverse** | The anomaly in which a transaction's effect is ordered before its cause, possible with three transactions two of which share no data — the gap between serializable and strictly serializable. |
 | **strict serializability** | Serializability plus the requirement that the serial order never contradicts real time; Spanner's "external consistency"; what CockroachDB declines to guarantee. |
 
----
+## 17. About this lab
 
-## Sources
+> **In one breath:** What the lab is made of, where every number came from, which
+> earlier labs it stands on, and what each section covers. None of it is needed
+> to follow Asha's story, which is why it lives back here.
 
-**The simulator on this page** — for every number labelled as coming from a trace. Its
-rules are printed at the foot of the page; its engine was verified with 71 headless checks
-plus 25 DOM and control checks before publication. It is a deliberate simplification and
-is not a CockroachDB implementation.
+### What is this lab made of?
 
-**Cockroach Labs documentation and engineering blog** (v26.2, read August 2026) — for
-every default, setting name, error name and protocol description:
+| File | What it is |
+|---|---|
+| `README.md` | this document: 16 sections of lesson, plus this appendix |
+| `visualization.html` | the interactive simulator, also published as [The Reader Pays](https://claude.ai/code/artifact/2119fede-4cbd-44ca-9e82-b4583323640b) |
+| `EXERCISES.md`, `SOLUTIONS.md` | eight rungs and their worked answers |
+
+There is no code to run and nothing to install. The lab is a teaching document,
+an interactive simulator, and a set of pencil-and-paper exercises.
+
+### Where do the numbers come from?
+
+Every number in this document comes from one of exactly two places, and the text
+says which, every time.
+
+| Source | What it supplies | How to check it |
+|---|---|---|
+| the simulator on this page | every trace you can step through yourself | its rules are printed at the bottom of the page |
+| Cockroach Labs' documentation and engineering blog, v26.2, read August 2026 | every default, setting name, error name and protocol description | the Sources list below |
+
+The simulator's engine was checked headlessly before publication. That was **71
+checks** covering all eight scenario traces value by value. On top of those came
+property sweeps over its clock settings, running **1,344 combinations** for the
+stale-read condition alone. Then **25 further checks** drove the page's DOM,
+every dial to both extremes and every switch to both positions.
+
+v26.2 is the current stable release as this is written, in August 2026. Where
+this document states something that was not verified against those pages, it says
+so in the same sentence.
+
+The simulator is a deliberate simplification and is not a CockroachDB
+implementation.
+
+### Where does this sit among your other labs?
+
+You have already built almost all of this, in pieces. This lab does not reteach
+any of it.
+
+- [raft](../40-raft/) and [paxos](../39-paxos/) gave you a replicated group that
+  agrees on an ordered log. CockroachDB puts one under every shard, and this lab
+  treats it as a black box.
+- [two-phase-commit](../45-two-phase-commit/) gave you all-or-nothing across
+  shards, and a coordinator that can block everyone forever.
+- [distributed-transactions](../46-distributed-transactions/) proved that
+  two-phase commit alone is not a distributed transaction. You counted **16
+  fractured audits in 40 runs** with a perfect 2PC and zero crashes. It also
+  taught you Percolator, whose staged locks and relocated commit point are the
+  direct ancestor of everything in section 10.
+- [hybrid-logical-clocks](../31-hybrid-logical-clocks/) built the timestamp
+  CockroachDB stamps on every version. It counted the **86 out of 86 stale
+  reads** a fast-clocked writer inflicts on a slow-clocked reader with no causal
+  path between them. It also named the three places that bill can be sent: the
+  writer, the reader, or the client.
+- [google-spanner](../66-google-spanner/) is **the writer-pays design**. It ended
+  with a four-row table whose second row said: *CockroachDB — reader pays, HLC
+  plus uncertainty restarts, ε ≈ 500 ms on commodity clocks*. **This lab is that
+  row, opened up.**
+- [isolation-levels](../08-isolation-levels/),
+  [linearizability-vs-serializability](../27-linearizability-vs-serializability/),
+  [split-brain](../42-split-brain/),
+  [partitioning-and-rebalancing](../36-partitioning-and-rebalancing/),
+  [quorums-and-replication](../34-quorums-and-replication/),
+  [btree-and-lsm](../05-btree-and-lsm/), [idempotency](../49-idempotency/),
+  [pacelc](../25-pacelc/) and [cap-theorem](../24-cap-theorem/) supply the rest.
+
+So this lab teaches **one new idea**: a database that never tries to be sure what
+time it is, and instead makes its *readers* carry the doubt. Then it shows you
+how the same refusal to be sure, applied to commits and to conflicts, generates
+the rest of the design.
+
+### What does each section cover?
+
+| | Stage | Depth layer |
+|---|---|---|
+| 1 | [Why this exists](#1-why-cant-a-database-survive-hold-money-and-speak-sql-all-at-once) | Beginner |
+| 2 | [The problem, as a story](#2-what-goes-wrong-when-one-ledger-book-becomes-three) | Beginner |
+| 3 | [What a reasonable person tries first](#3-what-does-a-reasonable-person-try-first) | Beginner |
+| 4 | [Where all four break](#4-where-do-all-four-fixes-break) | Beginner |
+| 5 | [What we actually need to guarantee](#5-what-exactly-must-the-ledger-promise) | Beginner |
+| 6 | [The key idea](#6-what-is-the-key-idea-in-two-sentences) | Beginner |
+| 7 | [The words you now need](#7-what-are-these-five-things-called-now-that-you-have-earned-the-words) | Beginner |
+| 8 | [Two mental models, and where the first one lies](#8-which-two-pictures-should-you-carry-and-where-does-the-nice-one-lie) | Beginner |
+| 9 | [The simulator](#9-where-can-you-break-it-yourself) | Beginner |
+| 10 | [The actual mechanism](#10-how-is-the-mechanism-built-one-failure-at-a-time) | **Intermediate** |
+| 11 | [Failure scenarios](#11-what-are-the-nine-ways-it-fails-and-what-survives-each-one) | **Engineering** |
+| 12 | [What is guaranteed, and what is not](#12-what-is-guaranteed-what-is-not-and-who-paid) | **Engineering** |
+| 13 | [Production](#13-what-would-you-actually-operate) | **Production** |
+| 14 | [Exercises](#14-where-are-the-exercises) | — |
+| 15 | [Knowledge map and next steps](#15-where-does-this-sit-and-what-comes-next) | — |
+| 16 | [Glossary](#16-glossary-what-does-every-word-mean) | — |
+| 17 | This appendix | — |
+
+The depth map in section 2 is the reading plan. Sections 1 to 9 are the beginner
+model, section 10 the intermediate model, sections 11 and 12 the engineering
+model, and section 13 the production model. Each transition carries a checkpoint
+with a Say-it-back box.
+
+### Who is in the story?
+
+| Name | Who they are | Where they first appear |
+|---|---|---|
+| **Asha** | pays a bill in Mumbai, and is told it went through | section 2 |
+| **Ben** | her supplier in Ohio, who is told the opposite — and who runs the audit in section 12 | section 2 |
+| **Meera** | the Mumbai clerk, whose watch runs 180 ms fast | section 2 |
+| **Arjun** | the Frankfurt clerk, whose watch is right | section 2 |
+| **Dev** | the Ohio clerk, whose watch runs 120 ms slow | section 2 |
+
+Two more join later. **Raj** receives the ₹500 transfer in section 10.3, and his
+row lives in a different chapter of the book, which is what makes that transfer
+interesting. **Omar** writes the application, and is the person the retry loop
+belongs to. **Priya** is the on-call engineer, and section 11 is written from her
+point of view.
+
+### Sources
+
+**The simulator on this page** — for every number labelled as coming from a
+trace. Its rules are printed at the foot of the page; its engine was verified
+with 71 headless checks plus 25 DOM and control checks before publication.
+
+**Cockroach Labs documentation and engineering blog** (v26.2, read August 2026) —
+for every default, setting name, error name and protocol description:
 
 - [Transaction Layer](https://www.cockroachlabs.com/docs/stable/architecture/transaction-layer) — write intents, transaction record states, parallel commits, timestamp cache, read refreshing, latch manager, lock table, `TxnWaitQueue`, buffered writes, the 80%-of-max-offset self-termination rule
 - [Replication Layer](https://www.cockroachlabs.com/docs/stable/architecture/replication-layer) — Raft usage, leader leases (default v25.2+), epoch-based and expiration-based leases, leader-leaseholder splits, non-voting replicas, circuit breakers, lease rebalancing
@@ -1499,9 +2289,11 @@ every default, setting name, error name and protocol description:
 - [Operational FAQs](https://www.cockroachlabs.com/docs/stable/operational-faqs) and [Production Checklist](https://www.cockroachlabs.com/docs/stable/recommended-production-settings) — the 500 ms `--max-offset` default and the 250 ms multi-region recommendation
 - [Read Committed Transactions](https://www.cockroachlabs.com/docs/stable/read-committed) — general availability in v24.1, and that `SERIALIZABLE` remains the default
 
-**Stated but not verified against those pages**, and flagged here rather than hidden: that
-the storage engine is Pebble (widely documented elsewhere, but I did not open the storage-
-layer page for this lab); the peer comparison table in 13.6, whose non-CockroachDB rows
-come from the earlier labs rather than from fresh reading; and the Spanner figures quoted
-throughout, which come from the [google-spanner](../66-google-spanner/) lab's reading of the
-2012 OSDI paper.
+**Stated but not checked against those pages**, and flagged here rather than
+hidden. Three things.
+
+| The claim | Where it came from instead |
+|---|---|
+| the storage engine is Pebble | widely documented elsewhere, but the storage-layer page was not opened for this lab |
+| the peer comparison table in 13.6 | its non-CockroachDB rows come from the earlier labs, not from fresh reading |
+| the Spanner figures quoted throughout | the [google-spanner](../66-google-spanner/) lab's reading of the 2012 OSDI paper |

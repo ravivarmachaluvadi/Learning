@@ -208,5 +208,5 @@ change your answer.
 ## After the exercises
 
 If you want to go further, the highest-value next labs are listed in stage 15 of the
-[write-up](README.md#15-knowledge-map-and-next-steps):
+[write-up](README.md#15-where-does-this-sit-and-what-comes-next):
 `/learn calvin-deterministic-databases`, then `/learn jepsen`.
