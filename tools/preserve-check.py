@@ -40,8 +40,16 @@ def numbers(text):
         out.add(n)
     return out
 
+# Lab folders carry a curriculum number (`../39-paxos/`). Strip it before
+# comparing, so a snapshot taken before a renumber still matches the file after
+# one: it is the same link, at a new name.
+NUMBERED = re.compile(r"(^|\.\./)\d+(?:\.\d+)?-")
+
+def unnumber(t):
+    return NUMBERED.sub(r"\1", t)
+
 def code_spans(text):
-    return set(x.strip() for x in re.findall(r"`([^`\n]+)`", text) if len(x.strip()) > 1)
+    return set(unnumber(x.strip()) for x in re.findall(r"`([^`\n]+)`", text) if len(x.strip()) > 1)
 
 def glossary_terms(text):
     m = re.search(r"^##\s*\d*\.?\s*GLOSSARY.*$", text, flags=re.M | re.I)
@@ -51,7 +59,7 @@ def glossary_terms(text):
     return set(t.strip().lower() for t in re.findall(r"^\|\s*\*\*([^*|]+)\*\*", tail, flags=re.M))
 
 def links(text):
-    return set(re.findall(r"\]\(([^)\s#]+)", text))
+    return set(unnumber(t) for t in re.findall(r"\]\(([^)\s#]+)", text))
 
 def fenced(text):
     return len(re.findall(r"^```", text, flags=re.M)) // 2
@@ -99,7 +107,8 @@ def main():
     report("numbers", on - nn)
     oc, nc = code_spans(old), code_spans(new)
     # a code span survives if it appears anywhere in the new text, even outside backticks
-    report("code spans", {c for c in oc if c not in nc and c not in new}, load_bearing=strict)
+    new_un = unnumber(new)
+    report("code spans", {c for c in oc if c not in nc and c not in new_un}, load_bearing=strict)
     og, ng = glossary_terms(old), glossary_terms(new)
     report("glossary terms", {g for g in og if g not in ng and g not in new.lower()})
     ol, nl = links(old), links(new)
@@ -116,7 +125,13 @@ def main():
     print(f"  {'OK  ' if ratio >= 0.95 else 'FAIL'} words: {wo} -> {wn}  ({ratio:.0%})")
     if ratio < 0.95: fails += 1
     ho = h2_topics(old)
-    lost = [h for h in ho if not any(k.lower() in new.lower() for k in re.findall(r"[A-Za-z]{5,}", h)[:2] if k)]
+    def survives(h):
+        # Match on the heading's longest words. A heading like "KEY IDEA" has no
+        # word of five letters, so fall back to shorter ones rather than report
+        # it missing on every rewrite that retitles it as a question.
+        keys = re.findall(r"[A-Za-z]{5,}", h)[:2] or re.findall(r"[A-Za-z]{3,}", h)[:2]
+        return any(k.lower() in new.lower() for k in keys) if keys else True
+    lost = [h for h in ho if not survives(h)]
     report("H2 topics (fuzzy)", set(lost), load_bearing=False)
     print("RESULT:", "PASS" if fails == 0 else f"FAIL ({fails} load-bearing checks)")
     sys.exit(1 if fails else 0)
