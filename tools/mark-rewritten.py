@@ -59,7 +59,9 @@ def audit_rows():
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
-    return {r["lab"]: r for r in rows}
+    # Folders are named NN-slug; index by the bare slug, which is what
+    # LEARNING-PATH.md and KNOWLEDGE-MAP.md use.
+    return {r.get("slug", r["lab"]): r for r in rows}
 
 def signals(r):
     out = []

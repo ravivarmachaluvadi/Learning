@@ -58,7 +58,7 @@ for d in ([os.path.basename(os.path.abspath(ROOT))] if SINGLE else sorted(os.lis
     # 7. 3-sentence version length (first blockquote) words
     m=re.search(r"^>\s*\*\*(?:The (?:three|one)[^*]*|.*?version.*?)\*\*(.*?)(?:\n\n|\n[^>])",raw,flags=re.S|re.M)
     tsv=len(m.group(1).split()) if m else 0
-    rows.append(dict(lab=d,front=front,tmpl=tmpl,tmpl_labels=len(rep),meas=meas,state=state,idn=idn,cont=cont,names=names[:4],qh=qh,h=len(h2),lines=len(lines),tsv=tsv))
+    rows.append(dict(lab=d,slug=re.sub(r"^\d+(?:\.\d+)?-","",d),front=front,tmpl=tmpl,tmpl_labels=len(rep),meas=meas,state=state,idn=idn,cont=cont,names=names[:4],qh=qh,h=len(h2),lines=len(lines),tsv=tsv))
 print(f"{'lab':36}{'front':>6}{'tmpl':>6}{'lbls':>5}{'meas':>5}{'state':>6}{'id_n':>5}{'cont%':>6}{'q-hdr':>6}{'hdrs':>5}{'lines':>6}{'tsv':>5}  story-names")
 for r in sorted(rows,key=lambda r:(-(r['front']>40)-(r['tmpl']>25)-(r['meas']>25)-(r['state']+r['idn']>40)-((r['cont'] or 0)<25), r['lab'])):
     print(f"{r['lab']:36}{r['front']:6d}{r['tmpl']:6d}{r['tmpl_labels']:5d}{r['meas']:5d}{r['state']:6d}{r['idn']:5d}{str(r['cont']):>6}{r['qh']:6d}{r['h']:5d}{r['lines']:6d}{r['tsv']:5d}  {','.join(r['names'])}")
