@@ -48,3 +48,4 @@ change-data-capture 2026-09-09
 distributed-rate-limiting 2026-09-09
 work-pressure-and-deadlines 2026-09-09
 amazon-web-services 2026-09-09
+java-memory-model 2026-09-09 new

@@ -46,7 +46,11 @@ def done_list():
         if not line:
             continue
         parts = line.split()
-        out[parts[0]] = parts[1] if len(parts) > 1 else datetime.date.today().isoformat()
+        date = parts[1] if len(parts) > 1 else datetime.date.today().isoformat()
+        # A third token "new" marks a lab that had no document at all, so the
+        # table can say "written" rather than claiming it was re-delivered.
+        kind = parts[2] if len(parts) > 2 else "rewrite"
+        out[parts[0]] = (date, kind)
     return out
 
 def audit_rows():
@@ -72,6 +76,10 @@ def signals(r):
     return out
 
 def stamp_km(done, check):
+    def stamp(slug):
+        date, kind = done[slug]
+        return (f"document written {date}" if kind == "new"
+                else f"rewritten for delivery {date}")
     s = read(KM)
     changed = 0
     def sub(m):
@@ -79,14 +87,14 @@ def stamp_km(done, check):
         slug, rest = m.group(1), m.group(2)
         if slug not in done:
             return m.group(0)
-        if "rewritten for delivery" in rest:
+        if "rewritten for delivery" in rest or "document written" in rest:
             return m.group(0)
         changed += 1
         # insert before the " — lab: …" tail so the folder stays last
         if " — lab:" in rest:
             head, tail = rest.split(" — lab:", 1)
-            return f"## {slug}{head} — rewritten for delivery {done[slug]} — lab:{tail}"
-        return f"## {slug}{rest} — rewritten for delivery {done[slug]}"
+            return f"## {slug}{head} — {stamp(slug)} — lab:{tail}"
+        return f"## {slug}{rest} — {stamp(slug)}"
     s2 = re.sub(r"^## ([a-z0-9-]+)(.*)$", sub, s, flags=re.M)
     if not check and changed:
         write(KM, s2)
@@ -112,7 +120,7 @@ def backlog(done, check):
     rows = audit_rows()
     unlisted = []
     lines = ["| # | Lab | Status | Note |", "|---|---|---|---|"]
-    n_done = n_queued = n_clean = 0
+    n_done = n_queued = n_clean = n_new = 0
     for slug in sorted(order, key=lambda s: float(order[s])):
         r = rows.get(slug)
         if r is None:
@@ -122,10 +130,17 @@ def backlog(done, check):
         if slug in done:
             # The audit signals describe the file as it stands, so for a lab that
             # has been rewritten they say nothing about why it was queued.
-            status, n_done = "**rewritten**", n_done + 1
-            note = f"re-delivered {done[slug]}"
-            if slug in REPORTED:
-                note += ", after the reader reported it hard to read"
+            date, kind = done[slug]
+            n_done += 1
+            if kind == "new":
+                n_new += 1
+                status = "**written**"
+                note = f"new document, {date} — this lab had none"
+            else:
+                status = "**rewritten**"
+                note = f"re-delivered {date}"
+                if slug in REPORTED:
+                    note += ", after the reader reported it hard to read"
         else:
             why = signals(r)
             if slug in REPORTED:
@@ -139,7 +154,8 @@ def backlog(done, check):
                 if in_new_voice(r["lab"]):
                     unlisted.append(slug)
         lines.append(f"| {order[slug]} | `{slug}` | {status} | {note} |")
-    head = (f"{n_done} rewritten, {n_queued} queued, {n_clean} left as-is. A lab is left as-is when "
+    head = (f"{n_done - n_new} rewritten, {n_new} written from scratch, {n_queued} queued, "
+            f"{n_clean} left as-is. A lab is left as-is when "
             "`tools/audit.py` finds none of the delivery problems: no wall of meta before the story, "
             "no repeated label templates, few measurement asides, symbols introduced after words.\n\n"
             "Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes "
@@ -160,7 +176,7 @@ def main():
     n = stamp_km(done, check)
     d, q, c, changed, unlisted = backlog(done, check)
     verb = "would stamp" if check else "stamped"
-    print(f"{verb} {n} KNOWLEDGE-MAP header(s); backlog: {d} rewritten, {q} queued, {c} left as-is"
+    print(f"{verb} {n} KNOWLEDGE-MAP header(s); backlog: {d} done, {q} queued, {c} left as-is"
           + ("" if changed or check else " (README unchanged)"))
     for slug in unlisted:
         print(f"  WARN {slug} reads as a rewrite (Tell a friend + About this lab) "

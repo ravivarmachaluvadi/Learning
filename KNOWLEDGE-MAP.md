@@ -862,8 +862,9 @@ not yet learned.
 - Key terms: binding, carrier, dynamic scope, rebinding/shadowing, orElse/isBound, inheritance-into-forks, async escape
 - Builds on: [java-virtual-threads], [structured-concurrency] · Next: [distributed-tracing?], [reactive-context-propagation?]
 
-## java-memory-model — learned before 2026-08-27 — lab: 17-java-memory-model/ (no README; runnable lab + visualization)
-- Takeaway: The JMM defines which reorderings and visibilities are legal between threads; happens-before is the contract, and data races make behavior undefined-ish. (Lab predates this map; entry minimal.)
+## java-memory-model — learned before 2026-08-27 — document written 2026-09-09 — lab: 17-java-memory-model/
+- Takeaway: The JMM defines which reorderings and visibilities are legal between threads; happens-before is the contract, and a data race makes the answer undefined rather than merely unlucky. The document was written 2026-09-09 from the lab's own six experiments; on this x86 machine the unsafe-publication and broken-double-checked-locking runs both reported **zero** failures, which the lab uses to make its sharpest point — a clean run is not evidence, because the reordering those bugs need is one x86 does not perform and the JIT declined to.
 - Key terms: happens-before, volatile, store buffer, reordering
-- Next: relearn to generate full notes if needed
+- Key terms: happens-before, volatile, data race, safe publication, final-field guarantee, store buffer, reordering, double-checked locking
+- Next: [jcstress?] — the tool that aims at these races instead of hoping for them
 

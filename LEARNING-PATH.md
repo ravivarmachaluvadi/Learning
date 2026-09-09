@@ -51,7 +51,7 @@ Almost every distributed bug is a single-machine bug that got a network wrapped 
 Still one machine, but now several things happen at once inside it. This is where "can both be in here at once?" and "is either guaranteed to see the other?" are first asked — the same two questions the distributed stages ask across machines. Nothing here depends on the stages after it, and nothing after it depends on this block until production, where tuning and queueing meet.
 
 16. [`java-multithreading`](16-java-multithreading/README.md) ↳2 · I★★★ · L★★★ — Two questions only: can both be in here at once, and is either guaranteed to see the other.
-17. [`java-memory-model`](17-java-memory-model/visualization.html) ↳8 · I★★★ · L★★★ — **no README yet; the link opens the visualization.** Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
+17. [`java-memory-model`](17-java-memory-model/README.md) ↳8 · I★★★ · L★★★ — Which reorderings are legal between threads. happens-before is the contract; races are undefined-ish.
 18. [`java-virtual-threads`](18-java-virtual-threads/README.md) ↳8 · I★★ · L★★ — A cheap heap-backed thread. Blocking parks the stack and frees the carrier, so waiting is nearly free.
 19. [`structured-concurrency`](19-structured-concurrency/README.md) ↳3 · I★ · L★★ — Confine every subtask's lifetime to a block. Errors flow up, cancellation flows down.
 20. [`scoped-values`](20-scoped-values/README.md) ↳2 · I★ · L★ — An invisible final parameter for everything below a block — and the cure for ThreadLocal's diseases.
@@ -269,7 +269,7 @@ Topics named as `Next` across the labs and never taken up. Counts are occurrence
 | **certificate-management-and-pki** | 2 labs |  |
 | **oauth-and-jwt** | 2 labs |  |
 
-And one gap inside the sequence: **a README for `java-memory-model`**, the only numbered lab without a document. The visualization ("Store Buffer Theatre") and the five experiments under `src/` are the source material.
+The gap that used to sit inside the sequence is closed: `java-memory-model` had no document at all, and one was written on 2026-09-09 from its six experiments and its "Store Buffer Theatre" visualization. Every numbered lab now has a README.
 
 ## Rewrite status
 

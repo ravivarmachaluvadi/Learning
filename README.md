@@ -47,8 +47,7 @@ that.
 Each folder holds a `README.md` (the lesson), a `visualization.html` (open it
 in a browser), and `EXERCISES.md` with `SOLUTIONS.md`. Some older labs also
 carry runnable Java, kept for reference; the lesson never depends on running
-it. `java-memory-model` is the one lab that is still visualization and source
-only.
+it. Every one of the 71 labs now has all four files.
 
 ## How a lab reads
 
@@ -97,7 +96,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-47 rewritten, 0 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+47 rewritten, 1 written from scratch, 0 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -119,7 +118,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 14 | `tls` | **rewritten** | re-delivered 2026-09-08 |
 | 15 | `ssh` | **rewritten** | re-delivered 2026-09-09 |
 | 16 | `java-multithreading` | **rewritten** | re-delivered 2026-09-09 |
-| 17 | `java-memory-model` | no README yet | visualization and source only; writing it is the top item in the gaps list |
+| 17 | `java-memory-model` | **written** | new document, 2026-09-09 — this lab had none |
 | 18 | `java-virtual-threads` | reads well, left as-is |  |
 | 19 | `structured-concurrency` | reads well, left as-is |  |
 | 20 | `scoped-values` | reads well, left as-is |  |
