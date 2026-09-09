@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-44 rewritten, 3 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+47 rewritten, 0 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -146,9 +146,9 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 57 | `queueing-theory` | **rewritten** | re-delivered 2026-09-09 |
 | 58 | `load-shedding` | **rewritten** | re-delivered 2026-09-09 |
 | 59 | `load-balancing` | **rewritten** | re-delivered 2026-09-09 |
-| 60 | `distributed-rate-limiting` | queued | 4 labels repeated as a template |
-| 61 | `work-pressure-and-deadlines` | queued | 8 labels repeated as a template |
-| 62 | `amazon-web-services` | queued | 7 labels repeated as a template |
+| 60 | `distributed-rate-limiting` | **rewritten** | re-delivered 2026-09-09 |
+| 61 | `work-pressure-and-deadlines` | **rewritten** | re-delivered 2026-09-09 |
+| 62 | `amazon-web-services` | **rewritten** | re-delivered 2026-09-09 |
 | 63 | `terraform` | **rewritten** | re-delivered 2026-09-09 |
 | 64 | `compound-engineering-plugin` | **rewritten** | re-delivered 2026-09-09 |
 | 65 | `url-shortener-system-design` | reads well, left as-is |  |
