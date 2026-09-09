@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-23 rewritten, 24 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+26 rewritten, 21 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -107,7 +107,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 18 | `java-virtual-threads` | reads well, left as-is |  |
 | 19 | `structured-concurrency` | reads well, left as-is |  |
 | 20 | `scoped-values` | reads well, left as-is |  |
-| 21 | `java-version-features` | queued | 69 lines of meta before the story; 13 labels repeated as a template |
+| 21 | `java-version-features` | **rewritten** | re-delivered 2026-09-09 |
 | 22 | `jvm-garbage-collectors` | **rewritten** | re-delivered 2026-09-09 |
 | 23 | `jvm-performance-tuning` | **rewritten** | re-delivered 2026-09-09 |
 | 24 | `cap-theorem` | reads well, left as-is |  |
@@ -124,7 +124,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 35 | `consistent-hashing` | **rewritten** | re-delivered 2026-09-09 |
 | 36 | `partitioning-and-rebalancing` | reads well, left as-is |  |
 | 37 | `gossip-protocols` | queued | 12 labels repeated as a template |
-| 38 | `anti-entropy` | queued | 57 lines of meta before the story; 33 measurement asides in the prose |
+| 38 | `anti-entropy` | **rewritten** | re-delivered 2026-09-09 |
 | 39 | `paxos` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
 | 40 | `raft` | **rewritten** | re-delivered 2026-09-08 |
 | 41 | `zab` | **rewritten** | re-delivered 2026-09-09 |
@@ -149,7 +149,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 60 | `distributed-rate-limiting` | queued | 4 labels repeated as a template |
 | 61 | `work-pressure-and-deadlines` | queued | 8 labels repeated as a template |
 | 62 | `amazon-web-services` | queued | 7 labels repeated as a template |
-| 63 | `terraform` | queued | 7 labels repeated as a template; symbols before words |
+| 63 | `terraform` | **rewritten** | re-delivered 2026-09-09 |
 | 64 | `compound-engineering-plugin` | queued | 15 labels repeated as a template |
 | 65 | `url-shortener-system-design` | reads well, left as-is |  |
 | 66 | `google-spanner` | **rewritten** | re-delivered 2026-09-09 |
