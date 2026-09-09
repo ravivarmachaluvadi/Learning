@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-20 rewritten, 27 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+23 rewritten, 24 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -139,10 +139,10 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 50 | `event-sourcing` | reads well, left as-is |  |
 | 51 | `cqrs` | **rewritten** | re-delivered 2026-09-09 |
 | 52 | `change-data-capture` | queued | 5 labels repeated as a template; symbols before words |
-| 53 | `kafka` | queued | 57 lines of meta before the story |
+| 53 | `kafka` | **rewritten** | re-delivered 2026-09-09 |
 | 54 | `idempotent-consumer` | queued | 67 lines of meta before the story |
 | 55 | `kafka-exactly-once` | queued | 63 lines of meta before the story; 8 labels repeated as a template; symbols before words |
-| 56 | `microservices` | queued | 11 labels repeated as a template |
+| 56 | `microservices` | **rewritten** | re-delivered 2026-09-09 |
 | 57 | `queueing-theory` | **rewritten** | re-delivered 2026-09-09 |
 | 58 | `load-shedding` | **rewritten** | re-delivered 2026-09-09 |
 | 59 | `load-balancing` | **rewritten** | re-delivered 2026-09-09 |
@@ -153,7 +153,7 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 64 | `compound-engineering-plugin` | queued | 15 labels repeated as a template |
 | 65 | `url-shortener-system-design` | reads well, left as-is |  |
 | 66 | `google-spanner` | **rewritten** | re-delivered 2026-09-09 |
-| 67 | `cockroachdb` | queued | 78 lines of meta before the story; symbols before words |
+| 67 | `cockroachdb` | **rewritten** | re-delivered 2026-09-09 |
 | 68 | `mongodb` | queued | 68 lines of meta before the story |
 | 69 | `whatsapp-system-design` | queued | 10 labels repeated as a template |
 | 70 | `uber-system-design` | queued | 12 labels repeated as a template |
