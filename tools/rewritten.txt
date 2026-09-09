@@ -36,3 +36,6 @@ kafka-exactly-once 2026-09-09
 causal-consistency 2026-09-09
 crdts 2026-09-09
 gossip-protocols 2026-09-09
+acid 2026-09-09
+mvcc-and-vacuum 2026-09-09
+database-landscape 2026-09-09

@@ -81,7 +81,7 @@ committed either.
 ## Rewrite backlog
 
 <!-- BACKLOG:START -->
-35 rewritten, 12 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
+38 rewritten, 9 queued, 23 left as-is. A lab is left as-is when `tools/audit.py` finds none of the delivery problems: no wall of meta before the story, no repeated label templates, few measurement asides, symbols introduced after words.
 
 Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never removes content: `tools/preserve-check.py` compares old against new and fails if a number, link, diagram or glossary row went missing, and `tools/xref-check.py` confirms the exercises still point at the right sections.
 
@@ -90,12 +90,12 @@ Queued labs are re-delivered with `/learn rewrite <slug>`. A rewrite never remov
 | 1 | `networking-for-developers` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
 | 2 | `communication-protocols` | **rewritten** | re-delivered 2026-09-08, after the reader reported it hard to read |
 | 3 | `io-multiplexing` | **rewritten** | re-delivered 2026-09-09 |
-| 4 | `database-landscape` | queued | 9 labels repeated as a template |
+| 4 | `database-landscape` | **rewritten** | re-delivered 2026-09-09 |
 | 5 | `btree-and-lsm` | reads well, left as-is |  |
 | 6 | `software-architecture-patterns` | reads well, left as-is |  |
-| 7 | `acid` | queued | 7 labels repeated as a template |
+| 7 | `acid` | **rewritten** | re-delivered 2026-09-09 |
 | 8 | `isolation-levels` | **rewritten** | re-delivered 2026-09-08 |
-| 9 | `mvcc-and-vacuum` | queued | symbols before words |
+| 9 | `mvcc-and-vacuum` | **rewritten** | re-delivered 2026-09-09 |
 | 10 | `optimistic-vs-pessimistic-locking` | reads well, left as-is |  |
 | 11 | `caching` | reads well, left as-is |  |
 | 12 | `http-caching` | reads well, left as-is |  |
