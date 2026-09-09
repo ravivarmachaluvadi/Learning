@@ -1,0 +1,87 @@
+# Two importance ratings per lab, assigned by judgement — NOT derived from the
+# `Builds on` graph. How often a lab is cited says how the notes are wired
+# together; it says nothing about whether the topic is worth your time. The two
+# come apart badly in both directions, and the divergences are the useful part.
+#
+# interview  how likely you are to be asked this, and expected to be fluent, in
+#            a backend / distributed-systems interview — including system
+#            design rounds and the payments domain this workspace is aimed at.
+# learning   how much genuinely understanding it changes how you think, and how
+#            many other topics it unlocks.
+#
+# 3 = must know   2 = worth knowing   1 = background, read when curious
+#
+# slug<TAB>interview<TAB>learning<TAB>note (only where the two diverge, or the
+# reason is not obvious)
+
+networking-for-developers	2	3	Rarely asked head-on, but it is the floor under every "why is it slow" answer you will give.
+communication-protocols	3	3	REST vs gRPC vs WebSocket is one of the most asked design questions there is.
+io-multiplexing	2	3	Asked as "threads or event loop?"; understanding it is what makes that answer more than a slogan.
+database-landscape	3	3	"Which database, and why" is a whole interview round.
+btree-and-lsm	2	3	Asked as indexing follow-ups; understanding it is why you can predict a database's behaviour instead of memorising it.
+software-architecture-patterns	2	2
+acid	3	3	Assumed knowledge. Getting the C wrong is a visible tell.
+isolation-levels	3	3	Very common, and the default level permitting lost updates is a favourite.
+mvcc-and-vacuum	1	3	Postgres-specific enough to be rare in interviews, and one of the biggest jumps in understanding here.
+optimistic-vs-pessimistic-locking	3	3	Core payments question: two people, one seat, one balance.
+caching	3	3	Asked in almost every design round.
+http-caching	2	2
+redis	3	2	Asked constantly because it is everywhere; conceptually it is mostly vocabulary once you know caching.
+tls	2	2	Shows up in the security round rather than the design round.
+ssh	1	2	Its value is the contrast with TLS on identity, not the protocol itself.
+java-multithreading	3	3	Table stakes for a Java role.
+java-memory-model	3	3	volatile and happens-before are asked directly at senior level.
+java-virtual-threads	2	2	Rising fast in interviews as teams move to 21+.
+structured-concurrency	1	2
+scoped-values	1	1	Narrow; read it after structured concurrency or not at all.
+java-version-features	2	1	"What is new since 8" is a common warm-up; little of it changes how you think.
+jvm-garbage-collectors	3	2	A classic Java interview topic, more recall than insight.
+jvm-performance-tuning	2	2	The method — find the dominant bucket — is the transferable part.
+cap-theorem	3	3	The single most cited theorem in system design, and the most misquoted.
+pacelc	2	3	Rarely named in interviews; it is the idea that makes CAP usable on a normal day.
+linearizability	2	3	Worth it to stop saying "consistent" and mean six different things.
+linearizability-vs-serializability	2	3	Confusing these two is a common senior-level tell.
+eventual-consistency	3	3	You will be asked what it actually promises. It is weaker than most people say.
+causal-consistency	1	3	Almost never asked by name; explains a whole class of user-visible bugs.
+clock-synchronization	1	3	Not asked directly, and it is the ground under Spanner, HLC and every timeout you set.
+hybrid-logical-clocks	1	2
+crdts	2	3	Comes up for collaborative editing and shopping carts.
+flp-impossibility	1	3	Cited twice in these notes and worth far more than that: it tells you which promises are impossible.
+quorums-and-replication	3	3	R + W > N is asked directly and often.
+consistent-hashing	3	3	A classic whiteboard question in its own right.
+partitioning-and-rebalancing	3	3	Sharding and hot partitions are asked in almost every scaling round.
+gossip-protocols	2	2
+anti-entropy	1	2	The repair half most people skip; asked mainly as a Cassandra follow-up.
+paxos	2	3	Usually only named in interviews. Working through it is what makes consensus stop being magic.
+raft	3	3	Asked more often than Paxos, because it is the one people can actually explain.
+zab	1	2	Worth it as the third data point after Paxos and Raft.
+split-brain	2	3	The failure everyone has heard of and few can reason about.
+distributed-locking	3	3	Redlock and "is your lock actually safe" are common and sharp.
+jepsen	1	2	Changes how you read any vendor's consistency claim.
+two-phase-commit	3	3	Asked constantly, usually to see whether you know why it blocks.
+distributed-transactions	3	3
+saga	3	3	Core payments pattern; expect to design one.
+transactional-outbox	3	3	Core payments pattern; the dual-write problem is a favourite.
+idempotency	3	3	Unavoidable in any payments interview.
+event-sourcing	2	3	Asked mostly as a buzzword; the idea that state is a fold over an immutable log reaches much further than the pattern.
+cqrs	2	2	Often asked together with event sourcing, and often confused with it.
+change-data-capture	2	2
+kafka	3	3	Assumed knowledge for most backend roles.
+idempotent-consumer	3	2	The practical half of "how do you handle duplicates", asked often.
+kafka-exactly-once	2	2	Good for a follow-up; the honest answer is more nuanced than the marketing.
+microservices	3	2	Asked in almost every senior interview, usually with a wrong premise to correct.
+queueing-theory	2	3	Not asked by name, and it is where capacity estimates stop being guesses.
+load-shedding	2	3	Rarely asked; one of the highest-value ideas here for real systems.
+load-balancing	3	2	Asked in nearly every design round, mostly at the level of naming algorithms.
+distributed-rate-limiting	3	2	A classic standalone design question.
+work-pressure-and-deadlines	2	2	This is the behavioural round, which people prepare for least.
+amazon-web-services	2	1	Useful for naming services in a design; little conceptual gain over the labs it rents out.
+terraform	1	1	Job-relevant, rarely interviewed, and conceptually narrow.
+compound-engineering-plugin	1	1	Tooling for this workspace. Not an interview topic at all.
+url-shortener-system-design	3	2	The classic opening question; do this one before any interview.
+google-spanner	2	3	Named often, understood rarely; the honest-clock idea is the payoff.
+cockroachdb	1	2	Mainly valuable as the contrast with Spanner.
+mongodb	2	2	Asked when it is on your CV.
+whatsapp-system-design	3	2	A very common design prompt.
+uber-system-design	3	2	A very common design prompt.
+google-docs-system-design	2	2	Asked less often than the other two, and the hardest of the three.

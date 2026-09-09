@@ -190,7 +190,11 @@ def split_label(title):
 # ---------------------------------------------------------------- parsing
 
 STAGE_RE = re.compile(r"^### Stage (\d+) — (.+?)\s*$")
-LAB_RE = re.compile(r"^(\d+(?:\.\d+)?)\.\s+\[`([a-z0-9-]+)`\]\(([^)]+)\)\s+↳(\d+)\s+—\s+(.*?)\s*$")
+# `N. [`slug`](target) ↳K [· I★★ · L★★★] — hook`. The two star ratings are
+# optional: they are written by tools/mark-importance.py and are a judgement
+# call, unlike ↳K which is measured from the graph.
+LAB_RE = re.compile(r"^(\d+(?:\.\d+)?)\.\s+\[`([a-z0-9-]+)`\]\(([^)]+)\)\s+↳(\d+)"
+                    r"(?:\s+·\s+I(★+)\s+·\s+L(★+))?\s+—\s+(.*?)\s*$")
 NOTE_RE = re.compile(r"^(.*?)\s*\*\*←\s*(.*?)\*\*\s*$")
 GAP_ROW_RE = re.compile(r"^\|\s*\*\*([a-z0-9-]+)\*\*\s*\|\s*(\d+)\s+labs?\s*\|\s*(.*?)\s*\|\s*$")
 REGEN_RE = re.compile(r"^\|\s*Regenerated\s*\|\s*(\d{4}-\d{2}-\d{2})", re.M)
@@ -212,12 +216,13 @@ def parse_path():
             cur = None
         m = LAB_RE.match(line)
         if m and cur is not None:
-            number, slug, target, k, hook = m.groups()
+            number, slug, target, k, iv, lr, hook = m.groups()
             note = ""
             n = NOTE_RE.match(hook)
             if n:
                 hook, note = n.group(1), "← " + n.group(2)
             lab = {"number": number, "slug": slug, "target": target, "k": int(k), "hook": hook,
+                   "interview": iv or "", "learning": lr or "",
                    "note": note, "idx": index_for(number), "folder": folder_for(number, slug),
                    "stage": cur, "pos": len(labs) + 1}
             cur["labs"].append(lab)
@@ -499,8 +504,16 @@ def card_html(lab, D, late_set):
     if s in late_set:
         flags.append(f"Learned {lab['delta']} places later than its foundation slot &#8212; good re-read")
     out.append(" " + "".join(f'<div class="flag">{f}</div>' for f in flags))
+    rating = ""
+    if lab["interview"] or lab["learning"]:
+        # A judgement call, unlike the dependant count beside it — so label both.
+        rating = (f'<span class="c-dot">&#183;</span>'
+                  f'<span class="c-rate" title="Interview importance: {len(lab["interview"])} of 3">'
+                  f'I{esc(lab["interview"])}</span>'
+                  f'<span class="c-rate" title="Learning value: {len(lab["learning"])} of 3">'
+                  f'L{esc(lab["learning"])}</span>')
     out.append(f' <div class="c-meta"><span class="c-date">{esc(lab["date"])}</span><span class="c-dot">&#183;</span>'
-               f'<span class="c-dep">{len(node["d"])} build on it</span></div>')
+               f'<span class="c-dep">{len(node["d"])} build on it</span>{rating}</div>')
     if node["p"]:
         out.append(f' <div class="c-pre"><span class="c-prelbl">after</span>{chips(node["p"], CHIPS_ON_CARD)}</div>')
     else:
@@ -920,6 +933,7 @@ h1{font-size:clamp(30px,5vw,52px); font-weight:700; letter-spacing:-.025em; line
 .c-hook{margin:0; font-size:14px; color:var(--ink); line-height:1.5}
 .c-meta{display:flex; gap:7px; align-items:center; font-size:11.5px; color:var(--ink-3); margin-top:auto}
 .c-date{font-variant-numeric:tabular-nums}
+.c-rate{margin-left:6px; letter-spacing:.02em; white-space:nowrap; color:var(--hue,var(--ink-2))}
 .flag{font-size:11.5px; color:var(--warn); border-left:2px solid var(--warn); padding-left:8px}
 .c-pre{display:flex; flex-wrap:wrap; gap:5px; align-items:center}
 .c-prelbl{font-family:Archivo,sans-serif; font-size:10px; font-weight:600; letter-spacing:.1em;

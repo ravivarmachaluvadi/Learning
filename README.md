@@ -13,6 +13,21 @@ browser visualization you drive yourself, and exercises with solutions.
 | [`KNOWLEDGE-MAP.md`](KNOWLEDGE-MAP.md) | What each lab covers and how they depend on each other (478 `Builds on` links). Newest first. |
 | [`STYLE.md`](STYLE.md) | How a lab is written: the Feynman / Socratic voice contract every README follows. |
 
+## Which labs matter most
+
+Every lab in `LEARNING-PATH.md` carries two ratings: `I★★★` for how likely you
+are to be asked about it in an interview, and `L★★★` for how much understanding
+it changes the way you think. They are a judgement call, recorded with reasons
+in [`tools/importance.tsv`](tools/importance.tsv).
+
+They are deliberately **not** the `↳N` count sitting next to them. That number
+says how many labs cite this one — a fact about how these notes are wired
+together, not a claim about whether the topic earns your time. The two disagree
+in both directions, and the *Which of these actually matter?* section of
+`LEARNING-PATH.md` lists exactly where: `flp-impossibility` is cited twice and
+is one of the most clarifying labs here, while `redis` is cited eleven times and
+is mostly vocabulary once you know caching.
+
 ## How the folders are numbered
 
 Every lab folder is `<number>-<slug>`: `01-networking-for-developers`,
@@ -62,6 +77,7 @@ audit found wrong with each queued one.
 | `python tools/preserve-check.py old.md new.md` | Prove a rewrite lost no number, link, table, diagram or glossary term |
 | `python tools/xref-check.py <lab>` | Confirm `EXERCISES.md` and `SOLUTIONS.md` still cite sections that exist |
 | `python tools/mark-rewritten.py` | Stamp the knowledge map and rebuild the backlog below, from `tools/rewritten.txt` |
+| `python tools/mark-importance.py` | Write the interview and learning ratings into `LEARNING-PATH.md`, from `tools/importance.tsv` |
 | `python tools/gen-atlas.py` | Rebuild `LEARNING-PATH.html` from the path file and the knowledge map |
 
 ## Running the Java labs (historical)
