@@ -1,68 +1,99 @@
 # Google Docs — how a hundred people type into one sentence without losing a word
 
-> A lab about the hardest small problem in system design: two people, one line of
-> text, and a network in between.
->
-> **What you get:** an interactive simulation you drive by hand, a working
-> implementation in Java (no build tool, no dependencies), seven failure
-> experiments, and the full high-level design of the product around it.
->
-> **Depth layers:** BEGINNER (§1–9) → INTERMEDIATE (§10) → ENGINEERING (§11–14)
-> → PRODUCTION (§15). Checkpoints tell you where you are.
+> **Tell a friend:** Alice and Bob edit the same shopping list from two cities,
+> and both change it at the same moment. Simple designs either lose one person's
+> letter, or leave the two screens showing different text with nobody told. The
+> fix is to stop sending the document and to send the change instead: "put an S
+> at position 3". Every machine then rewrites that instruction before running
+> it, so it still means what its author meant on a page that has moved on. One
+> product decision forces all of this. Your keystroke appears on your own screen
+> before any server has agreed to it, and everything else in this lab is the
+> bill for that decision.
+
+**Play with it:** [`visualization.html`](visualization.html) — *[Two Cursors, One
+Sentence](https://claude.ai/code/artifact/279bb5b7-a1d4-4cfb-9fda-7f803f1fd25e)*.
 
 ---
 
-## 1. Why this exists
+## 1. Why does emailing the document round lose somebody's work?
 
-You have almost certainly lived this: a document is emailed round a team, three
-people edit their copy, and somebody spends an afternoon merging four versions
-named `plan_final_v2_REALLY_FINAL.docx`. Somewhere in that merge, an edit is
-quietly lost — not deleted with a warning, just gone, because a later save
-overwrote an earlier one.
+> **In one breath:** When everyone edits their own copy, someone has to merge
+> the copies later. Somewhere in that merge, one person's work quietly
+> disappears. Nobody is told.
 
-Now put every one of those people in the same document at the same time, with
-their cursors visible to each other, and let their letters appear on each
-other's screens as they type. That is the product. The entire engineering
-problem is the sentence you just read: **at the same time**. Everything else —
-storage, sharing, comments, version history — is ordinary web engineering that
-you have built before. The concurrent editing is not, and it is where this lab
-spends most of its time.
+Alice and Bob work on the same team. They are writing a plan together, and the
+plan goes round by email.
 
-If nobody solves it, you get one of two bad products: a document that locks so
-only one person can type (a fancier shared drive), or a document where two
-people typing at once silently produces text that neither of them wrote.
+Three people edit their own copy on the same afternoon. Then somebody spends an
+evening merging four files, one of which is called
+`plan_final_v2_REALLY_FINAL.docx`. You have almost certainly lived this.
+
+Somewhere in that merge, an edit is lost. Not deleted with a warning. Just gone,
+because a later save overwrote an earlier one.
+
+Now change the product. Put every one of those people inside one document at the
+same time. Show them each other's cursors. Let their letters appear on each
+other's screens as they type.
+
+That is Google Docs. The entire engineering problem is three words from the
+sentence you just read: **at the same time**.
+
+Everything else is ordinary web engineering you have built before. Storage,
+sharing, comments, version history: none of that is new. The concurrent editing
+is new, and it is where this lab spends almost all of its time.
+
+What happens if nobody solves it? You ship one of two bad products.
+
+The first locks the document, so only one person may type. That is a fancier
+shared drive. The second lets two people type at once, and silently produces
+text that neither of them wrote.
+
+This lab builds the second product properly. Alice and Bob carry the story the
+whole way. Carol joins in section 11 with a terrible Wi-Fi connection, and Meera
+takes the pager in section 15.
 
 ---
 
-## 2. The problem, without any jargon
+## 2. What should the fridge list say when Alice and Bob both change it?
 
-Alice and Bob share a shopping list stuck to the fridge. It says:
+> **In one breath:** Two people, one three-letter list, one change each. Nearly
+> everybody agrees on the right answer. Delivering it is the hard part.
+
+Alice and Bob share a shopping list stuck to a fridge. It says:
 
 ```
 HAT
 ```
 
-(It is a strange shopping list. It is also short enough to follow every
-character, which is exactly why we are using it.)
+It is a strange shopping list. It is also short enough that you can follow every
+single character, which is exactly why we are using it.
 
-Alice thinks it should say **CHAT**. Bob thinks it should say **HATS**. They are
-in different cities, each looking at their own photo of the list, and they both
-make their change at the same moment.
+Alice thinks it should say **CHAT**. Bob thinks it should say **HATS**.
 
-What should the fridge say afterwards? Almost everybody answers **CHATS** — the
-C that Alice wanted at the front, the S that Bob wanted at the end, both there,
-nothing lost. Hold on to that answer. It is the specification for the rest of
-this lab, and it is surprisingly hard to deliver.
+They are in different cities. Each is looking at their own photo of the list.
+They both make their change at the same moment.
+
+> **🔮 Predict:** What should the fridge say afterwards? Commit to one word
+> before you read on.
+> <details><summary>Reveal</summary>
+> Almost everybody answers <code>CHATS</code>: Alice's C at the front, Bob's S
+> at the end, both there, nothing lost. If you answered <code>CHAT</code> or
+> <code>HATS</code>, you picked a winner between two people who were not even
+> arguing. Picking a winner is the failure this whole lab exists to avoid. Hold
+> on to <code>CHATS</code>. It is the specification for everything that follows,
+> and it is surprisingly hard to deliver.
+> </details>
 
 ---
 
-## 3. What a reasonable person tries first
+## 3. What does a reasonable person try first, and what does it cost?
 
-The obvious design: everybody edits their own copy, and when they are done they
-send the whole document to a server, which stores it. Whoever sends last wins.
+> **In one breath:** Everybody edits their own copy and sends the whole document
+> back to a server. Whoever saves last wins, and the other person's letter is
+> gone with no error at all.
 
-This is not a strawman. It is exactly how a file on a shared drive works, and
-how the first generation of document-sync products worked.
+This is not a strawman. It is exactly how a file on a shared drive works. It is
+also how the first generation of document-sync products worked.
 
 Run it:
 
@@ -90,37 +121,55 @@ DESIGN 1 — send the whole document, last save wins
 > recent document it was given. This failure mode has a name we will keep using:
 > a <b>lost update</b>. Two people read the same starting value, both changed it,
 > and one change vanished under the other.
+> <br><br>
+> If you guessed her screen would jump to <code>HATS</code>, you are imagining a
+> system that pushes the truth back to her. Nothing in this design does that.
+> Nobody told her anything, because nobody noticed anything.
 > </details>
+
+A lost update is the worst shape a bug can take. It is silent, it is
+unrecoverable, and the only person who could notice is the one who is no longer
+looking.
 
 ---
 
-## 4. Why that breaks, and what it reveals
+## 4. Why does sending just the change break too?
 
-The lost update is the visible failure. Two familiar fixes both fail too, and
-watching them fail is what uncovers the real problem.
+> **In one breath:** Locking and merging both fail for a text editor. So you
+> send the change instead of the whole document. That breaks for a new reason:
+> the change was written for a page that has since moved underneath it.
 
-**Fix 1: lock the document.** One person edits, everybody else is read-only.
-Microsoft Word did this for years ("Locked for editing by Ravi"). It works, and
-it produces a product nobody wants: the whole point is that four people can work
-on one document during a meeting. It also inherits the blocking problem you
-already met in the [two-phase-commit lab](../45-two-phase-commit/) — if the lock
-holder's laptop dies, the document is stuck until something times out.
+The lost update is the visible failure. Two familiar fixes both fail as well,
+and watching them fail is what uncovers the real problem.
 
-**Fix 2: merge on save, like Git.** Send both versions, compute a diff, merge.
-This is a real answer for source code, where merges happen a few times a day and
-a human is standing by to resolve conflicts. In a document, edits happen several
-times *per second* per person. Nobody is going to resolve a three-way merge
-conflict between keystrokes.
+**The first fix is a lock.** One person edits, everybody else is read-only.
+Microsoft Word did this for years, with a message reading "Locked for editing by
+Ravi". It works, and it produces a product nobody wants. The whole point is that
+four people can work on one document during a meeting.
 
-So the deeper problem is not "how do we merge?" It is:
+A lock also inherits the blocking problem you already met in the
+[two-phase-commit lab](../45-two-phase-commit/). If the lock holder's laptop
+dies, the document is stuck until something times out.
 
-> We have to merge **continuously**, many times a second, **with no human
-> involved**, and **without anybody ever waiting** — because a text editor that
-> pauses after each letter is not a text editor.
+**The second fix is to merge on save, the way Git does.** Send both versions,
+compute a diff, merge them.
+
+That is a real answer for source code. Merges happen a few times a day there,
+and a human is standing by to resolve conflicts. In a document, edits happen
+several times *per second* per person. Nobody is going to resolve a three-way
+merge conflict between keystrokes.
+
+So the deeper problem is not "how do we merge?". It is this:
+
+> We have to merge **continuously**, many times a second, and **with no human
+> involved**. We also have to do it **without anybody ever waiting**, because a
+> text editor that pauses after each letter is not a text editor.
 
 Now try the honest version of that. Instead of sending the whole document, send
-just what changed: *"put an S at position 3."* That is far less data, and it
-looks like it should merge naturally. Run it:
+only what changed: *"put an S at position 3."*
+
+That is far less data. It also looks like it should merge naturally, because two
+different instructions do not obviously overwrite each other. Run it:
 
 ```
 DESIGN 2 — send the change (position + character), apply it as sent
@@ -134,47 +183,74 @@ DESIGN 2 — send the change (position + character), apply it as sent
    server="CHAST"  Alice="CHAST"  Bob="CHATS"
 ```
 
-Look at Alice's screen: **CHAST**. Nobody typed that. Nobody wanted it.
+> **🔮 Predict:** Every instruction in that run is correct. Every instruction was
+> delivered to everybody. So why are Alice's screen and Bob's screen different,
+> and which of them is right?
+> <details><summary>Reveal</summary>
+> Neither is right, and that is the point. Alice's screen says
+> <code>CHAST</code>, which nobody typed and nobody wanted. Bob's says
+> <code>CHATS</code>, which is the answer we want but arrived by luck. If you
+> guessed that the server would referee the disagreement, look again: the server
+> itself holds <code>CHAST</code>. Everybody followed the rules and the rules
+> were wrong.
+> </details>
 
-Here is the whole bug in one sentence. Bob wrote *"put an S at position 3"* while
-looking at `HAT`, where position 3 was the end of the word. By the time that
-instruction reached Alice, her own C had pushed every letter one place to the
-right, so position 3 now sat between the A and the T. **The instruction was
-correct when it was written and wrong when it was run**, because the document
-underneath it had changed.
+Here is the whole bug in one sentence. Bob wrote *"put an S at position 3"*
+while looking at `HAT`, where position 3 was the end of the word.
 
-And notice the second, worse thing: Alice and Bob's screens now show *different
-text*, and neither of them will ever be told. There is no error to catch. The
-system is confidently wrong.
+By the time that instruction reached Alice, her own C had pushed every letter
+one place to the right. Position 3 now sat between the A and the T.
 
----
+**The instruction was correct when it was written and wrong when it was run**,
+because the document underneath it had changed.
 
-## 5. What we actually need to guarantee
-
-Three promises. Every design decision in the rest of this lab exists to keep one
-of them.
-
-1. **Instant local response.** When you press a key, the letter appears on your
-   screen immediately. Not after a round trip to a server 200 ms away — you
-   would feel that on every letter.
-2. **Everyone ends up with the same text.** When the typing stops and the
-   network goes quiet, every copy of the document must be identical. This is the
-   promise that Design 2 broke.
-3. **What each person meant survives.** Alice's C ends up at the front, Bob's S
-   at the end. It is not enough to be *identical* — a system that resolves every
-   conflict by throwing both edits away is perfectly identical and useless.
-
-Promises 2 and 3 are separate, and the difference matters. A design can satisfy
-one and fail the other, and you need words for that, which is what §7 is for.
-
-There is also a fourth promise, invisible until it breaks: **nobody waits for
-anybody.** No locks, no turn-taking, no "your edit is pending approval".
+Notice the second thing, which is worse than the first. Alice and Bob's screens
+now show different text, and neither of them will ever be told. There is no
+error to catch. The system is confidently wrong.
 
 ---
 
-## 6. The key idea
+## 5. What exactly must the system promise?
 
-Two sentences.
+> **In one breath:** Four promises. Your letter appears instantly, everyone ends
+> up with the same text, what each person meant survives, and nobody ever waits
+> for anybody else.
+
+Every design decision in the rest of this lab exists to keep one of these four.
+Read the last column first: it says what Alice or Bob would actually experience
+if that promise were dropped.
+
+| # | The promise | In plain words | What its absence feels like |
+|---|---|---|---|
+| 1 | Instant local response | your letter is on your screen before any server hears about it | a 200 ms stutter on every single keystroke |
+| 2 | Convergence | when the typing stops, every copy holds identical text | Alice reads `CHAST`, Bob reads `CHATS`, forever |
+| 3 | Intention preservation | Alice's C lands at the front, Bob's S at the end | the merge is tidy and the sentence is not what anyone wrote |
+| 4 | Nobody waits | no locks, no turn-taking, no "your edit is pending approval" | one person types and three people watch |
+
+Promise 1 is the product decision that creates the whole problem. A round trip
+to a server is 50 to 300 ms. You would feel that on every letter, so the letter
+has to be drawn before the server has agreed to anything.
+
+Promises 2 and 3 are separate, and the difference matters more than it looks. A
+design can satisfy one and fail the other. Design 2 in section 4 failed promise
+2 outright. A design that resolved every conflict by blanking the document would
+keep promise 2 perfectly and destroy promise 3.
+
+You need words for that difference, which is what section 7 is for.
+
+Promise 4 is invisible until it breaks. It rules out the lock from section 4,
+and it rules out every scheme where the server has to approve an edit before you
+may see it.
+
+---
+
+## 6. What is the one key idea?
+
+> **In one breath:** Send the change, not the document. Then, before you run
+> somebody else's change, rewrite it to account for everything it was written
+> without knowing about.
+
+Two sentences carry the whole lab.
 
 > **Send the change, not the document** — an instruction like *insert 'S' at
 > position 3*, so two people's work can be combined instead of overwriting each
@@ -184,205 +260,288 @@ Two sentences.
 > changes it was written without knowing about. Bob's *"S at 3"* becomes *"S at
 > 4"* once you know a character was inserted in front of it.
 
-That rewriting step is the invention. Everything else in this lab — the servers,
-the numbering, the queues, the retries — is bookkeeping in service of doing that
-rewriting correctly, in the right order, on every machine.
+That rewriting step is the invention. Everything else in this lab is bookkeeping
+in service of doing the rewriting correctly, in the right order, on every
+machine. The servers, the numbering, the queues and the retries are all bill,
+not idea.
+
+Here is where the lab goes, and what you can do at the end of each stretch.
+
+| Layer | Sections | After it you can… |
+|---|---|---|
+| Beginner | 1–9 | say why sending documents cannot work, and what a lost update is |
+| Intermediate | 10 | trace one concurrent edit through every machine, by hand |
+| Engineering | 11–14 | reason about nine failures and state what is guaranteed |
+| Production | 15 | draw the architecture, size it, and argue OT against CRDTs |
+
+Each of those four stretches ends with a checkpoint and a **Say it back** box.
+If you cannot say it back, the next stretch will not stick.
 
 ---
 
-## 7. Now the vocabulary
+## 7. Which words do you now need, and what does each name?
 
-The words below are the ones you need to read a real paper or a real codebase.
-Each one is introduced at the moment you have already felt the thing it names.
+> **In one breath:** Ten words carry the rest of the lab. Every one of them
+> names something that has already happened to Alice and Bob, so nothing here is
+> new. Only the labels are.
 
-### operation
+This is the whole vocabulary you need to read a real paper or a real codebase on
+this subject. Each word arrives at the moment you have already felt the thing it
+names.
 
-**Plain meaning:** one change, described rather than performed.
+### What is an operation, and why is it not a document?
 
-**Technical meaning:** a small immutable value describing an edit — here
-`insert(position, character)` or `delete(position)` — that can be sent over a
-network, stored in a log, applied to a document, and (crucially) *rewritten*.
+Bob typed an S at the end of `HAT`. There are two ways to tell the world about
+that.
 
-**Why the word exists:** to separate the *description* of a change from the
-*result* of a change. Design 1 sent results (whole documents) and could only
-overwrite. Once you send descriptions, two changes can be combined.
+Design 1 sent the *result*: the four characters `HATS`. Design 2 sent the
+*description*: put an S at position 3. Engineers call that description an
+**operation**.
 
-**Example:** Bob typing S at the end of `HAT` produces the operation
-`insert(3, 'S')`. Roughly 30 bytes on the wire instead of the whole document.
+Precisely, an operation is a small immutable value describing one edit. In this
+lab there are exactly two kinds, `insert(position, character)` and
+`delete(position)`. An operation can be sent over a network, stored in a log and
+applied to a document. It can also be rewritten, which is the ability the rest
+of this lab is built on.
 
-**Connects to:** this is the same move as [event sourcing](../50-event-sourcing/) —
-store what happened, not what is. A document here *is* a fold over its
-operations, exactly as an account balance is a fold over its transactions.
+The word exists to keep the description of a change apart from the result of a
+change. Results can only overwrite each other. Descriptions can be combined.
 
-### apply
+Bob's keystroke becomes the operation `insert(3, 'S')`, which is roughly 30
+bytes on the wire instead of the whole document.
 
-**Plain meaning:** actually carry out an operation on some text.
+You have made this exact move before. In the
+[event-sourcing lab](../50-event-sourcing/) you stored what happened rather than
+what is. A document here *is* a fold over its operations, in the same way that
+an account balance is a fold over its transactions.
 
-**Technical meaning:** a pure function `apply(document, operation) → document`.
-In this lab it is nine lines of `String` surgery in [`src/Ot.java`](src/Ot.java).
+### What does it mean to apply an operation?
 
-**Why it matters:** because it is pure and total, the same operation applied to
-the same document always gives the same result on every machine — which is what
-makes the whole design reproducible.
+To **apply** an operation is to actually carry it out on some text. Written as
+code it is a pure function: `apply(document, operation) → document`. In this lab
+it is nine lines of `String` surgery in [`src/Ot.java`](src/Ot.java).
 
-### revision
+Purity is doing real work here. The function looks at nothing but its two
+arguments. So the same operation applied to the same document gives the same
+answer on Alice's laptop, on Bob's laptop and on the server, always.
 
-**Plain meaning:** how many edits the document has been through.
+That is what makes the whole design testable. Every disagreement between two
+machines must come from a difference in the *inputs*, never from the function.
 
-**Technical meaning:** an integer counter. The server assigns revision *n* to the
-*n*-th operation it accepts. A client stores the revision it has caught up to,
-and stamps every operation it sends with it: *"this was written against
-revision 4."*
+### What is a revision number really counting?
 
-**Why the word exists:** to make "what did this person know when they wrote
-that?" a number instead of a guess. That number is the input to the rewriting
-rule.
+A **revision** is how many edits the document has been through. It is an integer
+counter, and nothing more.
 
-**Example:** Bob sends `insert(3,'S')` stamped *revision 0*. The server's log is
-already at revision 1, because Alice's C arrived first. The gap — revisions 0 to
-1 — is exactly the set of edits Bob had not seen, and exactly what his operation
-must be rewritten against.
+The server assigns revision *n* to the *n*-th operation it accepts. Each client
+remembers the revision it has caught up to, and stamps every operation it sends
+with that number. The stamp reads: *"this was written against revision 4."*
 
-### the log
+The word exists to turn a vague question into a number. The question is "what
+did this person know when they wrote that?", and the number is the input to the
+rewriting rule.
 
-**Plain meaning:** the official list of everything that has happened to this
-document, in order.
+Watch it happen. Bob sends `insert(3,'S')` stamped revision 0. The server's log
+is already at revision 1, because Alice's C arrived first.
 
-**Technical meaning:** an append-only sequence of operations held by the server.
-The document is defined as the log replayed from the beginning. Revision
-numbers are positions in it.
+The gap between those two numbers, revisions 0 to 1, is exactly the set of edits
+Bob had not seen. It is also exactly what his operation must be rewritten
+against. The whole protocol lives in that gap.
 
-**Connects to:** the event store from the [event-sourcing lab](../50-event-sourcing/),
-right down to the reason snapshots exist (§15) — nobody wants to replay a million
-operations just to open a document, so the folded-up result is stored
-periodically. If you find yourself thinking
-"this is just an event log with a projection", you are correct.
+### Why is the log the document?
 
-### convergence
+The **log** is the official list of everything that has happened to this
+document, in order. It is an append-only sequence of operations, held by the
+server.
 
-**Plain meaning:** everybody's screen ends up the same.
+The document is *defined* as the log replayed from the beginning. Revision
+numbers are simply positions in it. There is no other definition of "the truth"
+anywhere in the design.
 
-**Technical meaning:** once all operations have been delivered everywhere, every
-replica's document is byte-identical — regardless of the order they arrived in.
+This is the event store from the [event-sourcing lab](../50-event-sourcing/)
+again, right down to the reason snapshots exist. Nobody wants to replay a
+million operations just to open a document, so the folded-up result is stored
+from time to time. Section 15 does that properly.
 
-**Why the word exists:** because "consistent" is overloaded. Convergence says
-nothing about *what* the final text is, only that there is one of it. Design 2
-failed convergence: `CHAST` vs `CHATS`.
+If you find yourself thinking "this is just an event log with a projection", you
+are correct.
 
-### intention preservation
+### Why does "everybody agrees" need two words, not one?
 
-**Plain meaning:** what you meant still happened.
+Because two very different things can go wrong, and you need to be able to say
+which one did.
 
-**Technical meaning:** the effect of each operation in the final document
-matches the effect it would have had on the document its author was looking at
-when they wrote it.
+**Convergence** means everybody's screen ends up the same. Once every operation
+has been delivered everywhere, every copy of the document is byte-identical, no
+matter what order things arrived in.
 
-**Why the word exists:** exactly because convergence alone is not enough. "When
-two people edit at once, delete the whole document" converges beautifully.
-Intention preservation is the property that rules that out, and it is much
-harder to state formally than convergence — which is why real papers state
-convergence as a theorem and intention as a design goal.
+The word exists because "consistent" is overloaded to the point of uselessness.
+Convergence says nothing at all about *what* the final text is. It only says
+there is one of it. Design 2 failed convergence: `CHAST` on one screen, `CHATS`
+on the other.
 
-**Example:** Alice meant *"a C at the front"*. In the final `CHATS` there is a C
-at the front. Intention preserved. In `CHAST`, Bob's S is not at the end;
-his intention was lost even though nothing crashed.
+**Intention preservation** means what you meant still happened. Precisely: the
+effect of each operation in the final document matches the effect it would have
+had on the document its author was looking at when they wrote it.
 
-### transformation
+That word exists exactly because convergence alone is not enough. Here is the
+cheapest proof. "When two people edit at once, delete the whole document"
+converges beautifully. It is also useless.
 
-**Plain meaning:** rewriting an instruction so it still does the right thing on
-a document that has moved on.
+Intention preservation is much harder to state formally than convergence, which
+is why real papers state convergence as a theorem and intention as a design
+goal.
 
-**Technical meaning:** a function `transform(a, b) → a′` answering: *operation
-`a` was written for a document that does not contain `b`; what must `a` become
-to have the same effect on a document that does contain `b`?*
+Look at our two candidate answers through both words. Alice meant *"a C at the
+front"*. In `CHATS` there is a C at the front, and Bob's S is at the end: both
+intentions preserved. In `CHAST`, Bob's S is not at the end, so his intention was
+lost even though nothing crashed and nobody complained.
 
-**Why the word exists:** because "merge" implies combining two results, and this
-combines nothing — it produces a *modified instruction* which is then applied
+### What does it mean to transform an instruction?
+
+To **transform** is to rewrite an instruction so that it still does the right
+thing on a document that has moved on.
+
+Written as code it is a function, `transform(a, b) → a′`. It answers one
+question: operation `a` was written for a document that does not contain `b`, so
+what must `a` become to have the same effect on a document that does contain `b`?
+
+The word exists because "merge" implies combining two results. This combines
+nothing. It produces a modified instruction, which is then applied completely
 normally.
 
-**Example:** `transform(insert(3,'S'), insert(0,'C'))` = `insert(4,'S')`.
-Something was inserted in front of me, so I shift right by one.
+Bob's edit is the worked example. `transform(insert(3,'S'), insert(0,'C'))` is
+`insert(4,'S')`. In words: something was inserted in front of me, so I shift
+right by one.
 
-**Connects to:** the whole family of techniques is called **operational
-transformation**, usually shortened to **OT**. When you see "OT" in a paper about
-editors, this is it.
+The whole family of techniques built on that function is called **operational
+transformation**, usually shortened to **OT**. When you see "OT" in a paper
+about editors, this is it. Its rival, which gives every character a permanent
+name instead of rewriting positions, is the [CRDT](../32-crdts/) family, and
+section 15 argues the two against each other properly.
 
-### the tie-break
+### Who goes first when Alice and Bob type in the same spot?
 
-**Plain meaning:** when two people insert at exactly the same spot, somebody has
-to go first, and everybody has to agree on who.
+Somebody has to, and every machine has to pick the same somebody. That rule is
+the **tie-break**.
 
-**Technical meaning:** for two concurrent inserts at the same position,
-transformation orders them by a value that is identical on every machine — here
-the site id (`"Alice" < "Bob"`). It is arbitrary. It must not be *random*.
+For two concurrent inserts at exactly the same position, transformation orders
+them by a value that is identical on every machine. Here it is the site id, the
+per-client name, and `"Alice" < "Bob"` decides it.
 
-**Why it matters more than it looks:** delete this one rule and the system
-diverges in 493 of 500 random runs. That experiment is [`src/BrokenOt.java`](src/BrokenOt.java),
-and it is exercise 6.
+The rule is arbitrary. It must not be *random*, and it must not be arrival time,
+because those differ from machine to machine.
 
-### outstanding, and the buffer
+It matters far more than it looks. Delete this one rule and the system diverges
+in 493 of 500 random runs. That experiment is
+[`src/BrokenOt.java`](src/BrokenOt.java), and it is exercise 6.
 
-**Plain meaning:** the edit you have sent and not heard back about, and
-everything you have typed since.
+### What does each client keep in its pocket?
 
-**Technical meaning:** each client holds at most **one** operation in flight to
-the server (*outstanding*) and queues later ones locally (*buffer*). When the
+Two things: the edit it has sent and not heard back about, and everything it has
+typed since.
+
+The first is called the **outstanding** operation. Each client holds at most one
+of them in flight to the server, ever.
+
+The second is the **buffer**: operations typed while waiting, in order. When the
 confirmation for the outstanding operation arrives, the next queued one is sent.
 
-**Why it exists:** it is a rule discovered by failure in §10 — with two
-operations in flight, the client and server disagree about what each was written
-against, and transformation is applied against the wrong history.
+This rule is not a design flourish. It was discovered by failure, and you will
+watch it be discovered in section 10. With two operations in flight, the client
+and the server disagree about what each one was written against, and
+transformation is then applied against the wrong history.
 
-### the sequencer
+### Who decides the official order?
 
-**Plain meaning:** the one place that decides the official order of events.
+One place, and only one. That place is the **sequencer**.
 
-**Technical meaning:** a single server owns a given document and is the only
-thing that appends to its log. "Concurrent" edits become "ordered" edits the
-moment they pass through it.
+A single server owns a given document, and it is the only thing that appends to
+that document's log. "Concurrent" edits become "ordered" edits the moment they
+pass through it.
 
-**Why it exists:** if two servers both accepted edits for one document, there
-would be two logs, two revision-4s, and no shared meaning for "what did you know
-when you wrote that?". §15 covers what this costs — it is the single most
-important architectural constraint in the whole design.
+Why does it have to be one? Suppose two servers both accepted edits for one
+document. There would be two logs and two revision-4s. The sentence "written
+against revision 4" would stop having a meaning, and every guarantee in this lab
+is stated over one log.
+
+Section 15 covers what that costs. It is the single most important architectural
+constraint in the whole design, and most of the production complexity is its
+bill.
+
+### The ten words on two cards
+
+Read these as a map back into the story, not as a dictionary. The last column
+says where the thing happened to Alice and Bob.
+
+Words for what is sent and what is stored:
+
+| Word | In plain words | Where you met it |
+|---|---|---|
+| **operation** | one change described rather than performed | Bob's `insert(3,'S')`, section 4 |
+| **apply** | actually carry an operation out on some text | every screen update since section 3 |
+| **revision** | how many edits the document has been through | the stamp on Bob's edit, section 7 |
+| **the log** | the append-only official list; the document is it, replayed | the server's side of section 4 |
+| **transformation** | rewriting an operation for a document that moved on | `insert(3,'S')` becoming `insert(4,'S')` |
+
+Words for the promises and for the plumbing that keeps them:
+
+| Word | In plain words | Where you met it |
+|---|---|---|
+| **convergence** | every copy ends up holding identical text | broken by `CHAST` vs `CHATS`, section 4 |
+| **intention preservation** | each edit still does what its author meant | Alice's C at the front of `CHATS`, section 2 |
+| **tie-break** | the fixed rule for who goes first in a dead heat | `"Alice" < "Bob"`, section 7 |
+| **outstanding / buffer** | the one edit in flight, and the queue behind it | the client's pocket, section 10 |
+| **sequencer** | the single process that decides the official order | the one server that owns this document |
 
 ---
 
-## 8. Two mental models, and the map between them
+## 8. Which two mental models should you carry, and where does the story lie?
 
-### The simple model (carry this around)
+> **In one breath:** Picture a room with a noticeboard and a clerk who corrects
+> every slip of paper before pinning it up. That picture is right about almost
+> everything, and it lies to you in three specific places.
 
-A room with a **noticeboard** at the front. Everyone has their own copy of the
-list on their desk. When you make a change you write it on a slip of paper —
-*"add an S after the T"* — and post it to a **clerk** standing at the
+### What does the room look like?
+
+There is a **noticeboard** at the front of a room. Everyone has their own copy
+of the list on their own desk.
+
+When you make a change, you write it on a slip of paper. The slip says something
+like *"add an S after the T"*. You post it to a **clerk** who stands at the
 noticeboard.
 
-The clerk does three things, in this order, for every slip:
+The clerk does three things with every slip, always in this order:
 
 1. Looks at what has been pinned up since the slip was written.
-2. **Corrects the slip** so it still means the right thing now — *"after the T"*
-   might have become *"the fifth character"*.
+2. **Corrects the slip** so that it still means the right thing now. *"After the
+   T"* might have to become *"the fifth character"*.
 3. Pins the corrected slip up, numbers it, and posts a copy of the *corrected*
    slip to everybody.
 
 Meanwhile you never wait for the clerk. You made your change on your own desk
 copy the instant you wrote the slip.
 
-### The engineering model (this is what actually runs)
+That last sentence is promise 1 from section 5, and it is the reason the clerk
+has any work to do at all.
 
-**Each client holds:**
+### What does each machine actually hold?
 
-| | |
+Now the same room in real names. Each client holds four things.
+
+| What the client holds | In words |
 |---|---|
 | `doc` | its own copy of the text |
 | `revision` | the last server revision it has incorporated |
-| `outstanding` | the one operation sent and not yet confirmed (or none) |
+| `outstanding` | the one operation sent and not yet confirmed, or none |
 | `buffer` | operations typed since then, in order |
 
-**The server holds:** `doc`, and `log` — the ordered list of operations. Its
-revision is the log's length.
+The server holds two things: `doc`, and `log`, the ordered list of operations.
+Its revision is simply the log's length.
 
-**Three rules run the whole protocol:**
+Three rules run the whole protocol, and this diagram is all three. Follow the
+arrows out of `Waiting`: they are the reason your fast typing does not turn into
+twenty messages.
 
 ```mermaid
 stateDiagram-v2
@@ -394,41 +553,55 @@ stateDiagram-v2
     Idle --> Idle: someone else's edit arrives → transform, apply
 ```
 
-### The map between them
+### How does the room map onto the system?
+
+Two small tables. The first is the furniture, the second is the paperwork in
+motion.
 
 | In the room | In the system |
 |---|---|
 | noticeboard | the server's document and log |
 | clerk | the server process that owns this document |
 | slip of paper | an operation |
+| your desk copy | the client's local document |
+| the number the clerk writes on it | the revision number |
+
+| In the room | In the system |
+|---|---|
 | "what was pinned since you wrote this" | operations from your `revision` to the log's end |
 | correcting the slip | `transform` |
-| the number the clerk writes on it | the revision number |
-| your desk copy | the client's local document |
 | a slip you posted but haven't seen pinned | `outstanding` |
 | slips in your pocket, waiting | `buffer` |
 
-### Where the analogy breaks
+### Where the story lies to you
 
-Three places, and each one is a real property of the system:
+Three places. Each lie hides a real property of the system, so each one is worth
+replacing carefully.
 
-- **The clerk corrects the slip once; every desk corrects it again.** In the
-  room, the clerk's corrected slip is final. In the system, a client receiving
-  that operation may have to transform it *again* — against its own outstanding
-  and buffered edits, which the server has never seen. Transformation happens on
-  both ends, for different reasons.
-- **There is no queue at the noticeboard.** Slips do not politely line up; they
-  cross in the post, arrive out of order relative to *other people's* slips, get
-  lost, and sometimes arrive twice. The clerk sees whatever arrives, in whatever
-  order it arrives.
-- **Everyone posting to one clerk is a design constraint, not convenience.** In
-  the room a second clerk would obviously help. In this system a second clerk for
-  the same noticeboard destroys the design (§11, F8) — which is why the whole
-  architecture is shaped around "one document, one owner".
+**The clerk corrects the slip once. In the system, every desk corrects it
+again.** In the room, the clerk's corrected slip is final. In the system, a
+client that receives that operation may have to transform it a second time,
+against its own outstanding and buffered edits, which the server has never seen.
+Transformation happens on both ends, for different reasons.
+
+**There is no queue at the noticeboard.** Slips do not politely line up. They
+cross in the post, arrive out of order relative to other people's slips, get
+lost, and sometimes arrive twice. The clerk sees whatever arrives, in whatever
+order it arrives.
+
+**Everyone posting to one clerk is a design constraint, not a convenience.** In
+a real room, a second clerk would obviously help. In this system, a second clerk
+for the same noticeboard destroys the design. Section 11 shows why, under F8,
+and it is why the whole architecture is shaped around one document with one
+owner.
 
 ---
 
-## 9. Watch it move
+## 9. What should you watch on the page before reading the mechanism?
+
+> **In one breath:** Everything so far is running live on one page, and nothing
+> on it moves unless you move it. You type on Alice's screen and Bob's, and you
+> decide when each message crosses the network.
 
 Everything above is running, live, here:
 
@@ -436,45 +609,41 @@ Everything above is running, live, here:
 (also saved locally as [`visualization.html`](visualization.html) — open it in a
 browser, no server needed)
 
-Nothing on that page moves by itself. You type on Alice's screen and Bob's, and
-you decide when each message crosses the network. That is the point: every race
-condition in this lab is one you schedule by hand and can therefore watch.
+That is the point of the page: every race condition in this lab is one you
+schedule by hand, and can therefore watch happen.
 
-Three things to do first, in this order:
+Three things to do first, in this order.
 
-1. **Leave the mode on "Send the whole document" and play the first scenario.**
-   Watch a keystroke disappear with no error. That is §3.
-2. **Switch to "Send edits, apply as sent" and run the second scenario.** Watch
-   the two screens end up different. That is §4. Look at the event feed: the
-   sentence *"Bob received Alice's edit"* is where it goes wrong.
-3. **Switch to "Send edits, rewrite them" and run the third.** Same typing, same
-   delivery order. Watch the server's log: the line that reads
-   `Bob: insert 'S' at 4` when Bob's finger pressed S at position 3 is the whole
-   lesson.
+**One.** Leave the mode on "Send the whole document" and play the first
+scenario. Watch a keystroke disappear with no error. That is section 3.
 
-Then start breaking things: drop a message, take Bob offline and keep typing,
-deliver messages in an order you choose. Each of the five scenarios asks you to
+**Two.** Switch to "Send edits, apply as sent" and run the second scenario.
+Watch the two screens end up different. That is section 4. Look at the event
+feed: the sentence *"Bob received Alice's edit"* is where it goes wrong.
+
+**Three.** Switch to "Send edits, rewrite them" and run the third. Same typing,
+same delivery order. Watch the server's log: the line that reads
+`Bob: insert 'S' at 4`, when Bob's finger pressed S at position 3, is the whole
+lesson.
+
+Then start breaking things. Drop a message. Take Bob offline and keep typing.
+Deliver messages in an order you choose. Each of the five scenarios asks you to
 predict before it runs.
 
-Here is the same system as a picture, so the shapes on that page and the shapes
-in this document are the same shapes:
+Here is the same system as a picture, so that the shapes on that page and the
+shapes in this document are the same shapes. Read it top to bottom: edits go up
+to the middle, rewritten edits come back down.
 
 ```mermaid
-flowchart LR
-    subgraph AliceBox["Alice's browser"]
-      A1["document<br/>revision<br/>outstanding + buffer"]
-    end
-    subgraph SrvBox["The server that owns this document"]
-      S1["document"]
-      S2["log:<br/>r1 insert C at 0<br/>r2 insert S at 4"]
-    end
-    subgraph BobBox["Bob's browser"]
-      B1["document<br/>revision<br/>outstanding + buffer"]
-    end
-    A1 -- "edit + the revision it was written against" --> S1
-    B1 -- "edit + the revision it was written against" --> S1
-    S1 -- "the rewritten edit + its revision" --> A1
-    S1 -- "the rewritten edit + its revision" --> B1
+flowchart TD
+    A1["Alice's browser<br>document<br>revision<br>outstanding + buffer"]
+    B1["Bob's browser<br>document<br>revision<br>outstanding + buffer"]
+    S1["the server that<br>owns this document<br>document"]
+    S2["log:<br>r1 insert C at 0<br>r2 insert S at 4"]
+    A1 -- "edit + the revision<br>it was written against" --> S1
+    B1 -- "edit + the revision<br>it was written against" --> S1
+    S1 -- "the rewritten edit<br>+ its revision" --> A1
+    S1 -- "the rewritten edit<br>+ its revision" --> B1
     S1 --- S2
 ```
 
@@ -485,24 +654,37 @@ flowchart LR
 > What is missing is the mechanism: exactly what each machine does, message by
 > message, and why the details are the shape they are. That is next.
 
+> **Say it back.** Without using the words *operation*, *transform* or
+> *convergence*, explain to a friend why Alice's screen ended up saying `CHAST`
+> when both instructions were correct and both were delivered.
+> <details><summary>A good answer sounds like</summary>
+> "Bob wrote down a place, not a letter: third along. That was the right place
+> on his copy. By the time his note reached Alice, she had already stuck a
+> letter in front, so everything had shifted and third along was somewhere else.
+> Nobody made a mistake. His note just went stale on the way."
+> </details>
+
 ---
 
-## 10. The mechanism, told as the story of its own design
+## 10. How does the mechanism get invented, one broken design at a time?
 
-The finished protocol has four rules that look arbitrary until you watch each
-one get invented. So we will build it wrong, four times.
+> **In one breath:** The finished protocol has four rules that look arbitrary
+> until you watch each one get invented. So we build it wrong four times, and
+> each time the breakage hands us the next rule.
 
-### v1 — the server does the rewriting
+### v1 — what if the server does the rewriting?
 
-The obvious home for transformation is the server: it is the one machine that
-knows the official order.
+The obvious home for transformation is the server. It is the one machine that
+knows the official order, so let it correct every slip.
 
 > **Rule 1.** Every edit is stamped with the revision it was written against.
 > When the server receives an edit, it rewrites it against every log entry from
 > that revision onwards, then appends it, numbers it, and broadcasts the
 > *rewritten* version to everyone.
 
-Worked example. The document is `HAT`, the log is empty, revision 0.
+Here is that rule doing its job. The document is `HAT`, the log is empty, and
+the revision is 0. Read the last two columns as the server's own memory after
+each step.
 
 | step | what happens | server log | server doc |
 |---|---|---|---|
@@ -512,7 +694,11 @@ Worked example. The document is `HAT`, the log is empty, revision 0.
 | 4 | Bob's edit arrives, based on revision 0. The log has moved to 1, so it is rewritten against `r1`: something was inserted at 0, which is before 3, so `insert(3,'S')` becomes **`insert(4,'S')`**. Logged as revision 2. | `r1, r2: insert(4,'S')` | `CHATS` |
 | 5 | Everyone is sent the rewritten `insert(4,'S')` and Alice's `insert(0,'C')`. | | `CHATS` |
 
-Both screens end at `CHATS`. Run it yourself: `java src/Demo.java`, third block.
+Both screens end at `CHATS`, which is the answer everybody wanted back in
+section 2. Run it yourself with `java src/Demo.java`, third block.
+
+So we are done? Change one thing: the order in which the two edits reach the
+server.
 
 > **🔮 Predict:** Now run the *same* two edits, but let Bob's reach the server
 > first. Alice's screen already says `CHAT` (her own C, not yet confirmed by
@@ -520,12 +706,20 @@ Both screens end at `CHATS`. Run it yourself: `java src/Demo.java`, third block.
 > it processed that edit, Alice's C did not exist anywhere it could see. What
 > does Alice's screen show if she just applies what she was sent?
 > <details><summary>Reveal</summary>
-> <code>CHAST</code> — the exact corruption from §4, back again. The server did
-> nothing wrong: it correctly rewrote Bob's edit against everything it knew, and
-> it did not know about Alice's C. The missing piece is that <b>Alice knows
-> something the server does not</b> — her own un-confirmed edit. Nobody but Alice
-> can do that rewriting.
+> <code>CHAST</code> — the exact corruption from section 4, back again. The
+> server did nothing wrong: it correctly rewrote Bob's edit against everything
+> it knew, and it did not know about Alice's C. The missing piece is that
+> <b>Alice knows something the server does not</b> — her own un-confirmed edit.
+> Nobody but Alice can do that rewriting.
+> <br><br>
+> If you guessed <code>CHATS</code>, you assumed the server could see Alice's
+> screen. It cannot, and promise 1 is the reason: her C was drawn before anyone
+> else heard about it.
 > </details>
+
+That reveal is worth pausing on. Promise 1 is what created the gap. Alice's
+screen contains a letter that exists nowhere else in the world, so Alice's
+screen is the only place that particular correction can be made.
 
 ### v2 — so the client rewrites too, in both directions
 
@@ -533,10 +727,12 @@ Both screens end at `CHATS`. Run it yourself: `java src/Demo.java`, third block.
 > against its own outstanding and buffered edits — and transforms those against
 > it. Both sides move.
 
-That second half is easy to miss. Alice's incoming `insert(3,'S')` becomes
-`insert(4,'S')` because of her C; her own C, once it reaches the server, will
-need to have been transformed against Bob's S. Every operation in the system
-ends up expressed against the same document state, from two directions.
+That second half is easy to miss, so say it slowly. Alice's incoming
+`insert(3,'S')` becomes `insert(4,'S')` because of her C. Her own C, once it
+reaches the server, will need to have been transformed against Bob's S.
+
+Every operation in the system ends up expressed against the same document state,
+approached from two directions.
 
 ```bash
 java src/Demo.java     # fourth block: "why the CLIENT transforms too"
@@ -548,10 +744,12 @@ java src/Demo.java     # fourth block: "why the CLIENT transforms too"
        their screen now reads "CHATS"
 ```
 
-> **🔮 Predict:** Alice types two letters quickly — S at the end of `HAT`, then
-> `!` after it — and sends both immediately, without waiting. Both say "written
-> against revision 0", because no confirmation has come back yet to move her
-> revision on. What does the server do with the second one?
+Now break it again. This time Alice types fast.
+
+> **🔮 Predict:** Alice types two letters quickly. First an S at the end of
+> `HAT`, then a `!` after it, and she sends both immediately without waiting.
+> Both say "written against revision 0", because no confirmation has come back
+> yet to move her revision on. What does the server do with the second one?
 > <details><summary>Reveal</summary>
 > It rewrites it against the first one — <i>again</i>. Alice's second edit was
 > typed on a screen that already contained the S, so it needs no adjustment at
@@ -561,23 +759,32 @@ java src/Demo.java     # fourth block: "why the CLIENT transforms too"
 > server THREW: insert at 5 but doc is only 4 long: "HATS"</pre>
 > Here it happens to crash, which is lucky. With different positions it would
 > silently put the character in the wrong place.
+> <br><br>
+> If you guessed "nothing, the second edit is already correct", you are right
+> about the edit and wrong about the stamp. The server trusts the stamp, not the
+> edit.
 > </details>
 
 ### v3 — one edit in flight, everything else queues
 
-The stamp "written against revision *r*" is only true if the client's document
-is exactly the log up to *r* plus at most one un-confirmed edit that the server
-is about to see. Two in flight breaks that arithmetic.
+The stamp "written against revision *r*" is only true under one condition. The
+client's document must be exactly the log up to *r*, plus at most one
+un-confirmed edit that the server is about to see.
+
+Two edits in flight breaks that arithmetic, which is what you just watched.
 
 > **Rule 3.** A client keeps at most one edit in flight. Anything typed while
 > waiting goes into a local buffer and is sent when the confirmation arrives —
 > after being transformed against everything that arrived in the meantime.
 
 This is why the visualization shows "waiting for confirmation: 1" and "queued
-behind it: 3". Typing fast does not send faster; it makes the queue longer. Real
-editors exploit this by *composing* the queue into one bigger operation before
-sending, which is why a burst of typing arrives as one message rather than
-twenty.
+behind it: 3". Typing fast does not send faster. It makes the queue longer.
+
+Real editors turn that into an advantage. They *compose* the queue into one
+bigger operation before sending it, which is why a burst of typing arrives as
+one message rather than twenty.
+
+One case is still undecided, and it is the one that looks harmless.
 
 > **🔮 Predict:** Alice and Bob both type at exactly the same position — Alice an
 > S at position 3 of `HAT`, Bob a `!` at position 3. Neither is "before" the
@@ -591,16 +798,32 @@ twenty.
 > <b>493 of 500</b> random runs. The fix is one line: order concurrent inserts at
 > the same position by site id. It is arbitrary — Alice's letter goes first
 > because "Alice" &lt; "Bob" — but it is <i>identically</i> arbitrary everywhere.
+> <br><br>
+> If you guessed "whoever reached the server first wins", look at what each
+> machine can see. Alice's laptop never learns the arrival order of its own
+> un-confirmed edit, so it cannot use one.
 > </details>
 
 > **Rule 4.** Concurrent inserts at the same position are ordered by a
-> tie-break that is a fixed function of the operations themselves — never by
-> arrival time, never by a random number.
+> tie-break. That tie-break is a fixed function of the operations themselves.
+> Never arrival time, and never a random number.
 
-### The last assumption, made explicit
+### What are the four rules, side by side?
+
+Four rules, four failures that produced them. The last column is what you saw
+with your own eyes before the rule existed.
+
+| Rule | In words | Without it |
+|---|---|---|
+| 1 | stamp each edit with its revision; the server rewrites it against the log since then | Design 2's `CHAST`: correct instructions, wrong positions |
+| 2 | the receiving client rewrites too, against its own unsent edits, in both directions | `CHAST` again, on the screen of whoever is holding an unconfirmed edit |
+| 3 | at most one edit in flight per client; the rest wait in a buffer | `insert at 5 but doc is only 4 long` — the stamp is a lie |
+| 4 | concurrent inserts at one position are ordered by site id, not by arrival | `HAT!S` and `HATS!`, permanently, in 493 of 500 runs |
+
+### What is the protocol still quietly assuming?
 
 One thing is still being assumed silently: that each client receives the
-server's broadcasts **in log order**. Break it and watch:
+server's broadcasts **in log order**. Break it and watch.
 
 ```bash
 java src/Experiments.java out-of-order
@@ -615,12 +838,17 @@ java src/Experiments.java out-of-order
 ```
 
 Revision 2 assumes revision 1 has already happened. This is not something the
-protocol fixes; it is something the protocol **requires**, and it is bought by
-giving each client exactly one ordered connection — a WebSocket over TCP, from
-the [communication-protocols lab](../02-communication-protocols/). Load-balance one
-client's messages across two sockets and you have re-created this bug.
+protocol fixes. It is something the protocol **requires**.
+
+You buy it by giving each client exactly one ordered connection: a WebSocket
+over TCP, from the
+[communication-protocols lab](../02-communication-protocols/). Load-balance one
+client's messages across two sockets and you have re-created this bug yourself.
 
 ### The whole protocol, on one page
+
+Here are Alice, Bob and the server for one full round. Read the notes over the
+server: they are the two rewriting decisions that make the whole thing work.
 
 ```mermaid
 sequenceDiagram
@@ -631,17 +859,18 @@ sequenceDiagram
     Note over B: types S at 3 → screen "HATS"
     A->>S: insert(0,'C') based on r0
     B->>S: insert(3,'S') based on r0
-    Note over S: nothing logged since r0 → no rewrite<br/>log r1 = insert(0,'C'), doc "CHAT"
+    Note over S: nothing logged since r0 → no rewrite<br>log r1 = insert(0,'C'), doc "CHAT"
     S-->>A: r1 insert(0,'C') — your edit, confirmed
     S-->>B: r1 insert(0,'C')
-    Note over S: Bob's edit is based on r0, log is at r1<br/>rewrite against r1 → insert(4,'S')<br/>log r2, doc "CHATS"
+    Note over S: Bob's edit is based on r0, log is at r1<br>rewrite against r1 → insert(4,'S')<br>log r2, doc "CHATS"
     S-->>A: r2 insert(4,'S')
     S-->>B: r2 insert(4,'S') — your edit, confirmed
-    Note over B: had already applied his own S locally;<br/>the confirmation just moves him to r2
+    Note over B: had already applied his own S locally;<br>the confirmation just moves him to r2
     Note over A: applies insert(4,'S') → "CHATS"
 ```
 
-Server, on receiving `(op, base, from)`:
+The same thing in twelve lines. The server, on receiving an edit, its base
+revision and its sender, which together are written `(op, base, from)`:
 
 ```
 for each entry in log[base .. end]:  op = transform(op, entry)
@@ -649,7 +878,8 @@ append op to log; doc = apply(doc, op)
 broadcast (op, revision = log.length, origin = from) to everyone
 ```
 
-Client, on receiving `(op, revision, origin)`:
+And the client, on receiving an edit, its revision and who wrote it, written
+`(op, revision, origin)`:
 
 ```
 if origin is me:
@@ -662,81 +892,118 @@ else:
 ```
 
 That is the entire algorithm. It is about forty lines in
-[`src/Collab.java`](src/Collab.java), and it is what Google's published design
-(the Wave protocol, itself a descendant of the 1995 Jupiter system) does, with
-richer operations.
+[`src/Collab.java`](src/Collab.java).
+
+It is also, with richer operations, what Google's published design does. That
+design is the Wave protocol, itself a descendant of the 1995 Jupiter system.
 
 > **CHECKPOINT — end of the INTERMEDIATE model.**
-> You can now trace a concurrent edit through the system by hand and say what
-> every machine holds at each step, and you know why each of the four rules
-> exists because you watched the system break without it. What is missing is
+> You can now trace a concurrent edit through the system by hand, and say what
+> every machine holds at each step. You also know why each of the four rules
+> exists, because you watched the system break without it. What is missing is
 > everything that happens when the network and the machines misbehave — which
 > is most of the work in a real system.
 
+> **Say it back.** Without using the words *outstanding*, *buffer* or
+> *revision*, explain why the server's rewriting is not enough on its own, and
+> why Alice's own laptop has to rewrite Bob's edit a second time.
+> <details><summary>A good answer sounds like</summary>
+> "Alice's screen has a letter on it that nobody else has seen yet, because it
+> was drawn the moment she pressed the key. The clerk cannot correct Bob's note
+> for a letter he does not know exists. Only Alice can, so she does it herself
+> just before she uses the note."
+> </details>
+
 ---
 
-## 11. Failure scenarios
+## 11. Which nine failures should you be able to name?
 
-Every one of these is runnable. The pattern is the same each time: what to run,
-what happens, why, and which of the three promises from §5 bends.
+> **In one breath:** Nine things go wrong. Four of them turn out to be nothing
+> much, which is the design working. The other five are where the real
+> engineering is, and two of them corrupt the document silently.
 
-### F1 — the edit never reaches the server
+Every one of these is runnable, except the last two. Each is told the same way:
+what happens to Alice, Bob or Carol, what you would see, why it happens, and
+which of the four promises from section 5 bends.
+
+### F1 — what if the edit never reaches the server?
 
 ```bash
 java src/Experiments.java lost-request
 ```
 
-Alice types C; the network eats the message. She keeps typing, and her queue
-grows: `Alice pending edits: 2`. Her screen is fine and self-consistent; the
-server and Bob simply never hear from her. **Convergence is not violated —
-it is postponed.** Nothing is corrupted, because a client that never gets a
-confirmation never advances its revision and never sends its queue.
+Alice types C, and the network eats the message. She keeps typing, and her queue
+grows. The experiment prints `Alice pending edits: 2`.
+
+Her screen is fine and self-consistent. The server and Bob simply never hear
+from her.
+
+**Convergence is not violated. It is postponed.** Nothing is corrupted, because
+a client that never gets a confirmation never advances its revision and never
+sends its queue. The design is stuck rather than wrong, which is the good kind
+of broken.
 
 The fix is a timeout and a retry, which the experiment then runs:
-`Alice heard nothing back and re-sent insert('C' at 0)`, and everything converges
-to `CHHATS`. In production the same event happens on every laptop that closes
-its lid.
+`Alice heard nothing back and re-sent insert('C' at 0)`, and everything
+converges to `CHHATS`.
 
-### F2 — the edit arrives but the confirmation is lost
+In production, this same event happens on every laptop that closes its lid.
+
+### F2 — what if the edit arrives but the confirmation is lost?
 
 ```bash
 java src/Experiments.java lost-ack
 ```
 
-This is the dangerous one, and it is the reason retries are not free:
+This is the dangerous one, and it is the reason retries are not free.
+
+> **🔮 Predict:** Alice's edit reached the server and was applied. Only the
+> confirmation was lost, so Alice re-sends the same keystroke. What is in the
+> document now, and is it the same on every screen?
+> <details><summary>Reveal</summary>
+> Her single keystroke happened <i>twice</i>, and the screens disagree about it.
+> The run is printed below, with duplicate suppression off and then on. If you
+> guessed the retry was harmless because the network lost something, notice what
+> the server lost: nothing at all. From the server's side, "Alice typed C" and
+> "that C again" are the same bytes.
+> </details>
 
 ```
 duplicate suppression OFF : server="CCHAT"  Alice="CHAT"  Bob="CCHAT"   converged=false
 duplicate suppression ON  : server="CHAT"   Alice="CHAT"  Bob="CHAT"    converged=true
 ```
 
-Alice's keystroke happened *twice*. From the server's side, "Alice typed C" and
-"that C again" are the same bytes. The fix is for each client to number its
-edits and for the server to remember the last number it saw from each client,
-ignore anything at or below it, and **re-send the original confirmation** —
-the same edit must not get a second revision number.
+The fix has three parts, and all three are needed. Each client numbers its
+edits. The server remembers the last number it saw from each client, and ignores
+anything at or below it. Then the server **re-sends the original confirmation**,
+because the same edit must not get a second revision number.
 
 That is an idempotency key in its smallest possible form. You have met the same
 mechanism in the [transactional-outbox](../48-transactional-outbox/) and
 [saga](../47-saga/) labs, where at-least-once delivery forces every consumer to be
 idempotent. Same physics, different content.
 
-### F3 — messages arrive out of order
+### F3 — what if messages arrive out of order?
 
-Covered in §10: `java src/Experiments.java out-of-order` throws
-`insert at 4 but doc is only 3 long`. The guarantee the protocol *assumes* is
-per-client ordered delivery; the guarantee it *provides* is convergence, and it
-provides it only while the assumption holds. This is why the transport is one
-persistent ordered connection per client and why reconnect logic must resume
-from a revision number rather than "start listening again".
+You caused this one yourself in section 10. `java src/Experiments.java
+out-of-order` throws `insert at 4 but doc is only 3 long`.
 
-### F4 — a client goes away and comes back
+Here is the distinction worth carrying out of this lab. The guarantee the
+protocol *assumes* is per-client ordered delivery. The guarantee it *provides*
+is convergence, and it provides that only while the assumption holds.
+
+Two consequences follow directly. The transport is one persistent ordered
+connection per client. And reconnect logic must resume from a revision number,
+never from "start listening again".
+
+### F4 — what if a client goes away and comes back?
 
 ```bash
 java src/Experiments.java offline-burst
 ```
 
-Bob edits on a plane while 200 edits land without him:
+Bob edits on a plane while 200 edits land without him. Read the third row: it is
+the price of the healing, not the size of the document.
 
 ```
    server log length      : 220
@@ -745,14 +1012,18 @@ Bob edits on a plane while 200 edits land without him:
    converged              : true, document length 223
 ```
 
-Nobody was asked to resolve anything. But look at the cost: roughly *(edits you
-missed) × (edits you made)* transformations. Twenty edits against two hundred is
-8,200 operations — trivial. Twenty edits against a million is not. **The
-guarantee holds; the liveness does not scale.** Which is why real clients that
-have been away too long throw their local state away and re-download the
-document, and why servers keep a bounded log tail plus snapshots (§15).
+Nobody was asked to resolve anything. Nobody saw a conflict prompt. But look at
+the cost, which is roughly *(edits you missed) × (edits you made)*.
 
-### F5 — the server confirms an edit it has not written down
+Twenty edits against two hundred is 8,200 transformations, which is nothing.
+Twenty edits against a million is not nothing. **The guarantee holds. The
+liveness does not scale.**
+
+That is why real clients that have been away too long throw their local state
+away and re-download the document. It is also why servers keep a bounded log
+tail plus snapshots, which section 15 builds properly.
+
+### F5 — what if the server confirms an edit it has not written down?
 
 ```bash
 java src/Experiments.java stale-server
@@ -764,21 +1035,28 @@ java src/Experiments.java stale-server
    server="CXHATS"  Alice="CXHATS!?"  Bob="CXHATS!?"   converged=false
 ```
 
-The server acknowledged revisions 3 and 4 while they were still only in memory,
-then restarted from a snapshot that had two entries. Now every client's revision
-number refers to a history that no longer exists, so their edits are transformed
-against the wrong set of operations. The corruption is silent and permanent.
+Follow what happened. The server acknowledged revisions 3 and 4 while they were
+still only in memory. Then it restarted from a snapshot that had two entries.
 
-**Rule: never confirm an edit you have not durably written down.** The
-confirmation is a promise about the log, so the log write has to come first.
-This is the same rule the [WhatsApp lab](../69-whatsapp-system-design/) arrived at
-from the other direction — never acknowledge what is not yet durable — and the
-same discipline as a write-ahead log in the [b-tree/LSM lab](../05-btree-and-lsm/)
-and `appendfsync` in the [redis lab](../13-redis/) — "we accepted it" and "it survives a crash" are two
-different moments, and users only forgive you for conflating them until the
-first crash.
+Now every client's revision number refers to a history that no longer exists.
+Their edits are transformed against the wrong set of operations. The corruption
+is silent, and it is permanent.
 
-### F6 — one slow client
+**The rule that prevents it: never confirm an edit you have not durably written
+down.** A confirmation is a promise about the log, so the log write has to come
+first.
+
+You have arrived at this rule from three other directions already. The
+[WhatsApp lab](../69-whatsapp-system-design/) reached it as "never acknowledge
+what is not yet durable". It is the same discipline as a write-ahead log in the
+[b-tree/LSM lab](../05-btree-and-lsm/), and as `appendfsync` in the
+[redis lab](../13-redis/). "We accepted it" and "it survives a crash" are two
+different moments. Users forgive you for conflating them only until the first
+crash.
+
+### F6 — what does one slow client cost everybody else?
+
+Carol joins the document from a café with terrible Wi-Fi. Her connection stalls.
 
 ```bash
 java src/Experiments.java slow-client
@@ -789,108 +1067,172 @@ java src/Experiments.java slow-client
    messages queued for Carol alone    : 100
 ```
 
-Everyone else keeps working — the design has no shared lock, so one slow
-participant cannot block anybody. But *somebody* is holding Carol's backlog, and
-that somebody is the server. With 200 people in a document and a flaky café
-Wi-Fi each, that is 200 backlogs in one process's heap. Production answers: cap
-the per-client queue, and when it overflows, disconnect them and make them
-reload the document from a snapshot. This is backpressure, from the
+Everyone else keeps working. The design has no shared lock, so one slow
+participant cannot block anybody. Promise 4 holds even for Carol's neighbours.
+
+But somebody is holding Carol's backlog, and that somebody is the server. Put
+200 people in a document, each on their own flaky café Wi-Fi, and that is 200
+backlogs in one process's heap.
+
+Production answers with a cap on the per-client queue. When it overflows, the
+server disconnects that client and makes them reload the document from a
+snapshot. That is backpressure, from the
 [io-multiplexing](../03-io-multiplexing/) and
 [communication-protocols](../02-communication-protocols/) labs, in its
 document-shaped form.
 
-### F7 — everybody edits the same word
+### F7 — what happens when everybody edits the same word?
 
-A hundred people in one document all typing in the same paragraph is not a
-correctness problem — the tie-break rule handles it — but it is a *hot key*
-problem, and it is the shape a hot key takes here: one document, one owning
-process, one CPU. You cannot shard a document by user, because every edit must
-pass through the same sequencer. Google's answer is a hard limit (Docs stops
-accepting new editors past a documented cap) plus read-only viewers served from
-a different path. The lesson is the general one from the
-[distributed-rate-limiting lab](../60-distributed-rate-limiting/): sharding spreads
-keys, and it does nothing at all for one hot key.
+A hundred people in one document, all typing in the same paragraph, is not a
+correctness problem. The tie-break rule handles it exactly as it handles two.
 
-### F8 — two servers for one document
+It is a *hot key* problem, and this is the shape a hot key takes here: one
+document, one owning process, one CPU.
 
-The one failure this lab does not simulate, because the fix is architectural
-rather than algorithmic. If two servers both accept edits for the same document,
-there are two logs and two revision-4s, and "written against revision 4" stops
-having a meaning. Every guarantee in §12 is stated over one log.
+You cannot shard a document by user, because every edit must pass through the
+same sequencer. That is the constraint from section 7 collecting its bill.
 
-So the document's owning process must be unique — and that turns out to be the
-central architectural constraint of the whole system (§15): routing by document
-id, sticky sessions, careful handover on deploy, and a fencing mechanism so that
-a server which *thinks* it still owns a document but has been replaced cannot
-keep appending. That last hazard is the same one you measured in the
-[redis lab](../13-redis/) with expiring locks, and it needs the same answer: a
-fencing token checked by the thing being written to, not by the thing that
-believes it holds the lease.
+Google's answer is a hard limit. Docs stops accepting new editors past a
+documented cap, and read-only viewers are served from a different path
+altogether. The general lesson is the one from the
+[distributed-rate-limiting lab](../60-distributed-rate-limiting/): sharding
+spreads keys, and it does nothing at all for one hot key.
 
-### F9 — the semantic conflict nothing can fix
+### F8 — what if two servers own one document?
 
-Alice changes "shall" to "must". Bob deletes the sentence. The system converges
-on a sentence that does not exist, containing an edit that no longer means
-anything. No transformation rule can help: the conflict is in the meaning, not
-the positions. This is the honest limit of the whole approach, and the product
-answer is social (you can see each other's cursors, so you don't type in the
-same sentence) rather than technical.
+This is the one failure the lab does not simulate, because the fix is
+architectural rather than algorithmic.
+
+If two servers both accept edits for the same document, there are two logs and
+two revision-4s. The phrase "written against revision 4" stops having a meaning.
+Every guarantee in section 12 is stated over one log.
+
+So the document's owning process must be unique. That turns out to be the
+central architectural constraint of the whole system. Section 15 pays for it,
+with routing by document id, sticky sessions, careful handover on deploy, and a
+fencing mechanism.
+
+The fencing mechanism deserves its own sentence. A server that *thinks* it still
+owns a document, but has been replaced, must not be able to keep appending.
+
+You met that exact hazard in the [redis lab](../13-redis/) with expiring locks,
+and it needs the same answer here. A fencing token, checked by the thing being
+written to, not by the thing that believes it holds the lease.
+
+### F9 — which conflict can nothing fix?
+
+Alice changes "shall" to "must". Bob deletes the sentence.
+
+The system converges on a sentence that does not exist, containing an edit that
+no longer means anything. No transformation rule can help. The conflict is in
+the meaning, not in the positions.
+
+This is the honest limit of the whole approach. The product answer is social
+rather than technical: you can see each other's cursors, so you do not type in
+the same sentence.
+
+### The nine, side by side
+
+One table, so you can compare them without re-reading nine stories. "Bends"
+names the promise from section 5 that gives way.
+
+| # | What goes wrong | Which promise bends | How you cause it |
+|---|---|---|---|
+| F1 | the request is lost | 2, and only until the retry | `java src/Experiments.java lost-request` |
+| F2 | the confirmation is lost, the retry duplicates a keystroke | 2 and 3 | `java src/Experiments.java lost-ack` |
+| F3 | broadcasts arrive out of order | 2, by breaking an assumption | `java src/Experiments.java out-of-order` |
+| F4 | a client returns after 200 edits | none; the cost is time | `java src/Experiments.java offline-burst` |
+| F5 | a confirmed edit was never durable | 2, silently and permanently | `java src/Experiments.java stale-server` |
+| F6 | one client stalls and the server holds its backlog | none, until memory runs out | `java src/Experiments.java slow-client` |
+| F7 | a hundred editors in one paragraph | 1, as the owning process saturates | not simulated; it is a capacity limit |
+| F8 | two servers own one document | all of them | not simulated; prevented by architecture |
+| F9 | both edits land and the sentence is nonsense | 3, and no rule can save it | not simulated; it is a limit, not a bug |
 
 ---
 
-## 12. What is guaranteed, what is not, and what it cost
+## 12. What is guaranteed, what is not, and what did it cost?
 
-### Invariants the design maintains
+> **In one breath:** Five things are true no matter how the network behaves.
+> Five things are explicitly not promised, and one of them surprises people.
+> Four costs were paid to get here, and you can see all four in the
+> architecture.
 
-1. **One order.** There is exactly one log per document, and its order is the
-   definition of what happened. Everything else is derived from it.
-2. **Convergence.** Once the network is quiet, every replica's text equals the
-   log replayed from the start. Measured: 3 clients × 30 edits over 1,000
-   different random delivery schedules, `java src/Tests.java`, **0 divergences**.
-   The naive design under the identical harness diverges in **500 of 500** runs
-   (`java src/Experiments.java raw-vs-ot`).
-3. **Intention preservation, for the operations we support.** An insert lands
-   between the same two characters its author saw; a delete removes the same
-   character its author saw, or nothing if it is already gone. Not a theorem
-   here — a design property that the tests check case by case.
-4. **Local responsiveness.** No operation ever waits for a network round trip
-   before appearing on its author's screen.
-5. **At most one edit in flight per client**, which is what makes the revision
-   stamps arithmetically true.
+### What is true, always?
 
-### What is explicitly NOT guaranteed
+These five hold whatever order messages arrive in, and whoever is offline.
 
-- **Any particular final text when two people type at the same spot.** You get
-  *a* deterministic answer (site-id order), not the "right" one. There isn't one.
-- **Meaningful merges.** F9. Positions merge; meaning does not.
-- **Real-time ordering.** "Alice typed first" (by wall clock) has no standing.
-  The log order is the arrival order at the server, which is a race — and the
-  system is correct either way. If you need wall-clock fairness, this is the
-  wrong architecture.
-- **Undo as the inverse of your last operation.** Once other people's edits have
-  been transformed into your document, "undo my last edit" is a fresh operation
-  that must itself be transformed. Selective undo in a collaborative editor is
-  a research-grade problem, and real editors implement a restricted version.
-- **Availability during a partition.** The document has exactly one owner. If
-  you cannot reach it, you edit locally and cannot see anyone else — the
-  [CAP](../24-cap-theorem/) trade, made per-document: this design is **CP for the
-  shared document and AP for your own copy.** That combination is only possible
-  because the "read" everyone cares about is their *own* screen.
+**One order.** There is exactly one log per document, and its order is the
+definition of what happened. Everything else is derived from it.
 
-### What it cost to get here
+**Convergence.** Once the network is quiet, every replica's text equals the log
+replayed from the start. The test suite runs 3 clients making 30 edits each,
+over 1,000 different random delivery schedules, and finds **0 divergences**
+(`java src/Tests.java`). The naive design, under the identical harness, diverges
+in **500 of 500** runs (`java src/Experiments.java raw-vs-ot`).
 
-- **A single point of ordering per document.** Simple, and the source of F7, F8,
-  and every deployment complication in §15.
-- **Transform work proportional to how far behind you are** (F4), which is why
-  snapshots and forced reloads exist.
-- **Every client needs the algorithm.** The rewriting is not a server feature;
-  it is a protocol, so browser, Android, iOS and the export pipeline must all
-  agree, forever, including for documents written years ago.
-- **The number of transform cases grows as the square of the number of operation
-  types.** Two types here means four cases. Add "apply bold to a range" and
-  "insert a table" and the case matrix is where real OT implementations get
-  their reputation for being hard. This is the single strongest argument for the
-  alternative in §15.
+**Intention preservation, for the operations we support.** An insert lands
+between the same two characters its author saw. A delete removes the same
+character its author saw, or nothing at all if it is already gone. This is not a
+theorem here. It is a design property that the tests check case by case.
+
+**Local responsiveness.** No operation ever waits for a network round trip
+before appearing on its author's screen. That is promise 1, and it is the one
+that never bends.
+
+**At most one edit in flight per client.** That is what makes the revision
+stamps arithmetically true, and it is Rule 3 restated as an invariant.
+
+Those two numbers deserve to sit next to each other, because the gap between
+them is the whole argument for this lab.
+
+| Design | Divergences | Out of | What the number means |
+|---|---|---|---|
+| operational transformation | 0 | 1,000 random schedules | the rewriting holds under every order the harness could invent |
+| apply as sent (Design 2) | 500 | 500 runs | not "risky under load"; broken on essentially every run |
+| no tie-break (Rule 4 removed) | 493 | 500 runs | one missing line, and the copies disagree forever |
+
+### What is explicitly not guaranteed?
+
+**Any particular final text when two people type at the same spot.** You get *a*
+deterministic answer, ordered by site id. You do not get the "right" one, and
+there is no right one.
+
+**Meaningful merges.** That is F9. Positions merge. Meaning does not.
+
+**Real-time ordering.** "Alice typed first" by wall clock has no standing here.
+The log order is the arrival order at the server, which is a race, and the system
+is correct either way. If you need wall-clock fairness, this is the wrong
+architecture.
+
+**Undo as the inverse of your last operation.** Once other people's edits have
+been transformed into your document, "undo my last edit" is a fresh operation
+that must itself be transformed. Selective undo in a collaborative editor is a
+research-grade problem, and real editors implement a restricted version of it.
+
+**Availability during a partition.** The document has exactly one owner. If you
+cannot reach it, you edit locally and cannot see anyone else. That is the
+[CAP](../24-cap-theorem/) trade made per document: **CP for the shared document,
+and AP for your own copy.** That combination is only possible because the read
+everyone cares about is their *own* screen.
+
+### What did it cost to get here?
+
+Four bills, and every one of them shows up again in section 15.
+
+**A single point of ordering per document.** Simple, and the source of F7, F8
+and every deployment complication in the production section.
+
+**Transform work proportional to how far behind you are.** That is F4's 8,200
+transformations, and it is why snapshots and forced reloads exist.
+
+**Every client needs the algorithm.** The rewriting is not a server feature. It
+is a protocol, so browser, Android, iOS and the export pipeline must all agree,
+forever, including for documents written years ago.
+
+**A case matrix that grows as the square of the number of operation types.** Two
+types here means four cases. Add "apply bold to a range" and "insert a table",
+and the matrix is where real OT implementations earn their reputation for being
+hard. This is the single strongest argument for the alternative in section 15.
 
 > **CHECKPOINT — end of the ENGINEERING model.**
 > You can now state the guarantees precisely, name what was traded for them, and
@@ -898,23 +1240,49 @@ same sentence) rather than technical.
 > algorithm: storage, connections, scale, deployment, and what a real
 > architecture diagram looks like.
 
+> **Say it back.** Imagine a system that deletes the whole document whenever two
+> people clash. Without using the words *convergence* or *intention*, explain to
+> a friend why it passes one of this lab's two big tests and fails the other.
+> <details><summary>A good answer sounds like</summary>
+> "Everybody's screen would definitely agree, because everybody's screen would
+> be empty. So it passes the 'do the copies match' test perfectly. It fails the
+> other one, which is 'did what each person meant actually happen', because
+> nothing anybody meant survived at all."
+> </details>
+
 ---
 
-## 13. The code
+## 13. In what order should you read the code?
 
-Four files, no build tool, no dependencies. `java src/Foo.java` compiles the
-whole directory and runs it (JDK 22+; this lab was built and run on JDK 25).
+> **In one breath:** Start with the fifteen lines that do the rewriting, because
+> everything else in the lab exists to feed them. Then read the client, which is
+> the only place two machines disagree on purpose.
+
+There is no build tool and there are no dependencies. `java src/Foo.java`
+compiles the whole directory and runs it, on JDK 22 or later.
+
+Two files hold the idea:
 
 | file | what it is |
 |---|---|
 | [`src/Ot.java`](src/Ot.java) | operations, `apply`, and `transform` — the entire idea, ~60 lines of logic |
 | [`src/Collab.java`](src/Collab.java) | server, client, and a network you drive by hand |
-| [`src/Demo.java`](src/Demo.java) | the four designs from §3, §4, §10 narrated |
+
+Four files hold things to run, break and finish:
+
+| file | what it is |
+|---|---|
+| [`src/Demo.java`](src/Demo.java) | the four designs from sections 3, 4 and 10, narrated |
 | [`src/Tests.java`](src/Tests.java) | 10 scenario tests, named after the scenarios |
 | [`src/Experiments.java`](src/Experiments.java) | the eight failure experiments |
 | [`src/BrokenOt.java`](src/BrokenOt.java) | one line changed, for exercise 6 |
+
+And two more that exist for the exercises and for the argument in section 15:
+
+| file | what it is |
+|---|---|
 | [`src/YourTransform.java`](src/YourTransform.java) | the same file with the rules blanked out, for exercise 5 — it self-checks |
-| [`src/Crdt.java`](src/Crdt.java) | the other design (§15), with no server at all |
+| [`src/Crdt.java`](src/Crdt.java) | the other design, with no server at all |
 
 ```bash
 java src/Demo.java          # the story, in four runs
@@ -925,9 +1293,10 @@ java src/BrokenOt.java      # the planted bug
 java src/YourTransform.java # exercise 5: write transform() yourself, self-checking
 ```
 
-### The lines that matter
+### Which lines actually carry the design?
 
-Everything load-bearing is in `transform`. Here is the insert/insert case:
+Everything load-bearing is in `transform`. Here is the case where both people
+insert, which is Alice's C meeting Bob's S:
 
 ```java
 if (a.kind == Kind.INSERT && b.kind == Kind.INSERT) {
@@ -939,7 +1308,10 @@ if (a.kind == Kind.INSERT && b.kind == Kind.INSERT) {
 }
 ```
 
-and the delete/delete case, which is the one people forget:
+Three lines, three situations: before me, after me, and the dead heat that
+needs Rule 4.
+
+Now the case people forget, where both people delete:
 
 ```java
 if (b.pos < a.pos) return a.withPos(a.pos - 1);
@@ -950,11 +1322,12 @@ return Op.noop(a.site);
 ```
 
 That `noop` is not tidiness. Without it, two people deleting the same letter of
-`CHATS` produce `CHA` — the T *and* the S — and the test
-`ot_two_people_delete_the_same_character` is what catches it.
+`CHATS` produce `CHA`. The T disappears as well as the S, because the second
+delete removes whatever slid into the vacant position.
 
-On the client, the four lines that implement Rule 2 (transform in both
-directions) are worth reading slowly:
+The test named `ot_two_people_delete_the_same_character` is what catches that.
+
+On the client, four lines implement Rule 2, and they are worth reading slowly:
 
 ```java
 if (outstanding != null) {
@@ -964,12 +1337,13 @@ if (outstanding != null) {
 }
 ```
 
-Note the temporary. Transforming `incoming` first and then using the *new*
-`incoming` to transform `outstanding` would be transforming against an operation
-that never existed in that form. Both results must be computed from the
-originals.
+Note the temporary variable. Transforming `incoming` first, then using the *new*
+`incoming` to transform `outstanding`, would transform against an operation that
+never existed in that form. Both results must be computed from the originals.
 
-### The tests are the documentation
+That is the smallest bug in this lab and one of the hardest to see.
+
+### What do the tests say, and what do they quietly admit?
 
 ```
 PASS  lww_silently_loses_an_edit
@@ -987,32 +1361,51 @@ PASS  ot_converges_under_1000_random_schedules
 10 passed, 0 failed
 ```
 
-**Honest simplifications, all of them deliberate:**
+The test names are the documentation. Read them as a list of sentences about
+Alice and Bob, because that is what they are.
 
-- **One character per operation.** Real editors send *deltas* — "keep 40
-  characters, insert this string, delete 3" — because one operation per keystroke
-  is far too many messages. The transform rules are the same idea over ranges,
-  with much fiddlier arithmetic.
-- **Plain text only.** No formatting, no tables, no images, no comments anchored
-  to a range of text. Each of those adds operation types, and the transform case
-  matrix grows as the square of the number of types.
-- **No persistence.** Everything is in memory; F5 shows exactly what that costs.
-- **No cursors, no presence** (who else is in the document and where they are
-  typing), **no access control.**
-- **Time only moves when a test calls `deliver()`.** No threads, so there is no
-  concurrency in the Java sense anywhere in this lab — which is exactly why every
-  race is reproducible.
+Five simplifications are deliberate, and every one of them is a thing a real
+editor has to do that this lab does not.
+
+**One character per operation.** Real editors send *deltas*, such as "keep 40
+characters, insert this string, delete 3". One operation per keystroke is far
+too many messages. The transform rules are the same idea over ranges, with much
+fiddlier arithmetic.
+
+**Plain text only.** No formatting, no tables, no images, and no comments
+anchored to a range of text. Each of those adds operation types, and the
+transform case matrix grows as the square of the number of types.
+
+**No persistence.** Everything is in memory, and F5 shows exactly what that
+costs.
+
+**No cursors and no presence,** meaning who else is in the document and where
+they are typing. No access control either.
+
+**Time only moves when a test calls `deliver()`.** There are no threads, so
+there is no concurrency in the Java sense anywhere in this lab. That is exactly
+why every race in it can be replayed exactly.
 
 ---
 
-## 14. The experiments
+## 14. Which experiments break it, and can you call them first?
 
-Each one is predict-first. Read the question, commit to an answer, then run it.
+> **In one breath:** Eight commands. Each one is a question with a number for an
+> answer, and the point is to commit to your number before you run it.
+
+Read the question, commit to an answer out loud, then run the command.
+
+Two experiments ask whether the algorithm is needed at all:
 
 | # | command | the question to answer first |
 |---|---|---|
 | E0 | `java src/Experiments.java two-in-flight` | If a client sends two edits without waiting, and both say "based on revision 0", what does the server do with the second? |
 | E1 | `java src/Experiments.java raw-vs-ot` | Skipping transformation is a bug — but how often does it actually bite? One run in fifty? |
+
+Six ask what the network and the machines can do to it:
+
+| # | command | the question to answer first |
+|---|---|---|
 | E2 | `java src/Experiments.java lost-request` | The network eats Alice's edit. Is the document corrupted, or just stuck? |
 | E3 | `java src/Experiments.java lost-ack` | The edit arrived; the *confirmation* was lost, so Alice retries. What is in the document now? |
 | E4 | `java src/Experiments.java out-of-order` | Two broadcasts reach Bob in the wrong order. Does the algorithm cope? |
@@ -1020,16 +1413,26 @@ Each one is predict-first. Read the question, commit to an answer, then run it.
 | E6 | `java src/Experiments.java stale-server` | The server confirmed two edits it had not written to disk, then restarted. What do the clients believe? |
 | E7 | `java src/Experiments.java slow-client` | Carol's connection stalls for 100 edits. Who pays — Carol, everyone, or the server? |
 
-Answers, with the numbers, are in §11. The interesting ones are E1 (the naive
-design fails 500 times out of 500, not "rarely under load"), E3 (a retry
-duplicates a keystroke unless the server can recognise a repeat), and E6 (silent
-permanent corruption from a single premature acknowledgement).
+The answers, with their numbers, are in section 11. Three of them are worth
+arguing about with somebody.
+
+E1 is the one that changes minds: the naive design fails 500 times out of 500,
+not "rarely, under load". E3 shows a retry duplicating a keystroke unless the
+server can recognise a repeat. E6 shows silent, permanent corruption produced by
+a single premature acknowledgement.
 
 ---
 
-## 15. From this lab to Google Docs
+## 15. What does the real Google Docs add on top of this?
 
-### The chain
+> **In one breath:** The algorithm from section 10 survives untouched. Around it
+> go storage, one long-lived connection per open tab, and a way to guarantee
+> that exactly one process owns each document. Then a plan for the day a deploy
+> drops a million connections at once.
+
+### What is the chain from this lab to the product?
+
+Three steps, and the first two are closer together than they look.
 
 | | |
 |---|---|
@@ -1037,30 +1440,34 @@ permanent corruption from a single premature acknowledgement).
 | **A real OT library** | ShareDB / ot.js (JavaScript), the Wave protocol; range-based deltas, rich text, presence, undo. Same four rules |
 | **Production** | millions of concurrent sessions, documents that must outlive any machine, offline clients, access control, exports, mobile |
 
-Operational transformation itself dates to the 1989 GROVE paper; the
-client/server form used here is the 1995 **Jupiter** system, which is what
-Google Wave's published protocol was built on, and Google Docs' editor is
-publicly described as using operational transformation. The *current* internals
-are not public — everything in this section that is not cited is standard
-architecture for this problem shape, not a claim about Google's code.
+Operational transformation itself dates to the 1989 GROVE paper. The
+client/server form used here is the 1995 **Jupiter** system, which is what Google
+Wave's published protocol was built on. Google Docs' editor is publicly
+described as using operational transformation.
 
-### The architecture
+Section 19 says which parts of this section are cited and which are ordinary
+architecture for this problem shape.
+
+### What does the architecture look like?
+
+Read this diagram from the top down. The only line that cannot be moved is the
+one out of the session router.
 
 ```mermaid
 flowchart TB
     subgraph Clients
-      W["browser editor<br/>(model + view + undo stack)"]
-      M["mobile app<br/>(local queue, offline)"]
+      W["browser editor<br>(model + view + undo stack)"]
+      M["mobile app<br>(local queue, offline)"]
     end
-    LB["edge / load balancer<br/>terminates TLS, holds the WebSocket"]
-    RT["session router<br/>documentId → owning server"]
+    LB["edge / load balancer<br>terminates TLS,<br>holds the WebSocket"]
+    RT["session router<br>documentId → owning server"]
     subgraph Session["document session servers"]
-      D1["doc 42: text in memory,<br/>log tail, connected clients"]
+      D1["doc 42: text in memory,<br>log tail, connected clients"]
       D2["doc 77: ..."]
     end
-    ACL["access control<br/>(who may open this document)"]
-    ST[("document store<br/>snapshots + mutation log")]
-    MD[("metadata store<br/>title, owner, sharing, folders")]
+    ACL["access control<br>(who may open this document)"]
+    ST[("document store<br>snapshots + mutation log")]
+    MD[("metadata store<br>title, owner, sharing, folders")]
     IDX["search index"]
     NOT["notifications, comment emails"]
 
@@ -1077,126 +1484,134 @@ flowchart TB
 ```
 
 The one non-negotiable line in that diagram is **`documentId → owning server`**.
-Everything else is replaceable; that is what makes the algorithm in §10 legal.
+Everything else is replaceable. That line is what makes the algorithm in section
+10 legal at all, and F8 is what happens when it fails.
 
-### What each piece does
+### What does each piece actually do?
 
-**Browser editor.** Holds the document model, the view, the local undo stack,
-and the client half of §10 (`outstanding`, `buffer`, transform). Composes rapid
-keystrokes into one operation before sending — typically one message per 50–200
-ms of typing, not one per key.
+**The browser editor** holds the document model, the view, the local undo stack,
+and the client half of section 10. That is `outstanding`, `buffer` and
+`transform`, exactly as Alice's laptop held them. It composes rapid keystrokes
+into one operation before sending, typically one message per 50 to 200 ms of
+typing rather than one per key.
 
-**Edge layer.** Terminates TLS ([tls lab](../14-tls/)) and holds one long-lived
-WebSocket per open tab — the same connection-server tier, holding sockets and no
-durable state, as the [WhatsApp lab](../69-whatsapp-system-design/). Its scaling problem is idle connections, which is the
-[io-multiplexing lab](../03-io-multiplexing/) exactly: a million connections that
-are silent 95% of the time.
+**The edge layer** terminates TLS ([tls lab](../14-tls/)) and holds one
+long-lived WebSocket per open tab. It is the same connection-server tier you met
+in the [WhatsApp lab](../69-whatsapp-system-design/): sockets, no durable state.
+Its scaling problem is idle connections, which is the
+[io-multiplexing lab](../03-io-multiplexing/) exactly. A million connections that
+are silent 95% of the time is that lab's whole subject.
 
-**Session router.** Maps a document id to the one process that owns it right
-now — the placement problem from the
-[consistent-hashing lab](../35-consistent-hashing/), with the extra requirement
-that ownership is exclusive, not merely a preference — a lease in a strongly consistent store (etcd/Chubby/Spanner-class,
-i.e. [Paxos](../39-paxos/) underneath). Two properties matter: only one owner at a
-time, and a **fencing token** so a replaced owner's writes are rejected by the
-store rather than merely discouraged (F8).
+**The session router** maps a document id to the one process that owns it right
+now. That is the placement problem from the
+[consistent-hashing lab](../35-consistent-hashing/), with one extra requirement:
+ownership here is exclusive, not merely a preference.
 
-**Document session server.** Holds the document in memory, appends to the log,
-transforms, broadcasts, tracks who is connected and where their cursors are.
-Everything is per-document and single-threaded per document, which makes the
-whole §10 algorithm race-free without a lock — the same trick the
-[redis lab](../13-redis/) taught: the fastest way to make concurrency correct is to
-not have it.
+You get exclusivity from a lease in a strongly consistent store, of the
+etcd/Chubby/Spanner class, with [Paxos](../39-paxos/) underneath. Two properties
+matter. Only one owner at a time, and a **fencing token** so that a replaced
+owner's writes are rejected by the store rather than merely discouraged. F8 is
+the failure this prevents.
 
-**Document store.** The log and periodic **snapshots**. This is the storage
-pattern from the [event-sourcing lab](../50-event-sourcing/), and for the same
-reason: replaying a million operations to open a document would be absurd, so
-you fold them into a snapshot and keep only the tail. Version history —
-"restore to yesterday 4pm" — is free, because the log *is* the history; and
-that is why the log is trimmed by snapshotting rather than deleted.
+**The document session server** holds the document in memory, appends to the
+log, transforms, broadcasts, and tracks who is connected and where their cursors
+are. Everything is per-document and single-threaded per document, which makes
+the whole section 10 algorithm race-free without a lock.
 
-**Metadata store.** Title, owner, sharing rules, folder location. Different
-access shape (queried by user, not by document), so usually a different store
-from the document content, with the search index projected off it — a
-[CQRS](../51-cqrs/) read model.
+That is the trick the [redis lab](../13-redis/) taught. The fastest way to make
+concurrency correct is to not have any.
 
-### The three flows worth being able to draw
+**The document store** holds the log and periodic **snapshots**. This is the
+storage pattern from the [event-sourcing lab](../50-event-sourcing/), for the
+same reason. Replaying a million operations to open a document would be absurd,
+so you fold them into a snapshot and keep only the tail.
 
-**Opening a document**
+Version history is free here, because the log *is* the history. "Restore to
+yesterday 4pm" is a position in it. That is also why the log is trimmed by
+snapshotting rather than by deletion.
 
-1. Client asks for document 42. Access control check.
-2. Router finds or elects the owning session server; it loads the newest
-   snapshot plus the log tail and folds them into the current text.
-3. Client receives `{text, revision}` and opens a WebSocket. Every later message
-   is a delta, which is why the connection is worth its cost.
+**The metadata store** holds the title, the owner, the sharing rules and the
+folder location. It has a different access shape, queried by user rather than by
+document, so it is usually a different store from the document content. The
+search index is projected off it, which makes it a [CQRS](../51-cqrs/) read
+model.
 
-**Typing** — §10, plus: the server writes the operation to durable storage
-**before** confirming (F5), batching writes across operations for throughput.
+### Which three flows should you be able to draw?
 
-**Reconnecting** — client says "I am at revision 812". If the server still has
-812 in its log tail it replays 813 onwards. If not (asleep for a week, or a
-snapshot has moved past it), the answer is "your revision is too old", and the
-client discards its local state and re-opens — which is F4's cost made into a
-product decision.
+**Opening a document.** The client asks for document 42, and access control runs
+first. The router then finds or elects the owning session server, which loads
+the newest snapshot plus the log tail and folds them into the current text. The
+client receives `{text, revision}`, then opens a WebSocket. Every later message
+is a delta, which is why the connection is worth its cost.
 
-### Capacity estimation — the method, not the answer
+**Typing.** That is section 10, with one addition. The server writes the
+operation to durable storage **before** confirming it, batching writes across
+operations for throughput. F5 is what the addition buys.
 
-Google has never published these numbers. What follows is how you would derive
-them in an interview; every input is an assumption you should state out loud.
+**Reconnecting.** The client says "I am at revision 812". If the server still has
+812 in its log tail, it replays 813 onwards. If not, because the client slept for
+a week or a snapshot has moved past it, the answer is "your revision is too old".
+The client then discards its local state and re-opens. That is F4's cost turned
+into a product decision.
 
-*Assume* 100M daily active editors, each with a document open for ~20 minutes a
-day:
+### How do you size this in an interview?
 
-- **Concurrent sessions** = 100M × 20 / (24 × 60) ≈ **1.4M open tabs** at a
-  typical moment. At 50k WebSockets per edge node that is ~30 nodes for
-  connections alone; call it 100+ for headroom and regional spread.
-- **Edit rate.** Most open tabs are being read, not typed into. Assume 10% are
-  actively typing, and a typing client sends ~5 batched operations per second:
-  1.4M × 10% × 5 ≈ **700k operations/second** globally. Sanity-check that in the
-  other direction before you quote it — this is the number an interviewer will
-  push on.
-- **Fan-out.** Average 1.5 collaborators per active document, so ~1M outbound
-  messages/second. Small messages, high count: the cost is syscalls and wakeups,
-  not bandwidth.
-- **Storage.** 1B documents averaging 20 KB of text ≈ **20 TB** of text, plus
-  logs. Logs dominate unless snapshotted, which is the argument for snapshots
-  independent of open latency.
-- **Session server memory.** A document costs its text plus per-client state,
-  say 100–300 KB live. 1M concurrently-open documents at 200 KB ≈ 200 GB spread
-  over the fleet — a few hundred machines, sized by document count rather than
-  bytes.
+Google has never published these numbers, so what follows is the method. Every
+input is an assumption you should say out loud before you use it.
 
-The point of this exercise is never the number. It is that you now know which
-resource binds first (connections and wakeups, not storage or bandwidth) and
-where the cliff is (documents with hundreds of concurrent editors, F7).
+Start from two assumptions: 100M daily active editors, each with a document open
+for about 20 minutes a day.
 
-### What an on-call engineer watches
+| Quantity | How you get it | Number | What the number means |
+|---|---|---|---|
+| Concurrent sessions | 100M × 20 / (24 × 60) | **1.4M** open tabs | the fleet is sized by tabs, not by users |
+| Edge nodes | 1.4M / 50k WebSockets per node | ~30, call it 100+ | connections alone, before headroom and regional spread |
+| Edit rate | 1.4M × 10% typing × 5 operations/second | **700k** operations/second | the number an interviewer will push on; sanity-check it both ways |
+| Fan-out | 700k × 1.5 collaborators per document | ~**1M** messages/second outbound | small messages, high count: the cost is syscalls and wakeups |
+| Text storage | 1B documents × 20 KB of text | **20 TB**, plus logs | logs dominate unless snapshotted |
+| Session memory | 1M open documents × 200 KB each | **200 GB** across the fleet | a few hundred machines, sized by document count not bytes |
 
-- **p99 time from keystroke to confirmation.** The user-visible number. It is
-  what "the document feels laggy" actually means.
-- **Per-client outbound backlog.** F6. A rising backlog is a client about to be
-  disconnected, and a fleet-wide rise means the server is the slow one.
-- **Ownership churn.** Documents changing owning server. Steady churn means a
-  deploy or a flapping lease, and each handover is a moment where F8 could
-  happen.
-- **Reconnect rate.** A deploy that drops 1.4M WebSockets produces a
-  thundering-herd reconnect ([communication-protocols](../02-communication-protocols/));
-  the mitigations are jittered backoff on the client and connection draining
-  rather than dropping.
-- **Snapshot age per document.** An old snapshot is a slow document open and a
-  long recovery.
-- **Confirmed-but-unpersisted operations.** Should be zero by construction (F5).
-  If this metric can be non-zero, the design has a hole.
+A note on two of those rows. Most open tabs are being read, not typed into,
+which is where the 10% comes from. And a live document costs its text plus
+per-client state, which is 100 to 300 KB in practice.
 
-### The other design: CRDTs
+The point of the exercise is never the number. It is that you now know which
+resource binds first, which is connections and wakeups rather than storage or
+bandwidth. You also know where the cliff is: documents with hundreds of
+concurrent editors, which is F7.
 
-There is a second answer to the same problem, and it is worth knowing precisely
-because it changes the architecture, not just the algorithm.
+### What does the on-call engineer watch?
 
-A **CRDT** (conflict-free replicated data type) gives every character a
-permanent identity when it is typed — a counter plus a site id — and an edit
-refers to that identity instead of a position: *"put 'C' after the character
-named 3@Alice"*. Identities never shift, so there is nothing to rewrite, and
-therefore **no need for a central server to order anything**.
+Meera carries the pager for this service. Here are her six panels, and what each
+one looks like when it is going wrong.
+
+| Signal | Why it matters | What bad looks like |
+|---|---|---|
+| p99 keystroke to confirmation | the user-visible number | "the document feels laggy", said in a support ticket |
+| per-client outbound backlog | F6, Carol's café Wi-Fi | one rising backlog is one doomed client; a fleet-wide rise means the server is slow |
+| ownership churn | each handover is a moment where F8 could happen | steady churn means a deploy, or a flapping lease |
+| reconnect rate | a deploy that drops 1.4M WebSockets | a thundering herd, fixed by jittered backoff and connection draining |
+| snapshot age per document | old snapshots make opens slow | a long recovery after any crash |
+| confirmed but unpersisted operations | F5 | should be 0 by construction; if it can be non-zero, the design has a hole |
+
+The reconnect row has a lab of its own behind it. The thundering herd is from
+[communication-protocols](../02-communication-protocols/), and the two
+mitigations are jittered backoff on the client and connection draining rather
+than dropping.
+
+### What is the other design, and why did Google not pick it?
+
+There is a second answer to the same problem. It is worth knowing precisely,
+because it changes the architecture rather than only the algorithm.
+
+A **CRDT**, short for conflict-free replicated data type, gives every character a
+permanent identity at the moment it is typed. The identity is a counter plus a
+site id. An edit then refers to that identity instead of a position: *"put 'C'
+after the character named 3@Alice"*.
+
+Identities never shift. So there is nothing to rewrite, and therefore **no need
+for a central server to order anything**. The [CRDT lab](../32-crdts/) builds
+this properly, including the sequence type that a text editor needs.
 
 ```bash
 java src/Crdt.java
@@ -1214,7 +1629,23 @@ java src/Crdt.java
    cells still stored : 1000  (of which 900 are tombstones)
 ```
 
-The trade, in one line each:
+Read the last two lines together. A hundred visible characters cost a thousand
+stored cells, because 900 of them are **tombstones**: deleted characters that
+must be kept so later operations can still refer to them.
+
+> **🔮 Predict:** Same product, but offline-first on a phone, and a user has been
+> away for a week. Which design would you choose, and what is the bill?
+> <details><summary>Reveal</summary>
+> The CRDT, and the bill is memory. OT has to transform a week of your edits
+> against a million operations you missed, which is F4's cost with the numbers
+> turned up until it stops being trivial. A CRDT merges them with no replay at
+> all. If you guessed OT because it is what Google Docs uses, notice the
+> difference in the requirement: Docs assumes you are online and connected to
+> the one owner, and the offline-first product assumes you are not. Exercise 8.2
+> is exactly this argument.
+> </details>
+
+The trade, one line each:
 
 | | operational transformation | CRDT |
 |---|---|---|
@@ -1224,135 +1655,180 @@ The trade, in one line each:
 | where the difficulty lives | the transform case matrix, which grows as the square of the number of operation types | the data structure and its garbage collection |
 | what it is used by | Google Docs, Google Wave, ShareDB, Etherpad | Yjs, Automerge, Figma's multiplayer, Apple Notes, Redis CRDTs |
 
-Note what the CRDT does *not* remove: it still needs causal delivery (an insert
-whose anchor has not arrived must wait — that buffering is in `Crdt.java`), and
-a hosted product still puts a server in the middle for persistence, access
-control and fan-out. What it removes is the requirement that the server be the
-*only* place ordering is decided, which is why offline-first and peer-to-peer
-products reach for it.
+Note what the CRDT does *not* remove. It still needs causal delivery, because an
+insert whose anchor has not arrived must wait, and that buffering is in
+`Crdt.java`. A hosted product also still puts a server in the middle, for
+persistence, access control and fan-out.
 
-Why does Google Docs use OT? History (Docs predates practical sequence CRDTs by
-years) and cost (a document that costs 30× its text in memory is a real bill at
-their scale, and they already had to have a central server for sharing and
-persistence, so the sequencer was free).
+What it removes is the requirement that the server be the *only* place ordering
+is decided. That is why offline-first and peer-to-peer products reach for it.
 
-### What this lab leaves out, and who does it for real
+So why does Google Docs use OT? Two reasons, and neither is about elegance.
+
+History: Docs predates practical sequence CRDTs by years. Cost: a document that
+costs 30× its text in memory is a real bill at their scale, and they already had
+to run a central server for sharing and persistence. The sequencer was free.
+
+### What does this lab leave out, and who does it for real?
+
+Five gaps in the document itself:
 
 | omitted here | how a real system handles it |
 |---|---|
 | persistence | log + snapshots in a replicated store; confirm only after the durable write (F5) |
 | rich text, tables, images, comments anchored to text | more operation types, a much larger transform matrix, or a rich-text CRDT |
 | range operations | deltas (`retain 40, insert "hi", delete 3`) instead of one character at a time |
+| undo | a per-user undo stack of transformed inverse operations, restricted to make it tractable |
+| version history | naming and pinning points in the log the system already keeps |
+
+Five gaps in the product around it:
+
+| omitted here | how a real system handles it |
+|---|---|
 | presence and cursors | a separate, *unreliable* channel — cursor positions are lossy on purpose; nobody replays them |
 | access control | checked at open, re-checked on change; revocation must be able to close live connections |
 | offline | local operation queue + service worker; on reconnect, F4's cost with a "your version is too old, reloading" fallback |
-| undo | a per-user undo stack of transformed inverse operations, restricted to make it tractable |
-| version history | naming and pinning points in the log the system already keeps |
 | the export pipeline | a separate renderer that reads a snapshot, not the live session |
 | security of the transport | TLS ([tls lab](../14-tls/)) and per-document authorization on every connection |
 
-### Answering "design Google Docs" in 45 minutes
+### How do you answer "design Google Docs" in 45 minutes?
 
-The structure that fits the time, with the minutes it deserves:
+Arjun is interviewing you, and he has 45 minutes. Here is the structure that
+fits, with the minutes each part deserves.
 
-1. **Requirements (5 min).** Functional: multiple people edit one document
-   simultaneously, see each other's changes within a second, see cursors, nobody
-   loses work, history is recoverable, sharing is controlled. Non-functional:
-   local edits feel instant; converge within a second; survive machine loss;
-   support N concurrent editors per document (ask for N — it is the question
-   that determines the architecture).
-2. **The hard part, named early (3 min).** "The interesting problem here is
-   concurrent edits to the same text. Everything else is standard web
-   architecture. Shall I go deep on that first?" This is the move that separates
-   a good answer from a component inventory.
-3. **The naive design and its failure (5 min).** Whole-document saves lose
-   updates; position-based edits diverge. Use the `HAT` → `CHATS` example — it
-   fits on a whiteboard and makes the problem undeniable.
-4. **The core mechanism (10 min).** Send operations, stamp them with a revision,
-   one server owns the document and orders them, transform on both ends, one
-   edit in flight per client, deterministic tie-break.
-5. **Architecture (8 min).** The diagram above. Emphasise `documentId → owning
-   server` and say why.
-6. **Storage (5 min).** Snapshots + log; version history falls out; confirm only
-   after the durable write.
-7. **Failure and scale (7 min).** Reconnect and replay from a revision; server
-   death and ownership handover with fencing; slow-client backpressure; the hot
-   document limit; deploy and reconnect storms.
-8. **Trade-offs (2 min).** OT vs CRDT, in the terms of the table above, and what
-   you would choose for an offline-first product instead.
+The first half is about proving you found the real problem:
 
-Two things that reliably impress and are cheap to say: *"I'd confirm the edit
-only after the log write, because a confirmation is a promise about the log"*,
-and *"retries need an edit sequence number per client or a lost acknowledgement
-duplicates a keystroke."* Both are §11, and both generalise to work far outside
-documents — which is why they are worth carrying out of this lab.
+| Time | Step | What you actually say |
+|---|---|---|
+| 5 min | Requirements | multiple people edit one document at once, see changes within a second, see cursors, nobody loses work, history is recoverable, sharing is controlled |
+| 3 min | Name the hard part | "the interesting problem is concurrent edits to the same text; everything else is standard web architecture — shall I go deep on that first?" |
+| 5 min | The naive design and its failure | whole-document saves lose updates; position-based edits diverge |
+| 10 min | The core mechanism | operations, revision stamps, one owning server, transform on both ends, one edit in flight, deterministic tie-break |
+
+Under non-functional requirements, ask Arjun for one number: how many concurrent
+editors per document? It is the question that determines the architecture, and
+F7 is why.
+
+For the naive design, use the `HAT` to `CHATS` example. It fits on a whiteboard
+and it makes the problem undeniable in about forty seconds.
+
+The second half is about proving you can run it:
+
+| Time | Step | What you actually say |
+|---|---|---|
+| 8 min | Architecture | the diagram above; emphasise `documentId → owning server` and say why |
+| 5 min | Storage | snapshots plus log; version history falls out; confirm only after the durable write |
+| 7 min | Failure and scale | replay from a revision; ownership handover with fencing; slow-client backpressure; the hot document limit; deploy and reconnect storms |
+| 2 min | Trade-offs | OT against CRDT in the terms of the table above, and what you would choose for an offline-first product |
+
+Naming the hard part early is the move that separates a good answer from a
+component inventory. Most candidates draw boxes for an hour and never reach the
+one problem the interviewer is listening for.
+
+Two sentences reliably impress and cost nothing to say. *"I would confirm the
+edit only after the log write, because a confirmation is a promise about the
+log."* And: *"retries need an edit sequence number per client, or a lost
+acknowledgement duplicates a keystroke."*
+
+Both are section 11. Both generalise far outside documents, which is why they
+are worth carrying out of this lab.
 
 > **CHECKPOINT — end of the PRODUCTION model.**
-> You can now design this system on a whiteboard, defend the one architectural
-> constraint that makes it work, estimate its load, name its failure modes, and
-> argue OT against CRDT with numbers rather than taste.
+> You can now design this system on a whiteboard, and defend the one
+> architectural constraint that makes it work. You can estimate its load, name
+> its failure modes, and argue OT against CRDT with numbers rather than taste.
+
+> **Say it back.** Without using the words *sequencer*, *lease* or *fencing*,
+> explain to a friend why one document must be handled by exactly one machine.
+> Then say what would go wrong on Alice's screen if two machines shared the job.
+> <details><summary>A good answer sounds like</summary>
+> "Every note people send says which version of the page they were looking at,
+> and that only means something if one machine is doing the numbering. Two
+> machines would each start their own count, so both would hand out a number
+> four. Alice's note would then be corrected against the wrong list of changes,
+> and her letter would land in the wrong place with nobody able to tell."
+> </details>
 
 ---
 
-## 16. Exercises
+## 16. Which exercises should you attempt now?
 
-[`EXERCISES.md`](EXERCISES.md) — eight rungs, from "explain it in your own
-words" to "design it for three datacentres". Answers in
-[`SOLUTIONS.md`](SOLUTIONS.md); try first, the ladder only works that way.
+> **In one breath:** Eight rungs, from "explain it to your manager" to "design it
+> for three datacentres". Write your answer down before you look, because the
+> value is in being wrong on paper first.
 
-The three worth doing even if you skip the rest:
+[`EXERCISES.md`](EXERCISES.md) holds all eight rungs. The answers are in
+[`SOLUTIONS.md`](SOLUTIONS.md), and the ladder only works if you try first.
 
-- **Rung 4 (modify):** delete the site-id tie-break and predict which property
-  breaks — safety or liveness — before running it.
-- **Rung 5 (implement):** `src/YourTransform.java` has the four transform rules
-  blanked out and checks your version against four named scenarios and 1,000
-  random schedules. It starts at `0 passed, 5 failed`.
-- **Rung 6 (debug):** `java src/BrokenOt.java` diverges in 493 of 500 runs.
-  Which test in `Tests.java` catches it, and which guarantee does it violate?
-- **Rung 8 (design):** the same product, but offline-first on mobile. Which
-  parts of this architecture survive?
+Four are worth doing even if you skip the rest.
+
+**Rung 4, modify.** Delete the site-id tie-break and predict which property
+breaks, safety or liveness, before you run it.
+
+**Rung 5, implement.** [`src/YourTransform.java`](src/YourTransform.java) has the
+four transform rules blanked out. It checks your version against four named
+scenarios and 1,000 random schedules, and it starts at `0 passed, 5 failed`.
+
+**Rung 6, debug.** `java src/BrokenOt.java` diverges in 493 of 500 runs. Which
+test in `Tests.java` catches it, and which guarantee does it violate?
+
+**Rung 8, design.** The same product, offline-first on mobile. Which parts of
+this architecture survive?
 
 ---
 
-## 17. Where this sits, and what to learn next
+## 17. Where does this sit, and what should you learn next?
+
+> **In one breath:** This lab is where five earlier labs meet. It hands you on
+> to CRDTs, to clocks, and to the payments idea hiding inside F2.
+
+Read this diagram as an inheritance: everything above the middle box is
+something you already learned, and everything below is what this lab makes you
+ready for.
 
 ```mermaid
 flowchart TB
-    CP["communication-protocols<br/>(WebSocket, ordered channel,<br/>at-least-once, idempotency)"] --> GD
-    ES["event-sourcing<br/>(log + snapshot + fold)"] --> GD
-    CAP["cap-theorem<br/>(one owner = CP)"] --> GD
-    IO["io-multiplexing<br/>(a million idle connections)"] --> GD
-    WA["whatsapp-system-design<br/>(connection tier, durability<br/>before acknowledgement)"] --> GD
-    GD["GOOGLE DOCS<br/>operational transformation<br/>+ one sequencer per document"]
-    GD --> CRDT["CRDTs<br/>(the serverless alternative)"]
-    GD --> LC["Lamport & vector clocks<br/>(what 'concurrent' formally means)"]
-    GD --> IDEM["idempotency keys<br/>(F2, generalised)"]
-    GD --> LB["consistent-hashing<br/>(documentId → owner, exclusively)"]
-    OUT["transactional-outbox / saga<br/>(at-least-once → idempotent consumers)"] -.same idea.- GD
-    RD["redis<br/>(single-threaded = no races;<br/>fencing tokens)"] -.same idea.- GD
+    CP["communication-protocols<br>(WebSocket, ordered channel,<br>at-least-once, idempotency)"] --> GD
+    ES["event-sourcing<br>(log + snapshot + fold)"] --> GD
+    CAP["cap-theorem<br>(one owner = CP)"] --> GD
+    IO["io-multiplexing<br>(a million idle connections)"] --> GD
+    WA["whatsapp-system-design<br>(connection tier, durability<br>before acknowledgement)"] --> GD
+    GD["GOOGLE DOCS<br>operational transformation<br>+ one sequencer per document"]
+    GD --> CRDT["CRDTs<br>(the serverless alternative)"]
+    GD --> LC["Lamport & vector clocks<br>(what 'concurrent'<br>formally means)"]
+    GD --> IDEM["idempotency keys<br>(F2, generalised)"]
+    GD --> LB["consistent-hashing<br>(documentId → owner,<br>exclusively)"]
+    OUT["transactional-outbox / saga<br>(at-least-once →<br>idempotent consumers)"] -.same idea.- GD
+    RD["redis<br>(single-threaded = no races;<br>fencing tokens)"] -.same idea.- GD
 ```
 
-**Commonly confused with this, and the sentence that separates them:**
+### What is this commonly confused with?
 
-- **Operational transformation vs event sourcing.** Both are append-only logs of
-  changes. Event sourcing replays operations that were *written against the
-  state they are replayed onto*; OT replays operations that were written against
-  a *different* state, which is why it needs `transform` and event sourcing does
-  not.
-- **Convergence vs consistency.** Convergence says every copy ends up the same.
-  It says nothing about *when*, or about what any single read returns — a system
-  can converge and still show you stale text for a second.
-- **OT vs CRDT.** Both guarantee convergence. OT rewrites operations and needs a
-  single ordering authority; a CRDT makes operations commute by giving every
-  character an identity, and needs none.
-- **Collaborative editing vs multiplayer game state.** Games mostly need the
-  *latest* value of each thing (last-writer-wins is often fine). Documents need
-  every intermediate operation preserved, because the text is the accumulation
-  of them.
-- **A lost update vs a conflict.** A lost update is silent and unrecoverable; a
-  conflict is at least visible. Design 1's failure is the worse kind.
+Five pairs, each separated by one sentence.
 
-**Next, in the order I would take them:**
+**Operational transformation against event sourcing.** Both are append-only logs
+of changes. Event sourcing replays operations that were written against the
+state they are replayed onto; OT replays operations that were written against a
+*different* state, which is why it needs `transform` and event sourcing does not.
+
+**Convergence against consistency.** Convergence says every copy ends up the
+same. It says nothing about *when*, or about what any single read returns, so a
+system can converge and still show you stale text for a second.
+
+**OT against CRDT.** Both guarantee convergence. OT rewrites operations and
+needs a single ordering authority; a CRDT makes operations commute by giving
+every character an identity, and needs none.
+
+**Collaborative editing against multiplayer game state.** Games mostly need the
+*latest* value of each thing, so last-writer-wins is often fine. Documents need
+every intermediate operation preserved, because the text is the accumulation of
+them.
+
+**A lost update against a conflict.** A lost update is silent and
+unrecoverable; a conflict is at least visible. Design 1's failure is the worse
+kind.
+
+### What should you read next?
 
 ```
 /learn crdt                      # the alternative design, properly: RGA, Yjs, tombstone GC
@@ -1361,55 +1837,118 @@ flowchart TB
 /learn websocket-at-scale        # a million connections, deploys, reconnect storms
 ```
 
-Already in your workspace, and worth re-reading next to this one:
-[consistent-hashing](../35-consistent-hashing/) (how `documentId → owning server`
-is actually routed), [whatsapp-system-design](../69-whatsapp-system-design/) (the
-same connection tier and the same never-ack-what-isn't-durable rule, for
-messages instead of characters), and [uber-system-design](../70-uber-system-design/)
-(the other "one owner per moving entity" design).
+Two of those are already in your workspace. The alternative design is
+[32-crdts](../32-crdts/), which builds the RGA sequence type this lab only
+sketches. What "concurrent" formally means is
+[29-causal-consistency](../29-causal-consistency/), which is where
+happened-before is made precise.
+
+Three more are worth re-reading next to this one.
+[consistent-hashing](../35-consistent-hashing/) shows how
+`documentId → owning server` is actually routed.
+[whatsapp-system-design](../69-whatsapp-system-design/) has the same connection
+tier and the same never-acknowledge-what-is-not-durable rule, for messages
+instead of characters. [uber-system-design](../70-uber-system-design/) is the
+other "one owner per moving entity" design.
 
 If your next stop is the payments track rather than the collaboration track,
-take `/learn idempotency-keys` first: F2 in this lab is exactly the duplicate-
-charge problem in a different costume.
+take `/learn idempotency-keys` first. F2 in this lab is exactly the
+duplicate-charge problem in a different costume.
 
 ---
 
-## 18. Glossary
+## 18. Glossary — what does each word mean, precisely?
 
-In order of appearance.
+> **In one breath:** In order of first appearance, with the place in Alice and
+> Bob's story where each one was earned.
 
 | term | one line |
 |---|---|
-| **lost update** | two people changed the same thing and one change vanished with no error |
-| **operation** | one change described rather than performed — `insert(3,'S')` |
+| **lost update** | two people changed the same thing and one change vanished with no error — section 3 |
+| **operation** | one change described rather than performed — `insert(3,'S')`, section 4 |
 | **apply** | run an operation against a document: `apply(doc, op) → doc` |
 | **revision** | how many operations the server has accepted; a position in the log |
 | **the log** | the append-only official list of operations; the document is the log replayed |
 | **convergence** | once the network is quiet, every copy holds identical text |
 | **intention preservation** | each edit still does what its author meant, in the final text |
 | **transformation (OT)** | rewriting an operation so it has the same effect on a document that has moved on |
-| **site id** | the per-client name used as the deterministic tie-break |
+| **site id** | the per-client name used as the deterministic tie-break — `"Alice" < "Bob"` |
 | **tie-break** | the fixed rule that orders two inserts at the same position identically everywhere |
 | **outstanding** | the one operation a client has sent and not yet had confirmed |
 | **buffer** | operations typed after the outstanding one, queued locally |
 | **sequencer** | the single process that decides the official order for one document |
 | **no-op** | an operation that does nothing — what a delete of an already-deleted character becomes |
 | **late joiner** | a client that opens the document mid-session and starts from a snapshot plus a revision |
-| **duplicate suppression** | the server remembering the last edit number per client, so a retry is not applied twice |
+| **duplicate suppression** | the server remembering the last edit number per client, so a retry is not applied twice — F2 |
 | **idempotency key** | the general name for that: an identifier that makes "do this again" mean "make sure this happened once" |
-| **backpressure** | what you do when a consumer cannot keep up — here, cap the queue and force a reload |
-| **hot document** | one document with so many editors that its single owning process is the bottleneck |
-| **fencing token** | a number carried with a write so a storage layer can reject a replaced owner's writes |
+| **backpressure** | what you do when a consumer cannot keep up — here, cap the queue and force a reload, F6 |
+| **hot document** | one document with so many editors that its single owning process is the bottleneck — F7 |
+| **fencing token** | a number carried with a write so a storage layer can reject a replaced owner's writes — F8 |
 | **snapshot** | the folded-up document at some revision, so you never replay the log from zero |
 | **delta** | a range-based operation (`retain 40, insert "hi", delete 3`) — what real editors send |
 | **presence** | who else is here and where their cursors are; deliberately unreliable |
 | **CRDT** | a data type whose operations commute, so replicas converge with no central ordering |
 | **tombstone** | a deleted character a CRDT must keep, so later operations can still refer to it |
 | **causal delivery** | the rule that an operation is not applied before the operations it depends on |
-| **semantic conflict** | two edits that are both applied correctly and together mean something nobody intended |
-| **thundering herd** | every client reconnecting at once after a deploy or an outage |
+| **semantic conflict** | two edits that are both applied correctly and together mean something nobody intended — F9 |
+| **thundering herd** | every client reconnecting at once after a deploy or an outage — section 15 |
 
 ---
 
-*Lab built and verified on JDK 25, macOS. Every command in this document was
-run; every number quoted is from its output.*
+## 19. About this lab — what is in it, and where do the numbers come from?
+
+> **In one breath:** The hardest small problem in system design is two people,
+> one line of text, and a network in between. Everything quoted above was
+> printed by the Java in `src/`, and everything about Google's own internals is
+> flagged below.
+
+### What is in the lab?
+
+Four things. An interactive simulation you drive by hand. A working
+implementation in Java, with no build tool and no dependencies. Eight failure
+experiments. And the full high-level design of the product around the algorithm.
+
+The depth layers run BEGINNER (sections 1–9), then INTERMEDIATE (section 10),
+then ENGINEERING (sections 11–14), then PRODUCTION (section 15). Each transition
+carries a checkpoint and a Say-it-back box.
+
+### Where do the numbers come from?
+
+Every command printed in this document was run, and every number quoted is from
+its own output. The lab was built and verified on JDK 25, on macOS, with one
+representative run per experiment. Nothing was estimated by hand.
+
+Two families of numbers behave differently, and it is worth keeping them apart.
+
+| Kind of number | Examples | How to read it |
+|---|---|---|
+| measured by the code | 493 of 500, 500 of 500, 0 of 1,000, 8,200 transformations | reproducible: run the command and you get it |
+| assumed for sizing | 100M editors, 20 minutes, 10% typing, 50k sockets per node | inputs you state out loud and an interviewer may change |
+
+The capacity table in section 15 is entirely the second kind. Google has never
+published those figures. The method is the deliverable there, never the answer.
+
+### Which claims about Google are public?
+
+Three, and no more. Operational transformation dates to the 1989 GROVE paper.
+The client/server form is the 1995 Jupiter system, which Google Wave's published
+protocol was built on. And Google Docs' editor is publicly described as using
+operational transformation.
+
+Everything else in section 15 is standard architecture for this problem shape.
+It is not a claim about Google's code, and the current internals are not public.
+
+### What did this lab assume you already had?
+
+Five labs feed into this one, and the diagram in section 17 draws them.
+
+The two that matter most are [event-sourcing](../50-event-sourcing/), which is
+where the log-plus-snapshot pattern comes from, and
+[communication-protocols](../02-communication-protocols/), which is where the
+one-ordered-connection-per-client requirement comes from. Break either and this
+lab's guarantees stop holding, as F3 and F5 show from opposite directions.
+
+---
+
+*Alice's C and Bob's S both survive. That is the entire product, and everything
+in this lab was the bill.*
