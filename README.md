@@ -46,9 +46,10 @@ production section. And nothing is ever cut to make a lab shorter: a lab that
 reads badly gets more structure, not less content. The full contract is
 [`STYLE.md`](STYLE.md).
 
-Two labs were rewritten first to set the standard: `39-paxos` and
-`01-networking-for-developers`. The rest are being re-delivered in batches;
-see the backlog below.
+`39-paxos` and `01-networking-for-developers` were rewritten first, to set the
+standard. The rest are being re-delivered in batches. The backlog at the
+bottom of this file says which labs are done, which are queued, and what the
+audit found wrong with each queued one.
 
 ## Tools
 
