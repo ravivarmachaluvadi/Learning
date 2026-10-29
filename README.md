@@ -12,6 +12,7 @@ browser visualization you drive yourself, and exercises with solutions.
 | [`LEARNING-PATH.html`](LEARNING-PATH.html) | The same path as a visual page. Open it in a browser; the lab links are clickable. |
 | [`KNOWLEDGE-MAP.md`](KNOWLEDGE-MAP.md) | What each lab covers and how they depend on each other (478 `Builds on` links). Newest first. |
 | [`STYLE.md`](STYLE.md) | How a lab is written: the Feynman / Socratic voice contract every README follows. |
+| [Learning Hub](https://claude.ai/artifact/QaxMYzjmfdseSwKozQTK1Z) | Every lab (notes, exercises, solutions folded, visual) and the Atlas, as one private claude.ai artifact you can open on any computer signed in to claude.ai, with full screen on every page. Built by `tools/build-hub.py`; it does not update itself. |
 
 ## Which labs matter most
 
@@ -78,6 +79,7 @@ audit found wrong with each queued one.
 | `python tools/mark-rewritten.py` | Stamp the knowledge map and rebuild the backlog below, from `tools/rewritten.txt` |
 | `python tools/mark-importance.py` | Write the interview and learning ratings into `LEARNING-PATH.md`, from `tools/importance.tsv` |
 | `python tools/gen-atlas.py` | Rebuild `LEARNING-PATH.html` from the path file and the knowledge map |
+| `python -I tools/build-hub.py` | Build `hub/` (git-ignored), the Learning Hub artifact, from the lab folders without changing them; prints the files Claude publishes to the hub's link |
 
 ## Running the Java labs (historical)
 

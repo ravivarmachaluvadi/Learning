@@ -20,3 +20,6 @@ out/
 # Python
 __pycache__/
 tools/*.json
+
+# the Learning Hub build (tools/build-hub.py)
+hub/

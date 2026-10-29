@@ -19,6 +19,12 @@ not yet learned.
 > `database-landscape` DuckDB) from `lib/`. Labs since 2026-08-29 contain no
 > runnable code. Measured numbers in the entries below are the Java figures.
 
+> **Learning Hub (2026-10-29).** Every lab's notes (README, exercises, solutions), its visualization and the
+> Systems Atlas are also published as one private claude.ai artifact:
+> https://claude.ai/artifact/QaxMYzjmfdseSwKozQTK1Z. `tools/build-hub.py` builds it from these folders without
+> changing them, and it does not update itself: after a lab changes, rebuild and ask Claude to republish.
+> The per-lab artifact links in the entries below still work; they have no full-screen bar.
+
 ## riverbend-express-build — built 2026-09-10 — repo: `../../LearnWithRealTimeProjects/` (NOT a numbered lab)
 
 - **Runnable companion, not a lab.** Seven Spring Boot 4.1.1 services on Java 21 with a real 3-broker Kafka KRaft cluster (RF=3, `min.insync.replicas=2`, so `acks=all` is not a lie), one PostgreSQL per service, Redis, Schema Registry, Prometheus/Grafana/Tempo. Lives outside this repo because `Learning/` has been deliberately no-code since 2026-08-29; this is where the code for those concepts actually runs. Continues the Asha / Riverbend bakery story from [[microservices]] (lab 56).
