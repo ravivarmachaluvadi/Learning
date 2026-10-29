@@ -641,7 +641,7 @@ opening **`SOLUTIONS.md`**; rungs 7–8 are graded as design discussions, not an
 
 ```mermaid
 graph LR
-    subgraph prerequisites — all learned
+    subgraph PRE["prerequisites — all learned"]
         CAP[cap-theorem]
         QR[quorums-and-replication]
         GP[gossip-protocols]
@@ -656,8 +656,8 @@ graph LR
     CRDT --> EC
     CAUS --> EC
     LIN --> EC
-    EC -.confused with.-> SEC["SEC: same set ⇒ same state NOW — safety, testable;\nEC promises only the quiescent limit — liveness"]
-    EC -.confused with.-> BS["bounded staleness: EC + a promised ceiling;\nEC's ceiling is measured, never promised"]
+    EC -.confused with.-> SEC["SEC: same set ⇒ same state NOW — safety, testable;<br>EC promises only the quiescent limit — liveness"]
+    EC -.confused with.-> BS["bounded staleness: EC + a promised ceiling;<br>EC's ceiling is measured, never promised"]
     EC --> J[jepsen? — testing the untestable via its companions]
     EC --> PR[partitioning-and-rebalancing?]
     EC --> CDC[change-data-capture? — EC pipelines between stores]

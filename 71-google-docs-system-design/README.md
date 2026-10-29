@@ -865,7 +865,7 @@ sequenceDiagram
     Note over S: Bob's edit is based on r0, log is at r1<br>rewrite against r1 → insert(4,'S')<br>log r2, doc "CHATS"
     S-->>A: r2 insert(4,'S')
     S-->>B: r2 insert(4,'S') — your edit, confirmed
-    Note over B: had already applied his own S locally;<br>the confirmation just moves him to r2
+    Note over B: had already applied his own S locally#59;<br>the confirmation just moves him to r2
     Note over A: applies insert(4,'S') → "CHATS"
 ```
 

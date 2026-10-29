@@ -212,16 +212,16 @@ sequenceDiagram
     participant B as BANK-B (log, locks)
     C->>C: log BEGIN txn-1
     C->>A: PREPARE txn-1
-    A->>A: lock alice; log PREPARED; flush
+    A->>A: lock alice#59; log PREPARED#59; flush
     A-->>C: YES
     C->>B: PREPARE txn-1
-    B->>B: lock bob; log PREPARED; flush
+    B->>B: lock bob#59; log PREPARED#59; flush
     B-->>C: YES
     C->>C: log COMMIT ⟵ THE COMMIT POINT
     C->>A: COMMIT
-    A->>A: alice 1000→500; log; unlock
+    A->>A: alice 1000→500#59; log#59; unlock
     C->>B: COMMIT
-    B->>B: bob 200→700; log; unlock
+    B->>B: bob 200→700#59; log#59; unlock
     C->>C: log END txn-1
 ```
 

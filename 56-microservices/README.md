@@ -1317,7 +1317,7 @@ sequenceDiagram
 
   O->>I: POST /reservations (traceparent forwarded)
   I-->>O: 201 reserved
-  O->>DB: BEGIN; insert order; insert outbox; COMMIT
+  O->>DB: BEGIN#59; insert order#59; insert outbox#59; COMMIT
   Note over O,B: relay drains outbox
   O->>B: publish OrderPlaced
   B->>B: payments / shipping / notifications consume

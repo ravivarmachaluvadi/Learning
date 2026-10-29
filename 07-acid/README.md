@@ -1145,7 +1145,7 @@ sequenceDiagram
   participant DB as Database (RAM)
   participant W as WAL (disk)
   participant D as Data file (disk)
-  C->>DB: BEGIN; UPDATE Ravi; UPDATE Meera
+  C->>DB: BEGIN#59; UPDATE Ravi#59; UPDATE Meera
   DB->>DB: change pages in buffer pool (dirty)
   DB->>W: append #102, #103 (before+after images)
   C->>DB: COMMIT

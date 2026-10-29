@@ -257,14 +257,14 @@ sequenceDiagram
     participant R as Relay
     participant K as Broker
     participant C as Inventory Service
-    S->>DB: BEGIN; INSERT order; INSERT outbox; COMMIT
+    S->>DB: BEGIN#59; INSERT order#59; INSERT outbox#59; COMMIT
     loop every poll interval
         R->>DB: SELECT unpublished rows
         R->>K: publish m91
         R->>DB: UPDATE outbox SET published_at
     end
     K->>C: deliver m91
-    C->>C: BEGIN; record m91; stock 10→8; COMMIT
+    C->>C: BEGIN#59; record m91#59; stock 10→8#59; COMMIT
 ```
 
 ## 10. FAILURE SCENARIOS — walk every crash point
