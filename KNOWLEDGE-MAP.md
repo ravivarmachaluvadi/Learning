@@ -24,6 +24,8 @@ not yet learned.
 > https://claude.ai/artifact/QaxMYzjmfdseSwKozQTK1Z. `tools/build-hub.py` builds it from these folders without
 > changing them, and it does not update itself: after a lab changes, rebuild and ask Claude to republish.
 > The per-lab artifact links in the entries below still work; they have no full-screen bar.
+> Where claude.ai is blocked, the same hub is a public website (pages ask search engines not to index them):
+> https://ravivarmachaluvadi.github.io/learning-hub/, built by the `learning-hub` repo's `build.py`.
 
 ## riverbend-express-build — built 2026-09-10 — repo: `../../LearnWithRealTimeProjects/` (NOT a numbered lab)
 

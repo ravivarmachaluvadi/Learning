@@ -18,37 +18,51 @@ claude.ai draws itself. Links to code files (.java) say they are not in the hub.
 
 Usage (from the workspace root):
 
-    python -I tools/build-hub.py          # build hub/, print the files to publish as JSON
+    python -I tools/build-hub.py              # build hub/, print the files to publish as JSON
+    python -I tools/build-hub.py --site DIR   # the same pages for an ordinary website (GitHub Pages)
 
 Claude then publishes hub/index.html with those files (root hub/) to the URL in README.md.
+
+Website mode (--site) is for the public copy at https://ravivarmachaluvadi.github.io/learning-hub/
+(the learning-hub repo's build.py calls it): the start page is a complete document too, the tools
+are linked at tools/<name>/ beside it instead of as claude.ai artifacts, and every page asks search
+engines not to index it. Only the files it writes are replaced in DIR.
 """
-import html, json, os, re, subprocess, sys
+import argparse, html, json, os, re, subprocess, sys
 
 import mistune
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "hub")
+SITE = False   # True for --site: an ordinary website rather than the claude.ai artifact
 
-# The learning tools, each published as its own private artifact (their repos sit next to this one).
+# The learning tools (their repos sit next to this one): name, private artifact, what the tool is, what works in the
+# artifact, its folder on the website (--site), what works there
 TOOLS = [
     ("Claude Learning Tool", "https://claude.ai/artifact/F2dXmCHdbmVsXytTenxzXL",
      "Claude Code for everyday feature work: commands, prompts, playbooks, checkers and ready-made skills.",
-     "Everything works here; Download asks claude.ai to save the file."),
+     "Everything works here; Download asks claude.ai to save the file.",
+     "tools/claude/", "Everything works here."),
     ("Lead Engineer Learning Tool", "https://claude.ai/artifact/FNCmKsUowHCJDJcVdYHJUf",
      "The parts of a lead's job that code does not cover: deadlines, estimates, status, priorities and people.",
-     "Everything works here; Download asks claude.ai to save the file."),
+     "Everything works here; Download asks claude.ai to save the file.",
+     "tools/lead-engineer/", "Everything works here."),
     ("UI Learning Tool", "https://claude.ai/artifact/Sf2hHwAPS7M3YNuzpPJDAs",
      "HTML, CSS and JavaScript with a live preview of every element, attribute, property and value.",
-     "Everything works here, previews included."),
+     "Everything works here, previews included.",
+     "tools/ui/", "Everything works here, previews included."),
     ("React Learning Tool", "https://claude.ai/artifact/LT8qhSzYynVbUNKmzk9gkt",
      "React 19 by running it, with interview flashcards and timed machine-coding problems.",
-     "Your components run in the page, on React 19.3."),
+     "Your components run in the page, on React 19.3.",
+     "tools/react/", "Your components run in the page, on React 19.3."),
     ("Python Learning Tool", "https://claude.ai/artifact/1inYnSfBz8fXwdpcDRZKPD",
      "Python from the first line to advanced topics, written for a Java developer.",
-     "For reading here: lessons, katas, quizzes, the Reference. Running Python needs the tool on your own computer."),
+     "For reading here: lessons, katas, quizzes, the Reference. Running Python needs the tool on your own computer.",
+     "tools/python/", "Python runs in the page (Pyodide from cdn.jsdelivr.net, about 12 MB the first time)."),
     ("Kotlin Learning Tool", "https://claude.ai/artifact/Xy64TnYBZP6RY58dfPCjcQ",
      "Kotlin and coroutines as a Java developer, with checked challenges and the interview questions asked most.",
-     "For reading here: lessons, quizzes, flashcards, the Reference. Running Kotlin needs ktlearn on your laptop."),
+     "For reading here: lessons, quizzes, flashcards, the Reference. Running Kotlin needs ktlearn on your laptop.",
+     "tools/kotlin/", "For reading here: lessons, quizzes, flashcards, the Reference. Running Kotlin needs ktlearn on your laptop."),
 ]
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
@@ -149,7 +163,8 @@ def write(rel, text):
 def document(title, head, body, lab=None):
     """A complete page, for anything published beside the main page."""
     attr = f' data-hub-lab="{esc(lab)}"' if lab else ""
-    return (f'<!doctype html>\n<html lang="en"{attr}>\n<head>\n<meta charset="utf-8">\n'
+    robots = '<meta name="robots" content="noindex">\n' if SITE else ""   # public website: kept out of search engines
+    return (f'<!doctype html>\n<html lang="en"{attr}>\n<head>\n<meta charset="utf-8">\n{robots}'
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
             f'<style>{RESET}</style>\n<title>{esc(title)}</title>\n{head}</head>\n<body>\n{body}\n</body>\n</html>\n')
 
@@ -482,7 +497,14 @@ def bar(links):
 def viz_page(lab):
     src = read(os.path.join(ROOT, lab["folder"], "visualization.html"))
     links = [("../atlas.html", "← Atlas"), ("notes.html", "Notes")]
-    if re.search(r"<!doctype", src[:200], re.I):   # already a whole document: add the bar before </body>
+    if re.search(r"<!doctype", src[:200], re.I):   # already a whole document: mark it, add the bar before </body>
+        low = src.lower()
+        h = low.find("<html") + len("<html")
+        src = src[:h] + f' data-hub-lab="{esc(lab["folder"])}"' + src[h:]
+        if SITE:   # the robots meta right after the charset, as on every other page of the website
+            low = src.lower()
+            m = low.find('<meta charset="utf-8">') + len('<meta charset="utf-8">')
+            src = src[:m] + '\n<meta name="robots" content="noindex">' + src[m:]
         i = src.lower().rfind("</body>")
         return src[:i] + bar(links) + PAGE_JS + src[i:]
     return document(lab["viz_title"] or lab["slug"], "", src + "\n" + bar(links) + PAGE_JS, lab=lab["folder"])
@@ -598,8 +620,11 @@ INDEX_JS = """<script>
 
 def index_page(stages, labs):
     tools = []
-    for name, url, desc, note in TOOLS:
-        if url:
+    for name, url, desc, note, path, web_note in TOOLS:
+        if SITE:
+            tools.append(f'<a class="tool" href="{esc(path)}"><h3>{esc(name)}<span>open →</span></h3>'
+                         f'<p>{esc(desc)}</p><small>{esc(web_note)}</small></a>')
+        elif url:
             tools.append(f'<a class="tool" href="{esc(url)}" target="_blank" rel="noopener"><h3>{esc(name)}<span>new tab ↗</span></h3>'
                          f'<p>{esc(desc)}</p><small>{esc(note)}</small></a>')
         else:
@@ -620,7 +645,7 @@ def index_page(stages, labs):
     body = f"""<div class="page">
 <header class="head">
   <div><h1>Learning Hub</h1>
-  <p>Your learning tools and all {len(labs)} labs, on any computer signed in to claude.ai. Only you can open it.</p></div>
+  <p>{WHERE.format(n=len(labs))}</p></div>
   {full_button()}
 </header>
 <div class="resume" id="resume" hidden><span class="label">Where you were</span><b></b><a href="#"></a></div>
@@ -641,20 +666,38 @@ Code files from the older labs are not in the hub: links to them are marked with
 Built {BUILT} from the Learning folder by tools/build-hub.py.</p>
 </div>
 """ + INDEX_JS + PAGE_JS
-    return "<title>Learning Hub</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n" + FONTS + INDEX_CSS + body
+    head = "<title>Learning Hub</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n" + FONTS + INDEX_CSS
+    if SITE:   # an ordinary website: the start page is a complete document like the rest
+        return document("Learning Hub", "<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n" + FONTS + INDEX_CSS, body)
+    return head + body
+
+
+WHERE_ARTIFACT = "Your learning tools and all {n} labs, on any computer signed in to claude.ai. Only you can open it."
+WHERE_SITE = ("Your learning tools and all {n} labs, in any browser. A public page that asks search engines not to index it; "
+              "progress stays in the browser you use.")
+WHERE = WHERE_ARTIFACT
 
 
 # ---------------------------------------------------------------- build
 
 def main():
-    global TOTAL, BUILT
+    global TOTAL, BUILT, OUT, SITE, WHERE
     import datetime
+    ap = argparse.ArgumentParser(description="Build the Learning Hub (the claude.ai artifact, or with --site a website).")
+    ap.add_argument("--site", metavar="DIR", help="build the website version into DIR (GitHub Pages)")
+    args = ap.parse_args()
+    if args.site:
+        OUT, SITE, WHERE = os.path.abspath(args.site), True, WHERE_SITE
     BUILT = datetime.date.today().isoformat()
     stages, labs = load_path()
     TOTAL = len(labs)
     site = Site(labs)
-    if os.path.isdir(OUT):
-        for dirpath, _, files in os.walk(OUT):
+    # replace only what this script writes: the start page, the Atlas and the labs' pages
+    for f in ("index.html", "atlas.html"):
+        if os.path.exists(os.path.join(OUT, f)):
+            os.remove(os.path.join(OUT, f))
+    for lab in labs:
+        for dirpath, _, files in os.walk(os.path.join(OUT, lab["folder"])):
             for f in files:
                 if f.endswith(".html"):
                     os.remove(os.path.join(dirpath, f))
