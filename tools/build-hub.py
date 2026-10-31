@@ -65,8 +65,8 @@ TOOLS = [
      "tools/kotlin/", "For reading here: lessons, quizzes, flashcards, the Reference. Running Kotlin needs ktlearn on your laptop."),
     ("Java Concurrency Learning Tool", "https://claude.ai/artifact/AAhCNxb7Ts7dPWye7Vu8Qd",
      "Java 25 concurrency by running it: virtual threads, structured concurrency, scoped values, and how Spring uses them.",
-     "For reading here: lessons, quizzes, flashcards, the glossary. Running Java needs jclearn and a JDK 25 on your laptop.",
-     "tools/java-concurrency/", "For reading here: lessons, quizzes, flashcards, the glossary. Running Java needs jclearn and a JDK 25 on your laptop."),
+     "For reading here: lessons, quizzes, flashcards, explainers, the Java version map. Running Java needs jclearn and a JDK 25 on your laptop.",
+     "tools/java-concurrency/", "For reading here: lessons, quizzes, flashcards, explainers, the Java version map. Running Java needs jclearn and a JDK 25 on your laptop."),
 ]
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
