@@ -67,6 +67,14 @@ TOOLS = [
      "Java 25 concurrency by running it: virtual threads, structured concurrency, scoped values, and how Spring uses them.",
      "For reading here: lessons, quizzes, flashcards, explainers, the Java version map. Running Java needs jclearn and a JDK 25 on your laptop.",
      "tools/java-concurrency/", "For reading here: lessons, quizzes, flashcards, explainers, the Java version map. Running Java needs jclearn and a JDK 25 on your laptop."),
+    # 6 Nov 2026: Code Viewer's website copy (java-interview-practice/tools/build_site.py). It has no claude.ai
+    # artifact; the artifact hub links to the website instead.
+    ("Java Interview Practice", "https://ravivarmachaluvadi.github.io/learning-hub/tools/java-practice/",
+     "The java-interview-practice problems (DSA by pattern, Java core, LLD, Spring, SQL, JavaScript and UI) and notes, "
+     "in Code Viewer: an IntelliJ-style editor, Practice mode with hints, Compare, filters and search.",
+     "Opens the website copy. Read, practise, filter and search there; Run shows how to run a file on your PC.",
+     "tools/java-practice/", "Read, practise, Hint, Compare, filter by difficulty and search here. Java cannot run on a website: "
+     "Run shows how to run the file on your PC, and Code Viewer on your laptop runs it."),
 ]
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
