@@ -72,9 +72,10 @@ TOOLS = [
     ("Java Interview Practice", "https://ravivarmachaluvadi.github.io/learning-hub/tools/java-practice/",
      "The java-interview-practice problems (DSA by pattern, Java core, LLD, Spring, SQL, JavaScript and UI) and notes, "
      "in Code Viewer: an IntelliJ-style editor, Practice mode with hints, Compare, filters and search.",
-     "Opens the website copy. Read, practise, filter and search there; Run shows how to run a file on your PC.",
-     "tools/java-practice/", "Read, practise, Hint, Compare, filter by difficulty and search here. Java cannot run on a website: "
-     "Run shows how to run the file on your PC, and Code Viewer on your laptop runs it."),
+     "Opens the website copy. Practise and search there; Python and JavaScript run; Java shows how to run it on your PC.",
+     "tools/java-practice/", "Practise with hints and Compare, search by LeetCode number or technique; Python, JavaScript and "
+     "UI pages run with ticks. Sign in with Google to share Done / Revise marks and practice attempts with Code Viewer "
+     "on your laptop. Works offline. Java cannot run on a website: Run shows how to run it on your PC."),
 ]
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
